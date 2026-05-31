@@ -1,0 +1,47 @@
+name: Build & Deploy to PinMe
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 同一时间只跑一个部署，新 push 会取消正在进行的旧任务
+concurrency:
+  group: pinme-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # lint 仅作信号，不阻断部署（当前 src/ref 旧代码有遗留告警）。
+      # 想让 lint 失败时阻断部署，删掉下面这行 continue-on-error 即可。
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build
+
+      - name: Install PinMe CLI
+        run: npm install -g pinme
+
+      - name: Configure PinMe appkey
+        run: pinme set-appkey "$PINME_APPKEY"
+        env:
+          PINME_APPKEY: ${{ secrets.PINME_APPKEY }}
+
+      - name: Deploy to PinMe
+        run: pinme upload dist --domain knowcs
