@@ -3,6 +3,13 @@ name: Build & Deploy to PinMe
 on:
   push:
     branches: [main]
+    # 纯文档/配置改动不触发部署（一次 push 全部命中这些路径时跳过）。
+    # 想强制部署可在 Actions 页用 workflow_dispatch 手动触发。
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'docs/**'
   workflow_dispatch:
 
 # 同一时间只跑一个部署，新 push 会取消正在进行的旧任务
