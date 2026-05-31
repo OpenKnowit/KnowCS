@@ -26,11 +26,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # lint 仅作信号，不阻断部署（当前 src/ref 旧代码有遗留告警）。
-      # 想让 lint 失败时阻断部署，删掉下面这行 continue-on-error 即可。
       - name: Lint
         run: npm run lint
-        continue-on-error: true
 
       - name: Build
         run: npm run build

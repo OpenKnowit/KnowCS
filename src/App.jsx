@@ -152,7 +152,7 @@ const KnnModule = () => {
     return { data: dataWithDist, neighborsMap, radiusDist, prediction: mCount >= lCount ? 'M' : 'L', mCount, lCount, topK };
   }, [k, isStandardized, testPoint, stats]);
 
-  const performanceData = useMemo(() => Array.from({ length: 15 }, (_, i) => ({ k: i + 1, error: 0.1 + Math.pow((i + 1) - 4, 2) * 0.01 + Math.random() * 0.02 })), []);
+  const performanceData = useMemo(() => Array.from({ length: 15 }, (_, i) => ({ k: i + 1, error: 0.1 + Math.pow((i + 1) - 4, 2) * 0.01 + ((Math.sin((i + 1) * 99.71) + 1) / 2) * 0.02 })), []);
 
   const handleSvgClick = (e) => {
     const rect = svgRef.current.getBoundingClientRect();
@@ -429,7 +429,7 @@ const NaiveBayesModule = () => {
   const [useLog, setUseLog] = useState(false);
   const { t } = useTranslation();
 
-  const calculate = () => {
+  const results = useMemo(() => {
     const results = { yes: { score: 0, raw: 1, steps: [] }, no: { score: 0, raw: 1, steps: [] } };
     ['yes', 'no'].forEach(cls => {
       const prior = BAYES_DATA.priors[cls];
@@ -441,7 +441,7 @@ const NaiveBayesModule = () => {
         const totalCls = cls === 'yes' ? 9 : 5;
         const m = BAYES_DATA.m_values[feat];
         const prob = (count + alpha) / (totalCls + m * alpha);
-        results[cls].steps.push({ 
+        results[cls].steps.push({
           name: feat, val: prob, label: `P(${feat}|${cls})`,
           formula: `\\frac{${count} + ${alpha}}{${totalCls} + ${m} \\times ${alpha}}`
         });
@@ -455,9 +455,7 @@ const NaiveBayesModule = () => {
     results.yes.prob = totalRaw > 0 ? results.yes.raw / totalRaw : 0;
     results.no.prob = totalRaw > 0 ? results.no.raw / totalRaw : 0;
     return results;
-  };
-
-  const results = useMemo(calculate, [inputs, alpha, useLog]);
+  }, [inputs, alpha, useLog]);
 
   return (
     <div className="space-y-8">
