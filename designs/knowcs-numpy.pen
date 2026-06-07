@@ -1,0 +1,2724 @@
+{
+  "version": "2.13",
+  "children": [
+    {
+      "type": "frame",
+      "id": "OUnmg",
+      "x": 0,
+      "y": 0,
+      "name": "CS AI Learning Lab",
+      "clip": true,
+      "width": 1280,
+      "height": 1020,
+      "fill": "$bg-page",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "W0bvs",
+          "name": "Header",
+          "width": "fill_container",
+          "fill": "$bg-white",
+          "stroke": "$border-light",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "padding": [
+            20,
+            32
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "YduCR",
+              "name": "Header Left",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Q3M0Px",
+                  "name": "Title Row",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "x9lXNB",
+                      "name": "App Title",
+                      "fill": "$text-primary",
+                      "content": "CS/AI Interactive Learning Lab",
+                      "fontFamily": "Inter",
+                      "fontSize": 26,
+                      "fontWeight": "800"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "CT4OU",
+                  "name": "Subtitle Row",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "tSjmz",
+                      "name": "Subtitle",
+                      "fill": "$text-secondary",
+                      "content": "COMP2211 Machine Learning Notebook",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n3Xm2",
+                      "name": "Version Badge",
+                      "fill": "$accent-blue",
+                      "cornerRadius": 4,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SoN36",
+                          "name": "Badge Text",
+                          "fill": "#FFFFFF",
+                          "content": "V2.0 KATEX ENHANCED",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "600",
+                          "letterSpacing": 0.5
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "TL9cY",
+              "name": "Header Right",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "gPOHs",
+                  "name": "Status Pill",
+                  "cornerRadius": 20,
+                  "stroke": "$border-light",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    14
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "LTakp",
+                      "name": "Status Dot",
+                      "fill": "$accent-green",
+                      "width": 8,
+                      "height": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "Vi0d8",
+                      "name": "Status Text",
+                      "fill": "$text-secondary",
+                      "content": "Environment: Ready / KaTeX Engine Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "x5y5a",
+                  "name": "Lang Toggle",
+                  "fill": "$bg-white",
+                  "cornerRadius": 8,
+                  "stroke": "$border-light",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "padding": [
+                    8,
+                    14
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "b8khY",
+                      "name": "Lang Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "languages",
+                      "library": "lucide",
+                      "fill": "$text-primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "qLuV3",
+                      "name": "Lang Text",
+                      "fill": "$text-primary",
+                      "content": "中文",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "s2aLe",
+          "name": "Body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "gap": 16,
+          "padding": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "VQmaq",
+              "name": "Sidebar",
+              "width": 220,
+              "height": "fill_container",
+              "fill": "$bg-white",
+              "cornerRadius": 12,
+              "layout": "vertical",
+              "gap": 8,
+              "padding": [
+                20,
+                16
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "h1NE9",
+                  "name": "Knowledge Core Label",
+                  "fill": "$text-muted",
+                  "content": "KNOWLEDGE CORE",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "frame",
+                  "id": "Optvs",
+                  "name": "Nav NumPy Mechanism",
+                  "width": "fill_container",
+                  "fill": "$accent-blue-light",
+                  "cornerRadius": 8,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "tDAgf",
+                      "name": "Icon Box NumPy Mechanism",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "$accent-blue",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "gjehN",
+                          "name": "Icon NumPy Mechanism",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "grid-3x3",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "U2khow",
+                      "name": "Text NumPy Mechanism",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ikD9k",
+                          "name": "Title NumPy Mechanism",
+                          "fill": "$accent-blue",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "NumPy Mechanism",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "fp0Ya",
+                          "name": "Sub NumPy Mechanism",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "View vs Copy & Broadc...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "x1Rye",
+                  "name": "Nav Backpropagation",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "cornerRadius": 8,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "NVTga",
+                      "name": "Icon Box Backpropagation",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "xe0zU",
+                          "name": "Icon Backpropagation",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "repeat",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Yxpz4",
+                      "name": "Text Backpropagation",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "J0mWNw",
+                          "name": "Title Backpropagation",
+                          "fill": "$text-primary",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Backpropagation",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "hPpId",
+                          "name": "Sub Backpropagation",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "The Chain Rule Visualized",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "RG8p1",
+                  "name": "Nav Kernel Lab",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "cornerRadius": 8,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "s3c0rL",
+                      "name": "Icon Box Kernel Lab",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "G5mZU",
+                          "name": "Icon Kernel Lab",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "layout-grid",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "glKEa",
+                      "name": "Text Kernel Lab",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "i9PEm",
+                          "name": "Title Kernel Lab",
+                          "fill": "$text-primary",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Kernel Lab",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "bYNUW",
+                          "name": "Sub Kernel Lab",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Edge Detection Simulati...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "tmhUH",
+                  "name": "Nav Bayes Basics",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "cornerRadius": 8,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Ams3n",
+                      "name": "Icon Box Bayes Basics",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "t4fuh",
+                          "name": "Icon Bayes Basics",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "square-stack",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QxvMQ",
+                      "name": "Text Bayes Basics",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "M5Wq9F",
+                          "name": "Title Bayes Basics",
+                          "fill": "$text-primary",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Bayes Basics",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "dxE8J",
+                          "name": "Sub Bayes Basics",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Formula & Fire Alarm Ca...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ryQHr",
+                  "name": "Nav Naive Bayes",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "cornerRadius": 8,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "GtHkS",
+                      "name": "Icon Box Naive Bayes",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "MRFMv",
+                          "name": "Icon Naive Bayes",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "chart-bar",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Njuln",
+                      "name": "Text Naive Bayes",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "uPU84",
+                          "name": "Title Naive Bayes",
+                          "fill": "$text-primary",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Naive Bayes",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rCbqS",
+                          "name": "Sub Naive Bayes",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Inference & Smoothing",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "QN2jW",
+                  "name": "Nav K-Nearest Neighbors",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "cornerRadius": 8,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "QTSws",
+                      "name": "Icon Box K-Nearest Neighbors",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "w4epav",
+                          "name": "Icon K-Nearest Neighbors",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "send",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "RHiOI",
+                      "name": "Text K-Nearest Neighbors",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "TFSFl",
+                          "name": "Title K-Nearest Neighbors",
+                          "fill": "$text-primary",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "K-Nearest Neighbors",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Gi6xq",
+                          "name": "Sub K-Nearest Neighbors",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Distance Metric & Decis...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Wy6Ig",
+                  "name": "Sidebar Spacer",
+                  "width": "fill_container",
+                  "height": "fill_container"
+                },
+                {
+                  "type": "frame",
+                  "id": "EGy4d",
+                  "name": "Exam Tip Card",
+                  "width": "fill_container",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#4F46E5",
+                        "position": 0
+                      },
+                      {
+                        "color": "#3B82F6",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 12,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "I7A7g",
+                      "name": "Exam Tip Header",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "w5X2Z",
+                          "name": "Exam Tip Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "circle-alert",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Bhxce",
+                          "name": "Exam Tip Title",
+                          "fill": "#FFFFFF",
+                          "content": "EXAM TIP",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "tDhmS",
+                      "name": "Exam Tip Body",
+                      "fill": "#E0E7FF",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Exam Note: Broadcasting can only extend dimensions of Size 1. A · B (np.dot) and A ⊙ B (Element-wise) have completely different physical meanings!",
+                      "lineHeight": 1.5,
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GUSWT",
+              "name": "Main Content",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "$bg-white",
+              "cornerRadius": 12,
+              "layout": "vertical",
+              "gap": 24,
+              "padding": [
+                28,
+                32
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "AMSE9",
+                  "name": "Module Header",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "c5swOi",
+                      "name": "Module Header Row",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "z1FrTd",
+                          "name": "Module Icon",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "grid-3x3",
+                          "library": "lucide",
+                          "fill": "$accent-blue"
+                        },
+                        {
+                          "type": "text",
+                          "id": "mtrtk",
+                          "name": "Module Title",
+                          "fill": "$text-primary",
+                          "content": "NUMPY INTERNAL MECHANISM",
+                          "fontFamily": "Inter",
+                          "fontSize": 20,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.5
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "CFGib",
+                      "name": "Module Subtitle",
+                      "fill": "$text-secondary",
+                      "content": "Deep Dive into Memory Address Mapping & Broadcasting Logic",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "LONd3",
+                  "name": "Section 1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Vn5Ma",
+                      "name": "Sec1 Header",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "QfkFe",
+                          "name": "Sec1 Icon",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "grid-3x3",
+                          "library": "lucide",
+                          "fill": "$text-primary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "y1cojl",
+                          "name": "Sec1 Title",
+                          "fill": "$text-primary",
+                          "content": "1. Memory Slicing Visualization (4x4 Matrix)",
+                          "fontFamily": "Inter",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xw7pz",
+                      "name": "Sec1 Body",
+                      "width": "fill_container",
+                      "gap": 24,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "B7BsUV",
+                          "name": "Sec1 Left",
+                          "layout": "vertical",
+                          "gap": 16,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Q1thAa",
+                              "name": "Matrix Grid",
+                              "layout": "vertical",
+                              "gap": 6,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "XkY4q",
+                                  "name": "Row 0",
+                                  "gap": 6,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "zAogM",
+                                      "name": "Cell 0",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "qrAMd",
+                                          "name": "Val 0",
+                                          "fill": "$text-secondary",
+                                          "content": "0",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "BJ8sy",
+                                      "name": "Cell 1",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "YPOwh",
+                                          "name": "Val 1",
+                                          "fill": "$text-secondary",
+                                          "content": "1",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "I6D21e",
+                                      "name": "Cell 2",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "d59wS",
+                                          "name": "Val 2",
+                                          "fill": "$text-secondary",
+                                          "content": "2",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "jRQOx",
+                                      "name": "Cell 3",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "FagvP",
+                                          "name": "Val 3",
+                                          "fill": "$text-secondary",
+                                          "content": "3",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "naWwE",
+                                  "name": "Row 1",
+                                  "gap": 6,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "c8BeN",
+                                      "name": "Cell 4",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "I6oLQY",
+                                          "name": "Val 4",
+                                          "fill": "$text-secondary",
+                                          "content": "4",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "xOTPy",
+                                      "name": "Cell 5",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "qE2Gi",
+                                          "name": "Val 5",
+                                          "fill": "$text-secondary",
+                                          "content": "5",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "R8qxhP",
+                                      "name": "Cell 6",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "Z5UmLo",
+                                          "name": "Val 6",
+                                          "fill": "$text-secondary",
+                                          "content": "6",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "fssvD",
+                                      "name": "Cell 7",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "H7Kle",
+                                          "name": "Val 7",
+                                          "fill": "$text-secondary",
+                                          "content": "7",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Qa22L",
+                                  "name": "Row 2",
+                                  "gap": 6,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "XYl43",
+                                      "name": "Cell 8",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "apFWc",
+                                          "name": "Val 8",
+                                          "fill": "$text-secondary",
+                                          "content": "8",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "ZgPjB",
+                                      "name": "Cell 9",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "slVEs",
+                                          "name": "Val 9",
+                                          "fill": "$text-secondary",
+                                          "content": "9",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "zsMzd",
+                                      "name": "Cell 10",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "ypA2j",
+                                          "name": "Val 10",
+                                          "fill": "$text-secondary",
+                                          "content": "10",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "CsV46",
+                                      "name": "Cell 11",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "UX1YZ",
+                                          "name": "Val 11",
+                                          "fill": "$text-secondary",
+                                          "content": "11",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "F5emTr",
+                                  "name": "Row 3",
+                                  "gap": 6,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "hqykW",
+                                      "name": "Cell 12",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "z4t7E",
+                                          "name": "Val 12",
+                                          "fill": "$text-secondary",
+                                          "content": "12",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "LWxri",
+                                      "name": "Cell 13",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "PSw9y",
+                                          "name": "Val 13",
+                                          "fill": "$text-secondary",
+                                          "content": "13",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "n9TCCX",
+                                      "name": "Cell 14",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "c7WZu",
+                                          "name": "Val 14",
+                                          "fill": "$text-secondary",
+                                          "content": "14",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "tpv9O",
+                                      "name": "Cell 15",
+                                      "width": 52,
+                                      "height": 42,
+                                      "fill": "$bg-white",
+                                      "cornerRadius": 6,
+                                      "stroke": "$border-light",
+                                      "strokeWidth": 1,
+                                      "justifyContent": "center",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "zayey",
+                                          "name": "Val 15",
+                                          "fill": "$text-secondary",
+                                          "content": "15",
+                                          "fontFamily": "JetBrains Mono",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "oeWhm",
+                              "name": "Btn numpy_module.slice_btn",
+                              "fill": "$bg-white",
+                              "cornerRadius": 6,
+                              "stroke": "$border-medium",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Xq9wH",
+                                  "name": "Btn Text numpy_module.slice_btn",
+                                  "fill": "$text-secondary",
+                                  "content": "numpy_module.slice_btn",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "UO57T",
+                              "name": "Btn numpy_module.fancy_btn",
+                              "fill": "$bg-white",
+                              "cornerRadius": 6,
+                              "stroke": "$border-medium",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "R0ivc",
+                                  "name": "Btn Text numpy_module.fancy_btn",
+                                  "fill": "$text-secondary",
+                                  "content": "numpy_module.fancy_btn",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "MQpJA",
+                              "name": "Btn numpy_module.mask_btn",
+                              "fill": "$bg-white",
+                              "cornerRadius": 6,
+                              "stroke": "$border-medium",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                14
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "UjY3S",
+                                  "name": "Btn Text numpy_module.mask_btn",
+                                  "fill": "$text-secondary",
+                                  "content": "numpy_module.mask_btn",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "oNeeu",
+                          "name": "Hint Text",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": 280,
+                          "content": "Select a slicing method to observe NumPy's memory behavior...",
+                          "lineHeight": 1.6,
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Fo7Tz",
+                  "name": "Divider",
+                  "width": "fill_container",
+                  "height": 1,
+                  "fill": "$border-light"
+                },
+                {
+                  "type": "frame",
+                  "id": "RiDTQ",
+                  "name": "Section 2",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "iHEi9",
+                      "name": "Sec2 Header",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "PHq8C",
+                          "name": "Sec2 Icon",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "repeat",
+                          "library": "lucide",
+                          "fill": "$text-primary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Q5X6l",
+                          "name": "Sec2 Title",
+                          "fill": "$text-primary",
+                          "content": "2. Broadcasting Mechanism",
+                          "fontFamily": "Inter",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Xdtxo",
+                      "name": "Broadcast Box",
+                      "width": "fill_container",
+                      "fill": "#F8FAFC",
+                      "cornerRadius": 10,
+                      "stroke": "$border-light",
+                      "strokeWidth": 1,
+                      "layout": "vertical",
+                      "gap": 20,
+                      "padding": [
+                        20,
+                        24
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Sn9cg",
+                          "name": "Diagram Row",
+                          "width": "fill_container",
+                          "gap": 16,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "f8GZk8",
+                              "name": "Mat A Col",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "qQ8xV",
+                                  "name": "Mat A Label",
+                                  "fill": "$text-secondary",
+                                  "content": "(3,1)",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "hq2L3",
+                                  "name": "Mat A",
+                                  "layout": "vertical",
+                                  "gap": 2,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "sfs3G",
+                                      "name": "A Row 0",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "W4fX3H",
+                                          "name": "A Cell 0",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#22C55E",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "LmCU1",
+                                              "name": "A Val 0",
+                                              "fill": "#FFFFFF",
+                                              "content": "A",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 12,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "e7HVHK",
+                                          "name": "A Ghost 0_1",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "l640Er",
+                                              "name": "A GVal 0_1",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "F7pKD",
+                                          "name": "A Ghost 0_2",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "LOEMI",
+                                              "name": "A GVal 0_2",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "H2aKl",
+                                          "name": "A Ghost 0_3",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "VF5jY",
+                                              "name": "A GVal 0_3",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "A6DDM",
+                                      "name": "A Row 1",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "S6NM1",
+                                          "name": "A Cell 1",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#22C55E",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "M63LM",
+                                              "name": "A Val 1",
+                                              "fill": "#FFFFFF",
+                                              "content": "A",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 12,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "y9757i",
+                                          "name": "A Ghost 1_1",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "sdCmX",
+                                              "name": "A GVal 1_1",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "E24x5y",
+                                          "name": "A Ghost 1_2",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "cOhds",
+                                              "name": "A GVal 1_2",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "n04tX",
+                                          "name": "A Ghost 1_3",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "VBpe6",
+                                              "name": "A GVal 1_3",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "QjtFA",
+                                      "name": "A Row 2",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "aq5e1",
+                                          "name": "A Cell 2",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#22C55E",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "Uc4S3",
+                                              "name": "A Val 2",
+                                              "fill": "#FFFFFF",
+                                              "content": "A",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 12,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "VjwBI",
+                                          "name": "A Ghost 2_1",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "mo4t7",
+                                              "name": "A GVal 2_1",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "K5LjA",
+                                          "name": "A Ghost 2_2",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "GnLpt",
+                                              "name": "A GVal 2_2",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "J4jBPd",
+                                          "name": "A Ghost 2_3",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "G21ow",
+                                              "name": "A GVal 2_3",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "SKj3a",
+                              "name": "Plus Sign",
+                              "fill": "$text-secondary",
+                              "content": "+",
+                              "fontFamily": "Inter",
+                              "fontSize": 20,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "PcC70",
+                              "name": "Mat B Col",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "NvAe6",
+                                  "name": "Mat B Label",
+                                  "fill": "$text-secondary",
+                                  "content": "(1,4)",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "yIuDp",
+                                  "name": "Mat B",
+                                  "layout": "vertical",
+                                  "gap": 2,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "VM5Wq",
+                                      "name": "B Row 0",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "ppxRT",
+                                          "name": "B Cell 0_0",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#F97316",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "o0YaPX",
+                                              "name": "B Val 0_0",
+                                              "fill": "#FFFFFF",
+                                              "content": "B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 12,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "BapFr",
+                                          "name": "B Cell 0_1",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#F97316",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "nloX1",
+                                              "name": "B Val 0_1",
+                                              "fill": "#FFFFFF",
+                                              "content": "B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 12,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "MTBwg",
+                                          "name": "B Cell 0_2",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#F97316",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "DquTW",
+                                              "name": "B Val 0_2",
+                                              "fill": "#FFFFFF",
+                                              "content": "B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 12,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "u5i3U",
+                                          "name": "B Cell 0_3",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#F97316",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "EVaZ0",
+                                              "name": "B Val 0_3",
+                                              "fill": "#FFFFFF",
+                                              "content": "B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 12,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "Gx1QS",
+                                      "name": "B Row 1",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "XOAcP",
+                                          "name": "B Ghost 1_0",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "dInRq",
+                                              "name": "B GVal 1_0",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "qvU4R",
+                                          "name": "B Ghost 1_1",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "DdvLs",
+                                              "name": "B GVal 1_1",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "b0r9e",
+                                          "name": "B Ghost 1_2",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "UeKsg",
+                                              "name": "B GVal 1_2",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "GiJEs",
+                                          "name": "B Ghost 1_3",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "Rl4iL",
+                                              "name": "B GVal 1_3",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "L6aIuF",
+                                      "name": "B Row 2",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "FT11I",
+                                          "name": "B Ghost 2_0",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "w4sL3",
+                                              "name": "B GVal 2_0",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "J0EBFM",
+                                          "name": "B Ghost 2_1",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "WYaBY",
+                                              "name": "B GVal 2_1",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "f2hSL",
+                                          "name": "B Ghost 2_2",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "Oy8sl",
+                                              "name": "B GVal 2_2",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "P50SEr",
+                                          "name": "B Ghost 2_3",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#E2E8F0",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "W9foX",
+                                              "name": "B GVal 2_3",
+                                              "fill": "$text-muted",
+                                              "content": "?",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 11,
+                                              "fontWeight": "normal"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "AdgKy",
+                              "name": "Arrow",
+                              "fill": "$text-muted",
+                              "content": ">",
+                              "fontFamily": "Inter",
+                              "fontSize": 18,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "xTVi9",
+                              "name": "Mat C Col",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "JsrSN",
+                                  "name": "Mat C Label",
+                                  "fill": "#F97316",
+                                  "content": "(3,4)",
+                                  "fontFamily": "JetBrains Mono",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "F5AHLx",
+                                  "name": "Mat C",
+                                  "layout": "vertical",
+                                  "gap": 2,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "K4Act3",
+                                      "name": "C Row 0",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "xPdMS",
+                                          "name": "C Cell 0_0",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "eBMZC",
+                                              "name": "C Val 0_0",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "J14Wti",
+                                          "name": "C Cell 0_1",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "IoC1M",
+                                              "name": "C Val 0_1",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "L3EkPy",
+                                          "name": "C Cell 0_2",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "lNwbi",
+                                              "name": "C Val 0_2",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "caj6s",
+                                          "name": "C Cell 0_3",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "k0LAoP",
+                                              "name": "C Val 0_3",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "IwPrI",
+                                      "name": "C Row 1",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "ZYxUy",
+                                          "name": "C Cell 1_0",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "nFBlE",
+                                              "name": "C Val 1_0",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "pA8B1",
+                                          "name": "C Cell 1_1",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "lYBC0",
+                                              "name": "C Val 1_1",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "biG9N",
+                                          "name": "C Cell 1_2",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "RprP5",
+                                              "name": "C Val 1_2",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "afS4m",
+                                          "name": "C Cell 1_3",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "L38YRD",
+                                              "name": "C Val 1_3",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "Utlhv",
+                                      "name": "C Row 2",
+                                      "gap": 2,
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "Ib7Hf",
+                                          "name": "C Cell 2_0",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "l92REr",
+                                              "name": "C Val 2_0",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "glg8J",
+                                          "name": "C Cell 2_1",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "s2LlQ",
+                                              "name": "C Val 2_1",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "WzqoH",
+                                          "name": "C Cell 2_2",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "hnEt6",
+                                              "name": "C Val 2_2",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "qEejn",
+                                          "name": "C Cell 2_3",
+                                          "width": 36,
+                                          "height": 28,
+                                          "fill": "#06B6D4",
+                                          "cornerRadius": 4,
+                                          "justifyContent": "center",
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "N1YERk",
+                                              "name": "C Val 2_3",
+                                              "fill": "#FFFFFF",
+                                              "content": "A+B",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 9,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "NfW6e",
+                          "name": "Senior Advice",
+                          "width": "fill_container",
+                          "fill": "$callout-yellow-bg",
+                          "cornerRadius": 8,
+                          "stroke": "$callout-yellow-border",
+                          "strokeWidth": {
+                            "left": 3
+                          },
+                          "gap": 12,
+                          "padding": [
+                            14,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "IWCFF",
+                              "name": "Advice Icon",
+                              "fill": "$callout-yellow-border",
+                              "content": "✦",
+                              "fontFamily": "Inter",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "nJ6Ax",
+                              "name": "Advice Text Wrap",
+                              "width": "fill_container",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "E1asRy",
+                                  "name": "Advice Label",
+                                  "fill": "#D97706",
+                                  "content": "Senior's Advice:",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 13,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "r8qKeX",
+                                  "name": "Advice Body",
+                                  "fill": "$text-secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Broadcasting doesn't actually copy data in memory, but virtually maps addresses during iteration. Core rule: Compare from the last dimension forward, they must either be equal or one of them is 1.",
+                                  "lineHeight": 1.6,
+                                  "fontFamily": "Inter",
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "s2MjC",
+          "name": "Footer",
+          "width": "fill_container",
+          "fill": "$footer-bg",
+          "padding": [
+            14,
+            32
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "XzqYl",
+              "name": "Footer Left",
+              "fill": "$footer-text",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "© 2026 KNOWIT COMP2211 ML LEARNING LAB. EDUCATION THROUGH INTERACTION.",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "letterSpacing": 0.5
+            },
+            {
+              "type": "frame",
+              "id": "LwpBT",
+              "name": "Footer Right",
+              "gap": 24,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "sowux",
+                  "name": "Footer Latency",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "d8ynn3",
+                      "name": "Latency Icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "timer",
+                      "library": "lucide",
+                      "fill": "$footer-text"
+                    },
+                    {
+                      "type": "text",
+                      "id": "P8KKm",
+                      "name": "Latency Text",
+                      "fill": "$footer-text",
+                      "content": "LATENCY: 12MS",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.5
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DhUHP",
+                  "name": "Footer Render",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "yLY25",
+                      "name": "Render Icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "monitor",
+                      "library": "lucide",
+                      "fill": "$footer-text"
+                    },
+                    {
+                      "type": "text",
+                      "id": "s3XYuk",
+                      "name": "Render Text",
+                      "fill": "$footer-text",
+                      "content": "RENDER: KATEX HIGH-DEF",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.5
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "accent-blue": {
+      "type": "color",
+      "value": "#3B82F6"
+    },
+    "accent-blue-dark": {
+      "type": "color",
+      "value": "#1D4ED8"
+    },
+    "accent-blue-light": {
+      "type": "color",
+      "value": "#EFF6FF"
+    },
+    "accent-cyan": {
+      "type": "color",
+      "value": "#06B6D4"
+    },
+    "accent-green": {
+      "type": "color",
+      "value": "#22C55E"
+    },
+    "accent-orange": {
+      "type": "color",
+      "value": "#F97316"
+    },
+    "bg-page": {
+      "type": "color",
+      "value": "#F0F4F8"
+    },
+    "bg-sidebar": {
+      "type": "color",
+      "value": "#F8FAFC"
+    },
+    "bg-white": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "border-light": {
+      "type": "color",
+      "value": "#E2E8F0"
+    },
+    "border-medium": {
+      "type": "color",
+      "value": "#CBD5E1"
+    },
+    "callout-yellow-bg": {
+      "type": "color",
+      "value": "#FFFBEB"
+    },
+    "callout-yellow-border": {
+      "type": "color",
+      "value": "#F59E0B"
+    },
+    "exam-tip-end": {
+      "type": "color",
+      "value": "#6366F1"
+    },
+    "exam-tip-start": {
+      "type": "color",
+      "value": "#3B82F6"
+    },
+    "footer-bg": {
+      "type": "color",
+      "value": "#1E293B"
+    },
+    "footer-text": {
+      "type": "color",
+      "value": "#94A3B8"
+    },
+    "text-muted": {
+      "type": "color",
+      "value": "#94A3B8"
+    },
+    "text-primary": {
+      "type": "color",
+      "value": "#1E293B"
+    },
+    "text-secondary": {
+      "type": "color",
+      "value": "#64748B"
+    }
+  }
+}
