@@ -3,6 +3,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
 import { KERNEL_PRESETS } from '../data/constants'
+import { buildSourceImage, convolvePixel } from '../lib/kernel'
 import type { ActivePreset, KernelPresetName } from '../types'
 
 // Convolution Module
@@ -11,13 +12,7 @@ export const KernelModule = () => {
   const [activePreset, setActivePreset] = useState<ActivePreset>('Sobel-X')
   const { t } = useTranslation()
 
-  const sourceImage = useMemo<number[][]>(() => {
-    const img: number[][] = Array.from({ length: 8 }, () => Array<number>(8).fill(0))
-    for (let i = 2; i < 6; i++) {
-      for (let j = 2; j < 6; j++) img[i][j] = 100
-    }
-    return img
-  }, [])
+  const sourceImage = useMemo<number[][]>(() => buildSourceImage(), [])
 
   const handleKernelChange = (r: number, c: number, val: string) => {
     const newKernel = kernel.map((row, ri) =>
@@ -32,15 +27,7 @@ export const KernelModule = () => {
     setActivePreset(name)
   }
 
-  const getConvolvedVal = (ri: number, ci: number): number => {
-    let sum = 0
-    for (let kr = 0; kr < 3; kr++) {
-      for (let kc = 0; kc < 3; kc++) {
-        sum += sourceImage[ri + kr][ci + kc] * kernel[kr][kc]
-      }
-    }
-    return Math.max(0, Math.min(255, Math.abs(sum)))
-  }
+  const getConvolvedVal = (ri: number, ci: number): number => convolvePixel(sourceImage, kernel, ri, ci)
 
   return (
     <div className="space-y-8">

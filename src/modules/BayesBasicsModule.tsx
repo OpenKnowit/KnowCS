@@ -3,6 +3,7 @@ import { Calculator, Flame, Wind } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
+import { bayesPosterior } from '../lib/bayes'
 
 // Bayes Basics Module (Formula & Fire Case)
 export const BayesBasicsModule = () => {
@@ -11,9 +12,10 @@ export const BayesBasicsModule = () => {
   const [pSmoke, setPSmoke] = useState(0.1)
   const { t } = useTranslation()
 
-  const pFireGivenSmoke = useMemo(() => {
-    return (pFire * pSmokeGivenFire) / pSmoke
-  }, [pFire, pSmokeGivenFire, pSmoke])
+  const pFireGivenSmoke = useMemo(
+    () => bayesPosterior(pFire, pSmokeGivenFire, pSmoke),
+    [pFire, pSmokeGivenFire, pSmoke]
+  )
 
   return (
     <div className="space-y-10">

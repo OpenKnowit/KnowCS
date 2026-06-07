@@ -22,8 +22,9 @@
 | `lib/knn.ts` | 均值/标准差统计、标准化、欧氏距离、K 近邻排序+投票、合成复杂度曲线 |
 | `lib/kernel.ts` | 单像素卷积（\|sum\| + 0-255 clamp、边缘 padding）、6×6 源图生成 |
 | `lib/bayes.ts` | 贝叶斯后验 P(F\|S)；朴素贝叶斯：先验、似然、α 平滑、连乘/log 双模式、归一化 |
-| `lib/backprop.ts` | δ 误差项、Δw 权重更新量 |
-| `lib/numpy.ts` | 三种切片模式（slice/fancy/mask）选中索引集合与 view/copy 语义标记 |
+| `lib/numpy.ts` | 三种切片模式（slice/fancy/mask）选中单元格判定 |
+
+> 实施修正：Backprop 模块经核查**无计算逻辑**（公式为静态 KaTeX 展示，errorVal 仅用于显示），不提取、不建 `lib/backprop.ts`。
 
 ## 测试要求（每模块 5-10 用例）
 

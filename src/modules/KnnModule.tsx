@@ -14,7 +14,8 @@ import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
 import { KNN_RAW_DATA } from '../data/constants'
-import type { KnnStats, StudentClass, TestPoint } from '../types'
+import { complexityCurve, computeKnn, scaleLinear, svgToDataPoint } from '../lib/knn'
+import type { KnnStats, TestPoint } from '../types'
 
 // KNN Module - Interactive Visualization
 export const KnnModule = () => {
@@ -30,54 +31,21 @@ export const KnnModule = () => {
     () => ({ meanH: 164, meanW: 62.33, stdH: 4.33, stdW: 2.63, minH: 155, maxH: 175, minW: 55, maxW: 70 }),
     []
   )
-  const scale = (val: number, min: number, max: number, target: number): number =>
-    ((val - min) / (max - min)) * target
+  const scale = scaleLinear
 
-  const processedData = useMemo(() => {
-    const dataWithDist = KNN_RAW_DATA.map((d) => {
-      let dist: number
-      if (isStandardized) {
-        const sh1 = (d.h - stats.meanH) / stats.stdH
-        const sw1 = (d.w - stats.meanW) / stats.stdW
-        const sh2 = (testPoint.h - stats.meanH) / stats.stdH
-        const sw2 = (testPoint.w - stats.meanW) / stats.stdW
-        dist = Math.sqrt(Math.pow(sh1 - sh2, 2) + Math.pow(sw1 - sw2, 2))
-      } else {
-        dist = Math.sqrt(Math.pow(d.h - testPoint.h, 2) + Math.pow(d.w - testPoint.w, 2))
-      }
-      return { ...d, dist }
-    })
-
-    const sorted = [...dataWithDist].sort((a, b) => a.dist - b.dist)
-    const topK = sorted.slice(0, k)
-    const neighborsMap = new Map(topK.map((n, idx) => [`${n.h}-${n.w}`, idx + 1]))
-
-    // Radius for decision circle (distance to K-th neighbor)
-    const radiusDist = topK.length > 0 ? topK[topK.length - 1].dist : 0
-
-    const mCount = topK.filter((n) => n.s === 'M').length
-    const lCount = topK.filter((n) => n.s === 'L').length
-    const prediction: StudentClass = mCount >= lCount ? 'M' : 'L'
-    return { data: dataWithDist, neighborsMap, radiusDist, prediction, mCount, lCount, topK }
-  }, [k, isStandardized, testPoint, stats])
-
-  const performanceData = useMemo(
-    () =>
-      Array.from({ length: 15 }, (_, i) => ({
-        k: i + 1,
-        error: 0.1 + Math.pow(i + 1 - 4, 2) * 0.01 + ((Math.sin((i + 1) * 99.71) + 1) / 2) * 0.02,
-      })),
-    []
+  const processedData = useMemo(
+    () => computeKnn(KNN_RAW_DATA, testPoint, k, isStandardized, stats),
+    [k, isStandardized, testPoint, stats]
   )
+
+  const performanceData = useMemo(() => complexityCurve(), [])
 
   const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!svgRef.current) return
     const rect = svgRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
-    const h = (x / WIDTH) * (stats.maxH - stats.minH) + stats.minH
-    const w = stats.maxW - (y / HEIGHT) * (stats.maxW - stats.minW)
-    setTestPoint({ h: Math.round(h), w: Math.round(w) })
+    setTestPoint(svgToDataPoint(x, y, WIDTH, HEIGHT, stats))
   }
 
   return (

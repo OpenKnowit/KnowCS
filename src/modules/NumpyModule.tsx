@@ -5,6 +5,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
 import { INITIAL_MATRIX } from '../data/constants'
+import { isHighlighted } from '../lib/numpy'
 import type { SliceType } from '../types'
 
 interface SliceInfo {
@@ -18,12 +19,8 @@ export const NumpyModule = () => {
   const [sliceType, setSliceType] = useState<SliceType>('none')
   const { t } = useTranslation()
 
-  const getHighlight = (r: number, _c: number, val: number): boolean => {
-    if (sliceType === 'slice') return r === 1
-    if (sliceType === 'fancy') return r === 0 || r === 2
-    if (sliceType === 'mask') return val % 2 === 0
-    return false
-  }
+  const getHighlight = (r: number, _c: number, val: number): boolean =>
+    isHighlighted(sliceType, r, val)
 
   const getInfo = (): SliceInfo | null => {
     switch (sliceType) {
