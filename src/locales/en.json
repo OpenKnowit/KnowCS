@@ -96,7 +96,8 @@
       "numpy": "NumPy Mechanism",
       "backprop": "Backpropagation",
       "kernel": "Kernel Lab",
-      "alphabeta": "Alpha-Beta"
+      "alphabeta": "Alpha-Beta",
+      "kmeans": "K-Means"
     },
     "section": {
       "bayesBasics": {
@@ -126,6 +127,10 @@
       "alphabeta": {
         "title": "Minimax & Alpha-Beta Pruning",
         "subtitle": "Game Tree Search with Branch Pruning"
+      },
+      "kmeans": {
+        "title": "K-Means Clustering",
+        "subtitle": "Unsupervised EM Iteration & Choosing K"
       }
     },
     "sidebar": {
@@ -138,7 +143,8 @@
         "content_bayesBasics": "Exam Note: <1>P(B|E) \\propto P(B) \\cdot P(E|B)</1>. The denominator P(E) only normalizes — compare hypotheses by the numerator!",
         "content_naiveBayes": "Exam Note: one zero frequency kills the whole product — apply <1>\\alpha</1> smoothing. With many features, switch to <3>\\log</3> sums to avoid underflow!",
         "content_knn": "Exam Note: choose an odd <1>K</1> to avoid tie votes, and always standardize features — otherwise large-range features dominate the distance!",
-        "content_alphabeta": "Exam Note: pruning fires when <1>\\beta \\le \\alpha</1>. Node visiting order matters — <3>a good move ordering prunes far more branches</3>!"
+        "content_alphabeta": "Exam Note: pruning fires when <1>\\beta \\le \\alpha</1>. Node visiting order matters — <3>a good move ordering prunes far more branches</3>!",
+        "content_kmeans": "Exam Note: every iteration keeps <1>WCSS</1> non-increasing, so K-Means always converges — but only to a local optimum (initialization matters). Pick <3>K</3> at the elbow point!"
       }
     },
     "footer": {
@@ -184,5 +190,24 @@
       "exit": "Exit {{node}}: final score {{value}}, return to parent."
     },
     "advice": "Alpha-Beta returns the exact same value as plain Minimax, just faster. The prune condition <1></1> means the parent already has a better guaranteed option, so the rest of this branch can never affect the result. <3>Move ordering is everything</3>: evaluate the most promising child first to trigger maximum pruning."
+  },
+  "kmeans": {
+    "canvas_title": "Cluster Assignment (click Play to iterate)",
+    "raw": "Raw",
+    "zscore": "Z-Score",
+    "reset": "Reset",
+    "play": "Play",
+    "pause": "Pause",
+    "step": "Step",
+    "control": "Control Panel",
+    "k_clusters": "K (clusters)",
+    "iteration": "Iteration",
+    "inertia": "Inertia (WCSS)",
+    "init_state": "Initial state: points assigned to nearest of the initial centroids.",
+    "converged": "Converged: centroids no longer move.",
+    "moved": "Centroids moved a total of {{d}} this step.",
+    "elbow_title": "Elbow Method (K vs Inertia)",
+    "elbow_hint": "Inertia always drops as K grows; pick the 'elbow' where the marginal gain flattens.",
+    "advice": "K-Means alternates two steps (EM): assign each point to the nearest centroid, then move each centroid to its cluster mean. Inertia never increases. Choosing <1>K</1> is the hard part — use the <3>Elbow Method</3>. Always Z-score standardize first, or large-scale features dominate the Euclidean distance!"
   }
 }

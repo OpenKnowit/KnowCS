@@ -1,4 +1,4 @@
-import type { AbNode, BayesData, KernelPresetName, KnnPoint } from '../types'
+import type { AbNode, BayesData, KernelPresetName, KnnPoint, Vec2 } from '../types'
 
 // --- Constants & Helper Data ---
 export const INITIAL_MATRIX: number[][] = Array.from({ length: 4 }, (_, r) =>
@@ -49,6 +49,23 @@ export const AB_PRESETS: Record<string, number[]> = {
   beta: [3, 5, 6, 2, 1, 4, 8, 9], // 演示单分支 Beta 剪枝
   alpha: [6, 7, 8, 9, 1, 2, 0, 4], // 演示子树级 Alpha 剪枝
 }
+
+// --- K-Means：三簇二维教学数据 ---
+export const KMEANS_DATA: Vec2[] = [
+  // 左下簇
+  { x: 1.2, y: 1.5 }, { x: 1.8, y: 1.1 }, { x: 1.0, y: 2.2 }, { x: 2.1, y: 1.8 }, { x: 1.5, y: 1.0 }, { x: 2.3, y: 2.4 },
+  // 右下簇
+  { x: 7.2, y: 1.8 }, { x: 7.8, y: 1.2 }, { x: 8.1, y: 2.1 }, { x: 7.5, y: 2.6 }, { x: 8.4, y: 1.5 }, { x: 6.9, y: 1.1 },
+  // 上中簇
+  { x: 4.2, y: 7.5 }, { x: 4.8, y: 8.1 }, { x: 5.1, y: 7.2 }, { x: 4.5, y: 6.8 }, { x: 5.4, y: 8.0 }, { x: 3.9, y: 7.8 },
+]
+
+// 固定初始质心（教学可复现，刻意放偏以展示收敛过程）
+export const KMEANS_INIT_CENTROIDS: Vec2[] = [
+  { x: 2.0, y: 6.0 },
+  { x: 5.0, y: 3.0 },
+  { x: 6.0, y: 6.0 },
+]
 
 export const KNN_RAW_DATA: KnnPoint[] = [
   { h: 158, w: 58, s: 'M' }, { h: 158, w: 59, s: 'M' }, { h: 158, w: 63, s: 'M' },

@@ -7,6 +7,10 @@
 
 ## 进展时间线
 
+### 2026-06-07 — K-Means 聚类模块上线（第 8 个模块，L4）
+- **feat**：从 `plan-features` worktree 移植 `KMeansModule.tsx` + `lib/kmeans.ts`（+9 个 Vitest 用例）：三簇散点 EM 迭代动画（播放/单步/重置）、K=2-5 选择、WCSS 实时显示、Elbow Method 曲线、Raw/Z-score 切换；接入 Tab 路由、三语文案与专属 Exam Tip（WCSS 单调不增 + 肘部法则）。
+- 覆盖表最大缺口（L4）与期中高频手推考点补齐，plan.md P1 完成。
+
 ### 2026-06-07 — Alpha-Beta 剪枝模块上线（第 7 个模块，L10）
 - **feat**：从 `plan-features` worktree 移植 `AlphaBetaModule.tsx` + `lib/alphabeta.ts`（+6 个 Vitest 用例）：3 层博弈树 SVG 可视化、DFS + α/β 剪枝逐步追踪（播放/步进/调速）、叶子值沙盒与三种预设、i18n 化步骤解释；接入 Tab 路由、三语文案与专属 Exam Tip。
 - **chore**：tsconfig target/lib 升至 ES2022（`Array.prototype.at` 需要）。

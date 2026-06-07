@@ -97,5 +97,18 @@ export interface AbStep {
   returnValue?: number
 }
 
+// K-Means 聚类模块（L4）
+export interface Vec2 {
+  x: number
+  y: number
+}
+
+export interface KMeansIteration {
+  centroids: Vec2[]
+  assignments: number[] // 每个数据点所属簇索引
+  inertia: number // 簇内平方和（WCSS）
+  moved: number // 质心移动总距离
+}
+
 // App 导航
-export type TabId = 'numpy' | 'backprop' | 'kernel' | 'bayesBasics' | 'naiveBayes' | 'knn' | 'alphabeta'
+export type TabId = 'numpy' | 'backprop' | 'kernel' | 'bayesBasics' | 'naiveBayes' | 'knn' | 'alphabeta' | 'kmeans'
