@@ -31,7 +31,7 @@
 | L1 / Lab1 | NumPy & 图像基础（array/切片/broadcast/灰度） | NumpyModule | ✅ 已覆盖 |
 | L2 / Lab2 | 朴素贝叶斯 | BayesBasics + NaiveBayes | 🟡 缺数值特征（Gaussian）似然 |
 | L3 / Lab3 | KNN | KnnModule | ✅ 已覆盖 |
-| **L4 / Lab4** | **K-Means 聚类** | — | ❌ **缺口** |
+| **L4 / Lab4** | **K-Means 聚类** | KMeansModule | ✅ 已上线（2026-06-07） |
 | L5 / Lab5 | 人工神经元 / 感知机 | BackpropModule（仅 MLP 侧） | 🟡 缺单神经元（错误驱动更新） |
 | L6 / Lab6 | 多层感知机 / 反向传播 | BackpropModule | ✅ 已覆盖 |
 | L7 / Lab7 | 图像处理 / 卷积 / **数据增强** | KernelModule（仅卷积） | 🟡 缺数据增强 |
@@ -74,7 +74,7 @@
 |--------|------|------|
 | ~~P0~~ ✅ | Alpha-Beta 模块集成 | 已完成：`src/modules/AlphaBetaModule.tsx` + `lib/alphabeta.ts` + 6 测试，三语 i18n |
 | P0 | 引入 Vitest + 纯函数单测 | 模块/数据已拆分到位，为距离、卷积、贝叶斯等派生计算抽出纯函数并补单测，作为后续重构与改数据的安全网 |
-| P1 | **新增 K-Means 模块（L4）** | 覆盖表最大缺口、且为期中高频手推考点；交互选 K、EM 迭代质心动画、Elbow Method 选 K、Z-score 标准化 |
+| ~~P1~~ ✅ | **新增 K-Means 模块（L4）** | 已完成：交互选 K、EM 迭代质心动画、Elbow Method、Z-score 标准化（`KMeansModule` + `lib/kmeans.ts` + 9 测试） |
 | P1 | **贝叶斯模块补 Gaussian 似然** | 让 NaiveBayes 支持数值特征，覆盖 Lab2「分类 vs 数值」考点 |
 | P1 | i18n 键一致性校验 | 加脚本校验 `en.json` / `zh.json` 键对齐，纳入 lint / CI，防漏翻 |
 | P1 | 文档同步 | `design.md` 第 3/4/12 节仍按旧的「单文件 App.jsx 1065 行」描述，需更新为 TSX + 模块化现状；`log.md` 补记 TSX 迁移、模块拆分两条进展 |

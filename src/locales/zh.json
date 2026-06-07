@@ -96,7 +96,8 @@
       "numpy": "NumPy 机制",
       "backprop": "反向传播",
       "kernel": "卷积核实验室",
-      "alphabeta": "Alpha-Beta 剪枝"
+      "alphabeta": "Alpha-Beta 剪枝",
+      "kmeans": "K-Means 聚类"
     },
     "section": {
       "bayesBasics": {
@@ -126,6 +127,10 @@
       "alphabeta": {
         "title": "Minimax 与 Alpha-Beta 剪枝",
         "subtitle": "带分支剪枝的博弈树搜索"
+      },
+      "kmeans": {
+        "title": "K-Means 聚类",
+        "subtitle": "无监督 EM 迭代与 K 值选择"
       }
     },
     "sidebar": {
@@ -138,7 +143,8 @@
         "content_bayesBasics": "考试注意：<1>P(B|E) \\propto P(B) \\cdot P(E|B)</1>。分母 P(E) 只起归一化作用——比较假设看分子就够了！",
         "content_naiveBayes": "考试注意：一个零频率会让整条连乘归零——记得加 <1>\\alpha</1> 平滑。特征多时改用 <3>\\log</3> 求和防止下溢！",
         "content_knn": "考试注意：<1>K</1> 取奇数避免平票；特征一定要标准化——否则数值范围大的特征会主导距离计算！",
-        "content_alphabeta": "考试注意：当 <1>\\beta \\le \\alpha</1> 时触发剪枝。节点访问顺序很关键——<3>好的走子排序能剪掉多得多的分支</3>！"
+        "content_alphabeta": "考试注意：当 <1>\\beta \\le \\alpha</1> 时触发剪枝。节点访问顺序很关键——<3>好的走子排序能剪掉多得多的分支</3>！",
+        "content_kmeans": "考试注意：每次迭代 <1>WCSS</1> 单调不增，K-Means 必然收敛——但只到局部最优（初始质心很关键）。<3>K</3> 用肘部法则来选！"
       }
     },
     "footer": {
@@ -184,5 +190,24 @@
       "exit": "退出 {{node}}：最终得分 {{value}}，返回父节点。"
     },
     "advice": "Alpha-Beta 与朴素 Minimax 返回完全相同的值，只是更快。剪枝条件 <1></1> 意味着父节点已有更优的保底选择，本分支剩余部分绝不可能改变结果。<3>节点排序至关重要</3>：先评估最有希望的子节点，才能触发最多剪枝。"
+  },
+  "kmeans": {
+    "canvas_title": "簇分配（点击播放逐轮迭代）",
+    "raw": "原始",
+    "zscore": "Z-Score",
+    "reset": "重置",
+    "play": "播放",
+    "pause": "暂停",
+    "step": "单步",
+    "control": "控制面板",
+    "k_clusters": "K（簇数）",
+    "iteration": "迭代轮次",
+    "inertia": "簇内平方和 (WCSS)",
+    "init_state": "初始状态：各点被分到最近的初始质心。",
+    "converged": "已收敛：质心不再移动。",
+    "moved": "本轮质心共移动 {{d}}。",
+    "elbow_title": "肘部法则 (K vs Inertia)",
+    "elbow_hint": "Inertia 随 K 增大必然下降；选「肘部」——边际收益变平的那个 K。",
+    "advice": "K-Means 交替执行两步（EM）：把每个点分到最近质心，再把质心移到簇均值。Inertia 永不增大。难点在于选 <1>K</1>——用 <3>肘部法则</3>。务必先做 Z-score 标准化，否则量纲大的特征会主导欧氏距离！"
   }
 }

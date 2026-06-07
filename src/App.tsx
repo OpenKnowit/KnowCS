@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   BarChart3,
+  Boxes,
   Calculator,
   ChevronDown,
   Cpu,
@@ -21,6 +22,7 @@ import { AlphaBetaModule } from './modules/AlphaBetaModule'
 import { BackpropModule } from './modules/BackpropModule'
 import { BayesBasicsModule } from './modules/BayesBasicsModule'
 import { KernelModule } from './modules/KernelModule'
+import { KMeansModule } from './modules/KMeansModule'
 import { KnnModule } from './modules/KnnModule'
 import { NaiveBayesModule } from './modules/NaiveBayesModule'
 import { NumpyModule } from './modules/NumpyModule'
@@ -104,6 +106,15 @@ const EXAM_TIPS: Record<TabId, React.ReactNode> = {
       }}
     />
   ),
+  kmeans: (
+    <Trans
+      i18nKey="app.sidebar.exam_tip.content_kmeans"
+      components={{
+        1: <Latex formula="\text{WCSS}" />,
+        3: <Latex formula="K" />,
+      }}
+    />
+  ),
 }
 
 export default function App() {
@@ -118,6 +129,7 @@ export default function App() {
     { id: 'naiveBayes', label: t('app.tabs.naiveBayes'), icon: BarChart3, subtitle: 'Inference & Smoothing' },
     { id: 'knn', label: t('app.tabs.knn'), icon: MousePointer2, subtitle: 'Distance Metric & Decision Boundary' },
     { id: 'alphabeta', label: t('app.tabs.alphabeta'), icon: GitBranch, subtitle: 'Minimax & Pruning Trace' },
+    { id: 'kmeans', label: t('app.tabs.kmeans'), icon: Boxes, subtitle: 'EM Iteration & Elbow Method' },
   ]
 
   const [langMenuOpen, setLangMenuOpen] = useState(false)
@@ -315,6 +327,16 @@ export default function App() {
                     subtitle={t('app.section.alphabeta.subtitle')}
                   />
                   <AlphaBetaModule />
+                </>
+              )}
+              {activeTab === 'kmeans' && (
+                <>
+                  <SectionTitle
+                    icon={Boxes}
+                    title={t('app.section.kmeans.title')}
+                    subtitle={t('app.section.kmeans.subtitle')}
+                  />
+                  <KMeansModule />
                 </>
               )}
             </motion.div>
