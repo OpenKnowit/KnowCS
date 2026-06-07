@@ -37,7 +37,7 @@
 | L7 / Lab7 | 图像处理 / 卷积 / **数据增强** | KernelModule（仅卷积） | 🟡 缺数据增强 |
 | **L8 / Lab8** | **卷积神经网络（池化/特征图）** | KernelModule（部分） | 🟡 部分 |
 | **L9 / Lab9** | **PyTorch（张量/自动求导）** | — | ❌ 缺口（偏工具） |
-| **L10 / Lab10** | **Minimax + Alpha-Beta 剪枝** | AlphaBetaModule | 🟠 进行中（见第 5 节） |
+| **L10 / Lab10** | **Minimax + Alpha-Beta 剪枝** | AlphaBetaModule | ✅ 已上线（2026-06-07） |
 | L11 / Lab11 | 复习 / 收尾 | —（非可视化） | n/a |
 
 ---
@@ -62,7 +62,7 @@
 
 | 事项 | 状态 | 说明 |
 |------|------|------|
-| **Alpha-Beta 剪枝模块（L10）** | 原型完成、待集成 | `module/alphabeta.html` / `alphabeta_aligned.html` 为独立 HTML 沙盒（DFS + α/β 剪枝逐步追踪，含 Tic-Tac-Toe 式博弈树）。下一步：移植为 `src/modules/AlphaBetaModule.tsx`，接入 Tab 路由与 i18n，按第 8 节落地步骤执行 |
+| **Alpha-Beta 剪枝模块（L10）** | ✅ 已集成上线（2026-06-07） | `module/alphabeta.html` / `alphabeta_aligned.html` 为独立 HTML 沙盒（DFS + α/β 剪枝逐步追踪，含 Tic-Tac-Toe 式博弈树）。下一步：移植为 `src/modules/AlphaBetaModule.tsx`，接入 Tab 路由与 i18n，按第 8 节落地步骤执行 |
 
 ---
 
@@ -72,7 +72,7 @@
 
 | 优先级 | 事项 | 说明 |
 |--------|------|------|
-| P0 | Alpha-Beta 模块集成 | 把现有原型落地为正式模块（见第 5 节），补齐 L10 覆盖 |
+| ~~P0~~ ✅ | Alpha-Beta 模块集成 | 已完成：`src/modules/AlphaBetaModule.tsx` + `lib/alphabeta.ts` + 6 测试，三语 i18n |
 | P0 | 引入 Vitest + 纯函数单测 | 模块/数据已拆分到位，为距离、卷积、贝叶斯等派生计算抽出纯函数并补单测，作为后续重构与改数据的安全网 |
 | P1 | **新增 K-Means 模块（L4）** | 覆盖表最大缺口、且为期中高频手推考点；交互选 K、EM 迭代质心动画、Elbow Method 选 K、Z-score 标准化 |
 | P1 | **贝叶斯模块补 Gaussian 似然** | 让 NaiveBayes 支持数值特征，覆盖 Lab2「分类 vs 数值」考点 |

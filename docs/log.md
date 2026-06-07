@@ -7,6 +7,11 @@
 
 ## 进展时间线
 
+### 2026-06-07 — Alpha-Beta 剪枝模块上线（第 7 个模块，L10）
+- **feat**：从 `plan-features` worktree 移植 `AlphaBetaModule.tsx` + `lib/alphabeta.ts`（+6 个 Vitest 用例）：3 层博弈树 SVG 可视化、DFS + α/β 剪枝逐步追踪（播放/步进/调速）、叶子值沙盒与三种预设、i18n 化步骤解释；接入 Tab 路由、三语文案与专属 Exam Tip。
+- **chore**：tsconfig target/lib 升至 ES2022（`Array.prototype.at` 需要）。
+- **决策**：worktree 中其余 6 个新模块（KMeans/感知机/PyTorch/归一化/Stump/复习自测）暂不合并，后续逐个移植以控制风险。
+
 ### 2026-06-07 — 侧栏 Exam Tip 模块化
 - **feat**：侧栏 Exam Tip 由全局一条（Broadcasting）改为随当前模块切换，6 条各自贴切的考试提示（NumPy 广播 / Backprop 误差反向与 Δw / Kernel 输出尺寸 N−K+1 / Bayes 后验∝先验×似然 / NB 零频率与 log / KNN 奇数 K 与标准化），i18n 三语同步（zh-HK 经脚本重新生成）。
 
@@ -48,9 +53,9 @@
 
 > 与 [design.md](./design.md) 第 12 节「已知约束」呼应，落地为可追踪条目。
 
-- [ ] `App.jsx` 约 1065 行，所有模块与外壳耦合在单文件——长期应按模块拆到 `src/modules/`。
-- [ ] 纯计算逻辑（距离、卷积、贝叶斯）**无单元测试**，重构前应优先补齐。
-- [ ] `en.json` / `zh.json` 双份手工维护，缺键一致性校验，易漏翻。
+- [x] ~~`App.jsx` 约 1065 行，所有模块与外壳耦合在单文件~~——已拆分为 `src/modules/` 六模块 + 薄壳结构。
+- [x] ~~纯计算逻辑（距离、卷积、贝叶斯）无单元测试~~——已抽取到 `src/lib/` 并配 34 个 Vitest 用例（2026-06-07），`npm test` 为部署门禁；UI/交互层测试仍缺。
+- [ ] `en.json` / `zh.json` 双份手工维护，缺键一致性校验，易漏翻（`zh-HK` 为脚本生成，不在此列）。
 - [ ] KNN「K vs 误差」曲线为示意性合成数据，非真实交叉验证结果。
 - [ ] 教学数据（`BAYES_DATA`、`KNN_RAW_DATA`）硬编码，与讲义绑定。
 

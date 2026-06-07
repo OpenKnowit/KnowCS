@@ -95,7 +95,8 @@
       "naiveBayes": "Naive Bayes",
       "numpy": "NumPy Mechanism",
       "backprop": "Backpropagation",
-      "kernel": "Kernel Lab"
+      "kernel": "Kernel Lab",
+      "alphabeta": "Alpha-Beta"
     },
     "section": {
       "bayesBasics": {
@@ -121,6 +122,10 @@
       "kernel": {
         "title": "Kernel Laboratory",
         "subtitle": "Real-time Simulation of Edge Feature Extraction"
+      },
+      "alphabeta": {
+        "title": "Minimax & Alpha-Beta Pruning",
+        "subtitle": "Game Tree Search with Branch Pruning"
       }
     },
     "sidebar": {
@@ -132,7 +137,8 @@
         "content_kernel": "Exam Note: with no padding and stride 1, output size is <1>N - K + 1</1>. Sobel-X responds to vertical edges — don't mix up the direction!",
         "content_bayesBasics": "Exam Note: <1>P(B|E) \\propto P(B) \\cdot P(E|B)</1>. The denominator P(E) only normalizes — compare hypotheses by the numerator!",
         "content_naiveBayes": "Exam Note: one zero frequency kills the whole product — apply <1>\\alpha</1> smoothing. With many features, switch to <3>\\log</3> sums to avoid underflow!",
-        "content_knn": "Exam Note: choose an odd <1>K</1> to avoid tie votes, and always standardize features — otherwise large-range features dominate the distance!"
+        "content_knn": "Exam Note: choose an odd <1>K</1> to avoid tie votes, and always standardize features — otherwise large-range features dominate the distance!",
+        "content_alphabeta": "Exam Note: pruning fires when <1>\\beta \\le \\alpha</1>. Node visiting order matters — <3>a good move ordering prunes far more branches</3>!"
       }
     },
     "footer": {
@@ -140,5 +146,43 @@
       "latency": "Latency: 12ms",
       "render": "Render: KaTeX High-Def"
     }
+  },
+  "alphabeta": {
+    "preset": {
+      "user": "💡 Example",
+      "beta": "✂️ Beta Prune",
+      "alpha": "🔥 Alpha Prune"
+    },
+    "randomize": "Randomize",
+    "reset": "Reset",
+    "control": "Control Panel",
+    "first": "First step",
+    "prev": "Previous",
+    "play": "Play / Pause",
+    "next": "Next",
+    "progress": "Step progress",
+    "speed": "Speed",
+    "evaluated": "Leaves evaluated",
+    "pruned": "Leaves pruned",
+    "detail": "Computation & Decision",
+    "lower": "lower",
+    "upper": "upper",
+    "edit_leaf": "New value for leaf {{id}} (0-20):",
+    "sandbox": "Live leaf-value sandbox",
+    "legend": {
+      "active": "Active",
+      "visited": "Visited",
+      "pruned": "Pruned"
+    },
+    "explain": {
+      "enter": "Enter node {{node}} ({{label}}), inheriting bounds [α={{alpha}}, β={{beta}}].",
+      "leaf": "Evaluate leaf {{node}}: static value {{value}}, return to parent {{parent}}.",
+      "traverse": "Descend from {{node}} to child {{child}}, carrying [α={{alpha}}, β={{beta}}].",
+      "update_max": "Child {{child}} returned {{result}}. MAX {{node}}: value=max({{prevBest}}, {{result}})={{newBest}}; α=max({{prevBound}}, {{newBest}})={{newBound}}.",
+      "update_min": "Child {{child}} returned {{result}}. MIN {{node}}: value=min({{prevBest}}, {{result}})={{newBest}}; β=min({{prevBound}}, {{newBest}})={{newBound}}.",
+      "prune": "β({{beta}}) ≤ α({{alpha}}) at {{node}} → prune! Skip remaining branches [{{children}}].",
+      "exit": "Exit {{node}}: final score {{value}}, return to parent."
+    },
+    "advice": "Alpha-Beta returns the exact same value as plain Minimax, just faster. The prune condition <1></1> means the parent already has a better guaranteed option, so the rest of this branch can never affect the result. <3>Move ordering is everything</3>: evaluate the most promising child first to trigger maximum pruning."
   }
 }

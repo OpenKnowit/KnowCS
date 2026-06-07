@@ -58,5 +58,44 @@ export type ActivePreset = KernelPresetName | 'Custom'
 // NumPy 模块
 export type SliceType = 'none' | 'slice' | 'fancy' | 'mask'
 
+// Alpha-Beta 剪枝模块（L10）
+export type AbNodeType = 'max' | 'min' | 'leaf'
+
+export interface AbNode {
+  id: string
+  type: AbNodeType
+  parent: string | null
+  children?: string[]
+  value?: number // 仅叶子
+  x: number
+  y: number
+}
+
+export type AbStepType = 'enter' | 'leaf_eval' | 'traverse' | 'update' | 'prune' | 'exit'
+
+export interface AbStep {
+  type: AbStepType
+  nodeId: string
+  alpha: number
+  beta: number
+  nodeValues: Record<string, number | null>
+  nodeAlphas: Record<string, number>
+  nodeBetas: Record<string, number>
+  visited: string[]
+  prunedNodes: string[]
+  prunedEdges: string[]
+  activeEdge: string | null
+  // 结构化解释字段（由组件按 i18n 渲染文案）
+  childId?: string
+  childResult?: number
+  prevBest?: number
+  newBest?: number
+  prevBound?: number
+  newBound?: number
+  prunedChildren?: string[]
+  leafValue?: number
+  returnValue?: number
+}
+
 // App 导航
-export type TabId = 'numpy' | 'backprop' | 'kernel' | 'bayesBasics' | 'naiveBayes' | 'knn'
+export type TabId = 'numpy' | 'backprop' | 'kernel' | 'bayesBasics' | 'naiveBayes' | 'knn' | 'alphabeta'

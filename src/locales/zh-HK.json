@@ -95,7 +95,8 @@
       "naiveBayes": "樸素貝葉斯",
       "numpy": "NumPy 機制",
       "backprop": "反向傳播",
-      "kernel": "卷積核實驗室"
+      "kernel": "卷積核實驗室",
+      "alphabeta": "Alpha-Beta 剪枝"
     },
     "section": {
       "bayesBasics": {
@@ -121,6 +122,10 @@
       "kernel": {
         "title": "卷積核實驗室",
         "subtitle": "實時模擬空間濾波器如何提取邊緣特徵"
+      },
+      "alphabeta": {
+        "title": "Minimax 與 Alpha-Beta 剪枝",
+        "subtitle": "帶分支剪枝的博弈樹搜索"
       }
     },
     "sidebar": {
@@ -132,7 +137,8 @@
         "content_kernel": "考試注意：無 padding、步長為 1 時，輸出尺寸是 <1>N - K + 1</1>。Sobel-X 響應的是垂直邊緣——方向別搞反！",
         "content_bayesBasics": "考試注意：<1>P(B|E) \\propto P(B) \\cdot P(E|B)</1>。分母 P(E) 只起歸一化作用——比較假設看分子就夠了！",
         "content_naiveBayes": "考試注意：一個零頻率會讓整條連乘歸零——記得加 <1>\\alpha</1> 平滑。特徵多時改用 <3>\\log</3> 求和防止下溢！",
-        "content_knn": "考試注意：<1>K</1> 取奇數避免平票；特徵一定要標準化——否則數值範圍大的特徵會主導距離計算！"
+        "content_knn": "考試注意：<1>K</1> 取奇數避免平票；特徵一定要標準化——否則數值範圍大的特徵會主導距離計算！",
+        "content_alphabeta": "考試注意：當 <1>\\beta \\le \\alpha</1> 時觸發剪枝。節點訪問順序很關鍵——<3>好的走子排序能剪掉多得多的分支</3>！"
       }
     },
     "footer": {
@@ -140,5 +146,43 @@
       "latency": "Latency: 12ms",
       "render": "Render: KaTeX High-Def"
     }
+  },
+  "alphabeta": {
+    "preset": {
+      "user": "💡 示例",
+      "beta": "✂️ Beta 剪枝",
+      "alpha": "🔥 Alpha 剪枝"
+    },
+    "randomize": "隨機生成",
+    "reset": "重置",
+    "control": "控制面板",
+    "first": "回到首步",
+    "prev": "上一步",
+    "play": "播放 / 暫停",
+    "next": "下一步",
+    "progress": "步驟進度",
+    "speed": "動畫速度",
+    "evaluated": "已評估葉子",
+    "pruned": "已剪枝葉子",
+    "detail": "當前計算與決策",
+    "lower": "下限",
+    "upper": "上限",
+    "edit_leaf": "請輸入葉子 {{id}} 的新估值 (0-20)：",
+    "sandbox": "實時葉子數值沙盒",
+    "legend": {
+      "active": "當前活躍",
+      "visited": "已訪問",
+      "pruned": "已剪枝"
+    },
+    "explain": {
+      "enter": "進入節點 {{node}}（{{label}}），繼承約束區間 [α={{alpha}}, β={{beta}}]。",
+      "leaf": "評估葉子 {{node}}：靜態估值 {{value}}，回傳父節點 {{parent}}。",
+      "traverse": "從 {{node}} 向子節點 {{child}} 深入，攜帶區間 [α={{alpha}}, β={{beta}}]。",
+      "update_max": "子節點 {{child}} 返回 {{result}}。MAX {{node}}：值=max({{prevBest}}, {{result}})={{newBest}}；α=max({{prevBound}}, {{newBest}})={{newBound}}。",
+      "update_min": "子節點 {{child}} 返回 {{result}}。MIN {{node}}：值=min({{prevBest}}, {{result}})={{newBest}}；β=min({{prevBound}}, {{newBest}})={{newBound}}。",
+      "prune": "節點 {{node}} 處 β({{beta}}) ≤ α({{alpha}}) → 剪枝！忽略後續分支 [{{children}}]。",
+      "exit": "退出 {{node}}：最終得分 {{value}}，返回父節點。"
+    },
+    "advice": "Alpha-Beta 與樸素 Minimax 返回完全相同的值，只是更快。剪枝條件 <1></1> 意味着父節點已有更優的保底選擇，本分支剩餘部分絕不可能改變結果。<3>節點排序至關重要</3>：先評估最有希望的子節點，才能觸發最多剪枝。"
   }
 }
