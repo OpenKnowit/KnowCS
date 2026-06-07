@@ -7,6 +7,11 @@
 
 ## 进展时间线
 
+### 2026-06-07 — 单元测试体系（Vitest）
+- **feat**：引入 Vitest，新增 `src/lib/`（knn / kernel / bayes / numpy）——把组件内嵌的计算逻辑原样提取为纯函数，组件改为调用；34 个用例覆盖黄金值（NB α=0 → 20.46%/79.54%、火警 9.00%、KNN 默认点 M 4:1、Laplacian 200）与边界（零频率、α 平滑、log/连乘一致性、clamp、平票）。
+- **ci**：deploy.yml 在 lint 后插入 `npm test`，部署门禁三连 → 四连；CLAUDE.md 同步更新。
+- **决策**：Backprop 模块无计算逻辑（公式为静态展示），不提取；测试范围由 `vitest.config.ts` 限定在 `src/**`，避免误跑 `.claude/worktrees/` 下的文件。
+
 ### 2026-06-07 — 繁体中文（zh-HK）支持
 - **feat**：i18n 新增香港繁体 `zh-HK`，Header 语言切换由双语 toggle 升级为三语下拉菜单（English / 简体中文 / 繁體中文，Framer Motion 动画 + 点击外部收起）。
 - **feat**：新增 `scripts/gen-zh-hk.mjs`（`npm run gen:zh-hk`）——OpenCC `cn→hk` 字级转换后套用香港术语映射（內存→記憶體、算法→演算法、交互→互動、創建→建立、噪聲→雜訊、過濾器→濾波器、學長寄語→師兄寄語）；`zh-HK.json` 为生成产物，严禁手改。

@@ -4,6 +4,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
 import { BAYES_DATA } from '../data/constants'
+import { computeNaiveBayes } from '../lib/bayes'
 import type { BayesClass, BayesFeature, NaiveBayesResults } from '../types'
 
 const CLASSES: BayesClass[] = ['yes', 'no']
@@ -20,36 +21,10 @@ export const NaiveBayesModule = () => {
   const [useLog, setUseLog] = useState(false)
   const { t } = useTranslation()
 
-  const results = useMemo<NaiveBayesResults>(() => {
-    const results: NaiveBayesResults = {
-      yes: { score: 0, raw: 1, steps: [], prob: 0 },
-      no: { score: 0, raw: 1, steps: [], prob: 0 },
-    }
-    CLASSES.forEach((cls) => {
-      const prior = BAYES_DATA.priors[cls]
-      results[cls].steps.push({ name: 'Prior', val: prior, label: cls === 'yes' ? 'P(Z=Yes)' : 'P(Z=No)' })
-      let likelihoodProduct = 1
-      let logSum = Math.log(prior)
-      ;(Object.entries(inputs) as [BayesFeature, string][]).forEach(([feat, val]) => {
-        const count = BAYES_DATA.counts[feat][val][cls]
-        const totalCls = cls === 'yes' ? 9 : 5
-        const m = BAYES_DATA.m_values[feat]
-        const prob = (count + alpha) / (totalCls + m * alpha)
-        results[cls].steps.push({
-          name: feat, val: prob, label: `P(${feat}|${cls})`,
-          formula: `\\frac{${count} + ${alpha}}{${totalCls} + ${m} \\times ${alpha}}`,
-        })
-        likelihoodProduct *= prob
-        logSum += Math.log(prob || 1e-10)
-      })
-      results[cls].raw = prior * likelihoodProduct
-      results[cls].score = useLog ? logSum : results[cls].raw
-    })
-    const totalRaw = results.yes.raw + results.no.raw
-    results.yes.prob = totalRaw > 0 ? results.yes.raw / totalRaw : 0
-    results.no.prob = totalRaw > 0 ? results.no.raw / totalRaw : 0
-    return results
-  }, [inputs, alpha, useLog])
+  const results = useMemo<NaiveBayesResults>(
+    () => computeNaiveBayes(BAYES_DATA, inputs, alpha, useLog),
+    [inputs, alpha, useLog]
+  )
 
   return (
     <div className="space-y-8">

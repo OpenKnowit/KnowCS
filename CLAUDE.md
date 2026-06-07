@@ -24,6 +24,7 @@ React 19 · TypeScript（strict）· Vite 7 · Tailwind CSS 4 · Framer Motion 1
 npm install       # 安装依赖
 npm run dev       # 开发服务器（http://localhost:5174）
 npm run lint      # ESLint 检查（部署门禁）
+npm test          # Vitest 单元测试（部署门禁）
 npm run typecheck # tsc --noEmit 严格类型检查（部署门禁）
 npm run build     # 生产构建：tsc --noEmit && vite build → dist/ 单 HTML（部署门禁）
 npm run preview   # 预览构建产物
@@ -40,9 +41,10 @@ GitHub Actions 自动构建并部署到 PinMe（IPFS），线上地址 <https://
 **流程（任一步失败即中断，不部署）**
 1. `npm ci` 安装依赖
 2. `npm run lint` —— ESLint
-3. `npm run typecheck` —— `tsc --noEmit` 严格类型检查
-4. `npm run build` —— `tsc --noEmit && vite build`，产出单文件 `dist/index.html`
-5. `pinme set-appkey` + `pinme upload dist --domain knowcs` 发布到 `knowcs` 子域名
+3. `npm test` —— Vitest 单元测试（`src/lib/` 纯计算逻辑）
+4. `npm run typecheck` —— `tsc --noEmit` 严格类型检查
+5. `npm run build` —— `tsc --noEmit && vite build`，产出单文件 `dist/index.html`
+6. `pinme set-appkey` + `pinme upload dist --domain knowcs` 发布到 `knowcs` 子域名
 
 **密钥**：PinMe appkey 存于 GitHub 仓库 Secret `PINME_APPKEY`，**严禁**写入仓库任何文件。token 会过期（约 2026-06-30），过期后在 PinMe 后台重新生成并 `gh secret set PINME_APPKEY` 更新。
 
@@ -50,7 +52,8 @@ GitHub Actions 自动构建并部署到 PinMe（IPFS），线上地址 <https://
 
 ## 工作约定
 
-- **部署门禁三连**：提交/部署前确保 `npm run lint`、`npm run typecheck`、`npm run build` 均通过，否则 CI 中断、不会部署到 PinMe。
+- **部署门禁四连**：提交/部署前确保 `npm run lint`、`npm test`、`npm run typecheck`、`npm run build` 均通过，否则 CI 中断、不会部署到 PinMe。
+- **计算逻辑放 `src/lib/`**：可视化模块的纯计算（距离/卷积/概率等）一律提取为 `src/lib/` 纯函数并配套 `*.test.ts`，组件只负责渲染与交互。
 - **i18n 同步**：新增/修改文案必须同时更新 `src/locales/en.json` 与 `src/locales/zh.json`，键严格对齐；繁体 `zh-HK.json` **由脚本生成、严禁手改**——改完 `zh.json` 后运行 `npm run gen:zh-hk`（OpenCC 简→港繁 + 香港术语映射，映射表见 `scripts/gen-zh-hk.mjs` 的 `HK_TERMS`）。
 - **新增模块**：照 [docs/design.md](./docs/design.md) 第 11 节 / [docs/plan.md](./docs/plan.md) 第 6 节的步骤执行。
 - **文档维护**：架构决策写入 `design.md`；完成的变更追加到 `log.md`；规划调整更新 `plan.md`。
@@ -60,6 +63,7 @@ GitHub Actions 自动构建并部署到 PinMe（IPFS），线上地址 <https://
 - `src/App.tsx` —— 根组件：侧栏导航 + 各模块组合。
 - `src/modules/*.tsx` —— 6 个可视化模块（Knn / BayesBasics / NaiveBayes / Numpy / Backprop / Kernel）。
 - `src/components/*.tsx` —— 共享组件（Latex / SectionTitle / SeniorAdvice）。
+- `src/lib/*.ts` —— 纯计算逻辑（knn / kernel / bayes / numpy）+ 同目录 Vitest 单元测试。
 - `src/types.ts` + `src/data/constants.ts` —— 共享类型定义与类型化数据常量。
 - `src/i18n.ts` + `src/locales/` —— 国际化初始化与中英文案。
 - `src/ref/` —— 历史参考版本（.jsx），**不参与构建、已在 lint/tsc 忽略**。
