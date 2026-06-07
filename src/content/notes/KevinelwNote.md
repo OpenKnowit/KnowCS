@@ -1,0 +1,1240 @@
+# **1.Intro:**
+
+AI>ML>NN>DL
+
+Tensorflow:ML from Google
+
+Keras:Interface upon Tensorflow
+
+PyTorch:ML from Facebook, adapted to run tensor on GPU
+
+Scikit-learn:user-friendly, classification, regressions..
+
+![图片](images/image_01.png)
+# **2.Python(3.11.13):**
+
+type(<object>) e.g.:
+
+print(type((1,2,3)) #<class 'tuple'>
+
+new_list = [expression for element in old_list if condition] e.g.:
+
+even_squares = [x*x for x in nums if x % 2 == 0]
+
+can have 2 for and optional if e.g.:
+
+pairs = [(x, y) for x in [1,2] for y in [3,4]]
+
+new_dict = {key_expression : value_expression for element in iterable if condition} e.g.:
+
+filtered = {k: v for k, v in old_dict.items() if v > 10}
+
+new_set = {expression for element in iterable if condition} (same with list but 去重) e.g.:
+
+s = {x*x for x in [1, 2, 2, 3]} # {1,4,9}
+
+tuples can be used as keys in dictionaries and as elements of sets, while lists cannot
+
+tuples cannot change
+
+container: can use "in"
+
+iterable: can use for, all containers are iterable, others: generator(with yield) or files
+
+zip must be parameter, and follow the shortest iterators(change iter. to iter.)
+
+```python
+a = [1, 2, 3]
+b = ["x", "y"]
+zip(a,b) #(1,"x"),(2,"y") an iterator
+```
+*months: change parameters into a tuple(* is unpacking during funcion call but packing during in the parameters list, and ** for dictionary) e.g.:
+def print_months(*months):
+
+    print("The last month is " + months[-1])
+
+print_months("January", "Febuary", ..., "December")
+
+class: must put self as the first parameter but don't need while calling, outside __init__ is static variable, inside __init__ is instance variable(member) all default public e.g.:
+
+```python
+class Cat:
+  species = "Feline"   # static, use Cat.species to call
+  def __init__(self, name):
+      self.name = name  # member
+      self._n = 1 # protected, actually still may change
+      self.__m = 1 # private, actually change the name to _Cat__m
+      #if you want to change __m, you will simply define a new __m but don't change _Cat__m
+      #if u call __m, then error! cus no define
+  def f(self):
+      print("m")
+c = Cat()
+c.f() # don't need self!
+
+class sCat(Cat): # inheritance
+  def __init__(self,name,m)
+    super().__init__(name)
+    self.__m = m
+```
+modules: a python file can be import
+packages: a lot of modules, must have __init__.py
+
+mypackage/
+
+    __init__.py
+
+    math_utils.py
+
+    string_utils.py
+
+libraries: a lot of packages e.g.: numpy, pandas
+
+```python
+from [module] import [function/class/variable]
+from [package].[module] import [function/class/variable]
+
+import math
+print(math.sqrt(16))
+
+from math import *
+print(sqrt(16)) # don't need "math."
+
+from math import sqrt
+print(sqrt(16)) # don't need "math."
+
+import sklearn.cluster.KMeans #need long function call
+from sklearn.cluster import KMeans #only KMeans() is ok
+
+from google.colab import drive
+import pandas as pd
+drive.mount('/content/drive')
+df = pd.read_csv('/content/drive/My Drive/pokemons.csv', index_col=False) #If we set index col to False, the current columns (such as Name, Score, and Remark) will not be used as the column index. Instead, a new column will be added on the left with numbers starting from 0, 1, 2, and so on, similar to the left-most indices in Excel.
+print(df)
+output = pd.DataFrame({'CustomerId': np.array([1, 2, 3]), 'CanRepayLoan': np.array([0, 0, 1])})
+output.to_csv('/content/drive/My Drive/loans.csv', index=False)
+```
+**Numpy:**
+```python
+import numpy as np
+a = np.zeros((2,2)) #float must have 2 pairs of () !!!!!!!!
+a = np.ones((2,2)) #float
+a = np.full((2,2),7)
+a = np.eye((2,2)) #identity matrix gen float! i.e.[[1.,0.],[0.,1.]]
+a = np.random.random((2,2,2))
+```
+a.shape, not a.shape(), shape will return(3,) if one dimension
+if decompose tuple, can use *a.shape when calling function
+
+a.ndim not a.ndim()
+
+A.size is number of item
+
+A.itemsize is size of each item
+
+total size = A.size*A.itemsize
+
+a = [1,2,3]
+
+a[i] if i>= 3 error!
+
+a[-i] if i >= 4 error!
+
+a[i:j:n] if positive step: i := 0 j := len(a) default (if i>= j empty)
+
+   if negative step: i := len(a)-1 j := -1 default (if i<= j empty)
+
+if i or j beyond limit, then cut to default
+
+simple slicing is a view! (reference) which don't use list or np.array, only :
+
+fancy slicing is a copy, which use list (np.array also is a copy)
+
+bool index is copy:
+
+```python
+a = np.array([[1,2],[3,4]])
+b = a%2==0
+print(b)
+'''[[False  True]
+ [False  True]]'''
+print(a[b]) # [2,4]
+print(a[a%2==0]) # [2,4]
+#important!!!! below:
+a[1,0] # 3 it's same as a[(1,0)]
+a[[1,0]] # [[3,4],[1,2]]
+
+a.dtype # int64
+type(a) # <class 'numpy.darray'>
+b = np.array(a,dtype=np.float64)
+c = a+b # c=np.add(a,b) also subtract multiply divide sqrt(x)
+
+np.dot(a,b)
+a.dot(b)
+a@b
+np.matmul(a,b)
+
+np.append(a,b,axis)
+# if append axis=0, then other axis(1,2) must have same shape
+# if append axis=1, then other axis(0,2) must have same shape
+
+np.sum(a) #10
+np.sum(a,axis=0) # [4,6]
+np.sum(a,axis=1) # [3,7]
+# also min,max,mean,std,np.median(a),np.log(a),np.abs(a)
+# also argmax argmin argsort np.linalg.int(a)
+# argsort output the i-th small e.g.[0 2 1 3] default last axis
+a.T # do nothing to 1D
+np.transpose(a) # view!
+a.transpose([1,0])
+
+a.reshape(4,1) # view!!
+
+# None = np.newaxis
+np.expand_dims(a,axis=0) # view!
+d = np.ones((2,3,4))
+d[None].shape # (1,2,3,4)
+d[:,None].shape # (2,1,3,4)
+d[:,:,None].shape # (2,3,1,4)
+d[None,:].shape # (1,2,3,4)
+d[None,:,:].shape # (1,2,3,4)
+
+# tile is copy the whole array, repeat is tile per item
+# np.repeat(a, repeats, axis=None) default flatten to 1D
+# tile is copy, not view!
+np.tile(d,(5,6)) # (2,3*5,4*6)
+np.tile(d,(2,1,5,6)) # (2,2*1,3*5,4*6)
+
+a = np.array([[1,2,3,4],[5,6,7,8],[9,10,11,12]])
+a[  [[0,0],[1,1],[2,2]] , [[0,1],[1,2],[2,3]]  ] # best one
+a[ [[i,i] for i in range(3)] , [[i,i+1] for i in range(3)] ]
+[a[0,0:2],a[1,1:3],a[2,2:4]] # no! it's a list, not array
+np.array([a[0,0:2],a[1,1:3],a[2,2:4]])
+# all: [[1,2],[6,7],[11,12]]
+```
+Broadcast:
+put 1 at left, then check, must same or at least one side is 1![图片](images/image_02.png)
+
+numpy≈c++, using only one ptr, while python list use lots of ref
+
+
+# **3.Bayes:**
+
+Machine Learning is the science and engineering of getting computers to act without being explicitly programmed.
+
+Supervised learning:
+
+training dataset: input, correct output(label) so need domain expert to label data
+
+learn the relationship
+
+shorter training time, high accuracy
+
+e.g.: classification, regression
+
+Unsupervised learning:
+
+training dataset: input
+
+find a pattern
+
+longer training time, low accuracy
+
+e.g.: clustering, association
+
+![图片](images/image_03.png)
+Naive Bayes:
+
+P(B|E) = P(B) × P(E|B) /(E)
+
+E: Evidence (Feature), B: Belief (Class)
+
+![图片](images/image_04.png)
+Naive requirement:
+
+1.Evidence conditional independent: P(e1e2|B)=P(e1|B)*P(e2|B)
+
+2.Evidence contributes equally: w1=w2=1 in P(B|e1e2)=kP(B)(P(e1|B)^w1)*(P(e2|B)^w2)
+
+![图片](images/image_05.png)
+remove the denominator:
+
+![图片](images/image_06.png)
+α-laplace smoothing:![图片](images/image_07.png)
+
+m = types of ej, hence the sum would be 1
+
+continuous variables:![图片](images/image_08.png)
+
+caculate mean and sd for each B then use f(x)
+
+avoiding floating-point overflow, we can use log sum
+
+pros&cons: ![图片](images/image_09.png)
+
+# 4.KNN:
+
+Lazy Learning: no modeling during training, only calculate during testing
+
+Non-Parametric:
+
+1 don't have parameter (that means pm. from data, the humanmade pm. is called hyperparameter e.g.: K in KNN)
+
+2 don't make any assumption (e.g. distribution)![图片](images/image_10.png)
+
+Steps:
+
+1 Prepare training data and test data.
+
+2 Select a value K.
+
+3 Determine which distance function is to be used.
+
+4 Compute the distance of the new data to its n training samples.
+
+5 Sort the distances obtained and take the K-nearest data samples.
+
+6 Assign the test sample to the class based on the majority vote of its K nearest neighbors.
+
+Standardization:
+
+Xnew = X-mean/sd
+
+Distance function:
+
+Euclidean distance
+
+Manhattan distance: good in high dimension
+
+Cosine distance: 1-cos(θ) range:0(similar)~2(different)
+
+Hamming distance: number of different bits, used in one-hot
+
+High K is more resilient to outlier
+
+To break a tie:
+
+K--
+
+more weight on nearest points
+
+K can't be too large or small, sqrt(N) is good
+
+Cross-validation:
+
+1 Split the training data into d groups, or folds, of approximately equal size.
+
+2 Hold the first group. This is called the validation set.
+
+3 Train your classifier on the remaining data.
+
+4 For each value of K Classify each data in the validation set, using its K-nearest neighbors in the training set. Record the error.
+
+5 Repeat steps 2-4 for all d choices of the validation set.
+
+6 For each choice of K, find the average error across validation sets. Choose the value of K with the lowest error.
+
+
+Model Evaluation:
+
+Confusion Matrix: TP,TN,FP(predict+),FN(predict-)
+
+Accuracy = TP+TN/sum,   Error = FP+FN/sum
+
+Precision = TP/TP+FP,   Recall = TP/TP+FN (检索率)
+
+F1-score = 2*P*R/P+R = 2TP/2TP+FP+FN
+
+Micro F1: Total TP,FP,FN
+
+Macro F1: unweighted mean of F1
+
+Weighted F1: weighted by total number of samples of that class
+
+![图片](images/image_11.png)
+F1 better than Accuracy but also only focus on positive class (if yesyes=100, fail)
+
+MCC = TN*TP-FN*FP/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN)) 
+
+MCC is the best, for e.g.: Accuracy = 0.913 F1=0.5(0.95 if swap) MCC=0.45
+
+MCC's range: -1(against) ~ 0(random) ~ 1(perfect)![图片](images/image_12.png)
+
+
+Error Measurement:
+
+Mean Absolute Error(MAE): sum(abs(ai-pi))/m
+
+Mean Square Error(MSE): sum((ai-pi)^2)/m
+
+Mean Absolute Percentage Error(MAPE): sum(abs(ai-pi/ai))/m
+
+Pros&Cons:![图片](images/image_13.png)
+
+Speed Up KNN
+
+Reduce the dimension of training data (e.g., using Principle-Component Analysis).
+
+Use good data structures to store the data, e.g., KD-tree. to seperate the whole space, only need to calculate part of all distances
+
+Parallelizing the distance computations.
+
+
+# 5.KMeans:
+
+Steps:
+
+0 Standardization!!!!
+
+1 Choose K (random) data points (seeds) to be the initial centroids (cluster centers).
+
+2 Find the distances between each data point in our training set with the K centroids.
+
+3 Assign each data point to the closest centroid according to the distance found.
+
+4 Re-compute the centroids using the current cluster memberships.
+
+5 If a convergence criterion is NOT met, repeat steps 2 to 4.
+
+Stop Criterion:
+
+No/Minimum re-assignments of data points to different clusters
+
+No/Minimum change of centroids
+
+Minimum decrease in the sum of squared error (SSE) between successive iteration
+
+SSE = sum(dist(pi,cj))
+
+High quality clustering:
+
+Maximizes inter-clusters distance (Isolation) (i.e., distance between clusters)
+
+Minimizes intra-clusters distance (Compactness) (i.e., distance between data points in the same cluster)
+
+How to Deal with Outliers?
+
+**Remove some data points** in the clustering process that are much further away from the centroids than other data points.
+
+To be safe, we may want to monitor these possible outliers over a few iterations and then decide to remove them.
+
+Perform **random sampling**. Since in sampling, we only choose a small subset of the data points, the chance of select an outlier is very small.
+
+Assign the rest of the data points to the clusters by distance or similarity comparison, or classification.
+
+
+Pros&Cons:
+
+![图片](images/image_14.png)
+other cons:
+
+sensitive to initial seeds
+
+not suitable for discovering clusters that are not hyper-ellipsoids (or hyper-spheres) e.g.: moon-shaped, linear
+
+
+PCA:
+
+projecting data onto its orthogonal feature subspace.
+
+The main idea of PCA is to reduce the dimensionality of a data set consisting of many variables correlated with each other, while retaining the variation present in the dataset, up to the maximum extent
+
+
+# 6.ANN:
+
+Sigmoid/Logistic Activation Function: f(x) = 1/(1+e^-x)
+
+Binary Step Activation Function: f(x) = 0 if x<0, 1 if x>=0 (when using it, a neuron is called perceptron/threshold logic unit)
+
+wi = wi+η(T-O)xi
+
+θ = θ+η(T-O)
+
+Stopping Rules:
+
+**Use maximum training time** The training may go a bit beyond the specified time limit in order to complete the current cycle.
+
+**The maximum number of training cycles allowed** If the maximum number of cycles is exceeded, then training stops.
+
+**Use minimum accuracy** Training will continue until the specified accuracy is attained
+
+
+**Learning** is the process of updating weights in the perceptron. We set weights w1 to 0.1, w2 to 0.5 initially, but it causes some errors. Then, we update the weight values to 0.5 and predict all instances correctly. The whole process takes 4 rounds/epoches.
+
+**Epoch** refers to one cycle through the full training dataset.
+
+
+In a binary classification problem, a **decision boundary** or **decision surface** is a hypersurface that partitions the underlying vector space into two sets, one for each class. The classifier will classify all the points on one side of the decision boundary as belonging to one class and all those on the other side as belonging to the other class.
+
+
+# 7.MLP:
+
+Multi-layer perceptron (MLP) neural network is a type of feed-forward neural network (Feed-forward here means nodes in this network do not form a cycle.)
+
+**How to initialize the weights and biases?**
+
+Initialize them to some small random values.(if 0, then change totally same)
+
+**How to perform training?**
+
+1 Let the network calculate the output with the given inputs (forward propagation)
+
+2 Calculate the error/loss function (i.e. the difference between the calculated outputs and the target outputs)
+
+3 Update the weights and biases between the hidden and output layer (backward propagation)
+
+4 Update the weights and biases between the input and hidden layer (backward propagation)
+
+5 Go back to step 1
+
+**When to stop training?**
+
+After a fixed number of iterations through the loop.
+
+Once the training error falls below some threshold.
+
+Stop at a minimum of the error on the validation set.(prevent overfitting)
+
+**Loss function:**
+
+A function used to
+
+1 do differentiation to update parameters during training
+
+2 monitor each epoch to decide the convergence during training.
+
+3 quantify how accurate a model’s predictions were.
+
+The only objective of the neural network is optimizing/minimizing the loss function.
+
+“categorical crossentropy”CCE, label must be one-hot
+
+“sparse categorical crossentropy”SCCE,  label must be an integer
+
+“mean squared error” (same as “MSE”),
+
+“mean absolute error” (same as “MAE”) those two for regression
+
+**Optimization algorithm:**
+
+It controls exactly how the parameters are adjusted during training.
+
+E.g., gradient descent.
+
+**How to update the weights and biases?**
+
+Assuming the activation function is the sigmoid function, σ(x) = 1/1+e^−x The error/loss function is E = sum((Ok-Tk)^2)/2
+
+The formula for updating weights and biases are derived by minimizing the loss function using gradient descent.
+
+feed-forward: Oi(input)--wij,θj-->f(Oi)->σ(f(Oi))=Oj--wjk,θk-->f(Oj)->f(σ(f(Oj))=Ok->E
+
+partial derivative:-----------Oi------δj ---Oj(1-Oj)--------Oj-----δk-----Ok(1-Ok)--(Ok-Tk)
+
+generalize:------------------Oi------δj----σ'(Oj/Oi)-------Oj-----δk-----σ'(Ok/Oj)--E'(Ok)
+
+
+overall idea: α1 = α0 - η▽E(α)  △α = -η▽E(α)
+
+δE/δOj = sum(δk*wjk)
+
+δk = Ok(1-Ok)*(Ok-Tk)               general: δk = σ'(Ok/Oj) *E'(Ok)
+
+δj = Oj(1-Oj)*sum(δk*wjk)           general: δj = σ'(Oj/Oi)*sum(δk*wjk)
+
+△wjk = -ηδkOj
+
+△θk = -ηδk
+
+△wij = -ηδjOi
+
+△θk = -ηδj
+
+
+Why is gradient descent used rather than directly to find a closed-form mathematics solution?
+
+For most non-linear regression problems, there is no closed-form solution.
+
+Even for those with a closed-form solution, gradient descent is computationally cheaper (faster) to find the solution.
+
+
+Steps:
+
+1 Import the required libraries and define a global variable
+
+2 Load the data: keras.datasets.load_data() or np.load()
+
+3 Explore the data: plt.show()
+
+4 Build the model: build dense layers, usually ReLU and softmax at last
+
+5 Compile the model(train method): loss func, optimizer, evaluation
+
+6 Train the model: model.fit()
+
+7 Evaluate the model accuracy: model.evaluate()
+
+8 Save the model: model.save()
+
+9 Use the model: model.predict()
+
+10 Plotting the confusion matrix
+
+
+ReLU: f(x) = max(0,x)
+
+A derivative function and allows for backpropagation while simultaneously making it computationally efficient.
+
+The neurons will only be deactivated if the output of the linear transformation is less than 0.
+
+Accelerates the convergence of gradient descent due to its linear property(won't vanishing == accelerate convergence)
+
+
+The Dying ReLU Problem:
+
+The negative side of the graph makes the gradient value zero
+
+During the backpropagation process, the weights and biases for some neurons are not updated( δ0/δw = 0)
+
+Dead neurons which never get activated
+
+All the negative input values become zero immediately, which decreases the model’s ability to fit or train from the data properly
+
+
+Softmax(zi) = e^zi/sum(e^zj)
+
+L2 regularization: pull all p.m. to closer to 0, avoiding too big p.m. to avoid overfitting
+
+preventing remember noise
+
+noise: a lot of small outliers(not actually outliers) that affect the generalize
+
+
+Categorical/Multi-class Cross-entropy Loss CCE = -sum(yi*log(pi)), y:true one-hot
+
+
+#### Analysis on MLP:
+
+**Problem: Vanishing Gradient and Exploding Gradient**
+
+One of the problems of training a neural network (especially with many hidden layers) is the vanishing and exploding gradient.
+
+When we train a neural network, the gradient or the slope can get very big or very small or exponentially small, which makes training difficult.
+
+As a consequence, the weights are not updated anymore, and learning stalls
+
+
+**How to Know Whether Model is Suffering from Vanishing/Exploding Gradient?**
+
+For vanishing gradient (usually sigmoid and tanh's derivative too small)
+
+The parameters of the higher layers vary dramatically, whereas the parameters of the lower levels do not change significantly for vanishing (or not at all)
+
+ During training, the model weights may become zero. 
+
+The model learns slowly, and after a few cycles, the training may become stagnant. 
+
+For exploding gradient (usually w too big)
+
+The model parameters are growing exponentially
+
+During training, the model weights may become NaN
+
+The model goes through an avalanche learning process.
+
+
+**How Many Layers and Number of Neurons in Each of These Layers?**
+
+The input layer
+
+Number of layers = 1
+
+Number of neurons = Number of features (i.e., columns) in our data (e.g., for XOR, the number of neurons in the input layer is 2)
+
+The output layer
+
+Number of layers = 1
+
+Number of neurons = Mostly 1, unless softmax is used (Just like the handwritten digits example)
+
+
+The hidden layers
+
+Number of layers
+
+If our data is linearly separable, NO hidden layer at all
+
+If data is less complex and has few dimensions or features, neural networks with 1 to 2 hidden layers would work
+
+If data has large dimensions or features, 3 to 5 hidden layers can be used to get an optimum solution
+
+
+Number of neurons
+
+The number of hidden neurons should be between the size of the input layer and the output layer
+
+The most appropriate number of hidden neurons is sqrt(input layer nodes × output layer nodes)
+
+The number of hidden neurons should keep decreasing in subsequent layers to get closer to pattern and feature extraction and identify the target class.
+
+
+weights controls steepness, bias controls shifting
+
+
+Typically, a differentiable non-linear activation function is used in the hidden layers of a neural network. This allows the model to learn more complex functions.
+
+Three most commonly used activation functions in hidden layers:
+
+Rectified Linear Activation (ReLU):
+
+effectively, less susceptible to vanishing gradients
+
+1 scale the inputs to 0-1
+
+2 He weight initialization
+
+so net could lay on the +/- junction
+
+n_in = number of inputs
+
+He Normal ~ N(0,2/n_in)        He Uniform~U[-sqrt(6/n_in),sqrt(6/n_in)]
+
+so most net lay on [-1,1]
+
+avoiding: gradient +/- and dead neoron
+
+Logistic (Sigmoid):
+
+limitation: output>0 so all w always change to the same direction
+
+1 scale the inputs to 0-1
+
+2 Glorot weight initialization
+
+n_io = number of inputs and outputs
+
+Glorot Normal ~ N(0,2/n_io)        Glorot Uniform~U[-sqrt(6/n_io),sqrt(6/n_io)]
+
+so most net lay on [-1,1]
+
+avoiding: gradient +/- and net shifting cause saturation
+
+Hyperbolic Tangent (Tanh): e^x-e^-x/e^x+e^-x range:[-1,1]
+
+![图片](images/image_15.png)
+RNN: sigmoid/tanh  MLP/CNN: ReLU
+
+Output layer: linear/sigmoid/softmax
+
+regression: linear
+
+classification:
+
+binary: sigmoid
+
+multiclass: softmax, one node per class
+
+multilabel: sigmoid, one node per class (one sample can belongs to multiple classes)
+
+# 8.Image Processing:
+
+(x,y): x left to right, y top to bottom, start with (0,0)
+
+grayscale image: 0(black)~255(white) 8 bit/pixel
+
+color image: Red, Green, Blue, 3*8 bit/pixel
+
+v = 0.299R+0.587G+0.114B
+
+
+convolution using flipped kernel!!
+
+
+data augmentation: operate to original data, to make more data & avoid overfitting
+
+
+Affine Transformation:
+
+preserves: collinearity, parallelism and ratio of distances
+
+e.g.: translation, rotation, scaling, shearing![图片](images/image_16.png)
+
+translation: [[1 0 t1] [0 1 t2]]
+
+reflection:
+
+up side down: [[1 0 0] [0 -1 height-1]]
+
+left side right: [[-1 0 width] [0 1 0]]
+
+rotation(clockwise): [[cosθ sinθ -x0cosθ-y0sinθ+x0] [-sinθ cosθ x0sinθ-y0cosθ+y0]]
+
+scaling/resizing: change input images into the same size
+
+
+**Characteristics of Image Operations:**
+
+Region specify:
+
+Point: The output value at a specific coordinate is dependent only on the input value at the same coordinate
+
+contrast stretching: I = (I-Imin)/(Imax-Imin)*255
+
+grayscale threshold: if I<T =0 else =255
+
+automatic T? Otsu's method: T and partition in two group, Tnew =mean(mean1+mean2) then repeat until mean1,mean2 stable
+
+Local: The output value at a specific coordinate is dependent on the input values in the neighborhood of that same coordinate (usually 4/8 neighbors)
+
+Image smoothing: It **removes noise** and **softens edges and corners** of the image. It is also called blurring (using mean/Gaussian)
+
+Image edge detection: It detects the boundaries (edges) of objects, or regions within an image (some+, some-)
+
+Image sharpening: It **removes blur**, **enhances details**, and dehazes (middle 9, others -1)
+
+Global: The output value at a specific coordinate is dependent on all the values in the input image 
+
+
+Convolution:
+
+boundary operation:
+
+ignore
+
+zero padding (most use!!!!!!!!!)
+
+replicating boundary
+
+reflecting boundary (use outside edge as mirror):
+
+![图片](images/image_17.png)
+mirroring boundary (use edge as mirror)
+
+mean: all 1/9
+
+sharpening: 9 & remains -1
+
+edge:
+
+horizontal edge (up down vary):
+
+Sy = [
+
+  [  1,  2,  1],
+
+  [  0,  0,  0],
+
+  [ -1, -2, -1]
+
+]
+
+
+vertical edge (left right vary): 
+
+Sx = [
+
+  [ 1,  0, -1],
+
+  [ 2,  0, -2],
+
+  [ 1,  0, -1]
+
+]
+
+ 
+
+laplacian:
+
+Sxy = [
+
+  [ 0,  1, 0],
+
+  [ 1,  -4, 1],
+
+  [ 0,  1, 0]
+
+]
+
+edge magnitude = |▽(Gx,Gy)| have direction, far better than laplacian
+
+actually laplacian is ▽^2(Gx,Gy) so high noise sensitivity and no direction
+
+
+# 9.CNN:
+
+Three main types of layers to build a CNN:
+
+Input layer:
+
+single-layer 2D image (grayscale)
+
+3-channel 2D images (RGB)
+
+3D (fluid, video, multiple slices of some structure)
+
+Convolutional layer:
+
+if there're 2 input, then each kernel might have n*n*2(the same depth), the number of kernels is the number of output
+
+Pooling layer: merging pixel regions in the convolved image
+
+usually max pooling (find max) or average pooling (find mean)
+
+Fully-connected layer: MLP
+
+Output layer: softmax
+
+
+mask = (rand >= p) / (1 - p) ***can keep the mean same!!
+
+
+注意kernel数量不相加，是分开的，是bias数！，channel是相加的 channel数量不是bias数量
+
+
+Stride: amount of movement, default: (1,1)
+
+Why setting stride to a larger number?
+
+Lesser overlaps so lower output volume and lesser memory needed for output
+
+It avoids overfitting especially in case of image processing having a large number of attributes, because of smaller feature map
+
+Output size = (Size of image dimension - Size of kernel dimension) / Stride + 1
+
+Zero padding: (K-1)/2 then size = (image size-1)/Stride + 1
+
+
+Non-linearity
+
+Convolution is a linear operation.We need non-linearity; otherwise, 2 convolution layers would be no more powerful than 1
+
+
+The non-linearity comes as part of the convolution layer, it is done in the neurons
+
+
+ReLU is more popular for CNN as it does not require any expensive computation. It has been shown to speed up the convergence of stochastic gradient descent algorithms.
+
+
+**Overall Training Process of CNN**
+
+1 Initialize all kernels and parameters/weights with random values
+
+2 Forward propagation and finds the output probabilities for each class
+
+3 Calculate the total error at the output layer
+
+4 Back propagation to update all kernel values/weights and parameter values to minimize the output error
+
+5 Repeat steps 2-4 with all images in the training set
+
+
+**Dropout** is implemented per-layer in a neural network except output layer, usually 0.5
+
+force the nn don't depend on any single node
+
+
+**When to Use One-Hot Encoding?**
+
+In a situation where data has no relation to each other
+
+A large number will be interpreted as better or more significant than a smaller number. While this is useful in some ordinal scenarios, certain input data lacks a ranking for categorical values, which can cause problems with predictions and performance
+
+Training data is more usable and expressive as a result of one-hot encoding, and it can be re-scaled easily.
+
+
+Typical CNN Architecture:
+
+A few convolutional layers (usually with ReLU activation)
+
+A pooling layer
+
+A few convolutional layers (usually with ReLU activation)
+
+A pooling layer
+
+....
+
+one or more fully connected layers (usually with ReLU activation)
+
+A final fully connected softmax layer
+
+
+Generally, the convolutional and pooling layers are for **feature learning**, and the fully-connected layers are for **classification**
+
+Through the convolutional layers, the feature maps get smaller but deeper (more feature maps per layer) depth will be very large!! e.g.32*32*3 to 5*5*16, each channel means some feature
+
+Instead of using a convolutional layer with a large kernel size (e.g. 9×9 with 81 parameters), it is better to **stack two convolutional layers** with smaller kernels (e.g. 3×3) with 18 parameters for the two layers together.
+
+
+# 10.Minimax&Alpha-Beta Pruning
+
+Types of Game
+
+Perfect vs Imperfect information game
+
+Perfect: Player knows all the possible moves of himself and opponent and their results
+
+Imperfect: Player does not know all the possible moves of the opponent
+
+Zero-sum vs Non-zero-sum game
+
+Zero-sum: A two person game where one player’s gain is equal to the other player’s loss on any given play of the game
+
+Non-zero-sum: A two person game where player’s gain is not necessarily equal to the other player’s loss on any given play of the game
+
+Deterministic vs Non-deterministic game
+
+Deterministic: A game that does not involve random choices
+
+Non-deterministic: A game that involves some random choices.
+
+
+**Minimax** is a recursive algorithm which is used to choose an optimal move for a player assuming that the other player is also playing optimally.
+
+It is called minimax because it helps in minimizing that the other players can force us to receive.
+
+
+Steps:
+
+1. Construct the complete game tree below n
+
+2. Apply the utility function to each terminal state
+
+3. Select a node that has not been evaluated yet, and all of its children have been evaluated:
+
+Node is a MAX-node (init:-inf): value is the maximum of the children nodes
+
+Node is a MIN-node (init:+inf): value is the minimum of the children nodes
+
+4. Repeat Step 3 until all nodes are evaluated
+
+5. For the node n, chooses the minimax decision:
+
+n is a MAX-node: chooses the move that leads to the highest value
+
+n is a MIN-node: chooses the move that leads to the lowest value.
+
+
+If MIN does not play optimally,**MAX will do even better**
+
+
+Cons:
+
+It can take a long time to evaluate an entire game tree, especially for games such as Go or Chess
+
+Search and evaluation of unnecessary nodes or branches of the game tree degrades the overall performance and efficiency of the engine
+
+
+Solution: **Alpha-Beta Pruning:**
+
+We define two values α and β to store information about the potential of a branch for us or the opponent
+
+α-cutoff: Terminate branch because MAX already has a better opportunity elsewhere
+
+β-cutoff: Terminate branch because MIN already has better opportunity elsewhere
+
+α is the best (highest) found so far along the path for MAX
+
+β is the best (lowest) found so far along the path for MIN
+
+We can prune a branch if α ≥ β
+
+
+Steps:
+
+To evaluate a root node in a game tree, we define two values α and β to keep track of the current upper bound (the best score for MAX) and lower bound (the best score for MIN). Initially, the root node has values (α, β) = (−∞, ∞)
+
+1 Expand the node depth-first until a node that satisfies the cutoff test is reached. During expansion, pass current values of α and β of parent down to child nodes
+
+2 Evaluate the cutoff node
+
+3 Update the values of all the nodes that have so far been expanded according to Minimax algorithm
+
+4 Update the (α, β) values of all the nodes that have so far been expanded according to:
+
+For MAX node, α ← max(α, current node value)
+
+For MIN node, β ← min(β, current node value)
+
+5 Prune all children of any node whose α ≥ β
+
+6 Backtrack to a node that has not been pruned, and go back to step 1. If there is no such node to backtrack to, then return with the value assigned to the root node.
+
+```python
+def minimax_abp(board,player,alpha=-float('inf'), beta=float('inf')):
+    global count
+    count += 1
+    result = check_game(board)
+    if result != 2:
+        return result 
+
+    if player == 1:
+        value = -float('inf')
+        for i in range(9):
+            if board[i] == 0:
+                board[i] = player
+                child_value = minimax_abp(board, -player, alpha, beta)
+                value = max(value, child_value)
+                board[i] = 0
+                alpha = max(alpha, value)
+                if alpha >= beta:
+                    return value
+        return value
+
+    elif player == -1:
+        value = float('inf')
+        for i in range(9):
+            if board[i] == 0:
+                board[i] = player
+                child_value = minimax_abp(board, -player, alpha, beta)
+                value = min(value, child_value)
+                board[i] = 0
+                beta = min(beta, value)
+                if alpha >= beta:
+                    return value
+        return value
+```
+Pros:
+Helps to improve the search procedure in an effective way
+
+Cons:
+
+Still needs to search all the way to terminal states
+
+Approaches to Remedy the Problem
+
+Set a depth limit, if reach limit, **Heuristic evaluation function**: Estimated desirability or utility of position. ⇒ Correlate with the actual chance of winning.
+
+
+**Evaluation function requirements:**
+
+Computation of evaluation function values is **efficient**
+
+Evaluation function **accurately** reflects the chances of winning
+
+Most game-playing programs use a **weighted linear** function: 
+
+w1f1 + w2f2 + · · · wnfn 
+
+where the f's are the features (e.g. number of queens in chess) of the game position, and w's are the weights that measure the importance of the corresponding features. 
+
+e.g.: for Tic-Tac-Toe, e(p) = lines still open for MAX - lines still open for MIN
+
+
+Learning good evaluation functions automatically from past experience is a promising new direction.
+
+
+# 11.AI Ethics:
+
+Potential ‘Harms’ That AI Systems May Cause
+
+(1+3)Invading people’s right to privacy by **processing data without consent** or handling it in a way that reveals personal information without an individual’s consent
+
+(5)Making **biased or unfair decisions** or recommendations about certain populations or demographics
+
+(4)Make decisions in a way that **can’t be explained in plain language**, so it is unclear if their conclusions are fair and unbiased
+
+(2)Making **unreliable decisions** or delivering poor quality outcomes due to model implementation issues
+
+(7)Denying people their right to **accountability(追责)** for the decisions AI systems make about them
+
+
+The Seven European Union Principles
+
+**1 Human agency and oversight:** AI systems should empower human beings, allowing them to make informed decisions ...
+
+**2 Technical robustness and safety:** AI systems need to be resilient and secure. They need to be safe, ensuring a fallback plan if something goes wrong ...
+
+**3 Privacy and data governance:**Besides ensuring full respect for privacy and data protection, adequate data governance mechanisms must also be ensured ...
+
+**4 Transparency:** The data, system and AI business models should be transparent ...
+
+**5 Diversity**, non-discrimination and fairness: Unfair bias must be avoided ...
+
+**6 Societal and environmental well-being:**AI systems should benefit all human beings ...
+
+**7 Accountability:** Mechanisms should be implemented to ensure responsibility and accountability for AI systems ...
+
+人权 安全 隐私 透明 公正 福祉 责任
+
+
+five fundamental principles: 
+
+1(1+3) Autonomy: People should be able to make their own decisions, e.g. human-in-the-loop, privacy protection
+
+2(6) Beneficence: Society at large should benefit
+
+3(2) Non-maleficence: Harmful consequences should be avoided, e.g. systems should be robust
+
+4(5) Justice: Diversity, non-discrimination and fairness
+
+5(4) Explicability: Transparency and explainability
+
+隐私 福祉 安全 公正 透明
+
+
+Three main areas:
+
+Data Ethics:
+
+proper consent from customer
+
+address bias to ensure population is fairly represented
+
+AI Model Fairness: Fairly decision/recommendation
+
+AI Model Monitoring and Maintenance:
+
+some models adjust themselves to improve accuracy
+
+need to ensure functioning as time goes
+
+
+Fairness e.g.:
+
+text-to-image: similar kind of person
+
+bias against black defendants
+
+
+Possible reasons:
+
+Human Bias
+
+hiring decisions
+
+Negative Feedback Loops
+
+police attention intensify bias
+
+Sample Size Disparity
+
+models for minority group may be less accurate
+
+Unreliable Data
+
+limited diagnostic tools
+
+Proxies(指标): correlated with sensitive attributes
+
+postcode of some minority
+
+Cultural Unawareness
+
+lack of diversity in the AI developers and data science teams might negatively affect people who do not fit the group of AI developers
+
+
+Moral Decisions:
+
+Beliefs about the world
+
+Pro-attitudes (intentions)
+
+Moral knowledge
+
+The possibility to compute what consequences one’s own action can have
+
+in which case they can be considered as moral agents.
+
+
+
+
