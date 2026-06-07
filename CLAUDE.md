@@ -51,7 +51,7 @@ GitHub Actions 自动构建并部署到 PinMe（IPFS），线上地址 <https://
 ## 工作约定
 
 - **部署门禁三连**：提交/部署前确保 `npm run lint`、`npm run typecheck`、`npm run build` 均通过，否则 CI 中断、不会部署到 PinMe。
-- **i18n 双份同步**：新增/修改文案必须同时更新 `src/locales/en.json` 与 `src/locales/zh.json`，键严格对齐。
+- **i18n 同步**：新增/修改文案必须同时更新 `src/locales/en.json` 与 `src/locales/zh.json`，键严格对齐；繁体 `zh-HK.json` **由脚本生成、严禁手改**——改完 `zh.json` 后运行 `npm run gen:zh-hk`（OpenCC 简→港繁 + 香港术语映射，映射表见 `scripts/gen-zh-hk.mjs` 的 `HK_TERMS`）。
 - **新增模块**：照 [docs/design.md](./docs/design.md) 第 11 节 / [docs/plan.md](./docs/plan.md) 第 6 节的步骤执行。
 - **文档维护**：架构决策写入 `design.md`；完成的变更追加到 `log.md`；规划调整更新 `plan.md`。
 
