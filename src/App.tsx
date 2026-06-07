@@ -5,6 +5,7 @@ import {
   Calculator,
   ChevronDown,
   Cpu,
+  GitBranch,
   Grid3X3,
   Info,
   Languages,
@@ -16,6 +17,7 @@ import type { LucideIcon } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from './components/Latex'
 import { SectionTitle } from './components/SectionTitle'
+import { AlphaBetaModule } from './modules/AlphaBetaModule'
 import { BackpropModule } from './modules/BackpropModule'
 import { BayesBasicsModule } from './modules/BayesBasicsModule'
 import { KernelModule } from './modules/KernelModule'
@@ -93,6 +95,15 @@ const EXAM_TIPS: Record<TabId, React.ReactNode> = {
       components={{ 1: <Latex formula="K" /> }}
     />
   ),
+  alphabeta: (
+    <Trans
+      i18nKey="app.sidebar.exam_tip.content_alphabeta"
+      components={{
+        1: <Latex formula="\beta \leq \alpha" />,
+        3: <strong className="font-bold" />,
+      }}
+    />
+  ),
 }
 
 export default function App() {
@@ -106,6 +117,7 @@ export default function App() {
     { id: 'bayesBasics', label: t('app.tabs.bayesBasics'), icon: Calculator, subtitle: 'Formula & Fire Alarm Case' },
     { id: 'naiveBayes', label: t('app.tabs.naiveBayes'), icon: BarChart3, subtitle: 'Inference & Smoothing' },
     { id: 'knn', label: t('app.tabs.knn'), icon: MousePointer2, subtitle: 'Distance Metric & Decision Boundary' },
+    { id: 'alphabeta', label: t('app.tabs.alphabeta'), icon: GitBranch, subtitle: 'Minimax & Pruning Trace' },
   ]
 
   const [langMenuOpen, setLangMenuOpen] = useState(false)
@@ -293,6 +305,16 @@ export default function App() {
                     subtitle={t('app.section.knn.subtitle')}
                   />
                   <KnnModule />
+                </>
+              )}
+              {activeTab === 'alphabeta' && (
+                <>
+                  <SectionTitle
+                    icon={GitBranch}
+                    title={t('app.section.alphabeta.title')}
+                    subtitle={t('app.section.alphabeta.subtitle')}
+                  />
+                  <AlphaBetaModule />
                 </>
               )}
             </motion.div>
