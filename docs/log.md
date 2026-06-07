@@ -7,6 +7,9 @@
 
 ## 进展时间线
 
+### 2026-06-07 — 侧栏 Exam Tip 模块化
+- **feat**：侧栏 Exam Tip 由全局一条（Broadcasting）改为随当前模块切换，6 条各自贴切的考试提示（NumPy 广播 / Backprop 误差反向与 Δw / Kernel 输出尺寸 N−K+1 / Bayes 后验∝先验×似然 / NB 零频率与 log / KNN 奇数 K 与标准化），i18n 三语同步（zh-HK 经脚本重新生成）。
+
 ### 2026-06-07 — 单元测试体系（Vitest）
 - **feat**：引入 Vitest，新增 `src/lib/`（knn / kernel / bayes / numpy）——把组件内嵌的计算逻辑原样提取为纯函数，组件改为调用；34 个用例覆盖黄金值（NB α=0 → 20.46%/79.54%、火警 9.00%、KNN 默认点 M 4:1、Laplacian 200）与边界（零频率、α 平滑、log/连乘一致性、clamp、平票）。
 - **ci**：deploy.yml 在 lint 后插入 `npm test`，部署门禁三连 → 四连；CLAUDE.md 同步更新。

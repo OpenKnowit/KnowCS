@@ -70,21 +70,21 @@
     }
   },
   "knn": {
-      "click_instruction": "点击背景移动测试点",
-      "raw_data": "原始数据",
-      "standardized": "标准化",
-      "test_sample": "测试样本",
-      "model_complexity": "模型复杂度 vs 错误率",
-      "low_k": "低 K 值",
-      "overfitting": "过拟合",
-      "high_k": "高 K 值",
-      "underfitting": "欠拟合",
-      "voting_panel": "分类投票面板",
-      "k_value": "参数 K 值:",
-      "m_vote": "M 码投票",
-      "l_vote": "L 码投票",
-      "advice": "仔细观察交互变化：当你增大 <1>K</1> 值时，决策边界会变得更加平滑。较小的 <1>K</1> 会导致边界复杂且容易 <3>过拟合</3>（捕捉到噪声），而过大的 <5>K</5> 则会过度简化边界导致 **欠拟合**。另外，尝试切换『标准化』模式，看看量纲如何影响距离计算——如果不进行标准化，数值范围大的特征（如体重）将主导距离计算，这是 KNN 中最经典的陷阱！"
-    },
+    "click_instruction": "点击背景移动测试点",
+    "raw_data": "原始数据",
+    "standardized": "标准化",
+    "test_sample": "测试样本",
+    "model_complexity": "模型复杂度 vs 错误率",
+    "low_k": "低 K 值",
+    "overfitting": "过拟合",
+    "high_k": "高 K 值",
+    "underfitting": "欠拟合",
+    "voting_panel": "分类投票面板",
+    "k_value": "参数 K 值:",
+    "m_vote": "M 码投票",
+    "l_vote": "L 码投票",
+    "advice": "仔细观察交互变化：当你增大 <1>K</1> 值时，决策边界会变得更加平滑。较小的 <1>K</1> 会导致边界复杂且容易 <3>过拟合</3>（捕捉到噪声），而过大的 <5>K</5> 则会过度简化边界导致 **欠拟合**。另外，尝试切换『标准化』模式，看看量纲如何影响距离计算——如果不进行标准化，数值范围大的特征（如体重）将主导距离计算，这是 KNN 中最经典的陷阱！"
+  },
   "app": {
     "title": "CS/AI 交互式学习实验室",
     "subtitle": "COMP2211 Machine Learning Notebook",
@@ -127,7 +127,12 @@
       "knowledge_core": "Knowledge Core",
       "exam_tip": {
         "title": "Exam Tip",
-        "content": "考试注意：<1>Broadcasting</1> 只能扩展 Size 为 1 的维度。<3>A \\cdot B</3> (np.dot) 和 <5>A \\odot B</5> (Element-wise) 物理含义完全不同！"
+        "content_numpy": "考试注意：<1>Broadcasting</1> 只能扩展 Size 为 1 的维度。<3>A \\cdot B</3> (np.dot) 和 <5>A \\odot B</5> (Element-wise) 物理含义完全不同！",
+        "content_backprop": "考试注意：误差是反向流动的——先在输出层算 <1>\\delta_k</1>。记住 <3>\\Delta w = \\eta \\delta O</3>，并小心 (T - O) 的符号！",
+        "content_kernel": "考试注意：无 padding、步长为 1 时，输出尺寸是 <1>N - K + 1</1>。Sobel-X 响应的是垂直边缘——方向别搞反！",
+        "content_bayesBasics": "考试注意：<1>P(B|E) \\propto P(B) \\cdot P(E|B)</1>。分母 P(E) 只起归一化作用——比较假设看分子就够了！",
+        "content_naiveBayes": "考试注意：一个零频率会让整条连乘归零——记得加 <1>\\alpha</1> 平滑。特征多时改用 <3>\\log</3> 求和防止下溢！",
+        "content_knn": "考试注意：<1>K</1> 取奇数避免平票；特征一定要标准化——否则数值范围大的特征会主导距离计算！"
       }
     },
     "footer": {

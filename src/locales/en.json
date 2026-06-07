@@ -70,21 +70,21 @@
     }
   },
   "knn": {
-      "click_instruction": "Click background to move test point",
-      "raw_data": "Raw Data",
-      "standardized": "Standardized",
-      "test_sample": "Test Sample",
-      "model_complexity": "Model Complexity vs Error Rate",
-      "low_k": "Low K",
-      "overfitting": "Overfitting",
-      "high_k": "High K",
-      "underfitting": "Underfitting",
-      "voting_panel": "Classification Voting Panel",
-      "k_value": "Parameter K:",
-      "m_vote": "M Size Vote",
-      "l_vote": "L Size Vote",
-      "advice": "Observe the interaction: As you increase <1>K</1>, the decision boundary becomes smoother. Small <1>K</1> leads to complex boundaries prone to <3>Overfitting</3> (capturing noise), while large <5>K</5> simplifies the boundary causing **Underfitting**. Also, toggle 'Standardized' to see how scale affects distance—without it, features with larger ranges (like Weight) dominate the distance calculation, which is a classic trap in KNN!"
-    },
+    "click_instruction": "Click background to move test point",
+    "raw_data": "Raw Data",
+    "standardized": "Standardized",
+    "test_sample": "Test Sample",
+    "model_complexity": "Model Complexity vs Error Rate",
+    "low_k": "Low K",
+    "overfitting": "Overfitting",
+    "high_k": "High K",
+    "underfitting": "Underfitting",
+    "voting_panel": "Classification Voting Panel",
+    "k_value": "Parameter K:",
+    "m_vote": "M Size Vote",
+    "l_vote": "L Size Vote",
+    "advice": "Observe the interaction: As you increase <1>K</1>, the decision boundary becomes smoother. Small <1>K</1> leads to complex boundaries prone to <3>Overfitting</3> (capturing noise), while large <5>K</5> simplifies the boundary causing **Underfitting**. Also, toggle 'Standardized' to see how scale affects distance—without it, features with larger ranges (like Weight) dominate the distance calculation, which is a classic trap in KNN!"
+  },
   "app": {
     "title": "CS/AI Interactive Learning Lab",
     "subtitle": "COMP2211 Machine Learning Notebook",
@@ -127,7 +127,12 @@
       "knowledge_core": "Knowledge Core",
       "exam_tip": {
         "title": "Exam Tip",
-        "content": "Exam Note: <1>Broadcasting</1> can only extend dimensions of Size 1. <3>A \\cdot B</3> (np.dot) and <5>A \\odot B</5> (Element-wise) have completely different physical meanings!"
+        "content_numpy": "Exam Note: <1>Broadcasting</1> can only extend dimensions of Size 1. <3>A \\cdot B</3> (np.dot) and <5>A \\odot B</5> (Element-wise) have completely different physical meanings!",
+        "content_backprop": "Exam Note: error flows backward — compute <1>\\delta_k</1> at the output layer first. Memorize <3>\\Delta w = \\eta \\delta O</3> and mind the sign of (T - O)!",
+        "content_kernel": "Exam Note: with no padding and stride 1, output size is <1>N - K + 1</1>. Sobel-X responds to vertical edges — don't mix up the direction!",
+        "content_bayesBasics": "Exam Note: <1>P(B|E) \\propto P(B) \\cdot P(E|B)</1>. The denominator P(E) only normalizes — compare hypotheses by the numerator!",
+        "content_naiveBayes": "Exam Note: one zero frequency kills the whole product — apply <1>\\alpha</1> smoothing. With many features, switch to <3>\\log</3> sums to avoid underflow!",
+        "content_knn": "Exam Note: choose an odd <1>K</1> to avoid tie votes, and always standardize features — otherwise large-range features dominate the distance!"
       }
     },
     "footer": {
