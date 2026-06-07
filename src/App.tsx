@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   BarChart3,
   Calculator,
+  ChevronDown,
   Cpu,
   Grid3X3,
   Info,
@@ -30,6 +31,20 @@ interface TabConfig {
   subtitle: string
 }
 
+const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'zh', label: '简体中文' },
+  { code: 'zh-HK', label: '繁體中文' },
+] as const
+
+type LangCode = (typeof LANGUAGES)[number]['code']
+
+const normalizeLang = (lang: string): LangCode => {
+  if (lang === 'zh-HK' || lang === 'zh-TW' || lang === 'zh-Hant') return 'zh-HK'
+  if (lang.startsWith('zh')) return 'zh'
+  return 'en'
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('numpy')
   const { t, i18n } = useTranslation()
@@ -43,9 +58,24 @@ export default function App() {
     { id: 'knn', label: t('app.tabs.knn'), icon: MousePointer2, subtitle: 'Distance Metric & Decision Boundary' },
   ]
 
-  const toggleLanguage = () => {
-    const newLang = i18n.language.startsWith('zh') ? 'en' : 'zh'
-    i18n.changeLanguage(newLang)
+  const [langMenuOpen, setLangMenuOpen] = useState(false)
+  const langMenuRef = useRef<HTMLDivElement>(null)
+  const currentLang = normalizeLang(i18n.language)
+
+  useEffect(() => {
+    if (!langMenuOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) {
+        setLangMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [langMenuOpen])
+
+  const selectLanguage = (code: LangCode) => {
+    i18n.changeLanguage(code)
+    setLangMenuOpen(false)
   }
 
   return (
@@ -66,14 +96,41 @@ export default function App() {
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
             Environment: Ready / KaTeX Engine Active
           </div>
-          <button
-            onClick={toggleLanguage}
-            className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 transition flex items-center gap-2 px-4 font-bold text-slate-600"
-            title="Switch Language"
-          >
-            <Languages size={20} className="text-blue-600" />
-            {i18n.language.startsWith('zh') ? 'English' : '中文'}
-          </button>
+          <div className="relative" ref={langMenuRef}>
+            <button
+              onClick={() => setLangMenuOpen((open) => !open)}
+              className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 transition flex items-center gap-2 px-4 font-bold text-slate-600"
+              title="Switch Language"
+            >
+              <Languages size={20} className="text-blue-600" />
+              {LANGUAGES.find((lang) => lang.code === currentLang)?.label}
+              <ChevronDown size={14} className={`text-slate-400 transition-transform ${langMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {langMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden z-50"
+                >
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => selectLanguage(lang.code)}
+                      className={`w-full px-4 py-2.5 text-left text-sm font-bold transition
+                        ${currentLang === lang.code
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </header>
 
