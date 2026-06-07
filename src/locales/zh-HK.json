@@ -127,7 +127,12 @@
       "knowledge_core": "Knowledge Core",
       "exam_tip": {
         "title": "Exam Tip",
-        "content": "考試注意：<1>Broadcasting</1> 只能擴展 Size 為 1 的維度。<3>A \\cdot B</3> (np.dot) 和 <5>A \\odot B</5> (Element-wise) 物理含義完全不同！"
+        "content_numpy": "考試注意：<1>Broadcasting</1> 只能擴展 Size 為 1 的維度。<3>A \\cdot B</3> (np.dot) 和 <5>A \\odot B</5> (Element-wise) 物理含義完全不同！",
+        "content_backprop": "考試注意：誤差是反向流動的——先在輸出層算 <1>\\delta_k</1>。記住 <3>\\Delta w = \\eta \\delta O</3>，並小心 (T - O) 的符號！",
+        "content_kernel": "考試注意：無 padding、步長為 1 時，輸出尺寸是 <1>N - K + 1</1>。Sobel-X 響應的是垂直邊緣——方向別搞反！",
+        "content_bayesBasics": "考試注意：<1>P(B|E) \\propto P(B) \\cdot P(E|B)</1>。分母 P(E) 只起歸一化作用——比較假設看分子就夠了！",
+        "content_naiveBayes": "考試注意：一個零頻率會讓整條連乘歸零——記得加 <1>\\alpha</1> 平滑。特徵多時改用 <3>\\log</3> 求和防止下溢！",
+        "content_knn": "考試注意：<1>K</1> 取奇數避免平票；特徵一定要標準化——否則數值範圍大的特徵會主導距離計算！"
       }
     },
     "footer": {

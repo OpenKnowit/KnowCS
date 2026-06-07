@@ -45,6 +45,56 @@ const normalizeLang = (lang: string): LangCode => {
   return 'en'
 }
 
+// 侧栏 Exam Tip：每个模块一条贴切的考试提示（i18n key + 内嵌公式）
+const EXAM_TIPS: Record<TabId, React.ReactNode> = {
+  numpy: (
+    <Trans
+      i18nKey="app.sidebar.exam_tip.content_numpy"
+      components={{
+        1: <Latex formula="\text{Broadcasting}" />,
+        3: <Latex formula="\mathbf{A} \cdot \mathbf{B}" />,
+        5: <Latex formula="\mathbf{A} \odot \mathbf{B}" />,
+      }}
+    />
+  ),
+  backprop: (
+    <Trans
+      i18nKey="app.sidebar.exam_tip.content_backprop"
+      components={{
+        1: <Latex formula="\delta_k" />,
+        3: <Latex formula="\Delta w = \eta \cdot \delta \cdot O" />,
+      }}
+    />
+  ),
+  kernel: (
+    <Trans
+      i18nKey="app.sidebar.exam_tip.content_kernel"
+      components={{ 1: <Latex formula="N - K + 1" /> }}
+    />
+  ),
+  bayesBasics: (
+    <Trans
+      i18nKey="app.sidebar.exam_tip.content_bayesBasics"
+      components={{ 1: <Latex formula="P(B|E) \propto P(B) \cdot P(E|B)" /> }}
+    />
+  ),
+  naiveBayes: (
+    <Trans
+      i18nKey="app.sidebar.exam_tip.content_naiveBayes"
+      components={{
+        1: <Latex formula="\alpha" />,
+        3: <Latex formula="\log" />,
+      }}
+    />
+  ),
+  knn: (
+    <Trans
+      i18nKey="app.sidebar.exam_tip.content_knn"
+      components={{ 1: <Latex formula="K" /> }}
+    />
+  ),
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('numpy')
   const { t, i18n } = useTranslation()
@@ -168,10 +218,7 @@ export default function App() {
                 <span className="text-xs font-bold uppercase tracking-wider">{t('app.sidebar.exam_tip.title')}</span>
               </div>
               <p className="text-[11px] leading-relaxed opacity-90 font-medium">
-                <Trans i18nKey="app.sidebar.exam_tip.content">
-                  考试注意：<Latex formula="\text{Broadcasting}" /> 只能扩展 Size 为 1 的维度。
-                  <Latex formula="\mathbf{A} \cdot \mathbf{B}" /> (np.dot) 和 <Latex formula="\mathbf{A} \odot \mathbf{B}" /> (Element-wise) 物理含义完全不同！
-                </Trans>
+                {EXAM_TIPS[activeTab]}
               </p>
             </div>
           </div>
