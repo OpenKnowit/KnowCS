@@ -1,0 +1,1529 @@
+{
+  "version": "2.13",
+  "children": [
+    {
+      "type": "frame",
+      "id": "fac8x",
+      "x": 0,
+      "y": 0,
+      "name": "Backprop Page",
+      "clip": true,
+      "width": 1280,
+      "height": 900,
+      "fill": "$bg-page",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "GlQaT",
+          "name": "Header",
+          "width": "fill_container",
+          "fill": "$bg-white",
+          "stroke": "$border-light",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "padding": [
+            16,
+            32
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "RLxzR",
+              "name": "Header Left",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "r1BVwe",
+                  "name": "Title Row",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "UYsoZ",
+                      "name": "App Title",
+                      "fill": "$text-primary",
+                      "content": "CS/AI Interactive Learning Lab",
+                      "fontFamily": "Inter",
+                      "fontSize": 22,
+                      "fontWeight": "800"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vQ1wo",
+                  "name": "Subtitle Row",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "K1zVeX",
+                      "name": "Subtitle",
+                      "fill": "$text-secondary",
+                      "content": "COMP2211 Machine Learning Notebook",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Xkn3e",
+                      "name": "Badge",
+                      "fill": "$bg-badge-blue",
+                      "cornerRadius": 4,
+                      "padding": [
+                        2,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZeDr6",
+                          "name": "Badge Text",
+                          "fill": "$text-blue",
+                          "content": "V2.0 KATEX ENHANCED",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "oBgBP",
+              "name": "Header Right",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "SqYc2",
+                  "name": "Status Pill",
+                  "fill": "$bg-white",
+                  "cornerRadius": 20,
+                  "stroke": "$border-light",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    6,
+                    14
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "TYIUa",
+                      "name": "Green Dot",
+                      "fill": "$green-dot",
+                      "width": 8,
+                      "height": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "rxZVG",
+                      "name": "Status Text",
+                      "fill": "$text-secondary",
+                      "content": "Environment: Ready / KaTeX Engine Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "aVo80",
+                  "name": "Lang Toggle",
+                  "fill": "$bg-white",
+                  "cornerRadius": 8,
+                  "stroke": "$border-light",
+                  "strokeWidth": 1,
+                  "gap": 6,
+                  "padding": [
+                    6,
+                    14
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "xFxQu",
+                      "name": "Lang Icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "languages",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "XxY3b",
+                      "name": "Lang Text",
+                      "fill": "$text-primary",
+                      "content": "中文",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ZvZOM",
+          "name": "Body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "children": [
+            {
+              "type": "frame",
+              "id": "sqyeh",
+              "name": "Sidebar",
+              "width": 240,
+              "height": "fill_container",
+              "fill": "$bg-white",
+              "stroke": "$border-light",
+              "strokeWidth": {
+                "right": 1
+              },
+              "layout": "vertical",
+              "gap": 4,
+              "padding": [
+                24,
+                16
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pMMKi",
+                  "name": "Knowledge Core Label",
+                  "fill": "$text-muted",
+                  "content": "KNOWLEDGE CORE",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "frame",
+                  "id": "swCrQ",
+                  "name": "Nav Spacer",
+                  "width": "fill_container",
+                  "height": 12
+                },
+                {
+                  "type": "frame",
+                  "id": "P6fl9m",
+                  "name": "Nav NumPy Mechanism",
+                  "width": "fill_container",
+                  "cornerRadius": 10,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "xKmnt",
+                      "name": "Icon NumPy Mechanism",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "grid-3x3",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KpW0l",
+                      "name": "Nav Text NumPy Mechanism",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "g32tv",
+                          "name": "Label NumPy Mechanism",
+                          "fill": "$text-primary",
+                          "content": "NumPy Mechanism",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ucg2c",
+                          "name": "Desc NumPy Mechanism",
+                          "fill": "$text-muted",
+                          "content": "View vs Copy & Broadc...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bzOR2",
+                  "name": "Nav Backpropagation",
+                  "width": "fill_container",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "$bg-active-nav",
+                        "position": 0
+                      },
+                      {
+                        "color": "$bg-active-nav-light",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 10,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "R2QDX",
+                      "name": "Icon Backpropagation",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "brain",
+                      "library": "lucide",
+                      "fill": "$text-white"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YF4m2",
+                      "name": "Nav Text Backpropagation",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ctbd0",
+                          "name": "Label Backpropagation",
+                          "fill": "$text-white",
+                          "content": "Backpropagation",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "djSrr",
+                          "name": "Desc Backpropagation",
+                          "fill": "#BFDBFE",
+                          "content": "The Chain Rule Visualized",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "o7VLVM",
+                  "name": "Nav Kernel Lab",
+                  "width": "fill_container",
+                  "cornerRadius": 10,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "ZVfv0",
+                      "name": "Icon Kernel Lab",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "grid-2x2",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n843oj",
+                      "name": "Nav Text Kernel Lab",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "FpDf1",
+                          "name": "Label Kernel Lab",
+                          "fill": "$text-primary",
+                          "content": "Kernel Lab",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "l15AV2",
+                          "name": "Desc Kernel Lab",
+                          "fill": "$text-muted",
+                          "content": "Edge Detection Simulati...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "t5acH",
+                  "name": "Nav Bayes Basics",
+                  "width": "fill_container",
+                  "cornerRadius": 10,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "eajfh",
+                      "name": "Icon Bayes Basics",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "calculator",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GkYa0",
+                      "name": "Nav Text Bayes Basics",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "IAL3q",
+                          "name": "Label Bayes Basics",
+                          "fill": "$text-primary",
+                          "content": "Bayes Basics",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "n0x9e",
+                          "name": "Desc Bayes Basics",
+                          "fill": "$text-muted",
+                          "content": "Formula & Fire Alarm Ca...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vG6WE",
+                  "name": "Nav Naive Bayes",
+                  "width": "fill_container",
+                  "cornerRadius": 10,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "OHmI8",
+                      "name": "Icon Naive Bayes",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "chart-bar",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "o5ZA9c",
+                      "name": "Nav Text Naive Bayes",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "iwcLl",
+                          "name": "Label Naive Bayes",
+                          "fill": "$text-primary",
+                          "content": "Naive Bayes",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "bWnG4",
+                          "name": "Desc Naive Bayes",
+                          "fill": "$text-muted",
+                          "content": "Inference & Smoothing",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "dR45h",
+                  "name": "Nav K-Nearest Neighbors",
+                  "width": "fill_container",
+                  "cornerRadius": 10,
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "YpuOT",
+                      "name": "Icon K-Nearest Neighbors",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "triangle",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IRxmc",
+                      "name": "Nav Text K-Nearest Neighbors",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "l2QRSD",
+                          "name": "Label K-Nearest Neighbors",
+                          "fill": "$text-primary",
+                          "content": "K-Nearest Neighbors",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "iireP",
+                          "name": "Desc K-Nearest Neighbors",
+                          "fill": "$text-muted",
+                          "content": "Distance Metric & Decis...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PloGE",
+                  "name": "Exam Tip Spacer",
+                  "width": "fill_container",
+                  "height": "fill_container"
+                },
+                {
+                  "type": "frame",
+                  "id": "HsBNo",
+                  "name": "Exam Tip Card",
+                  "width": "fill_container",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#1E40AF",
+                        "position": 0
+                      },
+                      {
+                        "color": "#3B82F6",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 12,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "RV75R",
+                      "name": "Tip Header",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "VMMGx",
+                          "name": "Tip Icon",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "info",
+                          "library": "lucide",
+                          "fill": "$text-white"
+                        },
+                        {
+                          "type": "text",
+                          "id": "imLKy",
+                          "name": "Tip Title",
+                          "fill": "$text-white",
+                          "content": "EXAM TIP",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "lnHUG",
+                      "name": "Tip Body",
+                      "fill": "#BFDBFE",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Exam Note: Broadcasting can only extend dimensions of Size 1. A · B (np.dot) and A ⊙ B (Element-wise) have completely different physical meanings!",
+                      "lineHeight": 1.5,
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "KVvCS",
+              "name": "Main Content",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "$bg-page",
+              "layout": "vertical",
+              "gap": 20,
+              "padding": [
+                28,
+                36
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "fi67f",
+                  "name": "Title Section",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "i94Ws6",
+                      "name": "Module Title Row",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "dOGkN",
+                          "name": "Module Icon",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "brain",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "gzzfX",
+                          "name": "Module Title",
+                          "fill": "$text-primary",
+                          "content": "BACKPROPAGATION & GRADIENT UPDATE",
+                          "fontFamily": "Inter",
+                          "fontSize": 18,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.5
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "l9Lrob",
+                      "name": "Module Subtitle",
+                      "fill": "$text-secondary",
+                      "content": "Chain Rule is the Bridge between Error and Weights",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal",
+                      "fontStyle": "italic"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "I0EWha",
+                  "name": "Content Columns",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ShDHV",
+                      "name": "Left Column",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "GfK3x",
+                          "name": "Chain Rule Header",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "mnDlP",
+                              "name": "Fire Icon",
+                              "fill": "$text-primary",
+                              "content": "🔥",
+                              "fontFamily": "Inter",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "qojo3",
+                              "name": "Chain Rule Title",
+                              "fill": "$text-primary",
+                              "content": "Chain Rule Tracker",
+                              "fontFamily": "Inter",
+                              "fontSize": 16,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "IzMGi",
+                          "name": "Neural Network Card",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 260,
+                          "fill": "$bg-dark-card",
+                          "cornerRadius": 12,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "E11s6e",
+                              "x": 290,
+                              "y": 16,
+                              "name": "Output Layer Label",
+                              "fill": "#475569",
+                              "content": "OUTPUT  LAYER",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 1.5
+                            },
+                            {
+                              "type": "text",
+                              "id": "ixrCc",
+                              "x": 310,
+                              "y": 32,
+                              "name": "Error Delta Label",
+                              "fill": "$text-red",
+                              "content": "Error δₖ",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "Cg0ON",
+                              "x": 60,
+                              "y": 70,
+                              "name": "Node i",
+                              "fill": "$node-green",
+                              "width": 44,
+                              "height": 44
+                            },
+                            {
+                              "type": "text",
+                              "id": "D55fX",
+                              "x": 76,
+                              "y": 82,
+                              "name": "Label i",
+                              "fill": "$text-white",
+                              "content": "i",
+                              "fontFamily": "Inter",
+                              "fontSize": 16,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "IKfNC",
+                              "x": 60,
+                              "y": 170,
+                              "name": "Node j",
+                              "fill": "$node-green",
+                              "width": 44,
+                              "height": 44
+                            },
+                            {
+                              "type": "text",
+                              "id": "Dep0Z",
+                              "x": 76,
+                              "y": 182,
+                              "name": "Label j",
+                              "fill": "$text-white",
+                              "content": "j",
+                              "fontFamily": "Inter",
+                              "fontSize": 16,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "XwVlw",
+                              "x": 310,
+                              "y": 110,
+                              "name": "Node k",
+                              "fill": "$node-red",
+                              "width": 56,
+                              "height": 56,
+                              "stroke": "#FCA5A5",
+                              "strokeWidth": 3
+                            },
+                            {
+                              "type": "text",
+                              "id": "CE2XY",
+                              "x": 330,
+                              "y": 126,
+                              "name": "Label k",
+                              "fill": "$text-white",
+                              "content": "k",
+                              "fontFamily": "Inter",
+                              "fontSize": 18,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "path",
+                              "id": "EMYwd",
+                              "x": 104,
+                              "y": 92,
+                              "name": "Edge i-k",
+                              "geometry": "M0 0l14 3.2m7 1.6l14 3.2m7 1.6l14 3.2m7 1.6l14 3.2m7 1.6l14 3.2m7 1.6l14 3.2m7 1.6l14 3.2m7 1.6l14 3.2m7 1.6l14 3.2m7 1.6l21 4.8",
+                              "viewBox": [
+                                0,
+                                0,
+                                210,
+                                48
+                              ],
+                              "width": 210,
+                              "height": 48,
+                              "stroke": "#334155",
+                              "strokeWidth": 1.5,
+                              "strokeLinecap": "round"
+                            },
+                            {
+                              "type": "path",
+                              "id": "Ocjqg",
+                              "x": 104,
+                              "y": 146,
+                              "name": "Edge j-k",
+                              "geometry": "M0 48l14-3.2m7-1.6l14-3.2m7-1.6l14-3.2m7-1.6l14-3.2m7-1.6l14-3.2m7-1.6l14-3.2m7-1.6l14-3.2m7-1.6l14-3.2m7-1.6l14-3.2m7-1.6l21-4.8",
+                              "viewBox": [
+                                0,
+                                0,
+                                210,
+                                48
+                              ],
+                              "width": 210,
+                              "height": 48,
+                              "stroke": "#334155",
+                              "strokeWidth": 1.5,
+                              "strokeLinecap": "round"
+                            },
+                            {
+                              "type": "text",
+                              "id": "SOLce",
+                              "x": 160,
+                              "y": 115,
+                              "name": "Weight Label",
+                              "fill": "#94A3B8",
+                              "content": "wⱼₖ",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "JEOVV",
+                          "name": "Slider Card",
+                          "width": "fill_container",
+                          "fill": "$bg-white",
+                          "cornerRadius": 10,
+                          "stroke": "$border-light",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 12,
+                          "padding": 16,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "x7k1Tz",
+                              "name": "Slider Row",
+                              "width": "fill_container",
+                              "gap": 12,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "qza2K",
+                                  "name": "Slider Label",
+                                  "fill": "$text-primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": 170,
+                                  "content": "Error Value (Target — Out):",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "kPpWR",
+                                  "name": "Slider Track",
+                                  "width": "fill_container",
+                                  "height": 6,
+                                  "fill": "$bg-slider-track",
+                                  "cornerRadius": 3,
+                                  "layout": "none",
+                                  "children": [
+                                    {
+                                      "type": "rectangle",
+                                      "cornerRadius": 3,
+                                      "id": "thu38",
+                                      "x": 0,
+                                      "y": 0,
+                                      "name": "Slider Fill",
+                                      "fill": "$bg-red",
+                                      "width": 100,
+                                      "height": 6
+                                    },
+                                    {
+                                      "type": "ellipse",
+                                      "id": "VTPeA",
+                                      "x": 94,
+                                      "y": -5,
+                                      "name": "Slider Thumb",
+                                      "fill": "$bg-red",
+                                      "width": 16,
+                                      "height": 16,
+                                      "stroke": "$bg-white",
+                                      "strokeWidth": 2
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "rPGsT",
+                                  "name": "Slider Value",
+                                  "fill": "$text-primary",
+                                  "content": "0.8",
+                                  "fontFamily": "$font-mono",
+                                  "fontSize": 16,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "jp7GM",
+                              "name": "Track Button",
+                              "width": "fill_container",
+                              "fill": "$bg-red",
+                              "cornerRadius": 8,
+                              "gap": 8,
+                              "padding": [
+                                12,
+                                0
+                              ],
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "BLL7g",
+                                  "name": "Play Icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "play",
+                                  "library": "lucide",
+                                  "fill": "$text-white"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "WVGRa",
+                                  "name": "Button Label",
+                                  "fill": "$text-white",
+                                  "content": "Track Gradient Δwjk",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hf10V",
+                      "name": "Right Column",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "xXPyj",
+                          "name": "Derivation Notebook",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "$bg-white",
+                          "cornerRadius": 12,
+                          "stroke": "$border-light",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "mYCe6",
+                              "name": "Notebook Header",
+                              "width": "fill_container",
+                              "stroke": "$border-light",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "gap": 10,
+                              "padding": [
+                                14,
+                                18
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "mz2xA",
+                                  "name": "Search Icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "search",
+                                  "library": "lucide",
+                                  "fill": "$text-secondary"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "uK6h7",
+                                  "name": "NB Title",
+                                  "fill": "$text-primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Derivation Notebook (COMP2211 Core)",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "srHRC",
+                              "name": "Notebook Body",
+                              "width": "fill_container",
+                              "height": "fill_container",
+                              "layout": "vertical",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "BBJXN",
+                                  "name": "STEP 1: CHAIN RULE EXPANSION",
+                                  "width": "fill_container",
+                                  "stroke": "$border-light",
+                                  "strokeWidth": {
+                                    "bottom": 1
+                                  },
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "padding": [
+                                    14,
+                                    18
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "Vdqn8",
+                                      "name": "Step Label STEP 1: CHAIN RULE EXPANSION",
+                                      "fill": "$text-red",
+                                      "content": "STEP 1: CHAIN RULE EXPANSION",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 0.8
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "BDebw",
+                                      "name": "Formula STEP 1: CHAIN RULE EXPANSION",
+                                      "fill": "$text-primary",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "∂E/∂wⱼₖ = ∂E/∂Oₖ · ∂Oₖ/∂netₖ · ∂netₖ/∂wⱼₖ",
+                                      "textAlign": "center",
+                                      "fontFamily": "STIX Two Text",
+                                      "fontSize": 14,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "G8T8tG",
+                                  "name": "STEP 2: DEFINE ERROR SIGNAL",
+                                  "width": "fill_container",
+                                  "stroke": "$border-light",
+                                  "strokeWidth": {
+                                    "bottom": 1
+                                  },
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "padding": [
+                                    14,
+                                    18
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "IQF1E",
+                                      "name": "Step Label STEP 2: DEFINE ERROR SIGNAL",
+                                      "fill": "$text-red",
+                                      "content": "STEP 2: DEFINE ERROR SIGNAL",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 0.8
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "YwISn",
+                                      "name": "Preamble STEP 2: DEFINE ERROR SIGNAL",
+                                      "fill": "$text-secondary",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Let δₖ = −∂E/∂netₖ. Under MSE loss:",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal",
+                                      "fontStyle": "italic"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "BmnbF",
+                                      "name": "Formula STEP 2: DEFINE ERROR SIGNAL",
+                                      "fill": "$text-primary",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "δₖ = (Tₖ − Oₖ) · f′(netₖ)",
+                                      "textAlign": "center",
+                                      "fontFamily": "STIX Two Text",
+                                      "fontSize": 16,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "UhG1O",
+                                  "name": "STEP 3: WEIGHT UPDATE AMOUNT",
+                                  "width": "fill_container",
+                                  "stroke": "$border-light",
+                                  "strokeWidth": {
+                                    "bottom": 1
+                                  },
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "padding": [
+                                    14,
+                                    18
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "bTexQ",
+                                      "name": "Step Label STEP 3: WEIGHT UPDATE AMOUNT",
+                                      "fill": "$text-red",
+                                      "content": "STEP 3: WEIGHT UPDATE AMOUNT",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 0.8
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "Le7E4",
+                                      "name": "Formula STEP 3: WEIGHT UPDATE AMOUNT",
+                                      "fill": "$text-primary",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Δwⱼₖ = η · δₖ · Oⱼ",
+                                      "textAlign": "center",
+                                      "fontFamily": "STIX Two Text",
+                                      "fontSize": 18,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "jmgED",
+                                  "name": "Senior Advice Card",
+                                  "width": "fill_container",
+                                  "fill": "$bg-yellow",
+                                  "cornerRadius": 8,
+                                  "stroke": "$bg-yellow-border",
+                                  "strokeWidth": 1,
+                                  "layout": "vertical",
+                                  "gap": 6,
+                                  "padding": [
+                                    14,
+                                    18
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "iv4wI",
+                                      "name": "Advice Header",
+                                      "gap": 6,
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "cXNS4",
+                                          "name": "Advice Bolt",
+                                          "fill": "$text-primary",
+                                          "content": "⚡",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 14,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "z7LU6F",
+                                          "name": "Advice Title",
+                                          "fill": "$text-primary",
+                                          "content": "Senior's Advice:",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "Cv4IG",
+                                      "name": "Advice Body",
+                                      "fill": "#92400E",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Remember, backpropagation is essentially a process of 'finding the culprit'. Each layer weight wⱼₖ is asking: How much of the error E am I responsible for? δₖ is the 'blame letter' passed back from the previous layer.",
+                                      "lineHeight": 1.6,
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v2NFj8",
+          "name": "Footer",
+          "width": "fill_container",
+          "fill": "$bg-white",
+          "stroke": "$border-light",
+          "strokeWidth": {
+            "top": 1
+          },
+          "padding": [
+            14,
+            32
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "GRQ8n",
+              "name": "Copyright",
+              "fill": "$text-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "© 2026 KNOWIT COMP2211 ML LEARNING LAB. EDUCATION THROUGH INTERACTION.",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "letterSpacing": 0.5
+            },
+            {
+              "type": "frame",
+              "id": "QzRwB",
+              "name": "Footer Right",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "q5Dops",
+                  "name": "Latency",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "vySGJ",
+                      "name": "Clock Icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "timer",
+                      "library": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "WLuq0",
+                      "name": "Latency Text",
+                      "fill": "$text-muted",
+                      "content": "LATENCY: 12MS",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.5
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n9P5T4",
+                  "name": "Render",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "yVj9T",
+                      "name": "Settings Icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "settings",
+                      "library": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "K6FBl",
+                      "name": "Render Text",
+                      "fill": "$text-muted",
+                      "content": "RENDER: KATEX HIGH-DEF",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.5
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "bg-active-nav": {
+      "type": "color",
+      "value": "#2563EB"
+    },
+    "bg-active-nav-light": {
+      "type": "color",
+      "value": "#3B82F6"
+    },
+    "bg-badge-blue": {
+      "type": "color",
+      "value": "#DBEAFE"
+    },
+    "bg-dark-card": {
+      "type": "color",
+      "value": "#0B1120"
+    },
+    "bg-page": {
+      "type": "color",
+      "value": "#F3F4F6"
+    },
+    "bg-red": {
+      "type": "color",
+      "value": "#DC2626"
+    },
+    "bg-slider-track": {
+      "type": "color",
+      "value": "#E5E7EB"
+    },
+    "bg-status-pill": {
+      "type": "color",
+      "value": "#F0FDF4"
+    },
+    "bg-white": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "bg-yellow": {
+      "type": "color",
+      "value": "#FEF9C3"
+    },
+    "bg-yellow-border": {
+      "type": "color",
+      "value": "#FDE68A"
+    },
+    "border-card": {
+      "type": "color",
+      "value": "#D1D5DB"
+    },
+    "border-light": {
+      "type": "color",
+      "value": "#E5E7EB"
+    },
+    "font-main": {
+      "type": "string",
+      "value": "Inter"
+    },
+    "font-mono": {
+      "type": "string",
+      "value": "JetBrains Mono"
+    },
+    "green-dot": {
+      "type": "color",
+      "value": "#22C55E"
+    },
+    "node-green": {
+      "type": "color",
+      "value": "#22C55E"
+    },
+    "node-red": {
+      "type": "color",
+      "value": "#EF4444"
+    },
+    "text-blue": {
+      "type": "color",
+      "value": "#2563EB"
+    },
+    "text-muted": {
+      "type": "color",
+      "value": "#9CA3AF"
+    },
+    "text-primary": {
+      "type": "color",
+      "value": "#111827"
+    },
+    "text-red": {
+      "type": "color",
+      "value": "#DC2626"
+    },
+    "text-secondary": {
+      "type": "color",
+      "value": "#6B7280"
+    },
+    "text-white": {
+      "type": "color",
+      "value": "#FFFFFF"
+    }
+  }
+}

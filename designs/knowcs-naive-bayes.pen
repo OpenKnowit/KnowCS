@@ -1,0 +1,1913 @@
+{
+  "version": "2.13",
+  "children": [
+    {
+      "type": "frame",
+      "id": "n8coxA",
+      "x": 0,
+      "y": 0,
+      "name": "Naive Bayes Screen",
+      "clip": true,
+      "width": 1280,
+      "height": 900,
+      "fill": "$bg-page",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "oAB88",
+          "name": "Header",
+          "width": "fill_container",
+          "fill": "$bg-white",
+          "stroke": "$border",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "padding": [
+            16,
+            32
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "G4Cwzm",
+              "name": "Header Left",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "kdGd5",
+                  "name": "Title",
+                  "fill": "$text-primary",
+                  "content": "CS/AI Interactive Learning Lab",
+                  "fontFamily": "Inter",
+                  "fontSize": 24,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "frame",
+                  "id": "eMkap",
+                  "name": "Subtitle Row",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "P9QKL",
+                      "name": "Subtitle",
+                      "fill": "$text-secondary",
+                      "content": "COMP2211 Machine Learning Notebook",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "f9RK3",
+                      "name": "Badge",
+                      "fill": "$accent-blue",
+                      "cornerRadius": 4,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "NtkKT",
+                          "name": "Badge Text",
+                          "fill": "$text-white",
+                          "content": "V2.0 KATEX ENHANCED",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "700",
+                          "letterSpacing": 0.5
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "B29x8L",
+              "name": "Header Right",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "uPC2X",
+                  "name": "Status Pill",
+                  "cornerRadius": 20,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "cvnGz",
+                      "name": "Status Dot",
+                      "fill": "$green-status",
+                      "width": 8,
+                      "height": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "Gl3yp",
+                      "name": "Status Text",
+                      "fill": "$text-secondary",
+                      "content": "Environment: Ready / KaTeX Engine Active",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PTx2c",
+                  "name": "Lang Toggle",
+                  "cornerRadius": 8,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "KYUn1",
+                      "name": "Lang Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "languages",
+                      "library": "lucide",
+                      "fill": "$text-primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "mWzfq",
+                      "name": "Lang Text",
+                      "fill": "$text-primary",
+                      "content": "中文",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "CZX2p",
+          "name": "Body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "children": [
+            {
+              "type": "frame",
+              "id": "UGj11",
+              "name": "Sidebar",
+              "width": 230,
+              "height": "fill_container",
+              "fill": "$bg-white",
+              "layout": "vertical",
+              "gap": 8,
+              "padding": [
+                24,
+                16
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WmrgE",
+                  "name": "Knowledge Core Label",
+                  "fill": "$text-muted",
+                  "content": "KNOWLEDGE CORE",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "700",
+                  "letterSpacing": 1.5
+                },
+                {
+                  "type": "frame",
+                  "id": "yREGp",
+                  "name": "Nav NumPy Mechanism",
+                  "width": "fill_container",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "hBOmU",
+                      "name": "Nav Icon Wrap NumPy Mechanism",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "dc8nz",
+                          "name": "Nav Icon NumPy Mechanism",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "grid-3x3",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Q7QSk",
+                      "name": "Nav Text NumPy Mechanism",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "XPVuD",
+                          "name": "Nav Title NumPy Mechanism",
+                          "fill": "$text-primary",
+                          "content": "NumPy Mechanism",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ZlJ77",
+                          "name": "Nav Desc NumPy Mechanism",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "View vs Copy & Broadc...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "TF5uh",
+                  "name": "Nav Backpropagation",
+                  "width": "fill_container",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "hUKkQ",
+                      "name": "Nav Icon Wrap Backpropagation",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "pv91f",
+                          "name": "Nav Icon Backpropagation",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "repeat",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oMpsz",
+                      "name": "Nav Text Backpropagation",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "E9PuH",
+                          "name": "Nav Title Backpropagation",
+                          "fill": "$text-primary",
+                          "content": "Backpropagation",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "HYfHP",
+                          "name": "Nav Desc Backpropagation",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "The Chain Rule Visualized",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yU5zG",
+                  "name": "Nav Kernel Lab",
+                  "width": "fill_container",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "tXl0S",
+                      "name": "Nav Icon Wrap Kernel Lab",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "K3YI0K",
+                          "name": "Nav Icon Kernel Lab",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "layout-grid",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yeGY9",
+                      "name": "Nav Text Kernel Lab",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "msvLy",
+                          "name": "Nav Title Kernel Lab",
+                          "fill": "$text-primary",
+                          "content": "Kernel Lab",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "UtdX8",
+                          "name": "Nav Desc Kernel Lab",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Edge Detection Simulati...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "JuHwh",
+                  "name": "Nav Bayes Basics",
+                  "width": "fill_container",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Y7HR8u",
+                      "name": "Nav Icon Wrap Bayes Basics",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "PWBCa",
+                          "name": "Nav Icon Bayes Basics",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "square",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "I1DiS",
+                      "name": "Nav Text Bayes Basics",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "U3yL9L",
+                          "name": "Nav Title Bayes Basics",
+                          "fill": "$text-primary",
+                          "content": "Bayes Basics",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "UVZPc",
+                          "name": "Nav Desc Bayes Basics",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Formula & Fire Alarm Ca...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "L6LF0C",
+                  "name": "Nav Naive Bayes",
+                  "width": "fill_container",
+                  "fill": "$nav-active-bg",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "XI4l0",
+                      "name": "Nav Icon Wrap Naive Bayes",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "$accent-blue",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "Rz42s",
+                          "name": "Nav Icon Naive Bayes",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "chart-bar",
+                          "library": "lucide",
+                          "fill": "$text-white"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "k2reeE",
+                      "name": "Nav Text Naive Bayes",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "h2FObF",
+                          "name": "Nav Title Naive Bayes",
+                          "fill": "$accent-blue",
+                          "content": "Naive Bayes",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "c9RxxK",
+                          "name": "Nav Desc Naive Bayes",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Inference & Smoothing",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mfb9U",
+                  "name": "Nav K-Nearest Neighbors",
+                  "width": "fill_container",
+                  "cornerRadius": 10,
+                  "gap": 12,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "wGeOK",
+                      "name": "Nav Icon Wrap K-Nearest Neighbors",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "y0oG5l",
+                          "name": "Nav Icon K-Nearest Neighbors",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "diamond",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xeOb1",
+                      "name": "Nav Text K-Nearest Neighbors",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "CSHRD",
+                          "name": "Nav Title K-Nearest Neighbors",
+                          "fill": "$text-primary",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "K-Nearest Neighbors",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Q5KmH1",
+                          "name": "Nav Desc K-Nearest Neighbors",
+                          "fill": "$text-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Distance Metric & Decis...",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PRw4k",
+                  "name": "Exam Tip Spacer",
+                  "width": "fill_container",
+                  "height": "fill_container"
+                },
+                {
+                  "type": "frame",
+                  "id": "oRUYB",
+                  "name": "Exam Tip Card",
+                  "width": "fill_container",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#1E3A5F",
+                        "position": 0
+                      },
+                      {
+                        "color": "#2563EB",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 12,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "i2MzKz",
+                      "name": "Exam Tip Header",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "bpnUb",
+                          "name": "Exam Tip Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "info",
+                          "library": "lucide",
+                          "fill": "$text-white"
+                        },
+                        {
+                          "type": "text",
+                          "id": "hvxYX",
+                          "name": "Exam Tip Label",
+                          "fill": "$text-white",
+                          "content": "EXAM TIP",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "700",
+                          "letterSpacing": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "I1gqk",
+                      "name": "Exam Tip Text",
+                      "fill": "#FFFFFFCC",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Exam Note: Broadcasting can only extend dimensions of Size 1. A · B (np.dot) and A ⊙ B (Element-wise) have completely different physical meanings!",
+                      "lineHeight": 1.5,
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Einrc",
+              "name": "Main Content",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 20,
+              "padding": [
+                32,
+                40
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "c6jcw",
+                  "name": "Module Title Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "NvrtE",
+                      "name": "Module Icon",
+                      "width": 28,
+                      "height": 28,
+                      "icon": "chart-bar",
+                      "library": "lucide",
+                      "fill": "$accent-blue"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HLfAv",
+                      "name": "Module Title Col",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "iIeyt",
+                          "name": "Module Title",
+                          "fill": "$text-primary",
+                          "content": "NAIVE BAYES INFERENCE",
+                          "fontFamily": "Inter",
+                          "fontSize": 22,
+                          "fontWeight": "800"
+                        },
+                        {
+                          "type": "text",
+                          "id": "HyVpE",
+                          "name": "Module Subtitle",
+                          "fill": "$text-secondary",
+                          "content": "Classifier with Feature Conditional Independence",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal",
+                          "fontStyle": "italic"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "rectangle",
+                  "id": "p8uzJE",
+                  "name": "Title Divider",
+                  "fill": "$border",
+                  "width": "fill_container",
+                  "height": 1
+                },
+                {
+                  "type": "frame",
+                  "id": "hfM0A",
+                  "name": "Content Area",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "gap": 20,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "AORSN",
+                      "name": "Feature Input Card",
+                      "width": 320,
+                      "fill": "$bg-white",
+                      "cornerRadius": 12,
+                      "stroke": "$border",
+                      "strokeWidth": 1,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#00000010",
+                        "offset": {
+                          "x": 0,
+                          "y": 1
+                        },
+                        "blur": 4
+                      },
+                      "layout": "vertical",
+                      "gap": 16,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZQ6zq",
+                          "name": "Feature Input Title",
+                          "fill": "$text-primary",
+                          "content": "FEATURE INPUT",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "800",
+                          "letterSpacing": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "BBe9P",
+                          "name": "Field BP",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "paXYd",
+                              "name": "Label BP",
+                              "fill": "$text-muted",
+                              "content": "BP",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.8
+                            },
+                            {
+                              "type": "frame",
+                              "id": "iP6um",
+                              "name": "Select BP",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "stroke": "$border-dark",
+                              "strokeWidth": 1,
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "PZNLC",
+                                  "name": "Value BP",
+                                  "fill": "$text-primary",
+                                  "content": "High",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "G3zuX",
+                                  "name": "Chevron BP",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-muted"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Z7uyo",
+                          "name": "Field FEVER",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "T8BVd",
+                              "name": "Label FEVER",
+                              "fill": "$text-muted",
+                              "content": "FEVER",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.8
+                            },
+                            {
+                              "type": "frame",
+                              "id": "zR9hg",
+                              "name": "Select FEVER",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "stroke": "$border-dark",
+                              "strokeWidth": 1,
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "VOsy9",
+                                  "name": "Value FEVER",
+                                  "fill": "$text-primary",
+                                  "content": "No",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "MEcMJ",
+                                  "name": "Chevron FEVER",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-muted"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "x86i1",
+                          "name": "Field DIABETES",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ObAMp",
+                              "name": "Label DIABETES",
+                              "fill": "$text-muted",
+                              "content": "DIABETES",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.8
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Qbpa5",
+                              "name": "Select DIABETES",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "stroke": "$border-dark",
+                              "strokeWidth": 1,
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "BlWrK",
+                                  "name": "Value DIABETES",
+                                  "fill": "$text-primary",
+                                  "content": "Yes",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "LfnYe",
+                                  "name": "Chevron DIABETES",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-muted"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "KrLTV",
+                          "name": "Field VOMIT",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "uJgaV",
+                              "name": "Label VOMIT",
+                              "fill": "$text-muted",
+                              "content": "VOMIT",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.8
+                            },
+                            {
+                              "type": "frame",
+                              "id": "m9BxH",
+                              "name": "Select VOMIT",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "stroke": "$border-dark",
+                              "strokeWidth": 1,
+                              "padding": [
+                                10,
+                                12
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "TyXY8",
+                                  "name": "Value VOMIT",
+                                  "fill": "$text-primary",
+                                  "content": "Yes",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "eAJfa",
+                                  "name": "Chevron VOMIT",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$text-muted"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "Q6N7CI",
+                          "name": "Field Divider",
+                          "fill": "$border",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "c1XQK",
+                          "name": "Smoothing Row",
+                          "width": "fill_container",
+                          "gap": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Ykkim",
+                              "name": "Smoothing Label",
+                              "fill": "$text-primary",
+                              "content": "SMOOTHING λ:",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.5
+                            },
+                            {
+                              "type": "frame",
+                              "id": "G65grT",
+                              "name": "Smoothing Input",
+                              "width": 60,
+                              "cornerRadius": 6,
+                              "stroke": "$border-dark",
+                              "strokeWidth": 1,
+                              "padding": [
+                                8,
+                                12
+                              ],
+                              "justifyContent": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "AZhpO",
+                                  "name": "Smoothing Value",
+                                  "fill": "$text-primary",
+                                  "content": "0",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "FmCDP",
+                          "name": "Product Mode Btn",
+                          "width": "fill_container",
+                          "cornerRadius": 8,
+                          "stroke": "$border-dark",
+                          "strokeWidth": 1,
+                          "padding": [
+                            10,
+                            16
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "o3Lnq",
+                              "name": "Product Mode Text",
+                              "fill": "$text-primary",
+                              "content": "PRODUCT MODE",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hH7r5",
+                      "name": "Right Column",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 20,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "p27yFF",
+                          "name": "Classification Result Card",
+                          "width": "fill_container",
+                          "fill": "$bg-navy",
+                          "cornerRadius": 12,
+                          "stroke": "#334155",
+                          "strokeWidth": 1,
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#00000020",
+                            "offset": {
+                              "x": 0,
+                              "y": 2
+                            },
+                            "blur": 8
+                          },
+                          "layout": "vertical",
+                          "gap": 20,
+                          "padding": 24,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "c0lgA",
+                              "name": "Class Result Label",
+                              "fill": "$teal-label",
+                              "content": "CLASSIFICATION RESULT (NOTES P.29)",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "700",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "frame",
+                              "id": "PWlh1",
+                              "name": "Yes Row",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 6,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "EVcLa",
+                                  "name": "Yes Header",
+                                  "width": "fill_container",
+                                  "justifyContent": "space_between",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "FZtpE",
+                                      "name": "Yes Label",
+                                      "fill": "$text-white",
+                                      "content": "CLASS: YES",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 14,
+                                      "fontWeight": "700"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "YQzPE",
+                                      "name": "Yes Pct",
+                                      "fill": "$text-white",
+                                      "content": "20.46%",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 22,
+                                      "fontWeight": "800"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "z2bb8",
+                                  "name": "Yes Bar Bg",
+                                  "width": "fill_container",
+                                  "height": 8,
+                                  "fill": "#334155",
+                                  "cornerRadius": 4,
+                                  "children": [
+                                    {
+                                      "type": "rectangle",
+                                      "cornerRadius": 4,
+                                      "id": "af8CK",
+                                      "name": "Yes Bar Fill",
+                                      "fill": "$accent-blue",
+                                      "width": 70,
+                                      "height": 8
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "rLn7u",
+                              "name": "No Row",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 6,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "KYcrH",
+                                  "name": "No Header",
+                                  "width": "fill_container",
+                                  "justifyContent": "space_between",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "uwgJF",
+                                      "name": "No Label",
+                                      "fill": "$text-white",
+                                      "content": "CLASS: NO",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 14,
+                                      "fontWeight": "700"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "W0j68",
+                                      "name": "No Pct",
+                                      "fill": "$text-white",
+                                      "content": "79.54%",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 22,
+                                      "fontWeight": "800"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "dNuh2",
+                                  "name": "No Bar Bg",
+                                  "width": "fill_container",
+                                  "height": 8,
+                                  "fill": "#334155",
+                                  "cornerRadius": 4,
+                                  "children": [
+                                    {
+                                      "type": "rectangle",
+                                      "cornerRadius": 4,
+                                      "id": "SJJhk",
+                                      "name": "No Bar Fill",
+                                      "fill": "$text-secondary",
+                                      "width": "fill_container",
+                                      "height": 8
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "WBFhU",
+                          "name": "Likelihood Chain Card",
+                          "width": "fill_container",
+                          "fill": "$bg-white",
+                          "cornerRadius": 12,
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#00000010",
+                            "offset": {
+                              "x": 0,
+                              "y": 1
+                            },
+                            "blur": 4
+                          },
+                          "layout": "vertical",
+                          "gap": 16,
+                          "padding": 24,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "YaSeA",
+                              "name": "Likelihood Title",
+                              "fill": "$text-primary",
+                              "content": "LIKELIHOOD CHAIN",
+                              "fontFamily": "Inter",
+                              "fontSize": 16,
+                              "fontWeight": "800"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "HCc1W",
+                              "name": "Prob Columns",
+                              "width": "fill_container",
+                              "gap": 24,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "ZePRI",
+                                  "name": "Yes Prob Col",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "NkbOc",
+                                      "name": "Yes Prob Header",
+                                      "fill": "$text-muted",
+                                      "content": "PROBABILITIES FOR YES",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 0.8
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "M59oa4",
+                                      "name": "Prob Row P(Z = Yes)",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "aCV0d",
+                                          "name": "Formula P(Z = Yes)",
+                                          "fill": "$text-primary",
+                                          "content": "P(Z = Yes)",
+                                          "fontFamily": "Noto Serif",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal",
+                                          "fontStyle": "italic"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "X1KWui",
+                                          "name": "Val P(Z = Yes)",
+                                          "fill": "$text-primary",
+                                          "content": "0.643",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "kluI6",
+                                      "name": "Prob Row P(BP|yes)",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "s7dm7G",
+                                          "name": "Formula P(BP|yes)",
+                                          "fill": "$text-primary",
+                                          "content": "P(BP|yes)",
+                                          "fontFamily": "Noto Serif",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal",
+                                          "fontStyle": "italic"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "dEjVC",
+                                          "name": "Val P(BP|yes)",
+                                          "fill": "$text-primary",
+                                          "content": "0.222",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "X6MLCt",
+                                      "name": "Prob Row P(Fever|yes)",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "s1was",
+                                          "name": "Formula P(Fever|yes)",
+                                          "fill": "$text-primary",
+                                          "content": "P(Fever|yes)",
+                                          "fontFamily": "Noto Serif",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal",
+                                          "fontStyle": "italic"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "etXIq",
+                                          "name": "Val P(Fever|yes)",
+                                          "fill": "$text-primary",
+                                          "content": "0.333",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "dRgCf",
+                                      "name": "Prob Row P(Diabetes|yes)",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "tpWP0",
+                                          "name": "Formula P(Diabetes|yes)",
+                                          "fill": "$text-primary",
+                                          "content": "P(Diabetes|yes)",
+                                          "fontFamily": "Noto Serif",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal",
+                                          "fontStyle": "italic"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "r4UUv",
+                                          "name": "Val P(Diabetes|yes)",
+                                          "fill": "$text-primary",
+                                          "content": "0.333",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "yH4et",
+                                      "name": "Prob Row P(Vomit|yes)",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "DqIsB",
+                                          "name": "Formula P(Vomit|yes)",
+                                          "fill": "$text-primary",
+                                          "content": "P(Vomit|yes)",
+                                          "fontFamily": "Noto Serif",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal",
+                                          "fontStyle": "italic"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "N5Y0Bm",
+                                          "name": "Val P(Vomit|yes)",
+                                          "fill": "$text-primary",
+                                          "content": "0.333",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "QDlDP",
+                                  "name": "No Prob Col",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "bXiVd",
+                                      "name": "No Prob Header",
+                                      "fill": "$text-muted",
+                                      "content": "PROBABILITIES FOR NO",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 10,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 0.8
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "VCvTn",
+                                      "name": "Prob Row P(Z = No)",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "asPX5",
+                                          "name": "Formula P(Z = No)",
+                                          "fill": "$text-primary",
+                                          "content": "P(Z = No)",
+                                          "fontFamily": "Noto Serif",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal",
+                                          "fontStyle": "italic"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "Jq9KN",
+                                          "name": "Val P(Z = No)",
+                                          "fill": "$text-primary",
+                                          "content": "0.357",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "tBj10",
+                                      "name": "Prob Row P(BP|no)",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "cnGfr",
+                                          "name": "Formula P(BP|no)",
+                                          "fill": "$text-primary",
+                                          "content": "P(BP|no)",
+                                          "fontFamily": "Noto Serif",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal",
+                                          "fontStyle": "italic"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "GeuV8",
+                                          "name": "Val P(BP|no)",
+                                          "fill": "$text-primary",
+                                          "content": "0.600",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "QAqgM",
+                                      "name": "Prob Row P(Fever|no)",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "f3MHnx",
+                                          "name": "Formula P(Fever|no)",
+                                          "fill": "$text-primary",
+                                          "content": "P(Fever|no)",
+                                          "fontFamily": "Noto Serif",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal",
+                                          "fontStyle": "italic"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "r8IDsp",
+                                          "name": "Val P(Fever|no)",
+                                          "fill": "$text-primary",
+                                          "content": "0.200",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "QyCPU",
+                                      "name": "Prob Row P(Diabetes|no)",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "fz8ti",
+                                          "name": "Formula P(Diabetes|no)",
+                                          "fill": "$text-primary",
+                                          "content": "P(Diabetes|no)",
+                                          "fontFamily": "Noto Serif",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal",
+                                          "fontStyle": "italic"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "taptN",
+                                          "name": "Val P(Diabetes|no)",
+                                          "fill": "$text-primary",
+                                          "content": "0.800",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "QdIvB",
+                                      "name": "Prob Row P(Vomit|no)",
+                                      "width": "fill_container",
+                                      "justifyContent": "space_between",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "W1zho",
+                                          "name": "Formula P(Vomit|no)",
+                                          "fill": "$text-primary",
+                                          "content": "P(Vomit|no)",
+                                          "fontFamily": "Noto Serif",
+                                          "fontSize": 13,
+                                          "fontWeight": "normal",
+                                          "fontStyle": "italic"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "AylZF",
+                                          "name": "Val P(Vomit|no)",
+                                          "fill": "$text-primary",
+                                          "content": "0.600",
+                                          "fontFamily": "Inter",
+                                          "fontSize": 13,
+                                          "fontWeight": "700"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fXcHo",
+                  "name": "Senior Advice",
+                  "width": "fill_container",
+                  "fill": "$bg-yellow",
+                  "cornerRadius": 10,
+                  "stroke": "#F59E0B",
+                  "strokeWidth": 1,
+                  "gap": 10,
+                  "padding": [
+                    16,
+                    20
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "m8UJW",
+                      "name": "Advice Icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "sparkles",
+                      "library": "lucide",
+                      "fill": "#D97706"
+                    },
+                    {
+                      "type": "text",
+                      "id": "oF2nu",
+                      "name": "Advice Text",
+                      "fill": "#92400E",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Senior's Advice: Key point from Notes P.23: Bayes is 'Naive' because it assumes features are α. Efficient for spam filtering. Watch out for Zero Frequency Problem, increase \\alpha to see changes!",
+                      "lineHeight": 1.5,
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wNDzX",
+          "name": "Footer",
+          "width": "fill_container",
+          "fill": "$bg-white",
+          "stroke": "$border",
+          "strokeWidth": {
+            "top": 1
+          },
+          "padding": [
+            14,
+            32
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "fVcCc",
+              "name": "Footer Copyright",
+              "fill": "$text-muted",
+              "content": "© 2026 KNOWIT COMP2211 ML LEARNING LAB. EDUCATION THROUGH INTERACTION.",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "letterSpacing": 0.5
+            },
+            {
+              "type": "frame",
+              "id": "I239a",
+              "name": "Footer Right",
+              "gap": 24,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lBnlS",
+                  "name": "Latency Row",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "qRVXU",
+                      "name": "Latency Icon",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "timer",
+                      "library": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "MCKBe",
+                      "name": "Latency Text",
+                      "fill": "$text-muted",
+                      "content": "LATENCY: 12MS",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.5
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "uyjPM",
+                  "name": "Render Row",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "KIKG5",
+                      "name": "Render Icon",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "settings",
+                      "library": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "BSjQ8",
+                      "name": "Render Text",
+                      "fill": "$text-muted",
+                      "content": "RENDER: KATEX HIGH-DEF",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.5
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "accent-blue": {
+      "type": "color",
+      "value": "#3B82F6"
+    },
+    "bg-navy": {
+      "type": "color",
+      "value": "#1B2A4A"
+    },
+    "bg-page": {
+      "type": "color",
+      "value": "#ECEEF3"
+    },
+    "bg-white": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "bg-yellow": {
+      "type": "color",
+      "value": "#FEF9C3"
+    },
+    "border": {
+      "type": "color",
+      "value": "#E5E7EB"
+    },
+    "border-dark": {
+      "type": "color",
+      "value": "#D1D5DB"
+    },
+    "green-status": {
+      "type": "color",
+      "value": "#22C55E"
+    },
+    "nav-active-bg": {
+      "type": "color",
+      "value": "#EBF2FF"
+    },
+    "teal-label": {
+      "type": "color",
+      "value": "#5EEAD4"
+    },
+    "text-muted": {
+      "type": "color",
+      "value": "#9CA3AF"
+    },
+    "text-primary": {
+      "type": "color",
+      "value": "#1A202C"
+    },
+    "text-secondary": {
+      "type": "color",
+      "value": "#6B7280"
+    },
+    "text-white": {
+      "type": "color",
+      "value": "#FFFFFF"
+    }
+  }
+}
