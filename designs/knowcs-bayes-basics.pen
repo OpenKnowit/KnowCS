@@ -1,0 +1,1652 @@
+{
+  "version": "2.13",
+  "children": [
+    {
+      "type": "frame",
+      "id": "ILOs8",
+      "x": 0,
+      "y": 0,
+      "name": "Bayes Basics Screen",
+      "clip": true,
+      "width": 1440,
+      "height": 1080,
+      "fill": "$bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "rtlXC",
+          "name": "Outer Wrap",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "padding": [
+            24,
+            32
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "RMWWu",
+              "name": "Main Card",
+              "clip": true,
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "$surface",
+              "cornerRadius": 16,
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "P86pTI",
+                  "name": "Header",
+                  "width": "fill_container",
+                  "height": 80,
+                  "stroke": "$border",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    0,
+                    32
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Xv8nM",
+                      "name": "Header Left",
+                      "gap": 16,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "UKVvq",
+                          "name": "Title Group",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "F8kER9",
+                              "name": "App Title",
+                              "fill": "$text-primary",
+                              "content": "CS/AI Interactive Learning Lab",
+                              "fontFamily": "$font-primary",
+                              "fontSize": 22,
+                              "fontWeight": "800"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ZBEhn",
+                              "name": "Subtitle Row",
+                              "gap": 12,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Uz1fV",
+                                  "name": "Subtitle",
+                                  "fill": "$text-secondary",
+                                  "content": "COMP2211 Machine Learning Notebook",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "I7xn8h",
+                                  "name": "Badge",
+                                  "fill": "$badge-blue-bg",
+                                  "cornerRadius": 4,
+                                  "padding": [
+                                    3,
+                                    8
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "csFV6",
+                                      "name": "Badge Text",
+                                      "fill": "#FFFFFF",
+                                      "content": "V2.0 KATEX ENHANCED",
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 9,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 0.5
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yTM08",
+                      "name": "Header Right",
+                      "gap": 16,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "HfKPa",
+                          "name": "Status Pill",
+                          "cornerRadius": 20,
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "gap": 8,
+                          "padding": [
+                            8,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "xDPT6",
+                              "name": "Green Dot",
+                              "fill": "$accent-green",
+                              "width": 8,
+                              "height": 8
+                            },
+                            {
+                              "type": "text",
+                              "id": "I9o0yU",
+                              "name": "Status Text",
+                              "fill": "$text-secondary",
+                              "content": "Environment: Ready / KaTeX Engine Active",
+                              "fontFamily": "$font-primary",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Wyfzq",
+                          "name": "Lang Toggle",
+                          "cornerRadius": 8,
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "gap": 8,
+                          "padding": [
+                            8,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "Cu5vb",
+                              "name": "Lang Icon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "translate",
+                              "library": "Material Symbols Rounded",
+                              "fill": "$text-primary"
+                            },
+                            {
+                              "type": "text",
+                              "id": "JGkmf",
+                              "name": "Lang Text",
+                              "fill": "$text-primary",
+                              "content": "中文",
+                              "fontFamily": "$font-primary",
+                              "fontSize": 13,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZQyL8",
+                  "name": "Body",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "AEj9R",
+                      "name": "Sidebar",
+                      "width": 320,
+                      "height": "fill_container",
+                      "fill": "#FAFAFA",
+                      "stroke": "$border",
+                      "strokeWidth": {
+                        "right": 1
+                      },
+                      "strokeAlignment": "inner",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "padding": [
+                        24,
+                        20
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Xrxy2",
+                          "name": "Label Wrap",
+                          "padding": [
+                            0,
+                            12,
+                            8,
+                            12
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "gCP9u",
+                              "name": "Knowledge Core Label",
+                              "fill": "$text-muted",
+                              "content": "KNOWLEDGE CORE",
+                              "fontFamily": "$font-primary",
+                              "fontSize": 11,
+                              "fontWeight": "600",
+                              "letterSpacing": 1.2
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "QfFZJ",
+                          "name": "Nav NumPy Mechanism",
+                          "width": "fill_container",
+                          "fill": "#00000000",
+                          "cornerRadius": 10,
+                          "gap": 12,
+                          "padding": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "ZScqX",
+                              "name": "Icon Bg",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E5E7EB",
+                              "cornerRadius": 8,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "fA9Iq",
+                                  "name": "Icon",
+                                  "width": 18,
+                                  "height": 18,
+                                  "icon": "memory",
+                                  "library": "Material Symbols Rounded",
+                                  "fill": "$text-secondary"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "HM9FN",
+                              "name": "Text Col",
+                              "layout": "vertical",
+                              "gap": 1,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "F7eez",
+                                  "name": "Nav Label",
+                                  "fill": "$text-primary",
+                                  "content": "NumPy Mechanism",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "RzAwq",
+                                  "name": "Nav Sub",
+                                  "fill": "$text-muted",
+                                  "content": "View vs Copy & Broadc...",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "pb4E8",
+                          "name": "Nav Backpropagation",
+                          "width": "fill_container",
+                          "fill": "#00000000",
+                          "cornerRadius": 10,
+                          "gap": 12,
+                          "padding": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "ezKwU",
+                              "name": "Icon Bg",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E5E7EB",
+                              "cornerRadius": 8,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "h596e",
+                                  "name": "Icon",
+                                  "width": 18,
+                                  "height": 18,
+                                  "icon": "layers",
+                                  "library": "Material Symbols Rounded",
+                                  "fill": "$text-secondary"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "aUBv8",
+                              "name": "Text Col",
+                              "layout": "vertical",
+                              "gap": 1,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "odvBt",
+                                  "name": "Nav Label",
+                                  "fill": "$text-primary",
+                                  "content": "Backpropagation",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "M6wrP",
+                                  "name": "Nav Sub",
+                                  "fill": "$text-muted",
+                                  "content": "The Chain Rule Visualized",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "xQ762",
+                          "name": "Nav Kernel Lab",
+                          "width": "fill_container",
+                          "fill": "#00000000",
+                          "cornerRadius": 10,
+                          "gap": 12,
+                          "padding": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "a90Mx",
+                              "name": "Icon Bg",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E5E7EB",
+                              "cornerRadius": 8,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "AXSAJ",
+                                  "name": "Icon",
+                                  "width": 18,
+                                  "height": 18,
+                                  "icon": "grid_view",
+                                  "library": "Material Symbols Rounded",
+                                  "fill": "$text-secondary"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "isXs2",
+                              "name": "Text Col",
+                              "layout": "vertical",
+                              "gap": 1,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "F9esK",
+                                  "name": "Nav Label",
+                                  "fill": "$text-primary",
+                                  "content": "Kernel Lab",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "dwpRs",
+                                  "name": "Nav Sub",
+                                  "fill": "$text-muted",
+                                  "content": "Edge Detection Simulati...",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "k6KE8",
+                          "name": "Nav Bayes Basics",
+                          "width": "fill_container",
+                          "fill": "$sidebar-active-bg",
+                          "cornerRadius": 10,
+                          "gap": 12,
+                          "padding": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "S8l19g",
+                              "name": "Icon Bg",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "$accent-blue",
+                              "cornerRadius": 8,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "e6Jlzs",
+                                  "name": "Icon",
+                                  "width": 18,
+                                  "height": 18,
+                                  "icon": "calculate",
+                                  "library": "Material Symbols Rounded",
+                                  "fill": "#FFFFFF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ChYxt",
+                              "name": "Text Col",
+                              "layout": "vertical",
+                              "gap": 1,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "omh9z",
+                                  "name": "Nav Label",
+                                  "fill": "$accent-blue",
+                                  "content": "Bayes Basics",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 13,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "h6Pbj0",
+                                  "name": "Nav Sub",
+                                  "fill": "$text-muted",
+                                  "content": "Formula & Fire Alarm Ca...",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "TjPUM",
+                          "name": "Nav Naive Bayes",
+                          "width": "fill_container",
+                          "fill": "#00000000",
+                          "cornerRadius": 10,
+                          "gap": 12,
+                          "padding": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "vL17i",
+                              "name": "Icon Bg",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E5E7EB",
+                              "cornerRadius": 8,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "DxnHs",
+                                  "name": "Icon",
+                                  "width": 18,
+                                  "height": 18,
+                                  "icon": "bar_chart",
+                                  "library": "Material Symbols Rounded",
+                                  "fill": "$text-secondary"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "wObVc",
+                              "name": "Text Col",
+                              "layout": "vertical",
+                              "gap": 1,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "jpJba",
+                                  "name": "Nav Label",
+                                  "fill": "$text-primary",
+                                  "content": "Naive Bayes",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "t0p7p",
+                                  "name": "Nav Sub",
+                                  "fill": "$text-muted",
+                                  "content": "Inference & Smoothing",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "UsqYn",
+                          "name": "Nav K-Nearest Neighbors",
+                          "width": "fill_container",
+                          "fill": "#00000000",
+                          "cornerRadius": 10,
+                          "gap": 12,
+                          "padding": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "hb75U",
+                              "name": "Icon Bg",
+                              "width": 36,
+                              "height": 36,
+                              "fill": "#E5E7EB",
+                              "cornerRadius": 8,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "WJJgG",
+                                  "name": "Icon",
+                                  "width": 18,
+                                  "height": 18,
+                                  "icon": "near_me",
+                                  "library": "Material Symbols Rounded",
+                                  "fill": "$text-secondary"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "A0KJyb",
+                              "name": "Text Col",
+                              "layout": "vertical",
+                              "gap": 1,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "j1pnom",
+                                  "name": "Nav Label",
+                                  "fill": "$text-primary",
+                                  "content": "K-Nearest Neighbors",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "gVqZG",
+                                  "name": "Nav Sub",
+                                  "fill": "$text-muted",
+                                  "content": "Distance Metric & Decis...",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "E8WcF",
+                          "name": "Sidebar Spacer",
+                          "width": 1,
+                          "height": "fill_container"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "skaAP",
+                          "name": "Exam Tip Card",
+                          "width": "fill_container",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#2563EB",
+                                "position": 0
+                              },
+                              {
+                                "color": "#1D4ED8",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "cornerRadius": 14,
+                          "layout": "vertical",
+                          "gap": 12,
+                          "padding": 20,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "M28Bg",
+                              "name": "Tip Header",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "VQcyS",
+                                  "name": "Info Icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "info",
+                                  "library": "Material Symbols Rounded",
+                                  "fill": "#FFFFFF"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "YRMry",
+                                  "name": "Exam Tip Label",
+                                  "fill": "#FFFFFF",
+                                  "content": "EXAM TIP",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 12,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 0.8
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "GZYKh",
+                              "name": "Exam Tip Text",
+                              "fill": "#E0E7FF",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Exam Note: Broadcasting can only extend dimensions of Size 1. A ⊕ B (np.dot) and A ○ B (Element-wise) have completely different physical meanings!",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-primary",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dmHgY",
+                      "name": "Main Content",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 28,
+                      "padding": [
+                        32,
+                        40
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "F4Was9",
+                          "name": "Module Title Row",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "cmvtD",
+                              "name": "Module Icon",
+                              "width": 24,
+                              "height": 24,
+                              "icon": "calculate",
+                              "library": "Material Symbols Rounded",
+                              "fill": "$accent-blue"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "o6IPP",
+                              "name": "Title Col",
+                              "layout": "vertical",
+                              "gap": 2,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Tb5mW",
+                                  "name": "Module Title",
+                                  "fill": "$text-primary",
+                                  "content": "BAYES THEOREM BASICS",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "HgK56",
+                                  "name": "Module Subtitle",
+                                  "fill": "$text-secondary",
+                                  "content": "From Math Definition to Intuitive Update",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 13,
+                                  "fontWeight": "normal",
+                                  "fontStyle": "italic"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "hSF9m",
+                          "name": "Section 1 Header",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "mFExM",
+                              "name": "S1 Icon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "menu_book",
+                              "library": "Material Symbols Rounded",
+                              "fill": "$accent-blue"
+                            },
+                            {
+                              "type": "text",
+                              "id": "q6abO",
+                              "name": "S1 Title",
+                              "fill": "$text-primary",
+                              "content": "1. Bayes Rule Core Analysis",
+                              "fontFamily": "$font-primary",
+                              "fontSize": 17,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "MWcWH",
+                          "name": "Formula Card",
+                          "width": "fill_container",
+                          "fill": "$surface",
+                          "cornerRadius": 12,
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "layout": "vertical",
+                          "padding": [
+                            28,
+                            32
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "EZbTd",
+                              "name": "Bayes Formula",
+                              "fill": "$text-primary",
+                              "content": "P(B|E) = P(B) × P(E|B) / P(E)",
+                              "fontFamily": "Noto Serif",
+                              "fontSize": 24,
+                              "fontStyle": "italic"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Gqcg3",
+                          "name": "Cards Grid",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "dKIW0",
+                              "name": "Cards Row 1",
+                              "width": "fill_container",
+                              "gap": 12,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "L2Bkq",
+                                  "name": "POSTERIOR Card",
+                                  "width": "fill_container",
+                                  "fill": "$card-blue-bg",
+                                  "cornerRadius": 10,
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "padding": [
+                                    16,
+                                    20
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "xTwBV",
+                                      "name": "POSTERIOR Label",
+                                      "fill": "#2563EB",
+                                      "content": "POSTERIOR",
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 11,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 0.8
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "m4rTY1",
+                                      "name": "POSTERIOR Desc",
+                                      "fill": "$text-primary",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Update of belief B after evidence E.",
+                                      "lineHeight": 1.5,
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "fXfgk",
+                                  "name": "PRIOR Card",
+                                  "width": "fill_container",
+                                  "fill": "$card-purple-bg",
+                                  "cornerRadius": 10,
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "padding": [
+                                    16,
+                                    20
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "WELqp",
+                                      "name": "PRIOR Label",
+                                      "fill": "#8B5CF6",
+                                      "content": "PRIOR",
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 11,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 0.8
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "WBWBd",
+                                      "name": "PRIOR Desc",
+                                      "fill": "$text-primary",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Probability of belief B before any evidence.",
+                                      "lineHeight": 1.5,
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "d3u3mh",
+                              "name": "Cards Row 2",
+                              "width": "fill_container",
+                              "gap": 12,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "rQK8k",
+                                  "name": "LIKELIHOOD Card",
+                                  "width": "fill_container",
+                                  "fill": "$card-green-bg",
+                                  "cornerRadius": 10,
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "padding": [
+                                    16,
+                                    20
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "YWcrc",
+                                      "name": "LIKELIHOOD Label",
+                                      "fill": "#10B981",
+                                      "content": "LIKELIHOOD",
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 11,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 0.8
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "q2aoRT",
+                                      "name": "LIKELIHOOD Desc",
+                                      "fill": "$text-primary",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Probability of evidence E given belief B is true.",
+                                      "lineHeight": 1.5,
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "s6UlLM",
+                                  "name": "MARGINAL Card",
+                                  "width": "fill_container",
+                                  "fill": "$card-orange-bg",
+                                  "cornerRadius": 10,
+                                  "layout": "vertical",
+                                  "gap": 8,
+                                  "padding": [
+                                    16,
+                                    20
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "eZdS7",
+                                      "name": "MARGINAL Label",
+                                      "fill": "#F59E0B",
+                                      "content": "MARGINAL",
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 11,
+                                      "fontWeight": "700",
+                                      "letterSpacing": 0.8
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "q21ZRp",
+                                      "name": "MARGINAL Desc",
+                                      "fill": "$text-primary",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Total probability of evidence E under all conditions.",
+                                      "lineHeight": 1.5,
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "v5O5CA",
+                          "name": "Section 2 Header",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "iKIP8",
+                              "name": "S2 Icon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "local_fire_department",
+                              "library": "Material Symbols Rounded",
+                              "fill": "$accent-orange"
+                            },
+                            {
+                              "type": "text",
+                              "id": "y7fs3R",
+                              "name": "S2 Title",
+                              "fill": "$text-primary",
+                              "content": "2. Practice: Smoke & Fire Case (Notes P.15)",
+                              "fontFamily": "$font-primary",
+                              "fontSize": 17,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "gl0jA",
+                          "name": "Practice Row",
+                          "width": "fill_container",
+                          "gap": 16,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "f0vk1s",
+                              "name": "Sliders Panel",
+                              "width": "fill_container",
+                              "fill": "$surface",
+                              "cornerRadius": 12,
+                              "stroke": "$border",
+                              "strokeWidth": 1,
+                              "strokeAlignment": "inner",
+                              "layout": "vertical",
+                              "gap": 20,
+                              "padding": [
+                                24,
+                                28
+                              ],
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "RHXJo",
+                                  "name": "Slider Prob P(Fire)",
+                                  "width": "fill_container",
+                                  "gap": 12,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "W66y4",
+                                      "name": "Slider Label",
+                                      "fill": "$text-primary",
+                                      "content": "Prob P(Fire)",
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 13,
+                                      "fontWeight": "500"
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "q08mR",
+                                      "name": "Track",
+                                      "width": "fill_container",
+                                      "height": 6,
+                                      "fill": "#E5E7EB",
+                                      "cornerRadius": 3,
+                                      "layout": "none",
+                                      "children": [
+                                        {
+                                          "type": "rectangle",
+                                          "cornerRadius": 3,
+                                          "id": "o4HRgu",
+                                          "x": 0,
+                                          "y": 0,
+                                          "name": "Track Fill",
+                                          "fill": "#EF4444",
+                                          "width": 8,
+                                          "height": 6
+                                        },
+                                        {
+                                          "type": "ellipse",
+                                          "id": "CeTRO",
+                                          "x": 0,
+                                          "y": -5,
+                                          "name": "Thumb",
+                                          "fill": "#EF4444",
+                                          "width": 16,
+                                          "height": 16,
+                                          "stroke": "#FFFFFF",
+                                          "strokeWidth": 2,
+                                          "strokeAlignment": "inner"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "l7S1AB",
+                                      "name": "Value Badge",
+                                      "fill": "#EF4444",
+                                      "content": "1.0%",
+                                      "fontFamily": "$font-mono",
+                                      "fontSize": 12,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "i6wcM",
+                                  "name": "Slider Prob P(Smoke)",
+                                  "width": "fill_container",
+                                  "gap": 12,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "bq583",
+                                      "name": "Slider Label",
+                                      "fill": "$text-primary",
+                                      "content": "Prob P(Smoke)",
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 13,
+                                      "fontWeight": "500"
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "c6i3n",
+                                      "name": "Track",
+                                      "width": "fill_container",
+                                      "height": 6,
+                                      "fill": "#E5E7EB",
+                                      "cornerRadius": 3,
+                                      "layout": "none",
+                                      "children": [
+                                        {
+                                          "type": "rectangle",
+                                          "cornerRadius": 3,
+                                          "id": "ESOmQ",
+                                          "x": 0,
+                                          "y": 0,
+                                          "name": "Track Fill",
+                                          "fill": "#3B82F6",
+                                          "width": 56,
+                                          "height": 6
+                                        },
+                                        {
+                                          "type": "ellipse",
+                                          "id": "L6VfY5",
+                                          "x": 48,
+                                          "y": -5,
+                                          "name": "Thumb",
+                                          "fill": "#3B82F6",
+                                          "width": 16,
+                                          "height": 16,
+                                          "stroke": "#FFFFFF",
+                                          "strokeWidth": 2,
+                                          "strokeAlignment": "inner"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "W0ougH",
+                                      "name": "Value Badge",
+                                      "fill": "#3B82F6",
+                                      "content": "10.0%",
+                                      "fontFamily": "$font-mono",
+                                      "fontSize": 12,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "dyqMq",
+                                  "name": "Slider Prob P(Smoke|Fire)",
+                                  "width": "fill_container",
+                                  "gap": 12,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "H3soiL",
+                                      "name": "Slider Label",
+                                      "fill": "$text-primary",
+                                      "content": "Prob P(Smoke|Fire)",
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 13,
+                                      "fontWeight": "500"
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "JH65j",
+                                      "name": "Track",
+                                      "width": "fill_container",
+                                      "height": 6,
+                                      "fill": "#E5E7EB",
+                                      "cornerRadius": 3,
+                                      "layout": "none",
+                                      "children": [
+                                        {
+                                          "type": "rectangle",
+                                          "cornerRadius": 3,
+                                          "id": "WZEQ6",
+                                          "x": 0,
+                                          "y": 0,
+                                          "name": "Track Fill",
+                                          "fill": "#8B5CF6",
+                                          "width": 141,
+                                          "height": 6
+                                        },
+                                        {
+                                          "type": "ellipse",
+                                          "id": "fMMpO",
+                                          "x": 133,
+                                          "y": -5,
+                                          "name": "Thumb",
+                                          "fill": "#8B5CF6",
+                                          "width": 16,
+                                          "height": 16,
+                                          "stroke": "#FFFFFF",
+                                          "strokeWidth": 2,
+                                          "strokeAlignment": "inner"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "TJ2PT",
+                                      "name": "Value Badge",
+                                      "fill": "#8B5CF6",
+                                      "content": "90.0%",
+                                      "fontFamily": "$font-mono",
+                                      "fontSize": 12,
+                                      "fontWeight": "600"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "qWYqm",
+                              "name": "Result Card",
+                              "width": 340,
+                              "fill": "$dark-navy",
+                              "cornerRadius": 14,
+                              "layout": "vertical",
+                              "gap": 16,
+                              "padding": [
+                                28,
+                                32
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "kj3xR",
+                                  "name": "Result Label",
+                                  "fill": "#9CA3AF",
+                                  "content": "PROB OF FIRE GIVEN SMOKE",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 11,
+                                  "fontWeight": "700",
+                                  "letterSpacing": 1
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "sSyqh",
+                                  "name": "Result Value",
+                                  "fill": "$accent-red",
+                                  "content": "9.00%",
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 48,
+                                  "fontWeight": "800"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "vFwcw",
+                                  "name": "Calc Box",
+                                  "fill": "#1E293B",
+                                  "cornerRadius": 8,
+                                  "layout": "vertical",
+                                  "gap": 4,
+                                  "padding": [
+                                    12,
+                                    20
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "WKrmA",
+                                      "name": "Calc Title",
+                                      "fill": "#9CA3AF",
+                                      "content": "Calculation:",
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "Zwm2W",
+                                      "name": "Calc Formula",
+                                      "fill": "#E2E8F0",
+                                      "content": "P(F|S) = 0.01×0.9 / 0.1",
+                                      "fontFamily": "Noto Serif",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal",
+                                      "fontStyle": "italic"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "iXpfq",
+                                      "name": "Calc Result",
+                                      "fill": "#E2E8F0",
+                                      "content": "= 0.0900",
+                                      "fontFamily": "$font-mono",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "K3CKn9",
+                          "name": "Senior Advice Card",
+                          "width": "fill_container",
+                          "fill": "$yellow-advice",
+                          "cornerRadius": 10,
+                          "stroke": "#FDE68A",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "gap": 12,
+                          "padding": [
+                            18,
+                            22
+                          ],
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "X7s0OA",
+                              "name": "Advice Icon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "star",
+                              "library": "Material Symbols Rounded",
+                              "fill": "#F59E0B"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "u1d2bS",
+                              "name": "Advice Text Col",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "FbMgK",
+                                  "name": "Advice Header",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "KQnac",
+                                      "name": "Advice Label",
+                                      "fill": "#D97706",
+                                      "content": "Senior's Advice:",
+                                      "fontFamily": "$font-primary",
+                                      "fontSize": 13,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "l4dNny",
+                                  "name": "Advice Body",
+                                  "fill": "$text-primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Classic case from notes: Fire is rare (Prior=1%), but smoke is common (Marginal=10%, maybe BBQ). Bayes tells us probability of fire given smoke is only 9%. Evidence ≠ Conclusion, Prior matters!",
+                                  "lineHeight": 1.5,
+                                  "fontFamily": "$font-primary",
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XFFfX",
+                  "name": "Footer",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": "#FAFAFA",
+                  "stroke": "$border",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "strokeAlignment": "inner",
+                  "padding": [
+                    0,
+                    32
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "VfWmC",
+                      "name": "Copyright",
+                      "fill": "$text-muted",
+                      "content": "© 2026 KNOWIT COMP2211 ML LEARNING LAB. EDUCATION THROUGH INTERACTION.",
+                      "fontFamily": "$font-primary",
+                      "fontSize": 11,
+                      "fontWeight": "normal",
+                      "letterSpacing": 0.5
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mh7NU",
+                      "name": "Footer Right",
+                      "gap": 24,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "pKrRj",
+                          "name": "Latency",
+                          "gap": 6,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "SlUSd",
+                              "name": "Clock Icon",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "schedule",
+                              "library": "Material Symbols Rounded",
+                              "fill": "$text-muted"
+                            },
+                            {
+                              "type": "text",
+                              "id": "k3eJF",
+                              "name": "Latency Text",
+                              "fill": "$text-muted",
+                              "content": "LATENCY: 12MS",
+                              "fontFamily": "$font-primary",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n9g93",
+                          "name": "Render",
+                          "gap": 6,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "sHuYB",
+                              "name": "Render Icon",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "settings",
+                              "library": "Material Symbols Rounded",
+                              "fill": "$text-muted"
+                            },
+                            {
+                              "type": "text",
+                              "id": "mDUek",
+                              "name": "Render Text",
+                              "fill": "$text-muted",
+                              "content": "RENDER: KATEX HIGH-DEF",
+                              "fontFamily": "$font-primary",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 0.5
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "accent-blue": {
+      "type": "color",
+      "value": "#2563EB"
+    },
+    "accent-blue-light": {
+      "type": "color",
+      "value": "#EBF2FF"
+    },
+    "accent-green": {
+      "type": "color",
+      "value": "#10B981"
+    },
+    "accent-orange": {
+      "type": "color",
+      "value": "#F59E0B"
+    },
+    "accent-purple": {
+      "type": "color",
+      "value": "#8B5CF6"
+    },
+    "accent-red": {
+      "type": "color",
+      "value": "#EF4444"
+    },
+    "badge-blue-bg": {
+      "type": "color",
+      "value": "#2563EB"
+    },
+    "bg": {
+      "type": "color",
+      "value": "#F0EDE8"
+    },
+    "border": {
+      "type": "color",
+      "value": "#E5E7EB"
+    },
+    "card-blue-bg": {
+      "type": "color",
+      "value": "#EFF6FF"
+    },
+    "card-green-bg": {
+      "type": "color",
+      "value": "#F0FDF4"
+    },
+    "card-orange-bg": {
+      "type": "color",
+      "value": "#FFF7ED"
+    },
+    "card-purple-bg": {
+      "type": "color",
+      "value": "#F5F3FF"
+    },
+    "dark-navy": {
+      "type": "color",
+      "value": "#141B2D"
+    },
+    "font-mono": {
+      "type": "string",
+      "value": "JetBrains Mono"
+    },
+    "font-primary": {
+      "type": "string",
+      "value": "Inter"
+    },
+    "sidebar-active-bg": {
+      "type": "color",
+      "value": "#DBEAFE"
+    },
+    "surface": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "text-muted": {
+      "type": "color",
+      "value": "#9CA3AF"
+    },
+    "text-primary": {
+      "type": "color",
+      "value": "#1A1A2E"
+    },
+    "text-secondary": {
+      "type": "color",
+      "value": "#6B7280"
+    },
+    "yellow-advice": {
+      "type": "color",
+      "value": "#FFFBEB"
+    }
+  }
+}
