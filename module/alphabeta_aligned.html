@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpha-Beta 剪枝算法交互式可视化</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* 自定义流光和脉冲动画 */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .active-pulse {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+        /* 自定义滚动条（浅色） */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-100 text-indigo-600 p-2.5 rounded-xl border border-indigo-200">
+                <i data-lucide="git-branch" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                    Alpha-Beta 剪枝算法交互式可视化
+                </h1>
+                <p class="text-xs text-slate-500">深度优先搜索（DFS）及剪枝决策的可视化模拟沙盒</p>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="flex items-center gap-4 text-xs">
+            <div class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span>已评估</span>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm">
+                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                <span>当前活跃</span>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span>已剪枝</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 overflow-hidden max-w-7xl mx-auto w-full">
+
+        <!-- Left Column: Tree Canvas & Interactive Presets (8/12 width) -->
+        <section class="lg:col-span-8 flex flex-col gap-6">
+
+            <!-- Controls, Presets & Interactive Sandbox -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-wrap gap-4 items-center justify-between shadow-sm">
+                <!-- Preset Trees Selector -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                        <i data-lucide="layers" class="w-3.5 h-3.5"></i> 选择树预设模型
+                    </label>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="loadPreset('user')" id="preset-user" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-200 bg-indigo-100 border-indigo-500 text-indigo-700 shadow-md">
+                            💡 你的输入示例
+                        </button>
+                        <button onclick="loadPreset('beta')" id="preset-beta" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-200 bg-white border-slate-200 text-slate-600 hover:bg-slate-100">
+                            ✂️ 经典 Beta 剪枝
+                        </button>
+                        <button onclick="loadPreset('alpha')" id="preset-alpha" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-200 bg-white border-slate-200 text-slate-600 hover:bg-slate-100">
+                            🔥 经典 Alpha 剪枝
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Fast Randomizer -->
+                <div class="flex gap-2">
+                    <button onclick="randomizeLeaves()" class="px-4 py-2 rounded-xl text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition-all flex items-center gap-2 shadow-sm">
+                        <i data-lucide="shuffle" class="w-3.5 h-3.5 text-indigo-500"></i> 随机生成数值
+                    </button>
+                    <button onclick="resetTreeValues()" class="px-4 py-2 rounded-xl text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition-all flex items-center gap-2 shadow-sm">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-slate-400"></i> 重置数值
+                    </button>
+                </div>
+            </div>
+
+            <!-- SVG Tree Visualization Viewport -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-4 flex-1 flex flex-col relative min-h-[480px] shadow-sm overflow-hidden group">
+                <!-- Canvas Header Background Label -->
+                <div class="absolute top-4 left-4 z-10 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 text-[11px] font-semibold text-slate-500 backdrop-blur">
+                    可交互树画布 (点击叶子节点可微调数值)
+                </div>
+
+                <!-- SVG Board -->
+                <div class="flex-1 flex items-center justify-center min-h-[440px]">
+                    <svg id="svg-board" viewBox="0 0 1000 500" class="w-full h-full max-h-[500px]" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <!-- Arrow Marker -->
+                            <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M 0 1 L 10 5 L 0 9 z" fill="#cbd5e1" />
+                            </marker>
+                            <!-- Active Pulsing glow filter -->
+                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="6" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                        </defs>
+                        <!-- Dynamic content loaded via JS -->
+                        <g id="svg-edges"></g>
+                        <g id="svg-nodes"></g>
+                    </svg>
+                </div>
+
+                <!-- Tree Layer Indicators on Left -->
+                <div class="absolute right-4 top-4 flex flex-col gap-2.5 text-[10px] bg-slate-50 border border-slate-200 rounded-xl p-3 backdrop-blur">
+                    <div class="flex items-center gap-2"><span class="w-3.5 h-1.5 rounded bg-indigo-500"></span><span>MAX 层 (找最大值)</span></div>
+                    <div class="flex items-center gap-2"><span class="w-3.5 h-1.5 rounded bg-amber-500"></span><span>MIN 层 (找最小值)</span></div>
+                    <div class="flex items-center gap-2"><span class="w-3.5 h-1.5 rounded bg-emerald-500"></span><span>叶子层 (估值节点)</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Control Deck & Detailed Step-by-Step Logs (4/12 width) -->
+        <section class="lg:col-span-4 flex flex-col gap-6">
+
+            <!-- Playback Control Center -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-5">
+                <h3 class="font-bold text-sm tracking-wide text-slate-700 uppercase flex items-center gap-2">
+                    <i data-lucide="play-circle" class="w-4 h-4 text-indigo-500"></i> 控制面板
+                </h3>
+
+                <!-- Main Controls Row -->
+                <div class="grid grid-cols-4 gap-2">
+                    <button onclick="firstStep()" class="p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all flex items-center justify-center hover:scale-105" title="回到第一步">
+                        <i data-lucide="chevrons-left" class="w-5 h-5"></i>
+                    </button>
+                    <button onclick="prevStep()" class="p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all flex items-center justify-center hover:scale-105" title="上一步">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </button>
+                    <button onclick="togglePlay()" id="play-btn" class="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all flex items-center justify-center hover:scale-105 shadow-lg shadow-indigo-600/25" title="播放/暂停">
+                        <i id="play-icon" data-lucide="play" class="w-5 h-5 fill-white"></i>
+                    </button>
+                    <button onclick="nextStep()" class="p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all flex items-center justify-center hover:scale-105" title="下一步">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Speed & Progress Slider -->
+                <div class="flex flex-col gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <!-- Progress Bar -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex justify-between text-xs text-slate-500">
+                            <span>步骤进度</span>
+                            <span id="step-counter" class="font-mono text-indigo-600 font-bold">0 / 0</span>
+                        </div>
+                        <input type="range" id="progress-slider" min="0" max="0" value="0" oninput="jumpToStep(parseInt(this.value))" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                    </div>
+
+                    <!-- Speed Select -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex justify-between text-xs text-slate-500">
+                            <span>动画速度</span>
+                            <span id="speed-text" class="font-mono text-slate-600">1.0s / 步</span>
+                        </div>
+                        <input type="range" id="speed-slider" min="200" max="3000" step="200" value="1000" oninput="updateSpeed(parseInt(this.value))" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Explanation Box -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex-1 flex flex-col min-h-[280px]">
+                <h3 class="font-bold text-sm tracking-wide text-slate-700 uppercase flex items-center gap-2 pb-3 border-b border-slate-200">
+                    <i data-lucide="file-text" class="w-4 h-4 text-emerald-500"></i> 当前计算与决策详情
+                </h3>
+
+                <div class="flex-1 flex flex-col justify-between pt-4 gap-4">
+                    <div id="explanation-text" class="text-sm text-slate-600 leading-relaxed">
+                        加载中...
+                    </div>
+
+                    <!-- Dynamic Decision Badge -->
+                    <div id="decision-math" class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-col gap-2">
+                        <div class="text-[10px] text-slate-500 font-mono uppercase tracking-wider">实时范围 / 判定条件</div>
+                        <div class="flex justify-around items-center text-xs font-mono">
+                            <div class="flex flex-col items-center">
+                                <span class="text-slate-500 text-[10px] mb-0.5">Alpha (下限)</span>
+                                <span id="math-alpha" class="text-emerald-600 font-bold">-∞</span>
+                            </div>
+                            <div class="text-slate-300 text-lg">|</div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-slate-500 text-[10px] mb-0.5">Beta (上限)</span>
+                                <span id="math-beta" class="text-amber-600 font-bold">∞</span>
+                            </div>
+                        </div>
+                        <div id="math-formula-box" class="mt-2 pt-2 border-t border-slate-200 text-center text-xs">
+                            <span id="math-formula" class="text-slate-500 font-semibold italic">等待遍历启动...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Leaf Slider Sandbox Panel (Bottom Width) -->
+    <section class="max-w-7xl mx-auto w-full px-6 pb-8">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+            <h3 class="font-bold text-sm tracking-wide text-slate-700 uppercase flex items-center justify-between pb-3 border-b border-slate-200">
+                <span class="flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-4 h-4 text-purple-500"></i>
+                    实时叶子节点数值修改沙盒
+                </span>
+                <span class="text-xs text-slate-400 font-normal">直接拉动滑块看修剪路径如何跟着变化！</span>
+            </h3>
+
+            <div id="leaf-sliders-container" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-4">
+                <!-- Loaded dynamically by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Step Timeline Drawer (Bottom Logs) -->
+    <section class="max-w-7xl mx-auto w-full px-6 pb-12">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 h-[250px]">
+            <h3 class="font-bold text-sm tracking-wide text-slate-700 uppercase flex items-center gap-2 pb-2 border-b border-slate-200">
+                <i data-lucide="list-collapse" class="w-4 h-4 text-indigo-500"></i>
+                算法运行追踪链 (点击单步直接穿越历史)
+            </h3>
+            <div id="timeline-list" class="relative overflow-y-auto flex-1 flex flex-col gap-1.5 pr-2">
+                <!-- Loaded dynamically by JS -->
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Preset leaf values mapping
+        const presets = {
+            'user': [3, 5, 2, 4, 6, 1, 0, 7], // User's requested tree
+            'beta': [3, 5, 6, 2, 1, 4, 8, 9], // Demonstrates a single leaf prune
+            'alpha': [6, 7, 8, 9, 1, 2, 0, 4]  // Demonstrates a sub-tree level prune
+        };
+
+        // Static node configurations with perfect spatial layout coordinates
+        const defaultNodes = {
+            'A': { id: 'A', type: 'max', label: 'MAX', parent: null, children: ['B', 'C'], x: 500, y: 60 },
+            'B': { id: 'B', type: 'min', label: 'MIN', parent: 'A', children: ['D', 'E'], x: 260, y: 170 },
+            'C': { id: 'C', type: 'min', label: 'MIN', parent: 'A', children: ['F', 'G'], x: 740, y: 170 },
+            'D': { id: 'D', type: 'max', label: 'MAX', parent: 'B', children: ['L1', 'L2'], x: 140, y: 280 },
+            'E': { id: 'E', type: 'max', label: 'MAX', parent: 'B', children: ['L3', 'L4'], x: 380, y: 280 },
+            'F': { id: 'F', type: 'max', label: 'MAX', parent: 'C', children: ['L5', 'L6'], x: 620, y: 280 },
+            'G': { id: 'G', type: 'max', label: 'MAX', parent: 'C', children: ['L7', 'L8'], x: 860, y: 280 },
+            'L1': { id: 'L1', type: 'leaf', parent: 'D', value: 3, x: 75, y: 400 },
+            'L2': { id: 'L2', type: 'leaf', parent: 'D', value: 5, x: 205, y: 400 },
+            'L3': { id: 'L3', type: 'leaf', parent: 'E', value: 2, x: 315, y: 400 },
+            'L4': { id: 'L4', type: 'leaf', parent: 'E', value: 4, x: 445, y: 400 },
+            'L5': { id: 'L5', type: 'leaf', parent: 'F', value: 6, x: 555, y: 400 },
+            'L6': { id: 'L6', type: 'leaf', parent: 'F', value: 1, x: 685, y: 400 },
+            'L7': { id: 'L7', type: 'leaf', parent: 'G', value: 0, x: 795, y: 400 },
+            'L8': { id: 'L8', type: 'leaf', parent: 'G', value: 7, x: 925, y: 400 }
+        };
+
+        const edges = [
+            { from: 'A', to: 'B' }, { from: 'A', to: 'C' },
+            { from: 'B', to: 'D' }, { from: 'B', to: 'E' },
+            { from: 'C', to: 'F' }, { from: 'C', to: 'G' },
+            { from: 'D', to: 'L1' }, { from: 'D', to: 'L2' },
+            { from: 'E', to: 'L3' }, { from: 'E', to: 'L4' },
+            { from: 'F', to: 'L5' }, { from: 'F', to: 'L6' },
+            { from: 'G', to: 'L7' }, { from: 'G', to: 'L8' }
+        ];
+
+        // Global Visualizer State Variables
+        let activeNodes = JSON.parse(JSON.stringify(defaultNodes));
+        let steps = [];
+        let currentStepIndex = 0;
+        let isPlaying = false;
+        let playInterval = null;
+        let playSpeed = 1000;
+        let currentPreset = 'user';
+
+        // Helper: formats infinity for output display
+        function formatVal(val) {
+            if (val === Infinity) return '∞';
+            if (val === -Infinity) return '-∞';
+            return val;
+        }
+
+        // Helper: 浅拷贝 {id: 数值} 映射，保留 ±Infinity
+        // （不能用 JSON.parse(JSON.stringify())，那会把 Infinity 变成 null）
+        function cloneNums(obj) {
+            const out = {};
+            for (const k in obj) out[k] = obj[k];
+            return out;
+        }
+
+        /**
+         * Simulates and generates the complete step-by-step trace of the Alpha-Beta algorithm
+         */
+        function generateSteps() {
+            const stepsLog = [];
+            const visited = new Set();
+            const prunedNodes = new Set();
+            const prunedEdges = new Set();
+
+            // Nodes state values initialized to represent search-time variables
+            const nodeVals = {};
+            const alphas = {};
+            const betas = {};
+
+            // Default init state before search begins
+            for (let id in activeNodes) {
+                nodeVals[id] = null;
+                alphas[id] = -Infinity;
+                betas[id] = Infinity;
+            }
+
+            function dfs(nodeId, alphaVal, betaVal) {
+                visited.add(nodeId);
+                alphas[nodeId] = alphaVal;
+                betas[nodeId] = betaVal;
+                const node = activeNodes[nodeId];
+
+                // Step: Enter Node
+                stepsLog.push({
+                    type: 'enter',
+                    nodeId: nodeId,
+                    alpha: alphaVal,
+                    beta: betaVal,
+                    nodeValues: cloneNums(nodeVals),
+                    nodeAlphas: cloneNums(alphas),
+                    nodeBetas: cloneNums(betas),
+                    visited: new Set(visited),
+                    prunedNodes: new Set(prunedNodes),
+                    prunedEdges: new Set(prunedEdges),
+                    activeEdge: null,
+                    msg: `⬇️ <b>进入节点 ${nodeId} (${node.label})</b>。继承父节点的约束区间：[α: ${formatVal(alphaVal)}, β: ${formatVal(betaVal)}]。`,
+                    formula: `α = ${formatVal(alphaVal)}, β = ${formatVal(betaVal)}`
+                });
+
+                if (node.type === 'leaf') {
+                    const leafVal = node.value;
+                    nodeVals[nodeId] = leafVal;
+                    // Step: Evaluate Leaf Node
+                    stepsLog.push({
+                        type: 'leaf_eval',
+                        nodeId: nodeId,
+                        alpha: alphaVal,
+                        beta: betaVal,
+                        nodeValues: cloneNums(nodeVals),
+                        nodeAlphas: cloneNums(alphas),
+                        nodeBetas: cloneNums(betas),
+                        visited: new Set(visited),
+                        prunedNodes: new Set(prunedNodes),
+                        prunedEdges: new Set(prunedEdges),
+                        activeEdge: `${node.parent}->${nodeId}`,
+                        msg: `📊 <b>评估叶子节点 ${nodeId}</b>。读取静态估值 <b>${leafVal}</b> 并传递回父节点 ${node.parent}。`,
+                        formula: `Value = ${leafVal}`
+                    });
+                    return leafVal;
+                }
+
+                const isMax = node.type === 'max';
+                let currentBest = isMax ? -Infinity : Infinity;
+                let currentAlpha = alphaVal;
+                let currentBeta = betaVal;
+
+                for (let i = 0; i < node.children.length; i++) {
+                    const childId = node.children[i];
+
+                    // Traverse Edge Step
+                    stepsLog.push({
+                        type: 'traverse',
+                        nodeId: nodeId,
+                        alpha: currentAlpha,
+                        beta: currentBeta,
+                        nodeValues: cloneNums(nodeVals),
+                        nodeAlphas: cloneNums(alphas),
+                        nodeBetas: cloneNums(betas),
+                        visited: new Set(visited),
+                        prunedNodes: new Set(prunedNodes),
+                        prunedEdges: new Set(prunedEdges),
+                        activeEdge: `${nodeId}->${childId}`,
+                        msg: `➡️ <b>向深处搜索</b>：从节点 ${nodeId} 前往子节点 ${childId}。携带当前区间 [α: ${formatVal(currentAlpha)}, β: ${formatVal(currentBeta)}]。`,
+                        formula: `α = ${formatVal(currentAlpha)}, β = ${formatVal(currentBeta)}`
+                    });
+
+                    // Recursive DFS call
+                    const childResult = dfs(childId, currentAlpha, currentBeta);
+
+                    if (isMax) {
+                        const previousBest = currentBest;
+                        currentBest = Math.max(currentBest, childResult);
+                        nodeVals[nodeId] = currentBest;
+                        const previousAlpha = currentAlpha;
+                        currentAlpha = Math.max(currentAlpha, currentBest);
+                        alphas[nodeId] = currentAlpha;
+
+                        stepsLog.push({
+                            type: 'update',
+                            nodeId: nodeId,
+                            alpha: currentAlpha,
+                            beta: currentBeta,
+                            nodeValues: cloneNums(nodeVals),
+                            nodeAlphas: cloneNums(alphas),
+                            nodeBetas: cloneNums(betas),
+                            visited: new Set(visited),
+                            prunedNodes: new Set(prunedNodes),
+                            prunedEdges: new Set(prunedEdges),
+                            activeEdge: null,
+                            msg: `↩️ 子节点 ${childId} 返回值 <b>${childResult}</b>。<b>MAX 节点 ${nodeId}</b> 尝试更新：<br>` +
+                                 `• 当前估计值：max(${formatVal(previousBest)}, ${childResult}) = <b>${currentBest}</b><br>` +
+                                 `• Alpha下限值：max(${formatVal(previousAlpha)}, ${currentBest}) = <b>${currentAlpha}</b>`,
+                            formula: `α = max(${formatVal(previousAlpha)}, ${currentBest}) = ${currentAlpha}`
+                        });
+
+                        // Pruning logic comparison
+                        if (currentBeta <= currentAlpha) {
+                            // Prune the rest of siblings
+                            for (let j = i + 1; j < node.children.length; j++) {
+                                const siblingId = node.children[j];
+                                markSubtreePruned(siblingId, prunedNodes, prunedEdges);
+                                prunedEdges.add(`${nodeId}->${siblingId}`);
+                            }
+
+                            stepsLog.push({
+                                type: 'prune',
+                                nodeId: nodeId,
+                                alpha: currentAlpha,
+                                beta: currentBeta,
+                                nodeValues: cloneNums(nodeVals),
+                                nodeAlphas: cloneNums(alphas),
+                                nodeBetas: cloneNums(betas),
+                                visited: new Set(visited),
+                                prunedNodes: new Set(prunedNodes),
+                                prunedEdges: new Set(prunedEdges),
+                                activeEdge: null,
+                                msg: `✂️ <b>【Beta 剪枝触发】</b> 在节点 ${nodeId} 检测到 <b>β (${formatVal(currentBeta)}) ≤ α (${formatVal(currentAlpha)})</b>！<br>` +
+                                     `<b>原因</b>：该节点的父 MIN 节点最多只会选择 beta(${formatVal(currentBeta)}) 的结果。而当前 MAX 节点已经拥有价值 alpha(${formatVal(currentAlpha)}) 的更好出路。所以父节点必定不可能走此处的剩余分支。<br>` +
+                                     `🚫 已<b>剪掉（忽略）</b>其后续子树分支：<b>[ ${node.children.slice(i+1).join(', ')} ]</b>。`,
+                                formula: `β (${formatVal(currentBeta)}) ≤ α (${formatVal(currentAlpha)}) ➔ 剪枝！`
+                            });
+                            break;
+                        }
+                    } else {
+                        // MIN Node logic
+                        const previousBest = currentBest;
+                        currentBest = Math.min(currentBest, childResult);
+                        nodeVals[nodeId] = currentBest;
+                        const previousBeta = currentBeta;
+                        currentBeta = Math.min(currentBeta, childResult);
+                        betas[nodeId] = currentBeta;
+
+                        stepsLog.push({
+                            type: 'update',
+                            nodeId: nodeId,
+                            alpha: currentAlpha,
+                            beta: currentBeta,
+                            nodeValues: cloneNums(nodeVals),
+                            nodeAlphas: cloneNums(alphas),
+                            nodeBetas: cloneNums(betas),
+                            visited: new Set(visited),
+                            prunedNodes: new Set(prunedNodes),
+                            prunedEdges: new Set(prunedEdges),
+                            activeEdge: null,
+                            msg: `↩️ 子节点 ${childId} 返回值 <b>${childResult}</b>。<b>MIN 节点 ${nodeId}</b> 尝试更新：<br>` +
+                                 `• 当前估计值：min(${formatVal(previousBest)}, ${childResult}) = <b>${currentBest}</b><br>` +
+                                 `• Beta上限值：min(${formatVal(previousBeta)}, ${currentBest}) = <b>${currentBeta}</b>`,
+                            formula: `β = min(${formatVal(previousBeta)}, ${currentBest}) = ${currentBeta}`
+                        });
+
+                        // Pruning logic comparison
+                        if (currentBeta <= currentAlpha) {
+                            for (let j = i + 1; j < node.children.length; j++) {
+                                const siblingId = node.children[j];
+                                markSubtreePruned(siblingId, prunedNodes, prunedEdges);
+                                prunedEdges.add(`${nodeId}->${siblingId}`);
+                            }
+
+                            stepsLog.push({
+                                type: 'prune',
+                                nodeId: nodeId,
+                                alpha: currentAlpha,
+                                beta: currentBeta,
+                                nodeValues: cloneNums(nodeVals),
+                                nodeAlphas: cloneNums(alphas),
+                                nodeBetas: cloneNums(betas),
+                                visited: new Set(visited),
+                                prunedNodes: new Set(prunedNodes),
+                                prunedEdges: new Set(prunedEdges),
+                                activeEdge: null,
+                                msg: `✂️ <b>【Alpha 剪枝触发】</b> 在节点 ${nodeId} 检测到 <b>β (${formatVal(currentBeta)}) ≤ α (${formatVal(currentAlpha)})</b>！<br>` +
+                                     `<b>原因</b>：该节点的父 MAX 节点最少也能获取 alpha(${formatVal(currentAlpha)}) 价值的得分。而当前 MIN 节点已经向父节点提供上限为 beta(${formatVal(currentBeta)}) 甚至更差的选择。因此父节点绝无可能向下选择本节点的其他分支。<br>` +
+                                     `🚫 已<b>剪掉（忽略）</b>其后续子树分支：<b>[ ${node.children.slice(i+1).join(', ')} ]</b>。`,
+                                formula: `β (${formatVal(currentBeta)}) ≤ α (${formatVal(currentAlpha)}) ➔ 剪枝！`
+                            });
+                            break;
+                        }
+                    }
+                }
+
+                // Step: Return / Exit Node
+                stepsLog.push({
+                    type: 'exit',
+                    nodeId: nodeId,
+                    alpha: currentAlpha,
+                    beta: currentBeta,
+                    nodeValues: cloneNums(nodeVals),
+                    nodeAlphas: cloneNums(alphas),
+                    nodeBetas: cloneNums(betas),
+                    visited: new Set(visited),
+                    prunedNodes: new Set(prunedNodes),
+                    prunedEdges: new Set(prunedEdges),
+                    activeEdge: null,
+                    msg: `📤 <b>完成并退出节点 ${nodeId}</b>。最终确定该分支得分为 <b>${currentBest}</b>，向父节点返回该值。`,
+                    formula: `Return Value = ${currentBest}`
+                });
+
+                return currentBest;
+            }
+
+            // Recursive pruning marker helper
+            function markSubtreePruned(subId, prNodes, prEdges) {
+                prNodes.add(subId);
+                const subNode = activeNodes[subId];
+                if (subNode && subNode.children) {
+                    subNode.children.forEach(child => {
+                        prEdges.add(`${subId}->${child}`);
+                        markSubtreePruned(child, prNodes, prEdges);
+                    });
+                }
+            }
+
+            dfs('A', -Infinity, Infinity);
+            return stepsLog;
+        }
+
+        /**
+         * Renders the interactive Tree with real-time variables in SVG
+         */
+        function drawTree() {
+            const currentStep = steps[currentStepIndex];
+            if (!currentStep) return;
+
+            const edgesContainer = document.getElementById('svg-edges');
+            const nodesContainer = document.getElementById('svg-nodes');
+
+            // 1. Draw Edges
+            let edgesHTML = '';
+            edges.forEach(edge => {
+                const parent = activeNodes[edge.from];
+                const child = activeNodes[edge.to];
+
+                const isPruned = currentStep.prunedEdges.has(`${edge.from}->${edge.to}`);
+                const isActive = currentStep.activeEdge === `${edge.from}->${edge.to}`;
+                const isTraversed = currentStep.visited.has(edge.to) && !isPruned;
+
+                let strokeColor = '#cbd5e1'; // Slate-300 (浅底默认线)
+                let strokeWidth = '3.5';
+                let strokeDash = '0';
+                let filterGlow = '';
+
+                if (isPruned) {
+                    strokeColor = '#f43f5e'; // Rose-500 (pruned)
+                    strokeWidth = '2';
+                    strokeDash = '6,5';
+                } else if (isActive) {
+                    strokeColor = '#6366f1'; // Indigo-500 (active)
+                    strokeWidth = '6.5';
+                    filterGlow = 'filter="url(#glow)"';
+                } else if (isTraversed) {
+                    strokeColor = '#10b981'; // Emerald-500 (traversed)
+                    strokeWidth = '4';
+                }
+
+                edgesHTML += `
+                    <g>
+                        <line x1="${parent.x}" y1="${parent.y}" x2="${child.x}" y2="${child.y}"
+                              stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-dasharray="${strokeDash}"
+                              ${filterGlow} class="transition-all duration-300" marker-end="url(#arrow)" />
+                        ${isPruned ? `
+                        <g transform="translate(${(parent.x + child.x)/2}, ${(parent.y + child.y)/2})">
+                            <circle r="11" fill="#f43f5e" class="shadow" />
+                            <text text-anchor="middle" dy="3.5" fill="white" font-size="10" font-weight="900">×</text>
+                        </g>
+                        ` : ''}
+                    </g>
+                `;
+            });
+            edgesContainer.innerHTML = edgesHTML;
+
+            // 2. Draw Nodes
+            let nodesHTML = '';
+            for (let id in activeNodes) {
+                const node = activeNodes[id];
+                const value = currentStep.nodeValues[id];
+                const nodeAlpha = currentStep.nodeAlphas[id];
+                const nodeBeta = currentStep.nodeBetas[id];
+
+                const isVisited = currentStep.visited.has(id);
+                const isPruned = currentStep.prunedNodes.has(id);
+                const isActive = currentStep.nodeId === id;
+
+                // Visual theme settings (浅色主题)
+                let strokeColor = 'stroke-slate-300';
+                let fillColor = 'fill-white';
+                let textColor = 'fill-slate-400';
+                let pulseEffect = '';
+                let filterGlow = '';
+
+                if (isPruned) {
+                    strokeColor = 'stroke-rose-200';
+                    fillColor = 'fill-rose-50';
+                    textColor = 'fill-rose-300';
+                } else if (isActive) {
+                    strokeColor = 'stroke-indigo-500';
+                    fillColor = 'fill-indigo-50';
+                    textColor = 'fill-indigo-700';
+                    pulseEffect = 'class="active-pulse"';
+                    filterGlow = 'filter="url(#glow)"';
+                } else if (isVisited) {
+                    strokeColor = 'stroke-emerald-500';
+                    fillColor = 'fill-emerald-50';
+                    textColor = 'fill-emerald-700';
+                }
+
+                // Node shapes: MAX (Up triangle), MIN (Down triangle), Leaf (Circle)
+                if (node.type === 'max') {
+                    const topY = node.y - 28, leftX = node.x - 28, rightX = node.x + 28, bottomY = node.y + 20;
+                    const points = `${node.x},${topY} ${leftX},${bottomY} ${rightX},${bottomY}`;
+                    nodesHTML += `
+                        <g class="cursor-pointer select-none transition-all duration-300 transform hover:scale-105" onclick="focusNode('${id}')">
+                            <polygon points="${points}" class="${fillColor} ${strokeColor} transition-all duration-300" stroke-width="3.5" ${filterGlow} />
+                            <text x="${node.x}" y="${node.y + 11}" text-anchor="middle" class="${textColor} font-bold text-[10px]" font-weight="800">▲ MAX</text>
+
+                            <!-- Alpha/Beta Info Badge -->
+                            <g transform="translate(${node.x}, ${node.y - 42})">
+                                <rect x="-56" y="-12" width="112" height="20" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+                                <text text-anchor="middle" dy="2" fill="#475569" font-size="12" class="code-font">
+                                    <tspan fill="#059669">α:${formatVal(nodeAlpha)}</tspan> <tspan fill="#d97706">β:${formatVal(nodeBeta)}</tspan>
+                                </text>
+                            </g>
+
+                            <!-- Node Identifier Name on Side -->
+                            <text x="${node.x + 36}" y="${node.y + 2}" class="text-[11px] font-mono fill-slate-400 font-bold">${id}</text>
+
+                            <!-- Evaluated Final Score -->
+                            ${value !== null ? `
+                            <g transform="translate(${node.x}, ${node.y + 36})">
+                                <rect x="-16" y="-10" width="32" height="18" rx="5" fill="#10b981" class="shadow-lg" />
+                                <text text-anchor="middle" dy="3" fill="white" font-size="11" font-weight="bold">${value}</text>
+                            </g>
+                            ` : ''}
+                        </g>
+                    `;
+                } else if (node.type === 'min') {
+                    const topY = node.y - 20, leftX = node.x - 28, rightX = node.x + 28, bottomY = node.y + 28;
+                    const points = `${leftX},${topY} ${rightX},${topY} ${node.x},${bottomY}`;
+                    nodesHTML += `
+                        <g class="cursor-pointer select-none transition-all duration-300 transform hover:scale-105" onclick="focusNode('${id}')">
+                            <polygon points="${points}" class="${fillColor} ${strokeColor} transition-all duration-300" stroke-width="3.5" ${filterGlow} />
+                            <text x="${node.x}" y="${node.y - 1}" text-anchor="middle" class="${textColor} font-bold text-[10px]" font-weight="800">▼ MIN</text>
+
+                            <!-- Alpha/Beta Info Badge -->
+                            <g transform="translate(${node.x}, ${node.y - 34})">
+                                <rect x="-56" y="-12" width="112" height="20" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+                                <text text-anchor="middle" dy="2" fill="#475569" font-size="12" class="code-font">
+                                    <tspan fill="#059669">α:${formatVal(nodeAlpha)}</tspan> <tspan fill="#d97706">β:${formatVal(nodeBeta)}</tspan>
+                                </text>
+                            </g>
+
+                            <!-- Node Identifier Name on Side -->
+                            <text x="${node.x + 36}" y="${node.y + 2}" class="text-[11px] font-mono fill-slate-400 font-bold">${id}</text>
+
+                            <!-- Evaluated Final Score -->
+                            ${value !== null ? `
+                            <g transform="translate(${node.x}, ${node.y + 40})">
+                                <rect x="-16" y="-10" width="32" height="18" rx="5" fill="#10b981" class="shadow-lg" />
+                                <text text-anchor="middle" dy="3" fill="white" font-size="11" font-weight="bold">${value}</text>
+                            </g>
+                            ` : ''}
+                        </g>
+                    `;
+                } else {
+                    // Leaf Node Circle
+                    const circleRadius = 24;
+                    nodesHTML += `
+                        <g class="cursor-pointer select-none transition-all duration-300 transform hover:scale-110" onclick="editLeaf('${id}')">
+                            <circle cx="${node.x}" cy="${node.y}" r="${circleRadius}" class="${fillColor} ${strokeColor} transition-all duration-300" stroke-width="3.5" ${filterGlow} />
+                            <text x="${node.x}" y="${node.y + 5}" text-anchor="middle" class="${isPruned ? 'fill-rose-300' : 'fill-slate-800'} font-extrabold text-sm" font-weight="800">${node.value}</text>
+
+                            <!-- Leaf Level Alpha Beta bounds or Value representation -->
+                            <g transform="translate(${node.x}, ${node.y - 34})">
+                                <rect x="-24" y="-8" width="48" height="14" rx="4" fill="#f1f5f9" />
+                                <text text-anchor="middle" dy="2.5" fill="#64748b" font-size="8" font-weight="bold">叶:${node.value}</text>
+                            </g>
+
+                            <!-- Node Identifier Name on Side -->
+                            <text x="${node.x + 30}" y="${node.y + 4}" class="text-[11px] font-mono fill-slate-400 font-bold">${id}</text>
+                        </g>
+                    `;
+                }
+            }
+            nodesContainer.innerHTML = nodesHTML;
+
+            // 3. Update Detailed explanations panels
+            document.getElementById('explanation-text').innerHTML = currentStep.msg;
+            document.getElementById('math-alpha').textContent = formatVal(currentStep.alpha);
+            document.getElementById('math-beta').textContent = formatVal(currentStep.beta);
+            document.getElementById('math-formula').textContent = currentStep.formula;
+
+            // Highlight matching node in math indicator
+            const currentMathBox = document.getElementById('decision-math');
+            if (currentStep.type === 'prune') {
+                currentMathBox.className = "bg-rose-50 border border-rose-300 rounded-xl p-3.5 flex flex-col gap-2 transition-all duration-300";
+            } else if (currentStep.type === 'leaf_eval' || currentStep.type === 'update') {
+                currentMathBox.className = "bg-emerald-50 border border-emerald-300 rounded-xl p-3.5 flex flex-col gap-2 transition-all duration-300";
+            } else {
+                currentMathBox.className = "bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-col gap-2 transition-all duration-300";
+            }
+        }
+
+        /**
+         * Renders the bottom slider deck for easy leaf customization
+         */
+        function renderLeafSliders() {
+            const container = document.getElementById('leaf-sliders-container');
+            let html = '';
+
+            // Fetch leaves and sort them
+            const leafIds = Object.keys(activeNodes).filter(id => activeNodes[id].type === 'leaf').sort();
+
+            leafIds.forEach(id => {
+                const node = activeNodes[id];
+                html += `
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col items-center gap-2">
+                        <span class="font-mono text-xs text-slate-500 font-bold flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>${id}
+                        </span>
+                        <input type="range" min="0" max="20" value="${node.value}"
+                               oninput="updateLeafValue('${id}', parseInt(this.value))"
+                               class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                        <span id="slider-val-${id}" class="text-sm font-extrabold text-indigo-600">${node.value}</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        /**
+         * Dynamic Timeline logs rendering & scroll tracking
+         */
+        function renderTimeline() {
+            const container = document.getElementById('timeline-list');
+            let html = '';
+
+            steps.forEach((step, idx) => {
+                const isActive = idx === currentStepIndex;
+                let bgStyle = "bg-slate-50 hover:bg-slate-100 text-slate-500 border-slate-200";
+                let icon = "circle";
+                let iconColor = "text-slate-400";
+
+                if (isActive) {
+                    bgStyle = "bg-indigo-50 border-indigo-500 text-slate-800 font-medium shadow-sm";
+                }
+
+                if (step.type === 'prune') {
+                    icon = "scissors";
+                    iconColor = "text-rose-500";
+                } else if (step.type === 'enter') {
+                    icon = "arrow-down-circle";
+                    iconColor = "text-indigo-500";
+                } else if (step.type === 'update') {
+                    icon = "refresh-cw";
+                    iconColor = "text-amber-500";
+                } else if (step.type === 'leaf_eval') {
+                    icon = "check-square";
+                    iconColor = "text-emerald-500";
+                } else if (step.type === 'exit') {
+                    icon = "arrow-up-circle";
+                    iconColor = "text-indigo-400";
+                }
+
+                html += `
+                    <div onclick="jumpToStep(${idx})" class="px-3 py-2 rounded-xl border text-xs cursor-pointer flex items-center justify-between gap-3 transition-all duration-150 ${bgStyle}">
+                        <div class="flex items-center gap-2.5 overflow-hidden">
+                            <i data-lucide="${icon}" class="w-3.5 h-3.5 flex-shrink-0 ${iconColor}"></i>
+                            <span class="truncate font-sans">${step.msg.replace(/<[^>]*>/g, '')}</span>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0 font-mono text-[10px]">
+                            <span class="text-slate-400">Step ${idx + 1}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            lucide.createIcons();
+
+            // Safely scroll only the timeline-list container internally without bubbling up to the main window
+            const activeEl = container.children[currentStepIndex];
+            if (activeEl) {
+                const targetScroll = activeEl.offsetTop - (container.clientHeight / 2) + (activeEl.clientHeight / 2);
+                container.scrollTo({
+                    top: targetScroll,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        /**
+         * Recomputes execution tree on live leaf update
+         */
+        function updateLeafValue(id, value) {
+            activeNodes[id].value = value;
+            document.getElementById(`slider-val-${id}`).textContent = value;
+
+            // Recompute steps with the updated tree configurations
+            const currentProgressRatio = steps.length > 0 ? currentStepIndex / steps.length : 0;
+            steps = generateSteps();
+            currentStepIndex = Math.min(Math.floor(currentProgressRatio * steps.length), steps.length - 1);
+            if (currentStepIndex < 0) currentStepIndex = 0;
+
+            updatePlaybackUI();
+            drawTree();
+            renderTimeline();
+        }
+
+        function randomizeLeaves() {
+            const leafIds = Object.keys(activeNodes).filter(id => activeNodes[id].type === 'leaf');
+            leafIds.forEach(id => {
+                const randVal = Math.floor(Math.random() * 21); // 0-20
+                activeNodes[id].value = randVal;
+            });
+            renderLeafSliders();
+            reloadAlgorithmTrace();
+        }
+
+        function resetTreeValues() {
+            loadPreset(currentPreset);
+        }
+
+        function reloadAlgorithmTrace() {
+            steps = generateSteps();
+            currentStepIndex = 0;
+            updatePlaybackUI();
+            drawTree();
+            renderTimeline();
+        }
+
+        /**
+         * Preset Loader
+         */
+        function loadPreset(presetKey) {
+            currentPreset = presetKey;
+
+            // Toggle active classes on selector buttons
+            ['user', 'beta', 'alpha'].forEach(k => {
+                const btn = document.getElementById(`preset-${k}`);
+                if (k === presetKey) {
+                    btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-200 bg-indigo-100 border-indigo-500 text-indigo-700 shadow-md";
+                } else {
+                    btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-200 bg-white border-slate-200 text-slate-600 hover:bg-slate-100";
+                }
+            });
+
+            // Set preset values
+            const values = presets[presetKey];
+            const leafIds = Object.keys(activeNodes).filter(id => activeNodes[id].type === 'leaf').sort();
+            leafIds.forEach((id, index) => {
+                activeNodes[id].value = values[index];
+            });
+
+            renderLeafSliders();
+            reloadAlgorithmTrace();
+        }
+
+        /**
+         * Triggered when a user clicks any leaf node directly in SVG
+         */
+        function editLeaf(id) {
+            const node = activeNodes[id];
+            const newValStr = prompt(`请输入叶子节点 ${id} 的新估值 (0 - 20):`, node.value);
+            const newVal = parseInt(newValStr);
+            if (!isNaN(newVal) && newVal >= 0 && newVal <= 20) {
+                updateLeafValue(id, newVal);
+                // Sync the slider
+                const slider = document.querySelector(`#leaf-sliders-container input[oninput*="${id}"]`);
+                if (slider) slider.value = newVal;
+            }
+        }
+
+        function focusNode(id) {
+            // Instantly jump to the step where this node is first entered
+            const stepIdx = steps.findIndex(step => step.nodeId === id && step.type === 'enter');
+            if (stepIdx !== -1) {
+                jumpToStep(stepIdx);
+            }
+        }
+
+        /**
+         * Playback controls mapping
+         */
+        function updatePlaybackUI() {
+            const countEl = document.getElementById('step-counter');
+            countEl.textContent = `${currentStepIndex + 1} / ${steps.length}`;
+
+            const progress = document.getElementById('progress-slider');
+            progress.max = steps.length - 1;
+            progress.value = currentStepIndex;
+        }
+
+        function jumpToStep(idx) {
+            if (idx >= 0 && idx < steps.length) {
+                currentStepIndex = idx;
+                updatePlaybackUI();
+                drawTree();
+                renderTimeline();
+            }
+        }
+
+        function firstStep() {
+            jumpToStep(0);
+        }
+
+        function nextStep() {
+            if (currentStepIndex < steps.length - 1) {
+                jumpToStep(currentStepIndex + 1);
+            } else {
+                pause();
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIndex > 0) {
+                jumpToStep(currentStepIndex - 1);
+            }
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                pause();
+            } else {
+                play();
+            }
+        }
+
+        function play() {
+            isPlaying = true;
+            document.getElementById('play-icon').setAttribute('data-lucide', 'pause');
+            lucide.createIcons();
+
+            playInterval = setInterval(() => {
+                if (currentStepIndex < steps.length - 1) {
+                    nextStep();
+                } else {
+                    pause();
+                }
+            }, playSpeed);
+        }
+
+        function pause() {
+            isPlaying = false;
+            document.getElementById('play-icon').setAttribute('data-lucide', 'play');
+            lucide.createIcons();
+            clearInterval(playInterval);
+        }
+
+        function updateSpeed(speed) {
+            playSpeed = speed;
+            document.getElementById('speed-text').textContent = `${(speed / 1000).toFixed(1)}s / 步`;
+            if (isPlaying) {
+                pause();
+                play();
+            }
+        }
+
+        // Initialize UI components on DOM Loaded
+        window.onload = function() {
+            lucide.createIcons();
+            loadPreset('user');
+        }
+    </script>
+</body>
+</html>

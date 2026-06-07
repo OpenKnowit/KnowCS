@@ -10,7 +10,10 @@
     "mask_desc": "Boolean Mask also triggers memory copy. It is a powerful tool for extracting specific conditional data.",
     "instruction": "Select a slicing method to observe NumPy's memory behavior...",
     "broadcast_title": "2. Broadcasting Mechanism",
-    "broadcast_advice": "Broadcasting doesn't actually copy data in memory, but virtually maps addresses during iteration. Core rule: Compare from the last dimension forward, they must either be equal or one of them is <1>1</1>."
+    "broadcast_advice": "Broadcasting doesn't actually copy data in memory, but virtually maps addresses during iteration. Core rule: Compare from the last dimension forward, they must either be equal or one of them is <1>1</1>.",
+    "fancy_btn": "a[[0, 2]]",
+    "mask_btn": "a[a % 2 == 0]",
+    "slice_btn": "a[1:2, :]"
   },
   "backprop_module": {
     "title": "Chain Rule Tracker",
