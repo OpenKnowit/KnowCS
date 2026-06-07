@@ -7,6 +7,13 @@
 
 ## 进展时间线
 
+### 2026-06-07 — 三栏顶层导航：Course / Package / Extend
+- **feat**：Header 重构——移除环境状态框，新增三栏分段切换（Course 课程 / Package 资料包 / Extend 拓展，当前项蓝色胶囊高亮）。
+- **feat**：**Package 资料包**——6 篇 Markdown 笔记（NumPy/pandas/PyTorch/TensorFlow/Keras/COMP2211 课程笔记）3×2 卡片网格，点开 react-markdown + remark-gfm 渲染（表格/代码/图片），返回按钮回网格；笔记与 17 张配图经 `?raw`/glob 构建期内联，兼容单文件打包。
+- **feat**：**Extend 拓展**——「Attention Is All You Need 可视化解读」自包含 HTML 经 iframe(srcDoc, sandbox) 隔离渲染。
+- **feat**：卡片标题/描述走 i18n 三语；新增 `src/vite-env.d.ts`（vite/client 类型）。
+- **chore**：移植 Perceptron / PyTorch / autograd 模块代码与测试入仓（lib 测试已跑通，UI 暂不接入侧栏，待后续上架）；测试 49 → 59。
+
 ### 2026-06-07 — K-Means 聚类模块上线（第 8 个模块，L4）
 - **feat**：从 `plan-features` worktree 移植 `KMeansModule.tsx` + `lib/kmeans.ts`（+9 个 Vitest 用例）：三簇散点 EM 迭代动画（播放/单步/重置）、K=2-5 选择、WCSS 实时显示、Elbow Method 曲线、Raw/Z-score 切换；接入 Tab 路由、三语文案与专属 Exam Tip（WCSS 单调不增 + 肘部法则）。
 - 覆盖表最大缺口（L4）与期中高频手推考点补齐，plan.md P1 完成。

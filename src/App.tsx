@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   BarChart3,
+  BookOpen,
   Boxes,
   Calculator,
   ChevronDown,
@@ -13,6 +14,7 @@ import {
   Layers,
   MousePointer2,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
@@ -20,6 +22,8 @@ import { Latex } from './components/Latex'
 import { SectionTitle } from './components/SectionTitle'
 import { AlphaBetaModule } from './modules/AlphaBetaModule'
 import { BackpropModule } from './modules/BackpropModule'
+import { ExtendModule } from './modules/ExtendModule'
+import { PackageModule } from './modules/PackageModule'
 import { BayesBasicsModule } from './modules/BayesBasicsModule'
 import { KernelModule } from './modules/KernelModule'
 import { KMeansModule } from './modules/KMeansModule'
@@ -115,10 +119,26 @@ const EXAM_TIPS: Record<TabId, React.ReactNode> = {
       }}
     />
   ),
+  perceptron: (
+    <Trans
+      i18nKey="app.sidebar.exam_tip.content_perceptron"
+      components={{ 1: <Latex formula="w \leftarrow w + \eta\, y\, x" /> }}
+    />
+  ),
+  pytorch: (
+    <Trans
+      i18nKey="app.sidebar.exam_tip.content_pytorch"
+      components={{ 1: <Latex formula="\text{zero\_grad} \to \text{backward} \to \text{step}" /> }}
+    />
+  ),
 }
+
+type AppMode = 'course' | 'package' | 'extend'
+const MODES: AppMode[] = ['course', 'package', 'extend']
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('numpy')
+  const [mode, setMode] = useState<AppMode>('course')
   const { t, i18n } = useTranslation()
 
   const tabs: TabConfig[] = [
@@ -166,9 +186,18 @@ export default function App() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="px-4 py-2 bg-white border border-slate-200 rounded-full shadow-sm flex items-center gap-3 text-xs font-mono text-slate-500 hidden sm:flex">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-            Environment: Ready / KaTeX Engine Active
+          <div className="flex items-center bg-white border border-slate-200 rounded-full shadow-sm p-1">
+            {MODES.map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all flex items-center gap-2
+                  ${mode === m ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                {mode === m && <span className="h-1.5 w-1.5 rounded-full bg-blue-200" />}
+                {t(`app.nav.${m}`)}
+              </button>
+            ))}
           </div>
           <div className="relative" ref={langMenuRef}>
             <button
@@ -208,7 +237,30 @@ export default function App() {
         </div>
       </header>
 
+      {/* Package / Extend 视图（全宽，无课程侧栏） */}
+      {mode !== 'course' && (
+        <main className="max-w-6xl mx-auto bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-200 min-h-[700px] p-8 md:p-12">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={mode}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="h-full"
+            >
+              <SectionTitle
+                icon={mode === 'package' ? BookOpen : Sparkles}
+                title={t(`app.section.${mode}.title`)}
+                subtitle={t(`app.section.${mode}.subtitle`)}
+              />
+              {mode === 'package' ? <PackageModule /> : <ExtendModule />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      )}
+
       {/* Main Dashboard */}
+      {mode === 'course' && (
       <main className="max-w-6xl mx-auto bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-200 overflow-hidden flex flex-col md:flex-row min-h-[700px]">
         {/* Sidebar Nav */}
         <nav className="w-full md:w-72 bg-slate-50 border-r border-slate-200 p-8 space-y-3">
@@ -343,6 +395,7 @@ export default function App() {
           </AnimatePresence>
         </section>
       </main>
+      )}
 
       {/* Footer Branding */}
       <footer className="max-w-6xl mx-auto mt-12 pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 text-slate-400 text-xs font-medium uppercase tracking-widest">

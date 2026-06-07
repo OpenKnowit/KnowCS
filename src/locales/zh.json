@@ -97,7 +97,9 @@
       "backprop": "反向传播",
       "kernel": "卷积核实验室",
       "alphabeta": "Alpha-Beta 剪枝",
-      "kmeans": "K-Means 聚类"
+      "kmeans": "K-Means 聚类",
+      "perceptron": "感知机",
+      "pytorch": "PyTorch"
     },
     "section": {
       "bayesBasics": {
@@ -131,6 +133,22 @@
       "kmeans": {
         "title": "K-Means 聚类",
         "subtitle": "无监督 EM 迭代与 K 值选择"
+      },
+      "package": {
+        "title": "学习笔记资料包",
+        "subtitle": "精选 API 全景图与课程笔记，Markdown 实时渲染"
+      },
+      "extend": {
+        "title": "拓展学习",
+        "subtitle": "课纲之外：论文与可视化解读"
+      },
+      "perceptron": {
+        "title": "感知机 / 单神经元",
+        "subtitle": "错误驱动学习与线性可分性"
+      },
+      "pytorch": {
+        "title": "PyTorch 与自动求导",
+        "subtitle": "计算图、速查表与训练循环"
       }
     },
     "sidebar": {
@@ -144,13 +162,20 @@
         "content_naiveBayes": "考试注意：一个零频率会让整条连乘归零——记得加 <1>\\alpha</1> 平滑。特征多时改用 <3>\\log</3> 求和防止下溢！",
         "content_knn": "考试注意：<1>K</1> 取奇数避免平票；特征一定要标准化——否则数值范围大的特征会主导距离计算！",
         "content_alphabeta": "考试注意：当 <1>\\beta \\le \\alpha</1> 时触发剪枝。节点访问顺序很关键——<3>好的走子排序能剪掉多得多的分支</3>！",
-        "content_kmeans": "考试注意：每次迭代 <1>WCSS</1> 单调不增，K-Means 必然收敛——但只到局部最优（初始质心很关键）。<3>K</3> 用肘部法则来选！"
+        "content_kmeans": "考试注意：每次迭代 <1>WCSS</1> 单调不增，K-Means 必然收敛——但只到局部最优（初始质心很关键）。<3>K</3> 用肘部法则来选！",
+        "content_perceptron": "考试注意：更新式 <1>w \\leftarrow w + \\eta\\, y\\, x</1> 只在错分点上触发——且只有数据线性可分才保证收敛！",
+        "content_pytorch": "考试注意：训练三步顺序很关键——<1>\\text{zero\\_grad} \\to \\text{backward} \\to \\text{step}</1>。忘了 zero_grad 梯度会累加！"
       }
     },
     "footer": {
       "copyright": "© 2026 KnowIt COMP2211 ML Learning Lab. Education through interaction.",
       "latency": "Latency: 12ms",
       "render": "Render: KaTeX High-Def"
+    },
+    "nav": {
+      "course": "课程",
+      "package": "资料包",
+      "extend": "拓展"
     }
   },
   "alphabeta": {
@@ -209,5 +234,80 @@
     "elbow_title": "肘部法则 (K vs Inertia)",
     "elbow_hint": "Inertia 随 K 增大必然下降；选「肘部」——边际收益变平的那个 K。",
     "advice": "K-Means 交替执行两步（EM）：把每个点分到最近质心，再把质心移到簇均值。Inertia 永不增大。难点在于选 <1>K</1>——用 <3>肘部法则</3>。务必先做 Z-score 标准化，否则量纲大的特征会主导欧氏距离！"
+  },
+  "package": {
+    "back": "返回笔记列表",
+    "chars": "字",
+    "hint": "笔记在构建期打包进站点——点击任意卡片即可阅读。",
+    "notes": {
+      "numpy": "NumPy API 与模块结构",
+      "pandas": "pandas API 全景地图",
+      "pytorch": "PyTorch API 统计与学习路线",
+      "tensorflow": "TensorFlow API 数量与模块结构",
+      "keras": "Keras 核心 API 学习笔记",
+      "kevin": "COMP2211 课程笔记"
+    }
+  },
+  "extend": {
+    "back": "返回列表",
+    "hint": "自包含的交互式解读页面，隔离渲染互不干扰。",
+    "items": {
+      "attention": {
+        "title": "Attention Is All You Need — 可视化解读",
+        "desc": "Transformer 原论文逐节可视化：Self-Attention、多头机制、位置编码与架构总览。"
+      }
+    }
+  },
+  "perceptron": {
+    "canvas_title": "决策边界（sign(w·x + b)）",
+    "reset": "重置",
+    "play": "播放",
+    "pause": "暂停",
+    "step": "单步",
+    "weights": "权重与偏置",
+    "misclassified": "错分数",
+    "step_count": "步",
+    "separated": "✓ 已线性分开——0 错分",
+    "current_step": "当前样本",
+    "step_correct": "样本 #{{idx}} 分类正确（目标 {{target}}）——权重不更新。",
+    "step_wrong": "样本 #{{idx}} 分错（预测 {{pred}}，目标 {{target}}）——更新 w += η·y·x，b += η·y。",
+    "lr": "学习率",
+    "advice": "感知机是错误驱动的：只在分错时才更新，按 <1>\\delta = y - \\hat{y}</1> 推动边界。仅当数据 <3>线性可分</3> 时才保证收敛。注意偏置技巧：把 <5>[w, b]</5> 合并成一个权重向量、并给输入补一个常数 1。"
+  },
+  "pytorch": {
+    "autograd_title": "自动求导：计算图",
+    "autograd_subtitle": "拖动输入——前向算出数值，反向按链式法则填充梯度：",
+    "autograd_hint": "每个节点存 data（前向）与 .grad = ∂L/∂节点（反向）。ReLU 只在输入为正时传梯度——把 a·b+c 调到 < 0，看所有梯度归零。",
+    "forward": "前向",
+    "backward": "反向",
+    "cheatsheet_title": "PyTorch 速查表 (Lab9)",
+    "train_loop_title": "标准训练循环",
+    "train_loop_hint": "神圣三连：zero_grad → backward → step。忘了 zero_grad() 梯度会跨 batch 累加。",
+    "cnn_title": "CNN 定义 (Lab8/9)",
+    "cnn_hint": "Conv → Pool → Conv → Pool → Flatten → Dense。逐层尺寸见「卷积核实验室」的 CNN 标签页。",
+    "group": {
+      "tensor": "张量",
+      "autograd": "自动求导",
+      "nn": "网络层 (nn)",
+      "train": "训练"
+    },
+    "api": {
+      "tensor": "创建张量；requires_grad 开启自动求导追踪。",
+      "create": "区间、全 0 / 全 1 张量的快捷构造。",
+      "reshape": "重塑形状；-1 自动推断维度，常用于 Dense 前展平。",
+      "device": "把模型/张量搬到 GPU 或 CPU。",
+      "requires_grad": "追踪该张量上的运算以计算梯度。",
+      "backward": "执行反向传播；为每个叶子张量填充 .grad。",
+      "grad": "累积的梯度 ∂loss/∂张量。",
+      "conv": "2D 卷积层（输入通道, 输出通道, 核大小）。",
+      "pool": "最大池化——对空间维度下采样。",
+      "linear": "全连接层（输入特征数, 输出特征数）。",
+      "relu": "ReLU 激活；Dropout 随机置零做正则化。",
+      "loss": "Softmax + 交叉熵二合一；传入原始 logits。",
+      "optim": "对模型参数做随机梯度下降。",
+      "zero_grad": "在 backward 前清零梯度——否则会累加。",
+      "step": "对参数执行一次梯度下降更新。"
+    },
+    "advice": "最常见的 bug：忘记 <1>optimizer.zero_grad()</1>。PyTorch 会把梯度*累加*到 .grad，不清零的话每个 batch 的梯度会叠在上一个上。<3>顺序固定</3>：每轮都是 zero_grad → backward → step。"
   }
 }

@@ -97,7 +97,9 @@
       "backprop": "Backpropagation",
       "kernel": "Kernel Lab",
       "alphabeta": "Alpha-Beta",
-      "kmeans": "K-Means"
+      "kmeans": "K-Means",
+      "perceptron": "Perceptron",
+      "pytorch": "PyTorch"
     },
     "section": {
       "bayesBasics": {
@@ -131,6 +133,22 @@
       "kmeans": {
         "title": "K-Means Clustering",
         "subtitle": "Unsupervised EM Iteration & Choosing K"
+      },
+      "package": {
+        "title": "Study Notes Package",
+        "subtitle": "Curated API maps & course notes, rendered from Markdown"
+      },
+      "extend": {
+        "title": "Extended Learning",
+        "subtitle": "Beyond the syllabus: papers & visual explainers"
+      },
+      "perceptron": {
+        "title": "Perceptron / Single Neuron",
+        "subtitle": "Error-Driven Learning & Linear Separability"
+      },
+      "pytorch": {
+        "title": "PyTorch & Autograd",
+        "subtitle": "Computational Graph, Cheatsheet & Training Loop"
       }
     },
     "sidebar": {
@@ -144,13 +162,20 @@
         "content_naiveBayes": "Exam Note: one zero frequency kills the whole product — apply <1>\\alpha</1> smoothing. With many features, switch to <3>\\log</3> sums to avoid underflow!",
         "content_knn": "Exam Note: choose an odd <1>K</1> to avoid tie votes, and always standardize features — otherwise large-range features dominate the distance!",
         "content_alphabeta": "Exam Note: pruning fires when <1>\\beta \\le \\alpha</1>. Node visiting order matters — <3>a good move ordering prunes far more branches</3>!",
-        "content_kmeans": "Exam Note: every iteration keeps <1>WCSS</1> non-increasing, so K-Means always converges — but only to a local optimum (initialization matters). Pick <3>K</3> at the elbow point!"
+        "content_kmeans": "Exam Note: every iteration keeps <1>WCSS</1> non-increasing, so K-Means always converges — but only to a local optimum (initialization matters). Pick <3>K</3> at the elbow point!",
+        "content_perceptron": "Exam Note: the update <1>w \\leftarrow w + \\eta\\, y\\, x</1> fires only on misclassified points — and converges only if the data is linearly separable!",
+        "content_pytorch": "Exam Note: the training trio order matters — <1>\\text{zero\\_grad} \\to \\text{backward} \\to \\text{step}</1>. Forget zero_grad and gradients accumulate!"
       }
     },
     "footer": {
       "copyright": "© 2026 KnowIt COMP2211 ML Learning Lab. Education through interaction.",
       "latency": "Latency: 12ms",
       "render": "Render: KaTeX High-Def"
+    },
+    "nav": {
+      "course": "Course",
+      "package": "Package",
+      "extend": "Extend"
     }
   },
   "alphabeta": {
@@ -209,5 +234,80 @@
     "elbow_title": "Elbow Method (K vs Inertia)",
     "elbow_hint": "Inertia always drops as K grows; pick the 'elbow' where the marginal gain flattens.",
     "advice": "K-Means alternates two steps (EM): assign each point to the nearest centroid, then move each centroid to its cluster mean. Inertia never increases. Choosing <1>K</1> is the hard part — use the <3>Elbow Method</3>. Always Z-score standardize first, or large-scale features dominate the Euclidean distance!"
+  },
+  "package": {
+    "back": "Back to notes",
+    "chars": "chars",
+    "hint": "Notes are bundled into the site at build time — click any card to read.",
+    "notes": {
+      "numpy": "NumPy API & Module Structure",
+      "pandas": "pandas API Landscape",
+      "pytorch": "PyTorch API Stats & Learning Path",
+      "tensorflow": "TensorFlow API Counts & Module Structure",
+      "keras": "Keras Core API Study Notes",
+      "kevin": "COMP2211 Course Notes"
+    }
+  },
+  "extend": {
+    "back": "Back to gallery",
+    "hint": "Self-contained interactive explainers, rendered in isolation.",
+    "items": {
+      "attention": {
+        "title": "Attention Is All You Need — Visual Walkthrough",
+        "desc": "Section-by-section visual guide to the Transformer paper: self-attention, multi-head mechanism, positional encoding & architecture overview."
+      }
+    }
+  },
+  "perceptron": {
+    "canvas_title": "Decision Boundary (sign of w·x + b)",
+    "reset": "Reset",
+    "play": "Play",
+    "pause": "Pause",
+    "step": "Step",
+    "weights": "Weights & Bias",
+    "misclassified": "Misclassified",
+    "step_count": "Step",
+    "separated": "✓ Linearly separated — 0 errors",
+    "current_step": "Current Sample",
+    "step_correct": "Sample #{{idx}} correctly classified (target {{target}}) — no weight update.",
+    "step_wrong": "Sample #{{idx}} misclassified (predicted {{pred}}, target {{target}}) — update w += η·y·x, b += η·y.",
+    "lr": "Learning rate",
+    "advice": "The perceptron is error-driven: it only updates when it gets a sample wrong, nudging the boundary by <1>\\delta = y - \\hat{y}</1>. It is guaranteed to converge only if the data is <3>linearly separable</3>. Note the bias trick: merge <5>[w, b]</5> into one weight vector with a constant 1 input."
+  },
+  "pytorch": {
+    "autograd_title": "Autograd: Computational Graph",
+    "autograd_subtitle": "Drag inputs — forward computes values, backward fills gradients via the chain rule:",
+    "autograd_hint": "Each node stores data (forward) and .grad = ∂L/∂node (backward). ReLU passes gradient only when its input is positive — set a·b+c < 0 and watch all grads drop to 0.",
+    "forward": "Forward",
+    "backward": "Backward",
+    "cheatsheet_title": "PyTorch Cheatsheet (Lab9)",
+    "train_loop_title": "Standard Training Loop",
+    "train_loop_hint": "The sacred trio: zero_grad → backward → step. Forgetting zero_grad() makes gradients accumulate across batches.",
+    "cnn_title": "CNN Definition (Lab8/9)",
+    "cnn_hint": "Conv → Pool → Conv → Pool → Flatten → Dense. See the 'Kernel Lab' CNN tab for the layer-by-layer sizes.",
+    "group": {
+      "tensor": "Tensors",
+      "autograd": "Autograd",
+      "nn": "Layers (nn)",
+      "train": "Training"
+    },
+    "api": {
+      "tensor": "Create a tensor; requires_grad enables autograd tracking.",
+      "create": "Quick constructors for ranges and zero/one-filled tensors.",
+      "reshape": "Reshape; -1 infers the dimension. Used to flatten before Dense.",
+      "device": "Move model/tensor to GPU or CPU.",
+      "requires_grad": "Track operations on this tensor to compute gradients.",
+      "backward": "Run backprop; populates .grad on every leaf tensor.",
+      "grad": "The accumulated gradient ∂loss/∂tensor.",
+      "conv": "2D convolution layer (in_channels, out_channels, kernel).",
+      "pool": "Max pooling — downsamples spatial dimensions.",
+      "linear": "Fully-connected layer (in_features, out_features).",
+      "relu": "ReLU activation; Dropout randomly zeros units for regularization.",
+      "loss": "Softmax + cross-entropy in one; pass raw logits.",
+      "optim": "Stochastic gradient descent over model parameters.",
+      "zero_grad": "Clear gradients BEFORE backward — or they accumulate.",
+      "step": "Apply one gradient-descent update to the parameters."
+    },
+    "advice": "The single most common bug: forgetting <1>optimizer.zero_grad()</1>. PyTorch *accumulates* gradients into .grad, so without clearing them each batch's gradient piles onto the last. <3>Order is fixed</3>: zero_grad → backward → step, every iteration."
   }
 }

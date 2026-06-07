@@ -110,5 +110,43 @@ export interface KMeansIteration {
   moved: number // 质心移动总距离
 }
 
+// 感知机 / 单神经元模块（L5）
+export interface PerceptronPoint {
+  x: number
+  y: number
+  label: 1 | -1
+}
+
+export interface PerceptronStep {
+  w: [number, number]
+  b: number
+  pointIndex: number
+  predicted: number
+  target: number
+  correct: boolean
+  errors: number // 本轮累计错分数
+}
+
+// PyTorch cheatsheet（L9）
+export interface CheatItem {
+  api: string
+  code: string
+  descKey: string
+}
+export interface CheatGroup {
+  titleKey: string
+  items: CheatItem[]
+}
+
 // App 导航
-export type TabId = 'numpy' | 'backprop' | 'kernel' | 'bayesBasics' | 'naiveBayes' | 'knn' | 'alphabeta' | 'kmeans'
+export type TabId =
+  | 'numpy'
+  | 'backprop'
+  | 'kernel'
+  | 'bayesBasics'
+  | 'naiveBayes'
+  | 'knn'
+  | 'alphabeta'
+  | 'kmeans'
+  | 'perceptron'
+  | 'pytorch'

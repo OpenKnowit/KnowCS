@@ -1,4 +1,4 @@
-import type { AbNode, BayesData, KernelPresetName, KnnPoint, Vec2 } from '../types'
+import type { AbNode, BayesData, CheatGroup, KernelPresetName, KnnPoint, PerceptronPoint, Vec2 } from '../types'
 
 // --- Constants & Helper Data ---
 export const INITIAL_MATRIX: number[][] = Array.from({ length: 4 }, (_, r) =>
@@ -75,3 +75,81 @@ export const KNN_RAW_DATA: KnnPoint[] = [
   { h: 168, w: 62, s: 'L' }, { h: 168, w: 63, s: 'L' }, { h: 168, w: 66, s: 'L' },
   { h: 170, w: 63, s: 'L' }, { h: 170, w: 64, s: 'L' }, { h: 170, w: 68, s: 'L' },
 ]
+
+// --- 感知机：线性可分的二维数据（label = ±1） ---
+export const PERCEPTRON_DATA: PerceptronPoint[] = [
+  { x: 1.0, y: 1.0, label: -1 }, { x: 1.5, y: 2.0, label: -1 }, { x: 2.0, y: 1.5, label: -1 },
+  { x: 1.2, y: 2.6, label: -1 }, { x: 2.4, y: 2.2, label: -1 },
+  { x: 4.0, y: 4.5, label: 1 }, { x: 4.6, y: 5.2, label: 1 }, { x: 5.2, y: 4.1, label: 1 },
+  { x: 5.6, y: 5.6, label: 1 }, { x: 4.4, y: 5.8, label: 1 },
+]
+
+// --- PyTorch cheatsheet（L9/Lab9）：按主题分组，代码语言无关、描述走 i18n ---
+export const PYTORCH_CHEATSHEET: CheatGroup[] = [
+  {
+    titleKey: 'pytorch.group.tensor',
+    items: [
+      { api: 'torch.tensor', code: "x = torch.tensor([1., 2.], requires_grad=True)", descKey: 'pytorch.api.tensor' },
+      { api: 'torch.arange / zeros / ones', code: "torch.arange(3); torch.zeros(2, 3)", descKey: 'pytorch.api.create' },
+      { api: 'x.reshape / view', code: "x = x.reshape(x.size(0), -1)  # flatten", descKey: 'pytorch.api.reshape' },
+      { api: 'x.to(device)', code: "model = model.to('cuda')", descKey: 'pytorch.api.device' },
+    ],
+  },
+  {
+    titleKey: 'pytorch.group.autograd',
+    items: [
+      { api: 'requires_grad=True', code: "x = torch.tensor(2.0, requires_grad=True)", descKey: 'pytorch.api.requires_grad' },
+      { api: 'loss.backward()', code: "loss.backward()  # 反向传播填充 .grad", descKey: 'pytorch.api.backward' },
+      { api: 'x.grad', code: "print(x.grad)  # ∂loss/∂x", descKey: 'pytorch.api.grad' },
+    ],
+  },
+  {
+    titleKey: 'pytorch.group.nn',
+    items: [
+      { api: 'nn.Conv2d', code: "nn.Conv2d(3, 32, kernel_size=3)", descKey: 'pytorch.api.conv' },
+      { api: 'nn.MaxPool2d', code: "nn.MaxPool2d(kernel_size=2, stride=2)", descKey: 'pytorch.api.pool' },
+      { api: 'nn.Linear', code: "nn.Linear(1600, 128)", descKey: 'pytorch.api.linear' },
+      { api: 'nn.ReLU / Dropout', code: "nn.ReLU(); nn.Dropout(0.5)", descKey: 'pytorch.api.relu' },
+      { api: 'nn.CrossEntropyLoss', code: "criterion = nn.CrossEntropyLoss()", descKey: 'pytorch.api.loss' },
+    ],
+  },
+  {
+    titleKey: 'pytorch.group.train',
+    items: [
+      { api: 'optim.SGD', code: "opt = torch.optim.SGD(model.parameters(), lr=0.01)", descKey: 'pytorch.api.optim' },
+      { api: 'optimizer.zero_grad()', code: "opt.zero_grad()  # 梯度清零（否则累加！）", descKey: 'pytorch.api.zero_grad' },
+      { api: 'optimizer.step()', code: "opt.step()  # 用梯度更新参数", descKey: 'pytorch.api.step' },
+    ],
+  },
+]
+
+export const PYTORCH_TRAIN_LOOP = `for epoch in range(num_epochs):
+    for images, labels in train_loader:
+        images, labels = images.to(device), labels.to(device)
+
+        outputs = model(images)          # 前向
+        loss = criterion(outputs, labels)
+
+        optimizer.zero_grad()            # ① 清零
+        loss.backward()                  # ② 反传
+        optimizer.step()                 # ③ 更新
+    print(f'Epoch {epoch+1}: loss={loss.item():.4f}')`
+
+export const PYTORCH_CNN_CODE = `class ConvNet(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, 32, 3)
+        self.conv2 = nn.Conv2d(32, 32, 3)
+        self.pool1 = nn.MaxPool2d(2)
+        self.conv3 = nn.Conv2d(32, 64, 3)
+        self.conv4 = nn.Conv2d(64, 64, 3)
+        self.pool2 = nn.MaxPool2d(2)
+        self.fc1 = nn.Linear(1600, 128)
+        self.fc2 = nn.Linear(128, num_classes)
+
+    def forward(self, x):
+        x = self.pool1(self.conv2(self.conv1(x)))
+        x = self.pool2(self.conv4(self.conv3(x)))
+        x = x.reshape(x.size(0), -1)
+        x = F.relu(self.fc1(x))
+        return self.fc2(x)`

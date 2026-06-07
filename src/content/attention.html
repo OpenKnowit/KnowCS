@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attention Is All You Need — 可视化解读</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-card: #161b22;
+    --bg-soft: #1c2230;
+    --border: #2d3548;
+    --text: #e6edf3;
+    --text-dim: #9aa7b8;
+    --accent: #58a6ff;
+    --accent2: #f78166;
+    --accent3: #7ee787;
+    --accent4: #d2a8ff;
+    --accent5: #ffd33d;
+    --mono: "SF Mono", "JetBrains Mono", Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    line-height: 1.7;
+  }
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex; align-items: center; gap: 4px;
+    overflow-x: auto; white-space: nowrap;
+  }
+  nav .brand { font-weight: 700; color: var(--accent); margin-right: 16px; padding: 14px 0; font-size: 15px; }
+  nav a {
+    color: var(--text-dim); text-decoration: none; font-size: 13.5px;
+    padding: 14px 12px; transition: color .2s;
+  }
+  nav a:hover { color: var(--text); }
+  header {
+    text-align: center;
+    padding: 90px 24px 70px;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(88,166,255,0.13), transparent),
+      radial-gradient(ellipse 50% 40% at 80% 20%, rgba(210,168,255,0.07), transparent);
+  }
+  header .paper-tag {
+    display: inline-block; font-size: 12.5px; color: var(--accent);
+    border: 1px solid rgba(88,166,255,0.4); border-radius: 99px;
+    padding: 4px 14px; margin-bottom: 22px; letter-spacing: 0.5px;
+  }
+  header h1 { font-size: clamp(30px, 5vw, 52px); font-weight: 800; letter-spacing: -1px; }
+  header h1 .grad {
+    background: linear-gradient(90deg, #58a6ff, #d2a8ff, #f78166);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  header .sub { color: var(--text-dim); margin-top: 18px; font-size: 17px; max-width: 640px; margin-left: auto; margin-right: auto; }
+  header .authors { margin-top: 14px; font-size: 13px; color: #6e7a8a; }
+  main { max-width: 1060px; margin: 0 auto; padding: 0 24px 120px; }
+  section { margin-top: 90px; scroll-margin-top: 70px; }
+  .sec-num { font-family: var(--mono); color: var(--accent); font-size: 14px; letter-spacing: 1.5px; }
+  h2 { font-size: 30px; margin: 6px 0 10px; letter-spacing: -0.5px; }
+  .sec-desc { color: var(--text-dim); max-width: 760px; margin-bottom: 28px; font-size: 15.5px; }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px;
+  }
+  .formula {
+    font-family: var(--mono); text-align: center; font-size: 18px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px; margin: 0 0 22px;
+    overflow-x: auto;
+  }
+  .formula .hl-q { color: var(--accent); }
+  .formula .hl-k { color: var(--accent2); }
+  .formula .hl-v { color: var(--accent3); }
+  .formula .hl-d { color: var(--accent5); }
+  .hint { font-size: 13px; color: #6e7a8a; margin-top: 14px; }
+  button {
+    background: var(--bg-soft); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 18px; font-size: 14px; cursor: pointer;
+    transition: all .2s; font-family: inherit;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 600; }
+  button.primary:hover { background: #79b8ff; color: #0d1117; }
+  button:disabled { opacity: 0.35; cursor: default; }
+  button:disabled:hover { border-color: var(--border); color: var(--text); }
+  button.primary:disabled:hover { background: var(--accent); }
+  input[type="range"] { accent-color: var(--accent); }
+
+  /* ===== 架构图 ===== */
+  #arch-wrap { display: flex; gap: 24px; flex-wrap: wrap; }
+  #arch-svg-box { flex: 1 1 480px; min-width: 320px; }
+  #arch-info { flex: 1 1 300px; min-width: 280px; }
+  #arch-svg-box svg { width: 100%; height: auto; display: block; }
+  .arch-block { cursor: pointer; transition: filter .2s; }
+  .arch-block:hover rect, .arch-block.active rect { filter: brightness(1.4); }
+  .arch-block rect { transition: all .2s; }
+  .arch-block text { pointer-events: none; }
+  #arch-info .title { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--accent); }
+  #arch-info .body { font-size: 14.5px; color: var(--text-dim); }
+  #arch-info .body b { color: var(--text); }
+  #arch-info .body code { font-family: var(--mono); font-size: 13px; color: var(--accent3); background: var(--bg-soft); padding: 1px 6px; border-radius: 4px; }
+
+  /* ===== QKV 步骤演示 ===== */
+  #qkv-steps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  #qkv-steps .step-pill {
+    font-size: 13px; padding: 6px 14px; border-radius: 99px;
+    border: 1px solid var(--border); color: var(--text-dim); cursor: pointer;
+    transition: all .2s; background: none;
+  }
+  #qkv-steps .step-pill.done { border-color: rgba(126,231,135,0.5); color: var(--accent3); }
+  #qkv-steps .step-pill.current { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.1); }
+  #qkv-stage { min-height: 340px; }
+  .mat-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; justify-content: center; }
+  .mat-box { text-align: center; }
+  .mat-box .mat-label { font-family: var(--mono); font-size: 13px; margin-bottom: 8px; color: var(--text-dim); }
+  table.mat { border-collapse: collapse; margin: 0 auto; }
+  table.mat td, table.mat th {
+    border: 1px solid var(--border); font-family: var(--mono);
+    font-size: 12px; padding: 5px 8px; text-align: center; min-width: 46px;
+  }
+  table.mat th { color: var(--text-dim); font-weight: 500; background: var(--bg-soft); }
+  .op-sym { font-size: 26px; color: var(--text-dim); align-self: center; font-family: var(--mono); }
+  #qkv-explain { margin-top: 22px; font-size: 14.5px; color: var(--text-dim); border-left: 3px solid var(--accent); padding-left: 14px; }
+  #qkv-explain b { color: var(--text); }
+  #qkv-controls { display: flex; gap: 10px; margin-top: 22px; justify-content: center; }
+
+  /* ===== 句子注意力 ===== */
+  #sent-tokens { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 10px 0 26px; }
+  .tok {
+    font-family: var(--mono); font-size: 15px; padding: 8px 13px;
+    border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+    transition: all .15s; position: relative; background: var(--bg-soft);
+  }
+  .tok:hover, .tok.sel { border-color: var(--accent); }
+  .tok.sel { background: rgba(88,166,255,0.15); color: var(--accent); font-weight: 600; }
+  .tok .att-bar {
+    position: absolute; left: 0; bottom: -1px; height: 3px;
+    background: var(--accent2); border-radius: 2px; transition: width .25s;
+  }
+  #sent-note { text-align: center; font-size: 14px; color: var(--text-dim); min-height: 24px; }
+  #sent-note b { color: var(--accent2); }
+
+  /* ===== 多头 ===== */
+  #heads-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 18px; }
+  .head-card { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+  .head-card .h-title { font-family: var(--mono); font-size: 13px; color: var(--accent4); margin-bottom: 4px; }
+  .head-card .h-desc { font-size: 12px; color: var(--text-dim); margin-bottom: 10px; min-height: 32px; }
+  .head-card canvas { width: 100%; image-rendering: pixelated; border-radius: 6px; }
+
+  /* ===== 位置编码 ===== */
+  #pe-canvas { width: 100%; border-radius: 8px; display: block; }
+  .ctrl-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 18px; font-size: 14px; color: var(--text-dim); }
+  .ctrl-row .val { font-family: var(--mono); color: var(--accent5); min-width: 44px; }
+  #pe-curve { width: 100%; border-radius: 8px; display: block; margin-top: 8px; }
+
+  /* ===== 缩放 ===== */
+  #scale-wrap { display: flex; gap: 26px; flex-wrap: wrap; }
+  #scale-wrap > div { flex: 1 1 380px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 170px; padding: 8px 4px 0; border-bottom: 1px solid var(--border); }
+  .bar-chart .bar { flex: 1; border-radius: 4px 4px 0 0; transition: height .25s; position: relative; min-height: 2px; }
+  .bar-chart .bar span { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 10.5px; font-family: var(--mono); color: var(--text-dim); }
+  .chart-title { text-align: center; font-size: 13.5px; color: var(--text-dim); margin: 12px 0 24px; font-family: var(--mono); }
+  footer { text-align: center; color: #57606a; font-size: 13px; padding: 40px 24px 60px; border-top: 1px solid var(--border); margin-top: 100px; }
+  footer a { color: var(--accent); text-decoration: none; }
+  .heat-legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); justify-content: center; margin-top: 12px; }
+  .heat-legend .grad-bar { width: 140px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #0d1117, #1f4068, #2d6cdf, #58a6ff, #aee3ff); }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="brand">⚡ Attention 可视化</span>
+  <a href="#arch">① 架构总览</a>
+  <a href="#qkv">② Q·K·V 计算</a>
+  <a href="#sent">③ 自注意力</a>
+  <a href="#heads">④ 多头注意力</a>
+  <a href="#pe">⑤ 位置编码</a>
+  <a href="#scale">⑥ √dₖ 缩放</a>
+</nav>
+
+<header>
+  <div class="paper-tag">NeurIPS 2017 · Vaswani et al. · Google Brain / Google Research</div>
+  <h1><span class="grad">Attention Is All You Need</span><br>交互式可视化解读</h1>
+  <p class="sub">Transformer 抛弃了循环与卷积，完全依靠<b>注意力机制</b>建模序列。这个页面用可交互的方式拆解论文的每个核心组件。</p>
+  <p class="authors">Vaswani · Shazeer · Parmar · Uszkoreit · Jones · Gomez · Kaiser · Polosukhin (2017)</p>
+</header>
+
+<main>
+
+<!-- ① 架构总览 -->
+<section id="arch">
+  <div class="sec-num">SECTION 01</div>
+  <h2>Transformer 架构总览</h2>
+  <p class="sec-desc">Transformer 由 <b>Encoder</b>（左）和 <b>Decoder</b>（右）堆叠组成，论文中各为 N=6 层。<b>点击图中任意模块</b>查看它的作用。</p>
+  <div class="card">
+    <div id="arch-wrap">
+      <div id="arch-svg-box">
+        <svg viewBox="0 0 560 640" xmlns="http://www.w3.org/2000/svg" id="arch-svg"></svg>
+      </div>
+      <div id="arch-info">
+        <div class="title">👆 点击左侧模块</div>
+        <div class="body">点击架构图中的任意彩色模块，这里会显示它的详细解释。<br><br>颜色含义：<br>🔵 注意力模块 &nbsp;🟢 前馈网络<br>🟣 嵌入/位置编码 &nbsp;🟡 归一化/输出</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ② QKV -->
+<section id="qkv">
+  <div class="sec-num">SECTION 02</div>
+  <h2>Scaled Dot-Product Attention：一步步算给你看</h2>
+  <p class="sec-desc">注意力的核心是一条公式。下面用一个 3 个词、d<sub>k</sub>=4 的微型例子，<b>逐步真实计算</b>每个中间结果（数值可复算）。</p>
+  <div class="formula">
+    Attention(<span class="hl-q">Q</span>, <span class="hl-k">K</span>, <span class="hl-v">V</span>) = softmax( <span class="hl-q">Q</span><span class="hl-k">Kᵀ</span> / <span class="hl-d">√d<sub>k</sub></span> ) <span class="hl-v">V</span>
+  </div>
+  <div class="card">
+    <div id="qkv-steps"></div>
+    <div id="qkv-stage"></div>
+    <div id="qkv-explain"></div>
+    <div id="qkv-controls">
+      <button id="qkv-prev">← 上一步</button>
+      <button id="qkv-next" class="primary">下一步 →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ③ 句子自注意力 -->
+<section id="sent">
+  <div class="sec-num">SECTION 03</div>
+  <h2>自注意力：词与词如何互相"看"</h2>
+  <p class="sec-desc">论文中的经典例子：<i>"The animal didn't cross the street because <b>it</b> was too tired."</i> —— 这里的 <b>it</b> 指代什么？自注意力让模型在编码 <b>it</b> 时直接"看向" <b>animal</b>。<b>悬停/点击任意词</b>，下划线长度表示注意力权重（示意性分布，按语言学直觉构造并经 softmax 归一化）。</p>
+  <div class="card">
+    <div id="sent-tokens"></div>
+    <div id="sent-note">将鼠标移到任意词上 👆</div>
+    <div class="heat-legend"><span>权重低</span><div class="grad-bar" style="background:linear-gradient(90deg,#2d3548,#f78166)"></div><span>权重高</span></div>
+  </div>
+</section>
+
+<!-- ④ 多头 -->
+<section id="heads">
+  <div class="sec-num">SECTION 04</div>
+  <h2>Multi-Head Attention：8 个"视角"并行</h2>
+  <p class="sec-desc">论文使用 h=8 个注意力头。每个头把 Q/K/V 投影到不同子空间，学到<b>不同类型的依赖关系</b>。下面是 4 种典型模式的示意热力图（行 = query 位置，列 = key 位置，越亮权重越大）。</p>
+  <div class="card">
+    <div id="heads-grid"></div>
+    <p class="hint">真实模型中各头的模式由训练自动涌现；研究（如 Voita et al. 2019）发现确实存在位置头、句法头等可解释模式。多个头的输出拼接后经 W<sup>O</sup> 投影：MultiHead(Q,K,V) = Concat(head₁,…,head₈)W<sup>O</sup>。</p>
+  </div>
+</section>
+
+<!-- ⑤ 位置编码 -->
+<section id="pe">
+  <div class="sec-num">SECTION 05</div>
+  <h2>位置编码：没有循环，如何知道顺序？</h2>
+  <p class="sec-desc">注意力本身对顺序<b>不敏感</b>（置换不变）。论文给每个位置加上固定的正弦/余弦编码 —— 下图是<b>真实计算</b>的 PE 矩阵（横轴 = 维度 i，纵轴 = 位置 pos，d<sub>model</sub>=128，亮色为正、暗色为负）。</p>
+  <div class="formula" style="font-size:15px;">
+    PE(pos, 2i) = sin(pos / 10000<sup>2i/d</sup>) &nbsp;&nbsp;&nbsp; PE(pos, 2i+1) = cos(pos / 10000<sup>2i/d</sup>)
+  </div>
+  <div class="card">
+    <canvas id="pe-canvas" width="1024" height="400"></canvas>
+    <div class="heat-legend"><span>-1</span><div class="grad-bar" style="background:linear-gradient(90deg,#1a1f2e,#3c2a55,#b3589a,#f7b267,#fff3c4)"></div><span>+1</span></div>
+    <div class="ctrl-row">
+      <span>查看单个维度的波形 — 维度 i：</span>
+      <input type="range" id="pe-dim" min="0" max="126" step="2" value="20" style="flex:1;min-width:160px;">
+      <span class="val" id="pe-dim-val">20</span>
+    </div>
+    <canvas id="pe-curve" width="1024" height="160"></canvas>
+    <p class="hint">低维度（左侧）波长短、变化快，编码<b>局部</b>位置；高维度波长可达 10000·2π，编码<b>全局</b>位置。任意固定偏移 k 的 PE(pos+k) 都可由 PE(pos) 线性表出 —— 便于模型学习相对位置。</p>
+  </div>
+</section>
+
+<!-- ⑥ 缩放 -->
+<section id="scale">
+  <div class="sec-num">SECTION 06</div>
+  <h2>为什么要除以 √dₖ？</h2>
+  <p class="sec-desc">当 d<sub>k</sub> 很大时，点积 q·k 的方差约为 d<sub>k</sub>，数值会很大，把 softmax 推入<b>梯度极小的饱和区</b>。除以 √dₖ 把方差拉回 1。拖动滑块感受差别（左：不缩放；右：缩放后。分数为固定随机样本 × √dₖ 方差缩放，softmax 真实计算）。</p>
+  <div class="card">
+    <div class="ctrl-row" style="margin-top:0;margin-bottom:20px;">
+      <span>维度 d<sub>k</sub>：</span>
+      <input type="range" id="dk-slider" min="4" max="512" step="4" value="64" style="flex:1;min-width:160px;">
+      <span class="val" id="dk-val">64</span>
+    </div>
+    <div id="scale-wrap">
+      <div>
+        <div class="bar-chart" id="chart-raw"></div>
+        <div class="chart-title">softmax(q·k) — 不缩放</div>
+      </div>
+      <div>
+        <div class="bar-chart" id="chart-scaled"></div>
+        <div class="chart-title">softmax(q·k / √dₖ) — 论文做法</div>
+      </div>
+    </div>
+    <div id="scale-verdict" class="hint" style="text-align:center;font-size:14px;"></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  基于论文 <a href="https://arxiv.org/abs/1706.03762" target="_blank">Attention Is All You Need (arXiv:1706.03762)</a> 制作 · 所有矩阵运算在浏览器中实时计算
+</footer>
+
+<script>
+"use strict";
+/* ============================================================
+   ① 架构图（SVG 动态生成）
+   ============================================================ */
+(function buildArch() {
+  const svg = document.getElementById('arch-svg');
+  const NS = 'http://www.w3.org/2000/svg';
+  const C = { att:'#1f4f8f', ffn:'#1f6f3f', emb:'#5a3f8f', norm:'#8f6f1f', out:'#8f3f3f' };
+
+  const blocks = [
+    // Encoder side (x ~ 60..230)
+    { id:'inp-emb',  x:70,  y:560, w:150, h:34, c:C.emb,  label:'Input Embedding',
+      title:'输入嵌入 (Input Embedding)',
+      body:'把每个 token 映射为 <b>d<sub>model</sub>=512</b> 维向量。嵌入矩阵与输出 softmax 前的线性层<b>共享权重</b>（论文 §3.4），且嵌入乘以 <code>√d_model</code>。' },
+    { id:'pe-enc',   x:70,  y:512, w:150, h:30, c:C.emb,  label:'+ Positional Encoding',
+      title:'位置编码（Encoder 侧）',
+      body:'与词嵌入<b>逐元素相加</b>的固定 sin/cos 信号，为模型注入顺序信息。详见本页 <a href="#pe" style="color:var(--accent)">第 ⑤ 节</a>。' },
+    { id:'enc-mha',  x:70,  y:420, w:150, h:52, c:C.att,  label:'Multi-Head\nSelf-Attention',
+      title:'编码器自注意力',
+      body:'Q、K、V <b>全部来自上一层编码器输出</b>，每个位置可以看到输入序列的所有位置。8 个头并行，每头 d<sub>k</sub>=d<sub>v</sub>=64。' },
+    { id:'enc-an1',  x:70,  y:380, w:150, h:26, c:C.norm, label:'Add & Norm',
+      title:'残差连接 + LayerNorm',
+      body:'每个子层的输出为 <code>LayerNorm(x + Sublayer(x))</code>。残差让梯度直通，LayerNorm 稳定数值。训练时子层输出还会施加 dropout (P=0.1)。' },
+    { id:'enc-ffn',  x:70,  y:300, w:150, h:52, c:C.ffn,  label:'Feed Forward\n(512→2048→512)',
+      title:'逐位置前馈网络 (FFN)',
+      body:'对<b>每个位置独立</b>应用同一个两层 MLP：<code>FFN(x)=max(0, xW₁+b₁)W₂+b₂</code>，内层维度 d<sub>ff</sub>=2048。可看作 1×1 卷积。' },
+    { id:'enc-an2',  x:70,  y:260, w:150, h:26, c:C.norm, label:'Add & Norm',
+      title:'残差连接 + LayerNorm',
+      body:'同上：<code>LayerNorm(x + FFN(x))</code>。整个 Encoder 块（自注意力 + FFN）重复堆叠 <b>N=6</b> 层。' },
+    // Decoder side (x ~ 330..500)
+    { id:'out-emb',  x:340, y:560, w:150, h:34, c:C.emb,  label:'Output Embedding',
+      title:'输出嵌入（右移一位）',
+      body:'解码器输入是<b>右移一位 (shifted right)</b> 的目标序列：预测第 i 个词时只能看到前 i-1 个词，保证自回归性质。' },
+    { id:'pe-dec',   x:340, y:512, w:150, h:30, c:C.emb,  label:'+ Positional Encoding',
+      title:'位置编码（Decoder 侧）',
+      body:'与 Encoder 侧完全相同的 sin/cos 编码。' },
+    { id:'dec-mmha', x:340, y:432, w:150, h:52, c:C.att,  label:'Masked Multi-Head\nSelf-Attention',
+      title:'带掩码的自注意力',
+      body:'在 softmax 之前，把所有 <b>j &gt; i</b>（未来位置）的打分置为 <code>-∞</code>，使每个位置只能注意自己和之前的位置 —— 防止"偷看答案"。' },
+    { id:'dec-an1',  x:340, y:394, w:150, h:24, c:C.norm, label:'Add & Norm',
+      title:'残差连接 + LayerNorm', body:'同 Encoder。' },
+    { id:'dec-cross',x:340, y:316, w:150, h:52, c:C.att,  label:'Cross-Attention\n(Q←Dec, K,V←Enc)',
+      title:'编码器-解码器交叉注意力',
+      body:'<b>Q 来自解码器</b>上一子层，<b>K、V 来自编码器最终输出</b>。这是翻译时"对齐"源句与目标句的机制，类似经典 seq2seq 的 attention。' },
+    { id:'dec-an2',  x:340, y:278, w:150, h:24, c:C.norm, label:'Add & Norm',
+      title:'残差连接 + LayerNorm', body:'同 Encoder。' },
+    { id:'dec-ffn',  x:340, y:206, w:150, h:48, c:C.ffn,  label:'Feed Forward',
+      title:'逐位置前馈网络',
+      body:'与 Encoder 中的 FFN 结构相同。整个 Decoder 块（掩码自注意力 + 交叉注意力 + FFN）同样堆叠 <b>N=6</b> 层。' },
+    { id:'dec-an3',  x:340, y:168, w:150, h:24, c:C.norm, label:'Add & Norm',
+      title:'残差连接 + LayerNorm', body:'同 Encoder。' },
+    { id:'linear',   x:340, y:104, w:150, h:30, c:C.out,  label:'Linear',
+      title:'输出线性层',
+      body:'把 512 维表示投影到词表大小（与输入嵌入<b>共享权重矩阵</b>）。' },
+    { id:'softmax',  x:340, y:56,  w:150, h:30, c:C.out,  label:'Softmax',
+      title:'Softmax 输出',
+      body:'得到下一个 token 的概率分布。训练目标是交叉熵（带 ε=0.1 的 label smoothing）。' },
+  ];
+
+  // arrows: simple vertical lines + cross connection
+  const arrows = [
+    [145,560,145,476],[145,420,145,410],[145,380,145,356],[145,300,145,290],
+    [145,260,145,210], // encoder out up
+    [415,560,415,488],[415,432,415,422],[415,394,415,372],[415,316,415,306],
+    [415,278,415,258],[415,206,415,196],[415,168,415,138],[415,104,415,90],[415,56,415,30],
+  ];
+
+  let html = '';
+  // encoder/decoder group outline
+  html += `<rect x="55" y="240" width="180" height="252" rx="12" fill="none" stroke="#2d3548" stroke-dasharray="5 4"/>`;
+  html += `<text x="62" y="232" fill="#6e7a8a" font-size="12" font-family="monospace">Encoder × 6</text>`;
+  html += `<rect x="325" y="148" width="180" height="356" rx="12" fill="none" stroke="#2d3548" stroke-dasharray="5 4"/>`;
+  html += `<text x="332" y="140" fill="#6e7a8a" font-size="12" font-family="monospace">Decoder × 6</text>`;
+
+  // arrows defs
+  html += `<defs><marker id="arr" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#57606a"/></marker></defs>`;
+  for (const [x1,y1,x2,y2] of arrows)
+    html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#57606a" stroke-width="1.5" marker-end="url(#arr)"/>`;
+  // cross attention link: encoder top -> decoder cross block
+  html += `<path d="M 145 210 L 145 175 Q 145 160 160 160 L 290 160 Q 305 160 305 175 L 305 342 L 332 342" fill="none" stroke="#58a6ff" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arr)"/>`;
+  html += `<text x="158" y="152" fill="#58a6ff" font-size="11.5" font-family="monospace">K, V → Cross-Attention</text>`;
+  // input labels
+  html += `<text x="145" y="620" fill="#9aa7b8" font-size="13" text-anchor="middle">Inputs（源句）</text>`;
+  html += `<text x="415" y="620" fill="#9aa7b8" font-size="13" text-anchor="middle">Outputs（右移一位）</text>`;
+  html += `<text x="415" y="20" fill="#9aa7b8" font-size="13" text-anchor="middle">输出概率</text>`;
+
+  for (const b of blocks) {
+    const lines = b.label.split('\n');
+    const lh = 14;
+    const ty0 = b.y + b.h/2 - (lines.length-1)*lh/2 + 4;
+    html += `<g class="arch-block" data-id="${b.id}"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="7" fill="${b.c}" stroke="rgba(255,255,255,0.15)"/>`;
+    lines.forEach((ln, i) => {
+      html += `<text x="${b.x+b.w/2}" y="${ty0+i*lh}" text-anchor="middle" fill="#e6edf3" font-size="12">${ln}</text>`;
+    });
+    html += `</g>`;
+  }
+  svg.innerHTML = html;
+
+  const info = document.getElementById('arch-info');
+  const byId = Object.fromEntries(blocks.map(b => [b.id, b]));
+  svg.addEventListener('click', e => {
+    const g = e.target.closest('.arch-block');
+    if (!g) return;
+    svg.querySelectorAll('.arch-block.active').forEach(el => el.classList.remove('active'));
+    g.classList.add('active');
+    const b = byId[g.dataset.id];
+    info.innerHTML = `<div class="title">${b.title}</div><div class="body">${b.body}</div>`;
+  });
+})();
+
+/* ============================================================
+   ② QKV 逐步计算（真实矩阵运算）
+   ============================================================ */
+(function qkvDemo() {
+  const TOKENS = ['我', '爱', '猫'];
+  const dk = 4;
+  // 固定的"嵌入"和投影后的 Q K V（手工设定的小数值，便于阅读；后续步骤全部真实计算）
+  const Q = [[1.0, 0.0, 1.0, 0.0],
+             [0.0, 1.0, 0.0, 1.0],
+             [1.0, 1.0, 0.0, 0.0]];
+  const K = [[1.0, 0.0, 0.5, 0.0],
+             [0.0, 1.0, 0.0, 0.5],
+             [0.5, 0.5, 1.0, 0.0]];
+  const V = [[0.2, 0.8, 0.1, 0.0],
+             [0.9, 0.1, 0.5, 0.3],
+             [0.4, 0.4, 0.9, 0.6]];
+
+  const matmulT = (A, B) => A.map(r => B.map(c => r.reduce((s, v, i) => s + v*c[i], 0)));
+  const matmul  = (A, B) => A.map(r => B[0].map((_, j) => r.reduce((s, v, i) => s + v*B[i][j], 0)));
+  const scores  = matmulT(Q, K);                                   // QK^T
+  const scaled  = scores.map(r => r.map(v => v / Math.sqrt(dk)));  // /√dk
+  const softmax = r => { const m = Math.max(...r); const e = r.map(v => Math.exp(v - m)); const s = e.reduce((a,b)=>a+b,0); return e.map(v => v/s); };
+  const attn    = scaled.map(softmax);                             // softmax
+  const output  = matmul(attn, V);                                 // ·V
+
+  const fmt = v => (Math.round(v*100)/100).toFixed(2);
+  const heat = (v, lo, hi) => {
+    const t = Math.max(0, Math.min(1, (v - lo) / (hi - lo + 1e-9)));
+    return `rgba(88,166,255,${(t*0.55).toFixed(2)})`;
+  };
+  function matHTML(M, label, opts={}) {
+    const {rows=TOKENS, cols=null, hm=false, color='#e6edf3'} = opts;
+    let lo=Infinity, hi=-Infinity;
+    if (hm) M.forEach(r=>r.forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v);}));
+    let h = `<div class="mat-box"><div class="mat-label">${label}</div><table class="mat"><tr><th></th>`;
+    const cn = cols || M[0].map((_,j)=>`d${j+1}`);
+    cn.forEach(c => h += `<th>${c}</th>`);
+    h += '</tr>';
+    M.forEach((r,i) => {
+      h += `<tr><th>${rows[i]}</th>`;
+      r.forEach(v => h += `<td style="${hm?`background:${heat(v,lo,hi)};`:''}color:${color}">${fmt(v)}</td>`);
+      h += '</tr>';
+    });
+    return h + '</table></div>';
+  }
+
+  const steps = [
+    { name:'1. 准备 Q K V',
+      render: () => `<div class="mat-row">${matHTML(Q,'Q（查询）',{color:'#79b8ff'})}${matHTML(K,'K（键）',{color:'#ffab91'})}${matHTML(V,'V（值）',{color:'#a5d6a7'})}</div>`,
+      explain: '每个词的嵌入经过三个不同的线性投影 W<sup>Q</sup>、W<sup>K</sup>、W<sup>V</sup>，得到 <b>Q（我想找什么）</b>、<b>K（我能提供什么标签）</b>、<b>V（我的实际内容）</b>。这里 3 个词、d<sub>k</sub>=4。' },
+    { name:'2. 打分 QKᵀ',
+      render: () => `<div class="mat-row">${matHTML(Q,'Q',{color:'#79b8ff'})}<div class="op-sym">×</div>${matHTML(K,'Kᵀ（转置前）',{color:'#ffab91'})}<div class="op-sym">=</div>${matHTML(scores,'QKᵀ 相似度分数',{cols:TOKENS,hm:true})}</div>`,
+      explain: '<b>每个 query 与每个 key 做点积</b>，得到 3×3 相似度矩阵：第 i 行 j 列 = 第 i 个词对第 j 个词的"原始关注分数"。点积越大，两向量方向越一致。' },
+    { name:'3. 缩放 ÷√dₖ',
+      render: () => `<div class="mat-row">${matHTML(scores,'QKᵀ',{cols:TOKENS})}<div class="op-sym">÷ √4 =</div>${matHTML(scaled,'QKᵀ / √dₖ',{cols:TOKENS,hm:true})}</div>`,
+      explain: '除以 <b>√dₖ = √4 = 2</b>。dₖ 越大点积方差越大，softmax 会饱和、梯度消失 —— 缩放把方差归一。第 ⑥ 节有交互演示。' },
+    { name:'4. softmax 归一化',
+      render: () => `<div class="mat-row">${matHTML(scaled,'缩放后分数',{cols:TOKENS})}<div class="op-sym">softmax→</div>${matHTML(attn,'注意力权重 A',{cols:TOKENS,hm:true})}</div>`,
+      explain: '对<b>每一行</b>做 softmax，得到和为 1 的注意力权重分布。第 i 行就是第 i 个词"把注意力如何分配给所有词"。验证：每行相加 = 1.00。' },
+    { name:'5. 加权求和 ×V',
+      render: () => `<div class="mat-row">${matHTML(attn,'权重 A',{cols:TOKENS})}<div class="op-sym">×</div>${matHTML(V,'V',{color:'#a5d6a7'})}<div class="op-sym">=</div>${matHTML(output,'输出 Z',{hm:true})}</div>`,
+      explain: '用注意力权重对所有词的 <b>V 向量加权平均</b>。每个词的新表示 = 它关注的所有词内容的融合。这就是一个注意力头的完整输出。' },
+  ];
+
+  const pills = document.getElementById('qkv-steps');
+  const stage = document.getElementById('qkv-stage');
+  const explain = document.getElementById('qkv-explain');
+  const btnPrev = document.getElementById('qkv-prev');
+  const btnNext = document.getElementById('qkv-next');
+  let cur = 0;
+
+  steps.forEach((s, i) => {
+    const p = document.createElement('button');
+    p.className = 'step-pill';
+    p.textContent = s.name;
+    p.onclick = () => { cur = i; draw(); };
+    pills.appendChild(p);
+  });
+
+  function draw() {
+    stage.innerHTML = steps[cur].render();
+    explain.innerHTML = steps[cur].explain;
+    [...pills.children].forEach((p, i) => {
+      p.classList.toggle('current', i === cur);
+      p.classList.toggle('done', i < cur);
+    });
+    btnPrev.disabled = cur === 0;
+    btnNext.disabled = cur === steps.length - 1;
+  }
+  btnPrev.onclick = () => { if (cur > 0) { cur--; draw(); } };
+  btnNext.onclick = () => { if (cur < steps.length - 1) { cur++; draw(); } };
+  draw();
+})();
+
+/* ============================================================
+   ③ 句子自注意力（示意权重 + softmax 归一化）
+   ============================================================ */
+(function sentenceDemo() {
+  const words = ['The','animal',"didn't",'cross','the','street','because','it','was','too','tired','.'];
+  // 每个词的原始注意力倾向（手工构造的语言学直觉示意，经 softmax）
+  const raw = {
+    0:[3,2,0,0,0,0,0,0,0,0,0,0], 1:[2,3,1,1,0,0,0,1,0,0,1,0],
+    2:[0,1,3,2,0,0,0,0,0,0,0,0], 3:[0,1,2,3,1,2,0,0,0,0,0,0],
+    4:[1,0,0,1,3,2,0,0,0,0,0,0], 5:[0,0,0,2,2,3,0,0,0,0,0,0],
+    6:[0,0,1,1,0,0,3,1,1,0,1,0],
+    7:[0,4.5,0,0,0,1,0,3,0,0,2,0],          // it → animal（指代消解）
+    8:[0,1,0,0,0,0,0,2,3,0,1,0], 9:[0,0,0,0,0,0,0,0,0,3,2.5,0],
+    10:[0,2.5,0,0,0,0,1,2,1,1,3,0], 11:[0,0,0,0,0,0,0,0,0,0,1,3],
+  };
+  const softmax = r => { const m=Math.max(...r); const e=r.map(v=>Math.exp(v-m)); const s=e.reduce((a,b)=>a+b,0); return e.map(v=>v/s); };
+  const W = words.map((_, i) => softmax(raw[i]));
+
+  const box = document.getElementById('sent-tokens');
+  const note = document.getElementById('sent-note');
+  const toks = words.map((w, i) => {
+    const el = document.createElement('span');
+    el.className = 'tok';
+    el.innerHTML = `${w}<span class="att-bar" style="width:0"></span>`;
+    el.addEventListener('mouseenter', () => show(i));
+    el.addEventListener('click', () => show(i));
+    box.appendChild(el);
+    return el;
+  });
+
+  function show(i) {
+    toks.forEach((t, j) => {
+      t.classList.toggle('sel', j === i);
+      const w = W[i][j];
+      t.querySelector('.att-bar').style.width = (w * 100 / Math.max(...W[i]) ) + '%';
+      t.style.background = j === i ? '' : `rgba(247,129,102,${(w*2.2).toFixed(2)})`;
+    });
+    const top = W[i].map((w, j) => [w, j]).filter(([w, j]) => j !== i).sort((a,b)=>b[0]-a[0])[0];
+    note.innerHTML = `<b>${words[i]}</b> 最关注 <b>${words[top[1]]}</b>（权重 ${(top[0]*100).toFixed(0)}%）` +
+      (i === 7 ? ' —— 自注意力解决了指代消解：<b>it = animal</b> 🎯' : '');
+  }
+})();
+
+/* ============================================================
+   ④ 多头注意力模式（程序生成的示意热力图）
+   ============================================================ */
+(function headsDemo() {
+  const n = 12;
+  const softmax = r => { const m=Math.max(...r); const e=r.map(v=>Math.exp(v-m)); const s=e.reduce((a,b)=>a+b,0); return e.map(v=>v/s); };
+  const patterns = [
+    { title:'Head 1 · 关注前一个词', desc:'类似 bigram 的局部依赖（位置头）',
+      f:(i,j)=> j===i-1 ? 4 : (j===i?1.2:0) },
+    { title:'Head 2 · 关注后一个词', desc:'向右看一格的位置模式',
+      f:(i,j)=> j===i+1 ? 4 : (j===i?1.2:0) },
+    { title:'Head 3 · 关注自身/对角', desc:'保留自身信息的"恒等"头',
+      f:(i,j)=> j===i ? 4 : Math.max(0, 2-Math.abs(i-j))*0.5 },
+    { title:'Head 4 · 长距离/句首', desc:'全局汇聚：多数 query 看向少数关键位置',
+      f:(i,j)=> (j===0?3:0) + (j===6?2:0) + (j===i?0.8:0) },
+  ];
+  const grid = document.getElementById('heads-grid');
+  for (const p of patterns) {
+    const card = document.createElement('div');
+    card.className = 'head-card';
+    card.innerHTML = `<div class="h-title">${p.title}</div><div class="h-desc">${p.desc}</div><canvas width="${n}" height="${n}"></canvas>`;
+    grid.appendChild(card);
+    const ctx = card.querySelector('canvas').getContext('2d');
+    for (let i = 0; i < n; i++) {
+      const row = softmax(Array.from({length:n}, (_, j) => p.f(i,j)));
+      const mx = Math.max(...row);
+      for (let j = 0; j < n; j++) {
+        const t = row[j] / mx;
+        ctx.fillStyle = `rgb(${13+t*197}, ${17+t*151}, ${23+t*232})`;
+        ctx.fillRect(j, i, 1, 1);
+      }
+    }
+  }
+})();
+
+/* ============================================================
+   ⑤ 位置编码（真实计算）
+   ============================================================ */
+(function peDemo() {
+  const d = 128, maxPos = 100;
+  const PE = Array.from({length:maxPos}, (_, pos) =>
+    Array.from({length:d}, (_, i) => {
+      const angle = pos / Math.pow(10000, (2 * Math.floor(i/2)) / d);
+      return i % 2 === 0 ? Math.sin(angle) : Math.cos(angle);
+    }));
+
+  // 热力图
+  const cv = document.getElementById('pe-canvas');
+  const ctx = cv.getContext('2d');
+  const cw = cv.width / d, ch = cv.height / maxPos;
+  // colormap: -1 暗紫 → 0 品红 → +1 亮黄
+  const cmap = v => {
+    const t = (v + 1) / 2;
+    const stops = [[26,31,46],[60,42,85],[179,88,154],[247,178,103],[255,243,196]];
+    const x = t * (stops.length - 1), k = Math.min(stops.length-2, Math.floor(x)), f = x - k;
+    const c = stops[k].map((s, m) => Math.round(s + (stops[k+1][m]-s)*f));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  };
+  for (let p = 0; p < maxPos; p++)
+    for (let i = 0; i < d; i++) {
+      ctx.fillStyle = cmap(PE[p][i]);
+      ctx.fillRect(i*cw, p*ch, Math.ceil(cw), Math.ceil(ch));
+    }
+
+  // 单维度曲线
+  const cv2 = document.getElementById('pe-curve');
+  const ctx2 = cv2.getContext('2d');
+  const slider = document.getElementById('pe-dim');
+  const valEl = document.getElementById('pe-dim-val');
+  function drawCurve() {
+    const dim = +slider.value;
+    valEl.textContent = dim;
+    const W = cv2.width, H = cv2.height;
+    ctx2.clearRect(0, 0, W, H);
+    ctx2.fillStyle = '#161b22'; ctx2.fillRect(0, 0, W, H);
+    ctx2.strokeStyle = '#2d3548'; ctx2.beginPath();
+    ctx2.moveTo(0, H/2); ctx2.lineTo(W, H/2); ctx2.stroke();
+    const draw = (off, color) => {
+      ctx2.strokeStyle = color; ctx2.lineWidth = 2; ctx2.beginPath();
+      for (let p = 0; p < maxPos; p++) {
+        const x = p / (maxPos-1) * W;
+        const y = H/2 - PE[p][dim+off] * (H/2 - 14);
+        p === 0 ? ctx2.moveTo(x, y) : ctx2.lineTo(x, y);
+      }
+      ctx2.stroke();
+    };
+    draw(0, '#58a6ff');   // sin
+    draw(1, '#f78166');   // cos
+    ctx2.font = '12px monospace';
+    ctx2.fillStyle = '#58a6ff'; ctx2.fillText(`sin · 维度 ${dim}`, 10, 18);
+    ctx2.fillStyle = '#f78166'; ctx2.fillText(`cos · 维度 ${dim+1}`, 10, 34);
+    ctx2.fillStyle = '#6e7a8a'; ctx2.fillText('pos →', W - 52, H - 8);
+  }
+  slider.addEventListener('input', drawCurve);
+  drawCurve();
+})();
+
+/* ============================================================
+   ⑥ √dk 缩放演示（固定样本，真实 softmax）
+   ============================================================ */
+(function scaleDemo() {
+  const n = 10;
+  // 固定的标准正态样本（事先生成，保证可复现）
+  const z = [0.42, -1.17, 0.88, 1.62, -0.35, 0.07, -0.92, 1.10, -0.51, 0.24];
+  const softmax = r => { const m=Math.max(...r); const e=r.map(v=>Math.exp(v-m)); const s=e.reduce((a,b)=>a+b,0); return e.map(v=>v/s); };
+
+  const slider = document.getElementById('dk-slider');
+  const valEl = document.getElementById('dk-val');
+  const rawBox = document.getElementById('chart-raw');
+  const scBox = document.getElementById('chart-scaled');
+  const verdict = document.getElementById('scale-verdict');
+
+  function bars(box, probs, color) {
+    box.innerHTML = '';
+    for (const p of probs) {
+      const b = document.createElement('div');
+      b.className = 'bar';
+      b.style.height = (p * 100) + '%';
+      b.style.background = color;
+      b.innerHTML = `<span>${p >= 0.005 ? (p*100).toFixed(0)+'%' : ''}</span>`;
+      box.appendChild(b);
+    }
+  }
+  function entropy(p) { return -p.reduce((s, v) => s + (v > 1e-12 ? v * Math.log2(v) : 0), 0); }
+
+  function update() {
+    const dk = +slider.value;
+    valEl.textContent = dk;
+    // q·k ~ N(0, dk)，即标准样本 × √dk
+    const dots = z.map(v => v * Math.sqrt(dk));
+    const pRaw = softmax(dots);
+    const pScaled = softmax(dots.map(v => v / Math.sqrt(dk)));  // 还原为方差 1
+    bars(rawBox, pRaw, 'linear-gradient(180deg,#f78166,#a14334)');
+    bars(scBox, pScaled, 'linear-gradient(180deg,#58a6ff,#2d5a9e)');
+    const hR = entropy(pRaw), hS = entropy(pScaled);
+    verdict.innerHTML = `熵：不缩放 = <b style="color:var(--accent2)">${hR.toFixed(2)} bits</b>，缩放后 = <b style="color:var(--accent)">${hS.toFixed(2)} bits</b>（最大 ${Math.log2(n).toFixed(2)}）。` +
+      (dk >= 128 ? ' dₖ 大时不缩放的分布几乎 one-hot —— softmax 饱和，反向传播梯度趋近 0，训练会卡住。' :
+       dk <= 16 ? ' dₖ 小时两者差别不大，这正是早期加性注意力不需要缩放的原因。' :
+       ' 注意右侧分布始终平滑稳定，与 dₖ 无关。');
+  }
+  slider.addEventListener('input', update);
+  update();
+})();
+</script>
+</body>
+</html>
