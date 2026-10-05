@@ -1,84 +1,21 @@
-import { useState } from 'react'
-import { m } from 'framer-motion'
-import { ArrowRightLeft, ChevronRight, Grid3X3 } from 'lucide-react'
+import { ArrowRightLeft, ChevronRight, Code2 } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
-import { INITIAL_MATRIX } from '../data/constants'
-import { isHighlighted } from '../lib/numpy'
-import type { SliceType } from '../types'
-
-interface SliceInfo {
-  label: string
-  color: string
-  desc: string
-}
+import { NumpyPlayground } from './NumpyPlayground'
 
 // NumPy Mechanism
 export const NumpyModule = () => {
-  const [sliceType, setSliceType] = useState<SliceType>('none')
   const { t } = useTranslation()
-
-  const getHighlight = (r: number, _c: number, val: number): boolean =>
-    isHighlighted(sliceType, r, val)
-
-  const getInfo = (): SliceInfo | null => {
-    switch (sliceType) {
-      case 'slice': return { label: t('numpy_module.view_label'), color: 'bg-green-500', desc: t('numpy_module.view_desc') }
-      case 'fancy': return { label: t('numpy_module.fancy_label'), color: 'bg-blue-500', desc: t('numpy_module.fancy_desc') }
-      case 'mask': return { label: t('numpy_module.mask_label'), color: 'bg-purple-500', desc: t('numpy_module.mask_desc') }
-      default: return null
-    }
-  }
-
-  const info = getInfo()
 
   return (
     <div className="space-y-8">
       <div>
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Grid3X3 size={18} className="text-blue-500" />
-          {t('numpy_module.title')}
+          <Code2 size={18} className="text-blue-500" />
+          {t('numpy_module.playground.title')}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <div className="grid grid-cols-4 gap-2 bg-gray-100 p-4 rounded-xl shadow-inner">
-              {INITIAL_MATRIX.map((row, r) =>
-                row.map((val, c) => (
-                  <m.div
-                    key={`${r}-${c}`}
-                    animate={{
-                      scale: getHighlight(r, c, val) ? 1.05 : 1,
-                      backgroundColor: getHighlight(r, c, val) ? (info ? '#dcfce7' : '#ffffff') : '#ffffff',
-                    }}
-                    className={`h-12 flex items-center justify-center rounded border text-sm font-mono
-                      ${getHighlight(r, c, val) ? 'border-green-500 border-2 z-10' : 'border-gray-200 text-gray-400'}`}
-                  >
-                    {val}
-                  </m.div>
-                ))
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setSliceType('slice')} aria-pressed={sliceType === 'slice'} className={`px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm ${sliceType === 'slice' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200'}`}>{t('numpy_module.slice_btn')}</button>
-              <button onClick={() => setSliceType('fancy')} aria-pressed={sliceType === 'fancy'} className={`px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm ${sliceType === 'fancy' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200'}`}>{t('numpy_module.fancy_btn')}</button>
-              <button onClick={() => setSliceType('mask')} aria-pressed={sliceType === 'mask'} className={`px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm ${sliceType === 'mask' ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200'}`}>{t('numpy_module.mask_btn')}</button>
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-center" aria-live="polite">
-            {info ? (
-              <m.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="p-4 rounded-xl border-2 border-dashed border-gray-200 bg-white shadow-sm">
-                <div className={`inline-block px-2 py-1 rounded text-white text-[10px] font-bold mb-2 uppercase tracking-wider ${info.color}`}>
-                  {info.label}
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed">{info.desc}</p>
-              </m.div>
-            ) : (
-              <p className="text-sm text-gray-400 italic">{t('numpy_module.instruction')}</p>
-            )}
-          </div>
-        </div>
+        <NumpyPlayground />
       </div>
 
       <div className="border-t pt-8">

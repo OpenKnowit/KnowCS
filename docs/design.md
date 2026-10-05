@@ -92,7 +92,7 @@ KnowCS/
    ├─ main.tsx / App.tsx / i18n.ts / index.css
    ├─ components/          Latex · LineChart · SectionTitle · SeniorAdvice
    ├─ hooks/               useHashRoute
-   ├─ lib/                 纯计算 + *.test.ts：knn · bayes · kernel · numpy · alphabeta · kmeans
+   ├─ lib/                 纯计算 + *.test.ts：knn · bayes · kernel · ndarray · minipy · alphabeta · kmeans
    │                       · backprop · perceptron · autograd · chart · route · lang
    ├─ modules/             各视图组件（Perceptron / PyTorch 已就绪但暂未上架）
    ├─ data/                constants（教学数据）· notes · extensions
@@ -128,7 +128,10 @@ KnowCS/
 每个模块都是「左侧交互区 / 右侧结果区」或「输入 → 可视化 → 寄语」的统一布局。
 
 ### 6.1 NumpyModule — NumPy 内存机制
-- **切片可视化**：4×4 矩阵，`slice`（View）/ `fancy`（Copy）/ `mask`（Copy）三种模式，`lib/numpy.ts` 决定高亮。
+- **索引实验台**（`NumpyPlayground.tsx`）：学生在浏览器里写 NumPy 代码，输入停顿 300ms 自动运行（或 Ctrl/⌘+Enter）。每次下标读写都会生成一条 `IndexTrace`，界面据此绘制：源数组→结果的格子映射（悬停联动、结果顺序号、源坐标）、View/Copy/Scalar/Write 徽章与原因、逐轴解释、布尔掩码网格、一维底层缓冲区（视图显示 offset/strides，副本显示新缓冲区）、写穿视图时「被连带修改的变量」。提供 8 个预设示例（切片、fancy、掩码、视图陷阱、三维混合索引、None、ReLU 掩码赋值、`&` 优先级陷阱）。
+  - **`lib/ndarray.ts`**：迷你 NumPy 内核。共享 `data` 缓冲区 + `shape/strides/offset/base`；`planIndex` 忠实实现 numpy 索引规则：基本索引返回视图，整数/布尔数组触发高级索引并复制；整数与数组一起广播；高级索引被切片隔开时，广播维度移到最前；`...`/`None`；报错文案与 numpy 一致。另含广播运算、reshape（连续时为视图）、转置、规约（axis）、dot，以及对齐 numpy 默认风格的 repr/str（75 列换行、>1000 元素省略、科学计数法）。
+  - **`lib/minipy.ts`**：Python 子集解释器（词法→AST→求值），支持 `import numpy as np`、赋值/元组解包/增量赋值（数组原地写入）、完整运算符优先级与比较链、关键字参数、常用 `np.*` 与数组方法。不支持 for/if/def。单个数组上限 4096 元素。
+  - **选型：自研 TS 解释器而非 Pyodide**。Pyodide 核心 + NumPy 约 10MB WASM，首屏需数秒，国内访问 CDN 不稳定，也与单文件产物不符；更关键的是，真 NumPy 不会告诉你「结果的每个元素来自哪个地址」，可视化所需的溯源信息仍要在 JS 里重写一遍索引规则。自研方案约 +20KB gzip、即时、离线可用。代价是只支持子集，用与真 NumPy 的差分测试保证一致（95 个片段中 90 个逐字相同，其余为有意不支持的语法）。
 - **广播机制**：静态图示 `(3,1) + (1,4) → (3,4)`。
 
 ### 6.2 BackpropModule — 反向传播（单输出 sigmoid 神经元）

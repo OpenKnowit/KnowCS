@@ -55,9 +55,6 @@ export type NaiveBayesResults = Record<BayesClass, NaiveBayesClassResult>
 export type KernelPresetName = 'Sobel-X' | 'Sobel-Y' | 'Laplacian' | 'Identity'
 export type ActivePreset = KernelPresetName | 'Custom'
 
-// NumPy 模块
-export type SliceType = 'none' | 'slice' | 'fancy' | 'mask'
-
 // Alpha-Beta 剪枝模块（L10）
 export type AbNodeType = 'max' | 'min' | 'leaf'
 
