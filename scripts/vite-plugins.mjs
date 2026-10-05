@@ -6,6 +6,7 @@ import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import remarkRehype from 'remark-rehype'
 import rehypeStringify from 'rehype-stringify'
+import { toHK } from './zh-hk.mjs'
 
 // ---------------------------------------------------------------------------
 // 1) KaTeX 字体瘦身
@@ -32,6 +33,7 @@ export function katexFontSlim() {
 
 // ---------------------------------------------------------------------------
 // 2) Markdown 构建期预渲染：`import note from './x.md?html'` → { html, chars }
+//    `?html-hk`：先把简体源文件转成香港繁体（与 zh-HK.json 同一套规则）再渲染
 //    用 remark/rehype 在构建期把笔记转成 HTML 字符串，运行时无需打包 markdown 解析器。
 //    - 相对路径图片改为 ES import（单文件打包下即 data URI），并加 loading="lazy"
 //    - 外链新窗口打开；表格包一层可横向滚动的容器
@@ -82,9 +84,10 @@ export function markdownHtml() {
     enforce: 'pre',
     async load(id) {
       const [file, query] = id.split('?')
-      if (!file.endsWith('.md') || query !== 'html') return null
+      if (!file.endsWith('.md') || (query !== 'html' && query !== 'html-hk')) return null
       this.addWatchFile(file)
-      const md = readFileSync(file, 'utf8')
+      const src = readFileSync(file, 'utf8')
+      const md = query === 'html-hk' ? toHK(src) : src
       const imports = []
       const html = String(
         await unified()
@@ -103,6 +106,24 @@ export function markdownHtml() {
         ...imports.map((p, i) => `import __img${i} from ${JSON.stringify(p)};`),
         `export default { html: ${expr}, chars: ${md.length} };`,
       ].join('\n')
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 3) 拓展页面的香港繁体版本：`import page from './x.zh.html?raw-hk'` → 转换后的字符串
+//    与 ?raw 相同但先做简→港繁转换，并把 <html lang> 改为 zh-HK；繁体不单独维护源文件。
+// ---------------------------------------------------------------------------
+export function rawHk() {
+  return {
+    name: 'knowcs:raw-hk',
+    enforce: 'pre',
+    load(id) {
+      const [file, query] = id.split('?')
+      if (query !== 'raw-hk') return null
+      this.addWatchFile(file)
+      const text = toHK(readFileSync(file, 'utf8')).replace(/<html([^>]*)\blang="[^"]*"/, '<html$1lang="zh-HK"')
+      return `export default ${JSON.stringify(text)};`
     },
   }
 }

@@ -7,6 +7,12 @@
 
 ## 进展时间线
 
+### 2026-10-05 — Package / Extend 内容三语化
+- **fix（i18n）**：此前资料包 5 篇笔记与 Attention 拓展页只有简体，COMP2211 课程笔记只有英文，与站点语言无关。现在每项内容都有 en / zh 两份源文件，zh-HK 在构建期由简体生成，切换语言即时生效。
+- **feat**：新增英文版 NumPy / pandas / PyTorch / TensorFlow / Keras 笔记和 Attention 页，新增中文版 COMP2211 课程笔记。英文课程笔记中夹杂的中文注释改为英文。清理笔记中会原样显示的 Obsidian 语法（`> [!tip]`、`[[numpy]]`）。
+- **chore**：简→港繁转换抽出为 `scripts/zh-hk.mjs`（`zh-HK.json` 产物逐字不变）。新增 Vite 查询 `?html-hk` / `?raw-hk`。源文件按语言重命名（`keres.md` → `keras.zh.md` 等）。
+- **test**：新增 `src/content/content.test.ts`（26 个用例），共 161 个通过。17 张配图仍只内联一次。产物 gzip 增加约 78KB（两份新语言内容）。
+
 ### 2026-10-05 — 广播模块重构为交互实验台
 - **feat**：NumPy 模块第 2 节由静态 `(3,1)+(1,4)` 图示改为**广播实验台**：自选形状与运算符、6 个场景预设、逐轴规则表（可逐步演示）、实心真实元素 / 虚线虚拟副本的拉伸可视化（悬停联动 + 算式）、stride 0 内存说明、不兼容时的冲突轴与一键修复（`B[:, None]`）、站内解释器实际运行的等价代码，以及 4 张知识卡片（规则 / 为何快 / COMP2211 用例 / `(n,)` vs `(n,1)` 陷阱）。
 - **feat**：新增 `lib/broadcast.ts`（`planBroadcast` / `sourceIndex` / `isRealCell` / `broadcastStrides` / `suggestFix`）及 11 个用例；文案迁至 `numpy_module.broadcast.*`（三语）。共 135 个测试通过，产物 gzip +10KB。

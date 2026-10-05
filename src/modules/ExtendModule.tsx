@@ -2,6 +2,7 @@ import { m } from 'framer-motion'
 import { ArrowLeft, Sparkles, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { EXTENSIONS } from '../data/extensions'
+import { normalizeLang } from '../lib/lang'
 
 interface ExtendModuleProps {
   openId: string | null
@@ -10,7 +11,8 @@ interface ExtendModuleProps {
 
 // Extend 拓展：卡片画廊 + iframe 阅读视图（打开状态由 URL hash 驱动，可分享 / 后退）
 export const ExtendModule = ({ openId, onOpen }: ExtendModuleProps) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const lang = normalizeLang(i18n.resolvedLanguage)
   const openEntry = EXTENSIONS.find((e) => e.id === openId)
 
   if (openEntry) {
@@ -26,7 +28,8 @@ export const ExtendModule = ({ openId, onOpen }: ExtendModuleProps) => {
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${openEntry.tagClass}`}>{openEntry.tag}</span>
         </div>
         <iframe
-          srcDoc={openEntry.html}
+          key={lang}
+          srcDoc={openEntry.html[lang]}
           title={t(openEntry.titleKey)}
           sandbox="allow-scripts"
           loading="lazy"

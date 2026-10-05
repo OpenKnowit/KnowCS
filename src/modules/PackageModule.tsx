@@ -3,6 +3,7 @@ import { m } from 'framer-motion'
 import { ArrowLeft, FileText, Package } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { NOTES } from '../data/notes'
+import { normalizeLang } from '../lib/lang'
 
 interface PackageModuleProps {
   openId: string | null
@@ -12,7 +13,8 @@ interface PackageModuleProps {
 // Package 资料包：3×2 笔记卡片网格 + 阅读视图。
 // 笔记在构建期已渲染为 HTML（scripts/vite-plugins.mjs），样式见 index.css 的 .note-prose。
 export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const lang = normalizeLang(i18n.resolvedLanguage)
   const openNote = NOTES.find((n) => n.id === openId)
 
   // 打开笔记时回到页面顶部，避免停留在卡片网格的滚动位置
@@ -32,7 +34,7 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
           </button>
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${openNote.tagClass}`}>{openNote.tag}</span>
         </div>
-        <article className="note-prose max-w-3xl" dangerouslySetInnerHTML={{ __html: openNote.html }} />
+        <article key={lang} lang={lang} className="note-prose max-w-3xl" dangerouslySetInnerHTML={{ __html: openNote.body[lang].html }} />
       </m.div>
     )
   }
@@ -58,7 +60,7 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
             <div>
               <h4 className="font-black text-slate-800 text-sm leading-snug group-hover:text-blue-600 transition-colors">{t(note.titleKey)}</h4>
               <p className="text-[11px] text-slate-400 mt-2 font-medium">
-                {Math.round(note.chars / 100) / 10}k {t('package.chars')} · Markdown
+                {Math.round(note.body[lang].chars / 100) / 10}k {t('package.chars')} · Markdown
               </p>
             </div>
           </m.button>

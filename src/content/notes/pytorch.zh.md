@@ -64,7 +64,7 @@
 | ⑥ 硬件管理 | `cuda/mps` | ~250 | **~3 个** | 知道就行 |
 | ⑦⑧⑨ | 其余 | ~4,000 | 0 | 入门阶段完全不看 |
 
-> [!tip] 为什么 `torch.nn` 的 1,078 个只需学 20 个？
+> **提示：为什么 `torch.nn` 的 1,078 个只需学 20 个？**
 > 因为它们是**同构的**——都遵循同一个协议：*继承 `nn.Module`、参数自动注册、调用即 forward*。学会 `nn.Linear` 就等于学会了 `nn.Conv2d`、`nn.LSTM`……**学一个，会一类**。
 
 ## 三、核心心智模型
@@ -189,5 +189,5 @@ for _ in range(100):
 
 ## 相关笔记
 
-- [[numpy]] — Tensor 的 API 设计大量借鉴 NumPy（`reshape`、`sum(dim=…)` 对应 `axis=…`）
-- [[pandas]]
+- NumPy 笔记：Tensor 的 API 设计大量借鉴 NumPy（`reshape`、`sum(dim=…)` 对应 `axis=…`）
+- pandas 笔记
