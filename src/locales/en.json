@@ -18,22 +18,31 @@
   "backprop_module": {
     "title": "Chain Rule Tracker",
     "output_layer": "Output Layer",
-    "error_val": "Error Value",
-    "calculating": "Deriving Gradient...",
-    "track_grad": "Track Gradient Δwjk",
+    "calculating": "Propagating δ backward...",
+    "track_grad": "Backward pass",
     "notebook_title": "Derivation Notebook (COMP2211 Core)",
-    "step1_title": "Step 1: Chain Rule Expansion",
-    "step2_title": "Step 2: Define Error Signal",
+    "step1_title": "Step 2: Chain Rule Expansion",
+    "step2_title": "Step 3: Define Error Signal",
     "step2_desc": "Let <1>\\delta_k = - \\frac{\\partial E}{\\partial net_k}</1>. Under MSE loss:",
-    "step3_title": "Step 3: Weight Update Amount",
-    "advice": "Remember, backpropagation is essentially a process of 'finding the culprit'. Each layer weight <1>w_{jk}</1> is asking: How much of the error <3>E</3> am I responsible for? <5>\\delta_k</5> is the 'blame letter' passed back from the previous layer."
+    "step3_title": "Step 4: Weight Update Amount",
+    "advice": "Remember, backpropagation is essentially a process of 'finding the culprit'. Each layer weight <1>w_{jk}</1> is asking: How much of the error <3>E</3> am I responsible for? <5>\\delta_k</5> is the 'blame letter' passed back from the previous layer.",
+    "apply_update": "Apply update",
+    "reset": "Reset",
+    "history_title": "Error E after each update",
+    "history_hint": "Click 'Apply update' repeatedly: each gradient-descent step (w ← w + Δw) lowers E. Moving a slider starts a new run.",
+    "history_label": "Error after {{n}} updates: E = {{e}}",
+    "update_axis": "update",
+    "forward_title": "Step 1: Forward Pass",
+    "sigmoid_note": "With sigmoid activation the derivative has a closed form:",
+    "diagram_label": "Neuron diagram: inputs i and j feed output k through weights w_ik = {{wik}} and w_jk = {{wjk}}. Output O_k = {{out}}, target T_k = {{target}}."
   },
   "kernel_module": {
     "operation": "Operation:",
     "input_image": "Input Image",
     "kernel": "Kernel",
     "output_feature_map": "Output Feature Map",
-    "advice": "A convolution kernel is essentially a local feature filter. When you use the <1>\\text{Laplacian}</1> operator, it is approximating the second derivative and can quickly capture 'sudden changes' in pixel brightness."
+    "advice": "A convolution kernel is essentially a local feature filter. When you use the <1>\\text{Laplacian}</1> operator, it is approximating the second derivative and can quickly capture 'sudden changes' in pixel brightness.",
+    "cell_label": "Kernel cell row {{r}}, column {{c}}"
   },
   "bayes": {
     "basics": {
@@ -56,7 +65,8 @@
       "p_smoke_given_fire": "Prob <1>P(\\text{Smoke}|\\text{Fire})</1>",
       "advice": "Classic case from notes: Fire is rare (Prior=1%), but smoke is common (Marginal=10%, maybe BBQ). Bayes tells us probability of fire given smoke is only <1>9\\%</1>. <3>Evidence ≠ Conclusion, Prior matters!</3>",
       "result_title": "Prob of Fire given Smoke",
-      "calc_process": "Calculation:"
+      "calc_process": "Calculation:",
+      "evidence_bound": "By total probability <1></1>, so P(Smoke) cannot go below P(Smoke|Fire)·P(Fire) = {{v}}% — otherwise the posterior would exceed 100%."
     },
     "naive": {
       "input_title": "Feature Input",
@@ -66,7 +76,10 @@
       "result_title": "Classification Result (Notes P.29)",
       "likelihood_chain": "Likelihood Chain",
       "prob_for": "Probabilities for {{cls}}",
-      "advice": "Key point from Notes P.23: Bayes is 'Naive' because it assumes features are <1>conditionally independent</1>. Efficient for spam filtering. Watch out for <3>Zero Frequency Problem</3>, increase <5>\\alpha</5> to see changes!"
+      "advice": "Key point from Notes P.23: Bayes is 'Naive' because it assumes features are <1>conditionally independent</1>. Efficient for spam filtering. Watch out for <3>Zero Frequency Problem</3>, increase <5>\\alpha</5> to see changes!",
+      "log_score": "log P(class) + Σ log P(x|class)",
+      "product_score": "P(class) × Π P(x|class)",
+      "zero_warning": "A zero count makes the whole product 0 (log 0 = −∞), so that class can never win whatever the other features say. Increase <1></1> to smooth it away."
     }
   },
   "knn": {
@@ -74,7 +87,7 @@
     "raw_data": "Raw Data",
     "standardized": "Standardized",
     "test_sample": "Test Sample",
-    "model_complexity": "Model Complexity vs Error Rate",
+    "model_complexity": "Leave-one-out Error vs K",
     "low_k": "Low K",
     "overfitting": "Overfitting",
     "high_k": "High K",
@@ -83,12 +96,21 @@
     "k_value": "Parameter K:",
     "m_vote": "M Size Vote",
     "l_vote": "L Size Vote",
-    "advice": "Observe the interaction: As you increase <1>K</1>, the decision boundary becomes smoother. Small <1>K</1> leads to complex boundaries prone to <3>Overfitting</3> (capturing noise), while large <5>K</5> simplifies the boundary causing **Underfitting**. Also, toggle 'Standardized' to see how scale affects distance—without it, features with larger ranges (like Weight) dominate the distance calculation, which is a classic trap in KNN!"
+    "advice": "Observe the interaction: As you increase <1>K</1>, the decision boundary becomes smoother. Small <1>K</1> leads to complex boundaries prone to <3>Overfitting</3> (capturing noise), while large <5>K</5> simplifies the boundary causing <3>Underfitting</3>. Also, toggle 'Standardized' to see how scale affects distance—without it, features with larger ranges (like Weight) dominate the distance calculation, which is a classic trap in KNN!",
+    "distance_mode": "Distance metric",
+    "canvas_label": "KNN scatter plot. Click or use arrow keys to move the test point. Test point: height {{h}} cm, weight {{w}} kg. With K = {{k}} the prediction is {{cls}}.",
+    "axis_weight": "Weight (kg)",
+    "axis_height": "Height (cm)",
+    "keyboard_hint": "Tip: focus the plot and use the arrow keys to move the test point.",
+    "loo_chart_label": "Leave-one-out error rate for K = 1 to 15. Lowest error {{err}} at K = {{k}}.",
+    "loo_hint": "Real result, not a sketch: each of the {{n}} samples is held out and predicted by the others. Lowest error here: K = {{k}} ({{err}}). Green dot = best K, dashed line = your K.",
+    "tie": "Tie {{m}} : {{l}} — no majority, so the nearest neighbour breaks the tie → {{cls}}. Pick an odd K to avoid this.",
+    "class_m": "M size",
+    "class_l": "L size"
   },
   "app": {
     "title": "CS/AI Interactive Learning Lab",
     "subtitle": "COMP2211 Machine Learning Notebook",
-    "version": "v2.0 Katex Enhanced",
     "tabs": {
       "knn": "K-Nearest Neighbors",
       "bayesBasics": "Bayes Basics",
@@ -169,13 +191,31 @@
     },
     "footer": {
       "copyright": "© 2026 KnowIt COMP2211 ML Learning Lab. Education through interaction.",
-      "latency": "Latency: 12ms",
-      "render": "Render: KaTeX High-Def"
+      "local": "Runs 100% in your browser",
+      "math": "Math typeset by KaTeX"
     },
     "nav": {
       "course": "Course",
       "package": "Package",
       "extend": "Extend"
+    },
+    "tabs_sub": {
+      "numpy": "View vs Copy & Broadcasting",
+      "backprop": "The Chain Rule Visualized",
+      "kernel": "Edge Detection Simulation",
+      "bayesBasics": "Formula & Fire Alarm Case",
+      "naiveBayes": "Inference & Smoothing",
+      "knn": "Distance Metric & Decision Boundary",
+      "alphabeta": "Minimax & Pruning Trace",
+      "kmeans": "EM Iteration & Elbow Method",
+      "perceptron": "Error-Driven Learning",
+      "pytorch": "Autograd & Training Loop"
+    },
+    "a11y": {
+      "skip": "Skip to content",
+      "mode_nav": "Site sections",
+      "module_nav": "Course modules",
+      "language": "Change language"
     }
   },
   "alphabeta": {
@@ -214,7 +254,9 @@
       "prune": "β({{beta}}) ≤ α({{alpha}}) at {{node}} → prune! Skip remaining branches [{{children}}].",
       "exit": "Exit {{node}}: final score {{value}}, return to parent."
     },
-    "advice": "Alpha-Beta returns the exact same value as plain Minimax, just faster. The prune condition <1></1> means the parent already has a better guaranteed option, so the rest of this branch can never affect the result. <3>Move ordering is everything</3>: evaluate the most promising child first to trigger maximum pruning."
+    "advice": "Alpha-Beta returns the exact same value as plain Minimax, just faster. The prune condition <1></1> means the parent already has a better guaranteed option, so the rest of this branch can never affect the result. <3>Move ordering is everything</3>: evaluate the most promising child first to trigger maximum pruning.",
+    "leaf_label": "Value of leaf {{id}}",
+    "tree_label": "Game tree with MAX and MIN nodes; colours show the active, visited and pruned parts at the current step."
   },
   "kmeans": {
     "canvas_title": "Cluster Assignment (click Play to iterate)",
@@ -233,7 +275,8 @@
     "moved": "Centroids moved a total of {{d}} this step.",
     "elbow_title": "Elbow Method (K vs Inertia)",
     "elbow_hint": "Inertia always drops as K grows; pick the 'elbow' where the marginal gain flattens.",
-    "advice": "K-Means alternates two steps (EM): assign each point to the nearest centroid, then move each centroid to its cluster mean. Inertia never increases. Choosing <1>K</1> is the hard part — use the <3>Elbow Method</3>. Always Z-score standardize first, or large-scale features dominate the Euclidean distance!"
+    "advice": "K-Means alternates two steps (EM): assign each point to the nearest centroid, then move each centroid to its cluster mean. Inertia never increases. Choosing <1>K</1> is the hard part — use the <3>Elbow Method</3>. Always Z-score standardize first, or large-scale features dominate the Euclidean distance!",
+    "canvas_label": "K-Means scatter plot, K = {{k}}, iteration {{iter}}, inertia {{inertia}}."
   },
   "package": {
     "back": "Back to notes",

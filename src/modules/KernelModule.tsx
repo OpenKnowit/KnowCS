@@ -15,8 +15,11 @@ export const KernelModule = () => {
   const sourceImage = useMemo<number[][]>(() => buildSourceImage(), [])
 
   const handleKernelChange = (r: number, c: number, val: string) => {
+    // 输入框清空或只输入了「-」时按 0 处理，避免 NaN 污染整张输出特征图
+    const n = Number(val)
+    const safe = Number.isFinite(n) ? n : 0
     const newKernel = kernel.map((row, ri) =>
-      row.map((v, ci) => (ri === r && ci === c ? Number(val) : v))
+      row.map((v, ci) => (ri === r && ci === c ? safe : v))
     )
     setKernel(newKernel)
     setActivePreset('Custom')
@@ -32,11 +35,12 @@ export const KernelModule = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap gap-4 items-center justify-between bg-slate-50 p-4 rounded-xl border">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(Object.keys(KERNEL_PRESETS) as KernelPresetName[]).map((name) => (
             <button
               key={name}
               onClick={() => applyPreset(name)}
+              aria-pressed={activePreset === name}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${activePreset === name ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white border text-slate-600 hover:bg-slate-100'}`}
             >
               {name}
@@ -71,6 +75,7 @@ export const KernelModule = () => {
                   type="number"
                   value={val}
                   onChange={(e) => handleKernelChange(ri, ci, e.target.value)}
+                  aria-label={t('kernel_module.cell_label', { r: ri + 1, c: ci + 1 })}
                   className="w-10 h-10 sm:w-12 sm:h-12 bg-white border border-indigo-200 rounded-lg text-center font-mono font-bold text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                 />
               ))

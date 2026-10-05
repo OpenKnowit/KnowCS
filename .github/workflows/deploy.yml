@@ -1,10 +1,10 @@
-name: Build & Deploy to PinMe
+name: Validate KnowCS
 
 on:
   push:
     branches: [main]
-    # 纯文档/配置改动不触发部署（一次 push 全部命中这些路径时跳过）。
-    # 想强制部署可在 Actions 页用 workflow_dispatch 手动触发。
+    # 纯文档/配置改动不触发校验（一次 push 全部命中这些路径时跳过）。
+    # 想强制校验可在 Actions 页用 workflow_dispatch 手动触发。
     paths-ignore:
       - '**.md'
       - '.gitignore'
@@ -12,13 +12,13 @@ on:
       - 'docs/**'
   workflow_dispatch:
 
-# 同一时间只跑一个部署，新 push 会取消正在进行的旧任务
+# 同一时间只跑一个校验，新 push 会取消旧任务
 concurrency:
-  group: pinme-deploy
+  group: knowcs-ci
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -44,14 +44,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Install PinMe CLI
-        run: npm install -g pinme
-
-      - name: Configure PinMe appkey
-        run: pinme set-appkey "$PINME_APPKEY"
-        env:
-          PINME_APPKEY: ${{ secrets.PINME_APPKEY }}
-
-      - name: Deploy to PinMe
-        run: pinme upload dist --domain knowcs

@@ -3,7 +3,7 @@ import { Calculator, Flame, Wind } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
-import { bayesPosterior } from '../lib/bayes'
+import { bayesPosterior, minEvidence } from '../lib/bayes'
 
 // Bayes Basics Module (Formula & Fire Case)
 export const BayesBasicsModule = () => {
@@ -12,9 +12,14 @@ export const BayesBasicsModule = () => {
   const [pSmoke, setPSmoke] = useState(0.1)
   const { t } = useTranslation()
 
+  // 全概率公式：P(Smoke) ≥ P(Smoke|Fire)·P(Fire)。滑块下限随之抬高，后验永远不会超过 100%
+  const minSmoke = Math.max(0.01, Math.ceil(minEvidence(pFire, pSmokeGivenFire) * 100) / 100)
+  const smoke = Math.max(pSmoke, minSmoke)
+  const isClamped = pSmoke < minSmoke
+
   const pFireGivenSmoke = useMemo(
-    () => bayesPosterior(pFire, pSmokeGivenFire, pSmoke),
-    [pFire, pSmokeGivenFire, pSmoke]
+    () => bayesPosterior(pFire, pSmokeGivenFire, smoke),
+    [pFire, pSmokeGivenFire, smoke]
   )
 
   return (
@@ -79,6 +84,7 @@ export const BayesBasicsModule = () => {
                 <span className="text-sm font-medium text-slate-700"><Trans i18nKey="bayes.fire_case.p_fire">Prob <Latex formula="P(\text{Fire})" /></Trans></span>
                 <input
                   type="range" min="0.001" max="0.2" step="0.001" value={pFire}
+                  aria-label="P(Fire)"
                   onChange={(e) => setPFire(parseFloat(e.target.value))}
                   className="w-32 accent-red-500"
                 />
@@ -87,16 +93,25 @@ export const BayesBasicsModule = () => {
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-slate-700"><Trans i18nKey="bayes.fire_case.p_smoke">Prob <Latex formula="P(\text{Smoke})" /></Trans></span>
                 <input
-                  type="range" min="0.01" max="0.5" step="0.01" value={pSmoke}
+                  type="range" min={minSmoke} max="0.5" step="0.01" value={smoke}
                   onChange={(e) => setPSmoke(parseFloat(e.target.value))}
+                  aria-label="P(Smoke)"
                   className="w-32 accent-slate-500"
                 />
-                <span className="font-mono text-xs font-bold text-slate-600">{(pSmoke * 100).toFixed(1)}%</span>
+                <span className="font-mono text-xs font-bold text-slate-600">{(smoke * 100).toFixed(1)}%</span>
               </div>
+              <p className={`text-[11px] leading-relaxed rounded-lg px-3 py-2 transition-colors ${isClamped ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'text-slate-400'}`} aria-live="polite">
+                <Trans
+                  i18nKey="bayes.fire_case.evidence_bound"
+                  values={{ v: (minEvidence(pFire, pSmokeGivenFire) * 100).toFixed(2) }}
+                  components={{ 1: <Latex formula="P(S) = P(S|F)P(F) + P(S|\neg F)P(\neg F) \ge P(S|F)P(F)" /> }}
+                />
+              </p>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-slate-700"><Trans i18nKey="bayes.fire_case.p_smoke_given_fire">Prob <Latex formula="P(\text{Smoke}|\text{Fire})" /></Trans></span>
                 <input
                   type="range" min="0.5" max="1" step="0.01" value={pSmokeGivenFire}
+                  aria-label="P(Smoke|Fire)"
                   onChange={(e) => setPSmokeGivenFire(parseFloat(e.target.value))}
                   className="w-32 accent-purple-500"
                 />
@@ -113,10 +128,10 @@ export const BayesBasicsModule = () => {
             <div className="absolute top-0 right-0 p-4 opacity-10"><Wind size={100} /></div>
             <div className="text-center z-10">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">{t('bayes.fire_case.result_title')}</p>
-              <p className="text-5xl font-black text-red-400 mb-2">{(pFireGivenSmoke * 100).toFixed(2)}%</p>
+              <p className="text-5xl font-black text-red-400 mb-2" aria-live="polite">{(pFireGivenSmoke * 100).toFixed(2)}%</p>
               <div className="mt-6 p-4 bg-slate-800 rounded-xl border border-slate-700 text-xs font-mono leading-relaxed">
                 <p className="mb-2 text-slate-400">{t('bayes.fire_case.calc_process')}</p>
-                <Latex formula={`P(F|S) = \\frac{${pFire} \\times ${pSmokeGivenFire}}{${pSmoke}}`} />
+                <Latex formula={`P(F|S) = \\frac{${pFire} \\times ${pSmokeGivenFire}}{${smoke}}`} />
                 <p className="mt-2 text-red-300">= {pFireGivenSmoke.toFixed(4)}</p>
               </div>
             </div>

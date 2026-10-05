@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Pause, Play, RotateCcw, SkipForward, Target } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
@@ -72,7 +72,7 @@ export const PerceptronModule = () => {
               ))}
               {/* 决策边界 */}
               {boundary && (
-                <motion.line
+                <m.line
                   x1={sx(boundary.x1)} y1={sy(boundary.y1)} x2={sx(boundary.x2)} y2={sy(boundary.y2)}
                   stroke="#6366f1" strokeWidth={3} strokeDasharray="6 4"
                   animate={{ x1: sx(boundary.x1), y1: sy(boundary.y1), x2: sx(boundary.x2), y2: sy(boundary.y2) }}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { ArrowRightLeft, ChevronRight, Grid3X3 } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
@@ -45,7 +45,7 @@ export const NumpyModule = () => {
             <div className="grid grid-cols-4 gap-2 bg-gray-100 p-4 rounded-xl shadow-inner">
               {INITIAL_MATRIX.map((row, r) =>
                 row.map((val, c) => (
-                  <motion.div
+                  <m.div
                     key={`${r}-${c}`}
                     animate={{
                       scale: getHighlight(r, c, val) ? 1.05 : 1,
@@ -55,25 +55,25 @@ export const NumpyModule = () => {
                       ${getHighlight(r, c, val) ? 'border-green-500 border-2 z-10' : 'border-gray-200 text-gray-400'}`}
                   >
                     {val}
-                  </motion.div>
+                  </m.div>
                 ))
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <button onClick={() => setSliceType('slice')} className={`px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm ${sliceType === 'slice' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200'}`}>{t('numpy_module.slice_btn')}</button>
-              <button onClick={() => setSliceType('fancy')} className={`px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm ${sliceType === 'fancy' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200'}`}>{t('numpy_module.fancy_btn')}</button>
-              <button onClick={() => setSliceType('mask')} className={`px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm ${sliceType === 'mask' ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200'}`}>{t('numpy_module.mask_btn')}</button>
+              <button onClick={() => setSliceType('slice')} aria-pressed={sliceType === 'slice'} className={`px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm ${sliceType === 'slice' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200'}`}>{t('numpy_module.slice_btn')}</button>
+              <button onClick={() => setSliceType('fancy')} aria-pressed={sliceType === 'fancy'} className={`px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm ${sliceType === 'fancy' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200'}`}>{t('numpy_module.fancy_btn')}</button>
+              <button onClick={() => setSliceType('mask')} aria-pressed={sliceType === 'mask'} className={`px-4 py-2 rounded-lg text-xs font-mono transition shadow-sm ${sliceType === 'mask' ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200'}`}>{t('numpy_module.mask_btn')}</button>
             </div>
           </div>
 
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col justify-center" aria-live="polite">
             {info ? (
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="p-4 rounded-xl border-2 border-dashed border-gray-200 bg-white shadow-sm">
+              <m.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="p-4 rounded-xl border-2 border-dashed border-gray-200 bg-white shadow-sm">
                 <div className={`inline-block px-2 py-1 rounded text-white text-[10px] font-bold mb-2 uppercase tracking-wider ${info.color}`}>
                   {info.label}
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed">{info.desc}</p>
-              </motion.div>
+              </m.div>
             ) : (
               <p className="text-sm text-gray-400 italic">{t('numpy_module.instruction')}</p>
             )}

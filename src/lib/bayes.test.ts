@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { BAYES_DATA } from '../data/constants'
 import type { BayesFeature } from '../types'
-import { bayesPosterior, computeNaiveBayes } from './bayes'
+import { bayesPosterior, classTotals, computeNaiveBayes, minEvidence } from './bayes'
 
 const DEFAULT_INPUTS: Record<BayesFeature, string> = {
   BP: 'High',
@@ -75,5 +75,51 @@ describe('computeNaiveBayes', () => {
     expect(r.yes.score).toBeLessThan(0)
     expect(r.no.score).toBeLessThan(0)
     expect(r.yes.score).toBeLessThan(r.no.score)
+  })
+
+  it('零频率在对数模式下如实为 -∞（不被 1e-10 之类的魔数掩盖），且与连乘模式结论一致', () => {
+    const inputs = { ...DEFAULT_INPUTS, BP: 'Low' }
+    const log = computeNaiveBayes(BAYES_DATA, inputs, 0, true)
+    expect(log.no.score).toBe(-Infinity)
+    expect(Number.isFinite(log.yes.score)).toBe(true)
+    expect(log.no.prob).toBe(0)
+    // α > 0 后 -∞ 消失
+    expect(Number.isFinite(computeNaiveBayes(BAYES_DATA, inputs, 1, true).no.score)).toBe(true)
+  })
+
+  it('负数 / 非数字 α 视为 0（输入框容错），不会产生负概率或 NaN', () => {
+    const base = computeNaiveBayes(BAYES_DATA, DEFAULT_INPUTS, 0, false)
+    for (const bad of [-1, NaN]) {
+      const r = computeNaiveBayes(BAYES_DATA, DEFAULT_INPUTS, bad, false)
+      expect(r.yes.prob).toBeCloseTo(base.yes.prob, 10)
+      r.yes.steps.forEach((s) => expect(s.val).toBeGreaterThanOrEqual(0))
+    }
+  })
+})
+
+describe('classTotals', () => {
+  it('由计数表推出类别样本数（疾病 Z：yes 9 / no 5），与先验 9/14、5/14 吻合', () => {
+    expect(classTotals(BAYES_DATA)).toEqual({ yes: 9, no: 5 })
+  })
+
+  it('每个特征的计数之和都等于类别样本数（数据自洽）', () => {
+    const totals = classTotals(BAYES_DATA)
+    for (const feat of Object.keys(BAYES_DATA.counts) as BayesFeature[]) {
+      const sum = { yes: 0, no: 0 }
+      for (const c of Object.values(BAYES_DATA.counts[feat])) { sum.yes += c.yes; sum.no += c.no }
+      expect(sum).toEqual(totals)
+    }
+  })
+})
+
+describe('minEvidence', () => {
+  it('P(E) ≥ P(E|B)·P(B)：火警默认值 0.9 × 0.01 = 0.009', () => {
+    expect(minEvidence(0.01, 0.9)).toBeCloseTo(0.009, 12)
+  })
+
+  it('P(E) 取下界时后验恰为 100%，再低就超过 100%（输入矛盾）', () => {
+    const pE = minEvidence(0.2, 0.8)
+    expect(bayesPosterior(0.2, 0.8, pE)).toBeCloseTo(1, 12)
+    expect(bayesPosterior(0.2, 0.8, pE / 2)).toBeGreaterThan(1)
   })
 })

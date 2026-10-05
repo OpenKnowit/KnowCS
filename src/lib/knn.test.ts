@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { KNN_RAW_DATA } from '../data/constants'
 import type { KnnStats } from '../types'
-import { complexityCurve, computeKnn, scaleLinear, svgToDataPoint } from './knn'
+import { computeKnn, looErrorCurve, nudgeTestPoint, scaleLinear, svgToDataPoint } from './knn'
 
 const STATS: KnnStats = { meanH: 164, meanW: 62.33, stdH: 4.33, stdW: 2.63, minH: 155, maxH: 175, minW: 55, maxW: 70 }
 const TEST_POINT = { h: 161, w: 61 } // 模块默认测试点
@@ -29,10 +29,18 @@ describe('computeKnn', () => {
     expect(r.radiusDist).toBeCloseTo(r.topK[4].dist, 10)
   })
 
-  it('neighborsMap 按距离名次编号 1..K', () => {
+  it('neighborsMap 以数据下标为键，按距离名次编号 1..K', () => {
     const r = computeKnn(KNN_RAW_DATA, TEST_POINT, 3, false, STATS)
     expect(r.neighborsMap.size).toBe(3)
-    expect(r.neighborsMap.get('160-60')).toBe(1)
+    const nearestIdx = KNN_RAW_DATA.findIndex((p) => p.h === 160 && p.w === 60)
+    expect(r.neighborsMap.get(nearestIdx)).toBe(1)
+  })
+
+  it('坐标完全相同的两个样本各自有独立名次（不会因键冲突丢失）', () => {
+    const dup = [{ h: 160, w: 60, s: 'M' as const }, { h: 160, w: 60, s: 'L' as const }]
+    const r = computeKnn(dup, TEST_POINT, 2, false, STATS)
+    expect(r.neighborsMap.get(0)).toBe(1)
+    expect(r.neighborsMap.get(1)).toBe(2)
   })
 
   it('K 大于样本数时取全部样本', () => {
@@ -41,18 +49,27 @@ describe('computeKnn', () => {
     expect(r.mCount + r.lCount).toBe(KNN_RAW_DATA.length)
   })
 
-  it('平票时预测 M（mCount >= lCount 规则）', () => {
-    const data = KNN_RAW_DATA.slice(0, 8) // 7 M + 1 L
-    const r = computeKnn(data, { h: 161, w: 63 }, 2, false, STATS)
-    if (r.mCount === r.lCount) expect(r.prediction).toBe('M')
-    // 构造确定平票：1 M + 1 L 等距
-    const tie = computeKnn(
-      [{ h: 160, w: 61, s: 'M' }, { h: 162, w: 61, s: 'L' }],
+  it('平票时由最近邻裁决，并标记 isTie（不再默认偏向 M）', () => {
+    // 最近邻为 L（距离 1），次近邻为 M（距离 2）→ 1:1 平票，预测 L
+    const nearestL = computeKnn(
+      [{ h: 163, w: 61, s: 'M' }, { h: 160, w: 61, s: 'L' }],
       { h: 161, w: 61 }, 2, false, STATS
     )
-    expect(tie.mCount).toBe(1)
-    expect(tie.lCount).toBe(1)
-    expect(tie.prediction).toBe('M')
+    expect(nearestL.mCount).toBe(1)
+    expect(nearestL.lCount).toBe(1)
+    expect(nearestL.isTie).toBe(true)
+    expect(nearestL.prediction).toBe('L')
+    // 交换类别后结论随之翻转
+    const nearestM = computeKnn(
+      [{ h: 163, w: 61, s: 'L' }, { h: 160, w: 61, s: 'M' }],
+      { h: 161, w: 61 }, 2, false, STATS
+    )
+    expect(nearestM.prediction).toBe('M')
+  })
+
+  it('非平票时 isTie 为 false，按多数票预测', () => {
+    const r = computeKnn(KNN_RAW_DATA, TEST_POINT, 5, false, STATS)
+    expect(r.isTie).toBe(false)
   })
 
   it('标准化改变距离度量：身高差被 σ 压缩，邻居排序可与原始模式不同', () => {
@@ -72,22 +89,45 @@ describe('computeKnn', () => {
   })
 })
 
-describe('complexityCurve', () => {
-  it('确定性：两次调用结果一致，长度 15，k 从 1 到 15', () => {
-    const a = complexityCurve()
-    const b = complexityCurve()
-    expect(a).toEqual(b)
-    expect(a).toHaveLength(15)
-    expect(a[0].k).toBe(1)
-    expect(a[14].k).toBe(15)
+describe('looErrorCurve', () => {
+  const KS = Array.from({ length: 15 }, (_, i) => i + 1)
+
+  it('每个 K 一个点，误差率位于 [0, 1] 且是 1/n 的整数倍（真实计数）', () => {
+    const curve = looErrorCurve(KNN_RAW_DATA, KS, false, STATS)
+    expect(curve.map((p) => p.k)).toEqual(KS)
+    for (const { error } of curve) {
+      expect(error).toBeGreaterThanOrEqual(0)
+      expect(error).toBeLessThanOrEqual(1)
+      const wrong = error * KNN_RAW_DATA.length
+      expect(wrong).toBeCloseTo(Math.round(wrong), 10)
+    }
   })
 
-  it('U 形：k=4 附近误差低于两端（过拟合/欠拟合演示）', () => {
-    const c = complexityCurve()
-    const errAt = (k: number) => c[k - 1].error
-    expect(errAt(4)).toBeLessThan(errAt(1))
-    expect(errAt(4)).toBeLessThan(errAt(15))
-    c.forEach((p) => expect(p.error).toBeGreaterThanOrEqual(0.1))
+  it('手算校验：完全可分的两簇 LOO 误差为 0；翻转一个标签后 K=3 误差 = 3/6', () => {
+    const clean = [
+      { h: 155, w: 55, s: 'L' as const }, { h: 156, w: 55, s: 'L' as const }, { h: 155, w: 56, s: 'L' as const },
+      { h: 175, w: 70, s: 'M' as const }, { h: 174, w: 70, s: 'M' as const }, { h: 175, w: 69, s: 'M' as const },
+    ]
+    expect(looErrorCurve(clean, [1], false, STATS)[0].error).toBe(0)
+    const noisy = clean.map((p, i) => (i === 0 ? { ...p, s: 'M' as const } : p))
+    // 留出 (155,55)[被翻成 M]：邻居 L, L, 远处 M → 判 L，错
+    // 留出 (156,55)：邻居 (155,55)M d=1、(155,56)L d=√2、远处 M d≈23 → 判 M，错
+    // 留出 (155,56)：同理 → 判 M，错
+    // 远处三个 M：各有两个 M 邻居 → 全对。合计 3/6
+    expect(looErrorCurve(noisy, [3], false, STATS)[0].error).toBeCloseTo(3 / 6, 10)
+  })
+
+  it('K 等于其余全部样本时退化为多数类分类器', () => {
+    const n = KNN_RAW_DATA.length
+    const [{ error }] = looErrorCurve(KNN_RAW_DATA, [n - 1], false, STATS)
+    expect(error).toBeGreaterThan(0)
+  })
+})
+
+describe('nudgeTestPoint', () => {
+  it('方向键移动并限制在数据范围内', () => {
+    expect(nudgeTestPoint({ h: 160, w: 60 }, 1, -1, STATS)).toEqual({ h: 161, w: 59 })
+    expect(nudgeTestPoint({ h: 175, w: 55 }, 1, -1, STATS)).toEqual({ h: 175, w: 55 })
   })
 })
 

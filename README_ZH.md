@@ -8,8 +8,8 @@
 
 你可以通过以下链接体验该项目：
 
-- **中文版**: [https://knowcs.pinit.eth.link/](https://knowcs.pinit.eth.link/)
-- **英文版**: [https://knowitcs.pinit.eth.link/](https://knowitcs.pinit.eth.link/)
+- **中文版**: [https://knowcs.online/?lang=zh](https://knowcs.online/?lang=zh)
+- **英文版**: [https://knowcs.online/?lang=en](https://knowcs.online/?lang=en)
 
 ## 📚 内容来源与计划
 
@@ -38,7 +38,7 @@
 - **样式方案**: [Tailwind CSS](https://tailwindcss.com/) (v4) - 实用优先的 CSS 框架，快速构建现代 UI。
 - **动画引擎**: [Framer Motion](https://www.framer.com/motion/) - 实现流畅的交互动画效果（如梯度下降追踪、矩阵变换）。
 - **数学公式**: [KaTeX](https://katex.org/) - 高性能的 LaTeX 公式渲染库。
-- **国际化**: [react-i18next](https://react.i18next.com/) - 支持中英文一键切换。
+- **国际化**: [react-i18next](https://react.i18next.com/) - 支持 English / 简体中文 / 繁體中文，自动检测浏览器语言。
 - **图标库**: [Lucide React](https://lucide.dev/) - 简洁美观的图标组件。
 - **单文件构建**: `vite-plugin-singlefile` - 将整个应用打包为单个 HTML 文件，便于分发和部署。
 

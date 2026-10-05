@@ -10,7 +10,7 @@ PyTorch:ML from Facebook, adapted to run tensor on GPU
 
 Scikit-learn:user-friendly, classification, regressions..
 
-![图片](images/image_01.jpg)
+![图片](images/image_01.webp)
 # **2.Python(3.11.13):**
 
 type(<object>) e.g.:
@@ -212,7 +212,7 @@ np.array([a[0,0:2],a[1,1:3],a[2,2:4]])
 # all: [[1,2],[6,7],[11,12]]
 ```
 Broadcast:
-put 1 at left, then check, must same or at least one side is 1![图片](images/image_02.jpg)
+put 1 at left, then check, must same or at least one side is 1![图片](images/image_02.webp)
 
 numpy≈c++, using only one ptr, while python list use lots of ref
 
@@ -241,35 +241,35 @@ longer training time, low accuracy
 
 e.g.: clustering, association
 
-![图片](images/image_03.jpg)
+![图片](images/image_03.webp)
 Naive Bayes:
 
 P(B|E) = P(B) × P(E|B) /(E)
 
 E: Evidence (Feature), B: Belief (Class)
 
-![图片](images/image_04.jpg)
+![图片](images/image_04.webp)
 Naive requirement:
 
 1.Evidence conditional independent: P(e1e2|B)=P(e1|B)*P(e2|B)
 
 2.Evidence contributes equally: w1=w2=1 in P(B|e1e2)=kP(B)(P(e1|B)^w1)*(P(e2|B)^w2)
 
-![图片](images/image_05.jpg)
+![图片](images/image_05.webp)
 remove the denominator:
 
-![图片](images/image_06.jpg)
-α-laplace smoothing:![图片](images/image_07.jpg)
+![图片](images/image_06.webp)
+α-laplace smoothing:![图片](images/image_07.webp)
 
 m = types of ej, hence the sum would be 1
 
-continuous variables:![图片](images/image_08.jpg)
+continuous variables:![图片](images/image_08.webp)
 
 caculate mean and sd for each B then use f(x)
 
 avoiding floating-point overflow, we can use log sum
 
-pros&cons: ![图片](images/image_09.jpg)
+pros&cons: ![图片](images/image_09.webp)
 
 # 4.KNN:
 
@@ -279,7 +279,7 @@ Non-Parametric:
 
 1 don't have parameter (that means pm. from data, the humanmade pm. is called hyperparameter e.g.: K in KNN)
 
-2 don't make any assumption (e.g. distribution)![图片](images/image_10.jpg)
+2 don't make any assumption (e.g. distribution)![图片](images/image_10.webp)
 
 Steps:
 
@@ -350,14 +350,14 @@ Macro F1: unweighted mean of F1
 
 Weighted F1: weighted by total number of samples of that class
 
-![图片](images/image_11.jpg)
+![图片](images/image_11.webp)
 F1 better than Accuracy but also only focus on positive class (if yesyes=100, fail)
 
 MCC = TN*TP-FN*FP/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN)) 
 
 MCC is the best, for e.g.: Accuracy = 0.913 F1=0.5(0.95 if swap) MCC=0.45
 
-MCC's range: -1(against) ~ 0(random) ~ 1(perfect)![图片](images/image_12.jpg)
+MCC's range: -1(against) ~ 0(random) ~ 1(perfect)![图片](images/image_12.webp)
 
 
 Error Measurement:
@@ -368,7 +368,7 @@ Mean Square Error(MSE): sum((ai-pi)^2)/m
 
 Mean Absolute Percentage Error(MAPE): sum(abs(ai-pi/ai))/m
 
-Pros&Cons:![图片](images/image_13.jpg)
+Pros&Cons:![图片](images/image_13.webp)
 
 Speed Up KNN
 
@@ -424,7 +424,7 @@ Assign the rest of the data points to the clusters by distance or similarity com
 
 Pros&Cons:
 
-![图片](images/image_14.jpg)
+![图片](images/image_14.webp)
 other cons:
 
 sensitive to initial seeds
@@ -720,7 +720,7 @@ avoiding: gradient +/- and net shifting cause saturation
 
 Hyperbolic Tangent (Tanh): e^x-e^-x/e^x+e^-x range:[-1,1]
 
-![图片](images/image_15.jpg)
+![图片](images/image_15.webp)
 RNN: sigmoid/tanh  MLP/CNN: ReLU
 
 Output layer: linear/sigmoid/softmax
@@ -756,7 +756,7 @@ Affine Transformation:
 
 preserves: collinearity, parallelism and ratio of distances
 
-e.g.: translation, rotation, scaling, shearing![图片](images/image_16.jpg)
+e.g.: translation, rotation, scaling, shearing![图片](images/image_16.webp)
 
 translation: [[1 0 t1] [0 1 t2]]
 
@@ -806,7 +806,7 @@ replicating boundary
 
 reflecting boundary (use outside edge as mirror):
 
-![图片](images/image_17.jpg)
+![图片](images/image_17.webp)
 mirroring boundary (use edge as mirror)
 
 mean: all 1/9

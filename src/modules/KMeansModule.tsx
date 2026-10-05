@@ -1,17 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { LineChart as LineIcon, Pause, Play, RotateCcw, SkipForward } from 'lucide-react'
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
 import { Trans, useTranslation } from 'react-i18next'
+import { LineChart } from '../components/LineChart'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
 import { KMEANS_DATA, KMEANS_INIT_CENTROIDS } from '../data/constants'
@@ -61,7 +52,10 @@ export const KMeansModule = () => {
   const sx = (x: number) => PAD + ((x - bounds.minX) / (bounds.maxX - bounds.minX || 1)) * (VIEW - 2 * PAD)
   const sy = (y: number) => VIEW - PAD - ((y - bounds.minY) / (bounds.maxY - bounds.minY || 1)) * (VIEW - 2 * PAD)
 
-  const elbow = useMemo(() => elbowCurve(data, [1, 2, 3, 4, 5, 6]), [data])
+  const elbow = useMemo(
+    () => elbowCurve(data, [1, 2, 3, 4, 5, 6]).map((p) => ({ x: p.k, y: p.inertia })),
+    [data]
+  )
 
   const reset = () => { setIter(0); setPlaying(false) }
   const changeK = (nk: number) => { setK(nk); reset() }
@@ -70,38 +64,38 @@ export const KMeansModule = () => {
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* 散点画布 */}
-        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm">
+        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-[2rem] p-5 sm:p-8 shadow-sm">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
             <h4 className="text-[11px] font-black text-slate-400 uppercase">{t('kmeans.canvas_title')}</h4>
-            <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
-              <button onClick={() => { setZscore(false); reset() }} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition ${!zscore ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>{t('kmeans.raw')}</button>
-              <button onClick={() => { setZscore(true); reset() }} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition ${zscore ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>{t('kmeans.zscore')}</button>
+            <div className="flex gap-2 bg-slate-100 p-1 rounded-xl" role="group">
+              <button onClick={() => { setZscore(false); reset() }} aria-pressed={!zscore} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition ${!zscore ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>{t('kmeans.raw')}</button>
+              <button onClick={() => { setZscore(true); reset() }} aria-pressed={zscore} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition ${zscore ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>{t('kmeans.zscore')}</button>
             </div>
           </div>
           <div className="relative aspect-square w-full max-w-[480px] mx-auto">
-            <svg viewBox={`0 0 ${VIEW} ${VIEW}`} className="w-full h-full border-l border-b border-slate-200">
+            <svg viewBox={`0 0 ${VIEW} ${VIEW}`} className="w-full h-full border-l border-b border-slate-200" role="img" aria-label={t('kmeans.canvas_label', { k, iter: safeIter, inertia: frame.inertia.toFixed(1) })}>
               {[...Array(5)].map((_, i) => (
                 <line key={`h${i}`} x1={PAD} y1={PAD + (i * (VIEW - 2 * PAD)) / 4} x2={VIEW - PAD} y2={PAD + (i * (VIEW - 2 * PAD)) / 4} stroke="#f1f5f9" />
               ))}
               {/* 数据点 */}
               {data.map((p, i) => (
-                <motion.circle key={i} cx={sx(p.x)} cy={sy(p.y)} r={6} fill={CLUSTER_COLORS[frame.assignments[i]]} animate={{ fill: CLUSTER_COLORS[frame.assignments[i]] }} opacity={0.75} />
+                <m.circle key={i} cx={sx(p.x)} cy={sy(p.y)} r={6} fill={CLUSTER_COLORS[frame.assignments[i]]} animate={{ fill: CLUSTER_COLORS[frame.assignments[i]] }} opacity={0.75} />
               ))}
               {/* 质心 */}
               {frame.centroids.map((c, i) => (
-                <motion.g key={i} animate={{ x: sx(c.x), y: sy(c.y) }} initial={false}>
+                <m.g key={i} animate={{ x: sx(c.x), y: sy(c.y) }} initial={false}>
                   <path d="M -9 -9 L 9 9 M -9 9 L 9 -9" stroke={CLUSTER_COLORS[i]} strokeWidth={4} strokeLinecap="round" />
                   <circle r={13} fill="none" stroke={CLUSTER_COLORS[i]} strokeWidth={2.5} />
-                </motion.g>
+                </m.g>
               ))}
             </svg>
           </div>
           <div className="flex items-center justify-center gap-4 mt-6">
-            <button onClick={reset} className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl" title={t('kmeans.reset')}><RotateCcw size={16} /></button>
+            <button onClick={reset} className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl" title={t('kmeans.reset')} aria-label={t('kmeans.reset')}><RotateCcw size={16} aria-hidden /></button>
             <button onClick={() => { if (safeIter >= history.length - 1) setIter(0); setPlaying((p) => !p) }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center gap-2 font-bold text-sm shadow-lg shadow-blue-200">
               {playing ? <Pause size={16} /> : <Play size={16} />} {playing ? t('kmeans.pause') : t('kmeans.play')}
             </button>
-            <button onClick={() => { setIter((i) => Math.min(i + 1, history.length - 1)); setPlaying(false) }} className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl" title={t('kmeans.step')}><SkipForward size={16} /></button>
+            <button onClick={() => { setIter((i) => Math.min(i + 1, history.length - 1)); setPlaying(false) }} className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl" title={t('kmeans.step')} aria-label={t('kmeans.step')}><SkipForward size={16} aria-hidden /></button>
           </div>
         </div>
 
@@ -113,7 +107,7 @@ export const KMeansModule = () => {
               <span className="text-xs font-bold text-slate-600">{t('kmeans.k_clusters')}</span>
               <div className="flex gap-1.5">
                 {[2, 3, 4, 5].map((nk) => (
-                  <button key={nk} onClick={() => changeK(nk)} className={`w-9 h-9 rounded-lg text-sm font-black transition ${k === nk ? 'bg-blue-600 text-white shadow' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{nk}</button>
+                  <button key={nk} onClick={() => changeK(nk)} aria-pressed={k === nk} className={`w-9 h-9 rounded-lg text-sm font-black transition ${k === nk ? 'bg-blue-600 text-white shadow' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{nk}</button>
                 ))}
               </div>
             </div>
@@ -127,7 +121,7 @@ export const KMeansModule = () => {
                 <p className="text-2xl font-black text-slate-700 font-mono">{frame.inertia.toFixed(1)}</p>
               </div>
             </div>
-            <div className="text-[10px] text-slate-400 leading-relaxed">
+            <div className="text-[10px] text-slate-400 leading-relaxed" aria-live="polite">
               {frame.moved === Infinity ? t('kmeans.init_state') : frame.moved < 1e-6 ? t('kmeans.converged') : t('kmeans.moved', { d: frame.moved.toFixed(3) })}
             </div>
           </div>
@@ -136,18 +130,13 @@ export const KMeansModule = () => {
             <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
               <LineIcon size={14} className="text-blue-500" /> {t('kmeans.elbow_title')}
             </h4>
-            <div className="h-[180px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={elbow}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                  <XAxis dataKey="k" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} width={28} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', fontSize: '10px' }} formatter={(value) => (typeof value === 'number' ? value.toFixed(1) : String(value))} />
-                  <ReferenceLine x={k} stroke="#fbbf24" strokeDasharray="5 5" />
-                  <Line type="monotone" dataKey="inertia" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <LineChart
+              data={elbow}
+              referenceX={k}
+              formatY={(v) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(1))}
+              xLabel="K"
+              ariaLabel={t('kmeans.elbow_title')}
+            />
             <p className="text-[10px] text-slate-400 mt-3 leading-relaxed">{t('kmeans.elbow_hint')}</p>
           </div>
         </div>
