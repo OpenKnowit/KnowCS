@@ -7,6 +7,12 @@
 
 ## 进展时间线
 
+### 2026-10-05 — NumPy 索引实验台（可运行代码）
+- **feat**：NumPy 模块第 1 节由「4×4 三按钮」改为可编辑代码的**索引实验台**。代码在浏览器内运行，每次下标读写都可视化：源→结果格子映射与悬停联动、View/Copy 判定与原因、逐轴解释、掩码网格、底层一维缓冲区（offset/strides）、写穿视图时连带修改的变量告警。附 8 个预设示例。
+- **决策**：不用 Pyodide（约 10MB、国内 CDN 慢、拿不到元素溯源），改为自研 TS 迷你 NumPy（`lib/ndarray.ts`）+ Python 子集解释器（`lib/minipy.ts`），产物约 +20KB gzip。与本机 NumPy 2.2 做差分：95 个片段中 90 个的输出与报错逐字一致。
+- **chore**：移除 `lib/numpy.ts`、`SliceType`、`INITIAL_MATRIX` 与旧文案键；新增 `numpy_module.playground.*` 三语文案（zh-HK 由脚本生成）。
+- **test**：新增 ndarray / minipy 用例（含「arange 源上结果值 == 溯源下标」性质测试），共 124 个通过。
+
 ### 2026-10-05 — 迁移至 knowcs.online
 - **fix**：损坏的 Hash URI（如 `#/course/%`）安全回退，避免 `decodeURIComponent` 抛错导致全站白屏；补充回归用例，94 个测试通过。
 - **ci**：移除 PinMe 自动发布，GitHub Actions 只保留构建门禁；新增 `deploy/` 下的 OpenResty 配置与服务器发布/回滚说明。

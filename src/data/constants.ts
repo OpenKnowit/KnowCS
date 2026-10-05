@@ -1,10 +1,6 @@
 import type { AbNode, BayesData, CheatGroup, KernelPresetName, KnnPoint, PerceptronPoint, Vec2 } from '../types'
 
 // --- Constants & Helper Data ---
-export const INITIAL_MATRIX: number[][] = Array.from({ length: 4 }, (_, r) =>
-  Array.from({ length: 4 }, (_, c) => r * 4 + c)
-)
-
 export const KERNEL_PRESETS: Record<KernelPresetName, number[][]> = {
   'Sobel-X': [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
   'Sobel-Y': [[1, 2, 1], [0, 0, 0], [-1, -2, -1]],
