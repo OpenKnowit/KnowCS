@@ -38,9 +38,42 @@ GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm 
 
 发布步骤见 `deploy/README.md`。站点目录为 `/opt/1panel/www/sites/knowcs`；`releases/<timestamp>/index.html` 保存每次构建，`current` 软链接指向线上版本。通过原子替换软链接发布，保留旧版本供回滚。Nginx 配置模板为 `deploy/knowcs.online.conf`，证书由 Certbot webroot 签发及自动续期。
 
+### 服务器与域名（2026-10-05 已核实）
+
+| 项目 | 值 |
+|---|---|
+| GitHub | `OpenKnowit/KnowCS`，分支 `main` |
+| SSH | `ssh pastpaper`，用户 `ubuntu`，IP `129.226.210.66` |
+| 腾讯云实例 | 新加坡 `ap-singapore`，`lhins-ir66ks5j`，名称 `Ubuntu22.04-1Panel-Cfdo` |
+| DNSPod | `knowcs.online` 根域名 A 记录 `2424635031` → `129.226.210.66`，默认线路，TTL 600 |
+| OpenResty 容器 | `1Panel-openresty-QDQf` |
+| 站点配置 | 宿主机 `/opt/1panel/www/conf.d/knowcs.online.conf` |
+| 站点文件 | 宿主机 `/opt/1panel/www/sites/knowcs`；容器内 `/www/sites/knowcs` |
+| HTTPS | Certbot webroot `/opt/1panel/www/sites/knowcs/acme`；证书 `/etc/letsencrypt/live/knowcs.online/` |
+| 证书续期 | `certbot.timer`；钩子 `/etc/letsencrypt/renewal-hooks/deploy/knowcs.sh` 将证书复制到站点 `ssl/` 并校验、reload OpenResty |
+| 初次发布 | `releases/20261005-2158`；对应代码提交 `bd0fbbe` |
+
+**不要混淆实例**：`ssh pastpaper` 对应上表的 `lhins-ir66ks5j`，不是名字为 `PastpaperMaster` 的 `lhins-ik4lnte5`。后续操作前重新核实 SSH、云实例和 DNS，不能把这里的快照当作永久不变的状态。腾讯云/DNS 操作使用用户级 `tencent-cloud-ops` 技能及本机 TCCLI；认证过期由用户执行 `tccli auth login`。
+
+### 推送与发布是两步
+
+- **GitHub 推送**只触发 `Validate KnowCS`，不会更新服务器。完成推送后仍需上传已验证的 `dist/index.html`、核对 SHA-256、原子切换 `current`。
+- GitHub SSH 曾连接失败；可使用已有 `gh` 登录凭据通过 HTTPS 推送，不在命令中放 token：
+
+  ```bash
+  git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push https://github.com/OpenKnowit/KnowCS.git main
+  gh run list --repo OpenKnowit/KnowCS --limit 3
+  ```
+
+- 修改 `.github/workflows/` 需要 `gh` 的 `workflow` 权限；若 GitHub 明确拒绝，可执行 `gh auth refresh -h github.com -s workflow` 并由用户完成浏览器授权。
+- 静态内容发布不需要重启或 reload OpenResty。只有修改站点配置/更新证书时，先备份，再执行 `sudo docker exec 1Panel-openresty-QDQf nginx -t`，通过后 `nginx -s reload`；不要重启容器。
+- 验证 HTTPS 200、HTTP 301、gzip、线上/本地 HTML SHA-256、真实浏览器桌面/手机行为，并确认 `mc.iloveust.com`、`pastpaper.knowit.top` 仍正常。
+- 回滚内容时原子地将 `current` 指回旧 release；初次上线前配置备份在站点 `backups/openresty-conf-before.tgz`。保留旧版本和备份，不要覆盖其他站点。
+- `designs/knowcs-all.pen` 是用户独立修改，提交时排除；`work/` 的 DNS 快照也不入库。任何密钥、token、私钥均不得写入文档、memory 或 Git。
+
 ## 工作约定
 
-- **部署门禁四连**：提交/部署前确保 `npm run lint`、`npm test`、`npm run typecheck`、`npm run build` 均通过，否则 CI 中断、不会部署到 PinMe。
+- **部署门禁四连**：提交/部署前确保 `npm run lint`、`npm test`、`npm run typecheck`、`npm run build` 均通过。CI 只校验，服务器发布需单独执行。
 - **计算逻辑放 `src/lib/`**：可视化模块的纯计算（距离/卷积/概率等）一律提取为 `src/lib/` 纯函数并配套 `*.test.ts`，组件只负责渲染与交互。
 - **i18n 同步**：新增/修改文案必须同时更新 `src/locales/en.json` 与 `src/locales/zh.json`，键严格对齐；繁体 `zh-HK.json` **由脚本生成、严禁手改**——改完 `zh.json` 后运行 `npm run gen:zh-hk`（OpenCC 简→港繁 + 香港术语映射，映射表见 `scripts/gen-zh-hk.mjs` 的 `HK_TERMS`）。
 - **新增模块**：照 [docs/design.md](./docs/design.md) 第 11 节 / [docs/plan.md](./docs/plan.md) 第 6 节的步骤执行。
