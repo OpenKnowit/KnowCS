@@ -7,6 +7,26 @@
 
 ## 进展时间线
 
+### 2026-10-05 — 迁移至 knowcs.online
+- **fix**：损坏的 Hash URI（如 `#/course/%`）安全回退，避免 `decodeURIComponent` 抛错导致全站白屏；补充回归用例，94 个测试通过。
+- **ci**：移除 PinMe 自动发布，GitHub Actions 只保留构建门禁；新增 `deploy/` 下的 OpenResty 配置与服务器发布/回滚说明。
+- **deploy**：`knowcs.online` 根域名 A → `129.226.210.66`（DNSPod RecordId `2424635031`，TTL 600），`ssh pastpaper` 对应 `lhins-ir66ks5j`；新增独立 OpenResty 站点 `/opt/1panel/www/sites/knowcs`，发布 `20261005-2158`，保留配置备份。Let’s Encrypt 证书签发，安装 webroot 自动续期钩子，Certbot 模拟续期成功。HTTPS 200、HTTP 301、gzip、线上/本地 SHA-256 一致；现有 Minecraft/Pastpaper 站点均仍返回 200。
+- **test（线上）**：真实 Chrome 在 1440px/390px 下覆盖 36 次模块/笔记/拓展/异常路由检查，控制台错误和未捕获异常均为 0；异常 Hash 刷新也安全回退。
+- **docs**：READMEs / CLAUDE / design / plan 的生产入口改为 `https://knowcs.online`。
+
+### 2026-10-05 — 全面审查修复与性能优化（v2.1.0）
+- **perf**：单文件产物 4.55MB → 1.99MB（gzip 2.46MB → 1.07MB）。KaTeX 只内联 woff2 且去掉未用字族（60 → 11 个字体）；笔记配图由原始 PNG 重新编码为 WebP；移除 Recharts（自研 SVG `LineChart`）与 react-markdown（Markdown 构建期预渲染，`scripts/vite-plugins.mjs`）；Framer Motion 改 `LazyMotion` + `m.*`。
+- **fix（教学正确性）**：朴素贝叶斯 log 模式不再用 `1e-10` 掩盖 `log 0`，如实显示 −∞；类别样本数由计数表推出；α 输入 clamp；log/连乘切换现在真正显示分数（此前切换无可见效果）。KNN 平票改由最近邻裁决并提示（原先恒判 M）。火警案例 P(Smoke) 受全概率下界约束（原先可算出 2000% 的后验）。
+- **fix（渲染）**：NB 寄语「条件独立」被渲染成 α（`<Trans>` 占位错位）；KNN 寄语出现字面 `**欠拟合**`；大写标题把 α/δ 变成 Α/Δ（`.katex { text-transform:none }`）；KNN 画布缩放后点击位置偏移；卷积核输入 `-` / 清空时输出 NaN。
+- **feat**：Backprop 模块重写——6 个参数滑块、四步推导全部代入实时数值、反向动画揭示 Δw、「执行更新」+ 误差下降曲线（`lib/backprop.ts`，数值梯度校验）。KNN「K vs 误差」改为真实留一法曲线（`looErrorCurve`），标出最优 K。
+- **feat**：Hash 路由（`#/course/knn`、`#/package/numpy`…），支持刷新 / 后退 / 分享；`App.tsx` 改为 `COURSE_TABS` 注册表驱动；侧栏副标题 i18n 化；移动端横向模块条；页脚去掉虚构的「Latency: 12ms」；版本号取自 package.json。
+- **feat（i18n）**：修复语言检测被 `lng:'en'` 覆盖而失效；检测顺序 `?lang=` > localStorage > 浏览器，zh-TW/zh-Hant → 繁体；生产环境关闭 i18next debug；同步 `<html lang>`。
+- **feat（a11y）**：跳到内容链接、`aria-current` / `aria-pressed` / `aria-live`、语言菜单键盘操作、画布方向键操作、图表 `<title>`、尊重「减少动态效果」。
+- **chore**：移除误装依赖 `rechart@0.0.1` 与未用的 `autoprefixer`；`@tailwindcss/postcss` 移入 devDependencies；删除模板残留（`vite.svg` / `react.svg` / `App.css`）；`dist/index.html` 移出版本库。
+- **ci**：Node 20 → 22；`pinme` 锁定 2.0.10。
+- **test**：59 → 93 个用例（新增 backprop / chart / route / lang，补 KNN 平票与 LOO、NB −∞ 与 classTotals、minEvidence）。
+- **docs**：`design.md` 按现状重写（架构 / 路由 / 构建优化 / 扩展指引）。
+
 ### 2026-06-07 — 三栏顶层导航：Course / Package / Extend
 - **feat**：Header 重构——移除环境状态框，新增三栏分段切换（Course 课程 / Package 资料包 / Extend 拓展，当前项蓝色胶囊高亮）。
 - **feat**：**Package 资料包**——6 篇 Markdown 笔记（NumPy/pandas/PyTorch/TensorFlow/Keras/COMP2211 课程笔记）3×2 卡片网格，点开 react-markdown + remark-gfm 渲染（表格/代码/图片），返回按钮回网格；笔记与 17 张配图经 `?raw`/glob 构建期内联，兼容单文件打包。
@@ -65,9 +85,9 @@
 > 与 [design.md](./design.md) 第 12 节「已知约束」呼应，落地为可追踪条目。
 
 - [x] ~~`App.jsx` 约 1065 行，所有模块与外壳耦合在单文件~~——已拆分为 `src/modules/` 六模块 + 薄壳结构。
-- [x] ~~纯计算逻辑（距离、卷积、贝叶斯）无单元测试~~——已抽取到 `src/lib/` 并配 34 个 Vitest 用例（2026-06-07），`npm test` 为部署门禁；UI/交互层测试仍缺。
+- [x] ~~纯计算逻辑（距离、卷积、贝叶斯）无单元测试~~——已抽取到 `src/lib/` 并配 Vitest 用例（2026-06-07 起，现 94 个），`npm test` 为部署门禁；UI/交互层测试仍缺。
 - [ ] `en.json` / `zh.json` 双份手工维护，缺键一致性校验，易漏翻（`zh-HK` 为脚本生成，不在此列）。
-- [ ] KNN「K vs 误差」曲线为示意性合成数据，非真实交叉验证结果。
+- [x] ~~KNN「K vs 误差」曲线为示意性合成数据~~——已改为真实留一法误差（2026-10-05）。
 - [ ] 教学数据（`BAYES_DATA`、`KNN_RAW_DATA`）硬编码，与讲义绑定。
 
 ---

@@ -1,9 +1,16 @@
+import { readFileSync } from "node:fs"
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import { viteSingleFile } from "vite-plugin-singlefile"
+import { katexFontSlim, markdownHtml } from "./scripts/vite-plugins.mjs"
+
+const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"))
 
 export default defineConfig({
-  plugins: [react(), viteSingleFile()],
+  plugins: [katexFontSlim(), markdownHtml(), react(), viteSingleFile()],
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   server: {
     port: 5174
   }

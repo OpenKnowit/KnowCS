@@ -15,9 +15,11 @@
 - ✅ 单页骨架：React 19 + Vite 7 + Tailwind 4，单文件打包。
 - ✅ **全量 TypeScript（TSX）**：核心代码已从 JSX 迁移到严格 TSX，`tsc --noEmit` 纳入 `build` 与 `typecheck`。
 - ✅ **模块化结构**：`App.tsx` 瘦身为 ~209 行外壳（路由 + 布局）；六大模块独立于 `src/modules/`，通用组件在 `src/components/`，教学数据集中于 `src/data/constants.ts`，类型在 `src/types.ts`。
-- ✅ 中英双语 i18n（react-i18next + 浏览器语言检测）。
+- ✅ 三语 i18n（English / 简体 / 繁體），自动检测浏览器语言并记住选择。
+- ✅ Hash 路由（可分享模块 / 笔记链接）、移动端适配、基础无障碍。
+- ✅ 单文件产物 1.99MB（2026-10 优化，原 4.55MB）。
 - ✅ 六大可视化模块（见下方覆盖表）。
-- ✅ CI 自动部署到 PinMe（`knowcs.pinme.dev`），lint 作为部署门禁；文档类改动（`*.md` / `docs/`）跳过部署。
+- ✅ CI 执行构建校验；生产部署改为 `ssh pastpaper` + OpenResty，目标域名 `knowcs.online`，不再自动发布 PinMe。
 - ✅ 文档体系：design / log / plan 三件套 + 根目录 `CLAUDE.md` 索引。
 
 ---
@@ -33,7 +35,7 @@
 | L3 / Lab3 | KNN | KnnModule | ✅ 已覆盖 |
 | **L4 / Lab4** | **K-Means 聚类** | KMeansModule | ✅ 已上线（2026-06-07） |
 | L5 / Lab5 | 人工神经元 / 感知机 | BackpropModule（仅 MLP 侧） | 🟡 缺单神经元（错误驱动更新） |
-| L6 / Lab6 | 多层感知机 / 反向传播 | BackpropModule | ✅ 已覆盖 |
+| L6 / Lab6 | 多层感知机 / 反向传播 | BackpropModule | ✅ 已覆盖（2026-10 重写为可训练的数值版） |
 | L7 / Lab7 | 图像处理 / 卷积 / **数据增强** | KernelModule（仅卷积） | 🟡 缺数据增强 |
 | **L8 / Lab8** | **卷积神经网络（池化/特征图）** | KernelModule（部分） | 🟡 部分 |
 | **L9 / Lab9** | **PyTorch（张量/自动求导）** | — | ❌ 缺口（偏工具） |
@@ -77,10 +79,10 @@
 | ~~P1~~ ✅ | **新增 K-Means 模块（L4）** | 已完成：交互选 K、EM 迭代质心动画、Elbow Method、Z-score 标准化（`KMeansModule` + `lib/kmeans.ts` + 9 测试） |
 | P1 | **贝叶斯模块补 Gaussian 似然** | 让 NaiveBayes 支持数值特征，覆盖 Lab2「分类 vs 数值」考点 |
 | P1 | i18n 键一致性校验 | 加脚本校验 `en.json` / `zh.json` 键对齐，纳入 lint / CI，防漏翻 |
-| P1 | 文档同步 | `design.md` 第 3/4/12 节仍按旧的「单文件 App.jsx 1065 行」描述，需更新为 TSX + 模块化现状；`log.md` 补记 TSX 迁移、模块拆分两条进展 |
+| ~~P1~~ ✅ | 文档同步 | 已完成：`design.md` 按现状重写（2026-10-05） |
 | P2 | 单神经元 / 感知机模块（L5） | 错误驱动更新动画 + 线性可分判定，补 Lab5 考点（与 MLP 区分）|
 | P2 | 卷积模块扩展（L7 数据增强 / L8 CNN） | 在 KernelModule 上补数据增强演示与池化/多层特征图 |
-| P2 | KNN 曲线真实化 | 用真实交叉验证替换示意性合成的「K vs 误差」数据 |
+| ~~P2~~ ✅ | KNN 曲线真实化 | 已完成：留一法误差曲线 `looErrorCurve`（2026-10-05） |
 
 ---
 

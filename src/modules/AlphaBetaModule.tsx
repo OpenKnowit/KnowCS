@@ -141,6 +141,7 @@ export const AlphaBetaModule = () => {
                 <button
                   key={key}
                   onClick={() => applyPreset(key)}
+                  aria-pressed={preset === key}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${preset === key ? 'bg-indigo-600 text-white shadow' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}
                 >
                   {t(`alphabeta.preset.${key}`)}
@@ -164,7 +165,7 @@ export const AlphaBetaModule = () => {
               <div className="flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-emerald-500" />{t('alphabeta.legend.visited')}</div>
               <div className="flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-rose-500" />{t('alphabeta.legend.pruned')}</div>
             </div>
-            <svg viewBox="0 0 1000 470" className="w-full h-auto max-h-[460px]">
+            <svg viewBox="0 0 1000 470" className="w-full h-auto max-h-[460px]" role="img" aria-label={t('alphabeta.tree_label')}>
               <defs>
                 <marker id="ab-arrow" viewBox="0 0 10 10" refX="20" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                   <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" />
@@ -260,7 +261,7 @@ export const AlphaBetaModule = () => {
               {AB_LEAF_IDS.map((id) => (
                 <div key={id} className="flex flex-col items-center gap-1.5">
                   <span className="text-[10px] font-mono font-bold text-slate-500">{id}</span>
-                  <input type="range" min={0} max={20} value={leaves[id]} onChange={(e) => setLeaf(id, parseInt(e.target.value))} className="w-full accent-indigo-600 cursor-pointer" />
+                  <input type="range" min={0} max={20} value={leaves[id]} onChange={(e) => setLeaf(id, parseInt(e.target.value))} aria-label={t('alphabeta.leaf_label', { id })} className="w-full accent-indigo-600 cursor-pointer" />
                   <span className="text-sm font-black text-indigo-600">{leaves[id]}</span>
                 </div>
               ))}
@@ -275,10 +276,10 @@ export const AlphaBetaModule = () => {
               <GitBranch size={14} className="text-indigo-400" /> {t('alphabeta.control')}
             </h4>
             <div className="grid grid-cols-4 gap-2">
-              <button onClick={() => { setStepIdx(0); setPlaying(false) }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center" title={t('alphabeta.first')}><ChevronsLeft size={18} /></button>
-              <button onClick={() => { setStepIdx((i) => Math.max(0, i - 1)); setPlaying(false) }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center" title={t('alphabeta.prev')}><ChevronLeft size={18} /></button>
-              <button onClick={() => { if (safeIdx >= steps.length - 1) setStepIdx(0); setPlaying((p) => !p) }} className="p-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/25" title={t('alphabeta.play')}>{playing ? <Pause size={18} /> : <Play size={18} />}</button>
-              <button onClick={() => { setStepIdx((i) => Math.min(steps.length - 1, i + 1)); setPlaying(false) }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center" title={t('alphabeta.next')}><ChevronRight size={18} /></button>
+              <button onClick={() => { setStepIdx(0); setPlaying(false) }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center" title={t('alphabeta.first')} aria-label={t('alphabeta.first')}><ChevronsLeft size={18} /></button>
+              <button onClick={() => { setStepIdx((i) => Math.max(0, i - 1)); setPlaying(false) }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center" title={t('alphabeta.prev')} aria-label={t('alphabeta.prev')}><ChevronLeft size={18} /></button>
+              <button onClick={() => { if (safeIdx >= steps.length - 1) setStepIdx(0); setPlaying((p) => !p) }} className="p-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/25" title={t('alphabeta.play')} aria-label={t('alphabeta.play')}>{playing ? <Pause size={18} /> : <Play size={18} />}</button>
+              <button onClick={() => { setStepIdx((i) => Math.min(steps.length - 1, i + 1)); setPlaying(false) }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center" title={t('alphabeta.next')} aria-label={t('alphabeta.next')}><ChevronRight size={18} /></button>
             </div>
             <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 space-y-4">
               <div>
@@ -286,14 +287,14 @@ export const AlphaBetaModule = () => {
                   <span>{t('alphabeta.progress')}</span>
                   <span className="font-mono text-indigo-400 font-bold">{safeIdx + 1} / {steps.length}</span>
                 </div>
-                <input type="range" min={0} max={steps.length - 1} value={safeIdx} onChange={(e) => { setStepIdx(parseInt(e.target.value)); setPlaying(false) }} className="w-full accent-indigo-500 cursor-pointer" />
+                <input type="range" min={0} max={steps.length - 1} value={safeIdx} aria-label={t('alphabeta.progress')} onChange={(e) => { setStepIdx(parseInt(e.target.value)); setPlaying(false) }} className="w-full accent-indigo-500 cursor-pointer" />
               </div>
               <div>
                 <div className="flex justify-between text-xs text-slate-400 mb-1.5">
                   <span>{t('alphabeta.speed')}</span>
                   <span className="font-mono text-slate-300">{(speed / 1000).toFixed(1)}s</span>
                 </div>
-                <input type="range" min={200} max={2400} step={200} value={speed} onChange={(e) => setSpeed(parseInt(e.target.value))} className="w-full accent-indigo-500 cursor-pointer" />
+                <input type="range" min={200} max={2400} step={200} value={speed} aria-label={t('alphabeta.speed')} onChange={(e) => setSpeed(parseInt(e.target.value))} className="w-full accent-indigo-500 cursor-pointer" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-center border-t border-slate-800 pt-4">
@@ -306,7 +307,7 @@ export const AlphaBetaModule = () => {
             <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <Scissors size={14} className="text-emerald-500" /> {t('alphabeta.detail')}
             </h4>
-            <p className="text-sm text-slate-700 leading-relaxed min-h-[72px]">{explanation}</p>
+            <p className="text-sm text-slate-700 leading-relaxed min-h-[72px]" aria-live="polite">{explanation}</p>
             <div className={`rounded-xl p-3.5 border ${mathBoxClass} transition-colors`}>
               <div className="flex justify-around items-center text-xs font-mono">
                 <div className="flex flex-col items-center">

@@ -17,23 +17,32 @@
   },
   "backprop_module": {
     "title": "鏈式法則追蹤器",
-    "output_layer": "Output Layer",
-    "error_val": "誤差值",
-    "calculating": "正在推導梯度...",
-    "track_grad": "追蹤梯度 Δwjk",
+    "output_layer": "輸出層",
+    "calculating": "δ 反向傳播中...",
+    "track_grad": "反向傳播",
     "notebook_title": "推導筆記本 (COMP2211 Core)",
-    "step1_title": "Step 1: 鏈式法則展開",
-    "step2_title": "Step 2: 定義誤差項 (Error Signal)",
+    "step1_title": "Step 2: 鏈式法則展開",
+    "step2_title": "Step 3: 定義誤差項 (Error Signal)",
     "step2_desc": "令 <1>\\delta_k = - \\frac{\\partial E}{\\partial net_k}</1>。在 MSE 損失下：",
-    "step3_title": "Step 3: 權重更新量",
-    "advice": "記住，反向傳播本質上是『尋找罪魁禍首』的過程。每一層權重 <1>w_{jk}</1> 都在問：誤差 <3>E</3> 有多少是由我負責的？<5>\\delta_k</5> 就是上一層傳回來的『責備信』。"
+    "step3_title": "Step 4: 權重更新量",
+    "advice": "記住，反向傳播本質上是『尋找罪魁禍首』的過程。每一層權重 <1>w_{jk}</1> 都在問：誤差 <3>E</3> 有多少是由我負責的？<5>\\delta_k</5> 就是上一層傳回來的『責備信』。",
+    "apply_update": "執行更新",
+    "reset": "重置",
+    "history_title": "每次更新後的誤差 E",
+    "history_hint": "反覆點擊『執行更新』：每一步梯度下降（w ← w + Δw）都讓 E 變小。拖動滑塊會開始新的一輪。",
+    "history_label": "{{n}} 次更新後誤差 E = {{e}}",
+    "update_axis": "更新",
+    "forward_title": "Step 1: 前向傳播",
+    "sigmoid_note": "採用 sigmoid 激活，導數有簡潔的閉式：",
+    "diagram_label": "神經元示意圖：輸入 i、j 經權重 w_ik = {{wik}}、w_jk = {{wjk}} 連接到輸出 k。輸出 O_k = {{out}}，目標 T_k = {{target}}。"
   },
   "kernel_module": {
     "operation": "Operation:",
     "input_image": "Input Image",
     "kernel": "Kernel",
     "output_feature_map": "Output Feature Map",
-    "advice": "卷積核本質上是一個局部特徵濾波器。當你使用 <1>\\text{Laplacian}</1> 算子時，它在做二階導數近似，能迅速捕捉到像素亮度的『突變點』。"
+    "advice": "卷積核本質上是一個局部特徵濾波器。當你使用 <1>\\text{Laplacian}</1> 算子時，它在做二階導數近似，能迅速捕捉到像素亮度的『突變點』。",
+    "cell_label": "卷積核第 {{r}} 行第 {{c}} 列"
   },
   "bayes": {
     "basics": {
@@ -56,7 +65,8 @@
       "p_smoke_given_fire": "火災產煙 <1>P(\\text{Smoke}|\\text{Fire})</1>",
       "advice": "講義中的經典案例：雖然火災很少見（Prior = 1%），但煙霧可能因為BBQ而常見（Marginal = 10%）。貝葉斯法則告訴我們，此時看到煙霧並確定火災的概率只有 <1>9\\%</1>。 <3>證據不等於結論，先驗概率非常重要！</3>",
       "result_title": "看到煙霧後火災的概率",
-      "calc_process": "計算過程："
+      "calc_process": "計算過程：",
+      "evidence_bound": "由全概率公式 <1></1>，P(Smoke) 不能低於 P(Smoke|Fire)·P(Fire) = {{v}}%，否則後驗概率會超過 100%。"
     },
     "naive": {
       "input_title": "特徵輸入",
@@ -66,7 +76,10 @@
       "result_title": "分類結果 (講義 P.29)",
       "likelihood_chain": "似然概率鏈",
       "prob_for": "{{cls}} 類別的概率項",
-      "advice": "講義 P.23 重點：貝葉斯之所以『樸素』，是因為假設特徵之間 <1>條件獨立</1>。這對垃圾郵件過濾很有效。注意 <3>零頻率問題</3>，嘗試增大 <5>\\alpha</5> 看看變化！"
+      "advice": "講義 P.23 重點：貝葉斯之所以『樸素』，是因為假設特徵之間 <1>條件獨立</1>。這對垃圾郵件過濾很有效。注意 <3>零頻率問題</3>，嘗試增大 <5>\\alpha</5> 看看變化！",
+      "log_score": "log P(類別) + Σ log P(x|類別)",
+      "product_score": "P(類別) × Π P(x|類別)",
+      "zero_warning": "某個計數為 0 會讓整個連乘積變成 0（log 0 = −∞），無論其他特徵如何，該類別都不可能勝出。增大 <1></1> 進行平滑即可消除。"
     }
   },
   "knn": {
@@ -74,7 +87,7 @@
     "raw_data": "原始數據",
     "standardized": "標準化",
     "test_sample": "測試樣本",
-    "model_complexity": "模型複雜度 vs 錯誤率",
+    "model_complexity": "留一法誤差 vs K",
     "low_k": "低 K 值",
     "overfitting": "過擬合",
     "high_k": "高 K 值",
@@ -83,12 +96,21 @@
     "k_value": "參數 K 值:",
     "m_vote": "M 碼投票",
     "l_vote": "L 碼投票",
-    "advice": "仔細觀察互動變化：當你增大 <1>K</1> 值時，決策邊界會變得更加平滑。較小的 <1>K</1> 會導致邊界複雜且容易 <3>過擬合</3>（捕捉到雜訊），而過大的 <5>K</5> 則會過度簡化邊界導致 **欠擬合**。另外，嘗試切換『標準化』模式，看看量綱如何影響距離計算——如果不進行標準化，數值範圍大的特徵（如體重）將主導距離計算，這是 KNN 中最經典的陷阱！"
+    "advice": "仔細觀察互動變化：當你增大 <1>K</1> 值時，決策邊界會變得更加平滑。較小的 <1>K</1> 會導致邊界複雜且容易 <3>過擬合</3>（捕捉到雜訊），而過大的 <5>K</5> 則會過度簡化邊界導致 <3>欠擬合</3>。另外，嘗試切換『標準化』模式，看看量綱如何影響距離計算——如果不進行標準化，數值範圍大的特徵（如體重）將主導距離計算，這是 KNN 中最經典的陷阱！",
+    "distance_mode": "距離度量",
+    "canvas_label": "KNN 散點圖。點擊或使用方向鍵移動測試點。測試點：身高 {{h}} cm，體重 {{w}} kg。K = {{k}} 時預測為 {{cls}}。",
+    "axis_weight": "體重 (kg)",
+    "axis_height": "身高 (cm)",
+    "keyboard_hint": "提示：聚焦畫布後可用方向鍵移動測試點。",
+    "loo_chart_label": "K = 1 到 15 的留一法誤差率。最低誤差 {{err}}，出現在 K = {{k}}。",
+    "loo_hint": "這是真實計算結果而非示意圖：{{n}} 個樣本依次被留出，由其餘樣本預測。此處誤差最低：K = {{k}}（{{err}}）。綠點 = 最佳 K，虛線 = 當前 K。",
+    "tie": "平票 {{m}} : {{l}} —— 沒有多數，由最近的鄰居裁決 → {{cls}}。選奇數 K 可避免平票。",
+    "class_m": "M 碼",
+    "class_l": "L 碼"
   },
   "app": {
     "title": "CS/AI 互動式學習實驗室",
     "subtitle": "COMP2211 Machine Learning Notebook",
-    "version": "v2.0 Katex Enhanced",
     "tabs": {
       "knn": "K-近鄰演算法",
       "bayesBasics": "貝葉斯基礎",
@@ -169,13 +191,31 @@
     },
     "footer": {
       "copyright": "© 2026 KnowIt COMP2211 ML Learning Lab. Education through interaction.",
-      "latency": "Latency: 12ms",
-      "render": "Render: KaTeX High-Def"
+      "local": "完全在瀏覽器本地運行",
+      "math": "公式由 KaTeX 排版"
     },
     "nav": {
       "course": "課程",
       "package": "資料包",
       "extend": "拓展"
+    },
+    "tabs_sub": {
+      "numpy": "視圖 vs 副本 & 廣播",
+      "backprop": "鏈式法則可視化",
+      "kernel": "邊緣檢測模擬",
+      "bayesBasics": "公式與火警案例",
+      "naiveBayes": "推斷與平滑",
+      "knn": "距離度量與決策邊界",
+      "alphabeta": "極小化極大與剪枝追蹤",
+      "kmeans": "EM 迭代與肘部法則",
+      "perceptron": "錯誤驅動學習",
+      "pytorch": "自動求導與訓練循環"
+    },
+    "a11y": {
+      "skip": "跳到主要內容",
+      "mode_nav": "站點分區",
+      "module_nav": "課程模塊",
+      "language": "切換語言"
     }
   },
   "alphabeta": {
@@ -214,7 +254,9 @@
       "prune": "節點 {{node}} 處 β({{beta}}) ≤ α({{alpha}}) → 剪枝！忽略後續分支 [{{children}}]。",
       "exit": "退出 {{node}}：最終得分 {{value}}，返回父節點。"
     },
-    "advice": "Alpha-Beta 與樸素 Minimax 返回完全相同的值，只是更快。剪枝條件 <1></1> 意味着父節點已有更優的保底選擇，本分支剩餘部分絕不可能改變結果。<3>節點排序至關重要</3>：先評估最有希望的子節點，才能觸發最多剪枝。"
+    "advice": "Alpha-Beta 與樸素 Minimax 返回完全相同的值，只是更快。剪枝條件 <1></1> 意味着父節點已有更優的保底選擇，本分支剩餘部分絕不可能改變結果。<3>節點排序至關重要</3>：先評估最有希望的子節點，才能觸發最多剪枝。",
+    "leaf_label": "葉子 {{id}} 的值",
+    "tree_label": "博弈樹（MAX / MIN 節點），顏色表示當前步驟的活躍、已訪問與已剪枝部分。"
   },
   "kmeans": {
     "canvas_title": "簇分配（點擊播放逐輪迭代）",
@@ -233,7 +275,8 @@
     "moved": "本輪質心共移動 {{d}}。",
     "elbow_title": "肘部法則 (K vs Inertia)",
     "elbow_hint": "Inertia 隨 K 增大必然下降；選「肘部」——邊際收益變平的那個 K。",
-    "advice": "K-Means 交替執行兩步（EM）：把每個點分到最近質心，再把質心移到簇均值。Inertia 永不增大。難點在於選 <1>K</1>——用 <3>肘部法則</3>。務必先做 Z-score 標準化，否則量綱大的特徵會主導歐氏距離！"
+    "advice": "K-Means 交替執行兩步（EM）：把每個點分到最近質心，再把質心移到簇均值。Inertia 永不增大。難點在於選 <1>K</1>——用 <3>肘部法則</3>。務必先做 Z-score 標準化，否則量綱大的特徵會主導歐氏距離！",
+    "canvas_label": "K-Means 散點圖，K = {{k}}，第 {{iter}} 輪，Inertia = {{inertia}}。"
   },
   "package": {
     "back": "返回筆記列表",

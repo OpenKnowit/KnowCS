@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -10,7 +10,7 @@ interface SeniorAdviceProps {
 export const SeniorAdvice = ({ content }: SeniorAdviceProps) => {
   const { t } = useTranslation()
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg"
@@ -22,6 +22,6 @@ export const SeniorAdvice = ({ content }: SeniorAdviceProps) => {
           <div className="text-amber-900 text-sm leading-relaxed inline">{content}</div>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   )
 }

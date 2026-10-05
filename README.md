@@ -8,8 +8,8 @@ This is an interactive learning website for HKUST COMP2211 (Machine Learning). T
 
 You can experience the project via the following links:
 
-- **English Version**: [https://knowitcs.pinit.eth.link/](https://knowitcs.pinit.eth.link/)
-- **Chinese Version**: [https://knowcs.pinit.eth.link/](https://knowcs.pinit.eth.link/)
+- **English Version**: [https://knowcs.online/?lang=en](https://knowcs.online/?lang=en)
+- **Chinese Version**: [https://knowcs.online/?lang=zh](https://knowcs.online/?lang=zh)
 
 ## 📚 Content Source & Roadmap
 
@@ -38,7 +38,7 @@ This project is built on a modern frontend tech stack, focusing on performance a
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) (v4) - Utility-first CSS framework for rapidly building modern UIs.
 - **Animation Engine**: [Framer Motion](https://www.framer.com/motion/) - Implements smooth interactive animation effects (e.g., gradient descent tracking, matrix transformation).
 - **Math Formulas**: [KaTeX](https://katex.org/) - High-performance LaTeX formula rendering library.
-- **Internationalization**: [react-i18next](https://react.i18next.com/) - Supports one-click switching between Chinese and English.
+- **Internationalization**: [react-i18next](https://react.i18next.com/) - English / Simplified Chinese / Traditional Chinese (HK), auto-detected from the browser.
 - **Icons**: [Lucide React](https://lucide.dev/) - Clean and beautiful icon components.
 - **Single File Build**: `vite-plugin-singlefile` - Packages the entire application into a single HTML file for easy distribution and deployment.
 
