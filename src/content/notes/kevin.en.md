@@ -10,7 +10,7 @@ PyTorch:ML from Facebook, adapted to run tensor on GPU
 
 Scikit-learn:user-friendly, classification, regressions..
 
-![图片](images/image_01.webp)
+![figure](images/image_01.webp)
 # **2.Python(3.11.13):**
 
 type(<object>) e.g.:
@@ -29,7 +29,7 @@ new_dict = {key_expression : value_expression for element in iterable if condi
 
 filtered = {k: v for k, v in old_dict.items() if v > 10}
 
-new_set = {expression for element in iterable if condition} (same with list but 去重) e.g.:
+new_set = {expression for element in iterable if condition} (same as list but deduplicated) e.g.:
 
 s = {x*x for x in [1, 2, 2, 3]} # {1,4,9}
 
@@ -212,7 +212,7 @@ np.array([a[0,0:2],a[1,1:3],a[2,2:4]])
 # all: [[1,2],[6,7],[11,12]]
 ```
 Broadcast:
-put 1 at left, then check, must same or at least one side is 1![图片](images/image_02.webp)
+put 1 at left, then check, must same or at least one side is 1![figure](images/image_02.webp)
 
 numpy≈c++, using only one ptr, while python list use lots of ref
 
@@ -241,35 +241,35 @@ longer training time, low accuracy
 
 e.g.: clustering, association
 
-![图片](images/image_03.webp)
+![figure](images/image_03.webp)
 Naive Bayes:
 
 P(B|E) = P(B) × P(E|B) /(E)
 
 E: Evidence (Feature), B: Belief (Class)
 
-![图片](images/image_04.webp)
+![figure](images/image_04.webp)
 Naive requirement:
 
 1.Evidence conditional independent: P(e1e2|B)=P(e1|B)*P(e2|B)
 
 2.Evidence contributes equally: w1=w2=1 in P(B|e1e2)=kP(B)(P(e1|B)^w1)*(P(e2|B)^w2)
 
-![图片](images/image_05.webp)
+![figure](images/image_05.webp)
 remove the denominator:
 
-![图片](images/image_06.webp)
-α-laplace smoothing:![图片](images/image_07.webp)
+![figure](images/image_06.webp)
+α-laplace smoothing:![figure](images/image_07.webp)
 
 m = types of ej, hence the sum would be 1
 
-continuous variables:![图片](images/image_08.webp)
+continuous variables:![figure](images/image_08.webp)
 
 caculate mean and sd for each B then use f(x)
 
 avoiding floating-point overflow, we can use log sum
 
-pros&cons: ![图片](images/image_09.webp)
+pros&cons: ![figure](images/image_09.webp)
 
 # 4.KNN:
 
@@ -279,7 +279,7 @@ Non-Parametric:
 
 1 don't have parameter (that means pm. from data, the humanmade pm. is called hyperparameter e.g.: K in KNN)
 
-2 don't make any assumption (e.g. distribution)![图片](images/image_10.webp)
+2 don't make any assumption (e.g. distribution)![figure](images/image_10.webp)
 
 Steps:
 
@@ -340,7 +340,7 @@ Confusion Matrix: TP,TN,FP(predict+),FN(predict-)
 
 Accuracy = TP+TN/sum,   Error = FP+FN/sum
 
-Precision = TP/TP+FP,   Recall = TP/TP+FN (检索率)
+Precision = TP/TP+FP,   Recall = TP/TP+FN
 
 F1-score = 2*P*R/P+R = 2TP/2TP+FP+FN
 
@@ -350,14 +350,14 @@ Macro F1: unweighted mean of F1
 
 Weighted F1: weighted by total number of samples of that class
 
-![图片](images/image_11.webp)
+![figure](images/image_11.webp)
 F1 better than Accuracy but also only focus on positive class (if yesyes=100, fail)
 
 MCC = TN*TP-FN*FP/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN)) 
 
 MCC is the best, for e.g.: Accuracy = 0.913 F1=0.5(0.95 if swap) MCC=0.45
 
-MCC's range: -1(against) ~ 0(random) ~ 1(perfect)![图片](images/image_12.webp)
+MCC's range: -1(against) ~ 0(random) ~ 1(perfect)![figure](images/image_12.webp)
 
 
 Error Measurement:
@@ -368,7 +368,7 @@ Mean Square Error(MSE): sum((ai-pi)^2)/m
 
 Mean Absolute Percentage Error(MAPE): sum(abs(ai-pi/ai))/m
 
-Pros&Cons:![图片](images/image_13.webp)
+Pros&Cons:![figure](images/image_13.webp)
 
 Speed Up KNN
 
@@ -424,7 +424,7 @@ Assign the rest of the data points to the clusters by distance or similarity com
 
 Pros&Cons:
 
-![图片](images/image_14.webp)
+![figure](images/image_14.webp)
 other cons:
 
 sensitive to initial seeds
@@ -720,7 +720,7 @@ avoiding: gradient +/- and net shifting cause saturation
 
 Hyperbolic Tangent (Tanh): e^x-e^-x/e^x+e^-x range:[-1,1]
 
-![图片](images/image_15.webp)
+![figure](images/image_15.webp)
 RNN: sigmoid/tanh  MLP/CNN: ReLU
 
 Output layer: linear/sigmoid/softmax
@@ -756,7 +756,7 @@ Affine Transformation:
 
 preserves: collinearity, parallelism and ratio of distances
 
-e.g.: translation, rotation, scaling, shearing![图片](images/image_16.webp)
+e.g.: translation, rotation, scaling, shearing![figure](images/image_16.webp)
 
 translation: [[1 0 t1] [0 1 t2]]
 
@@ -806,7 +806,7 @@ replicating boundary
 
 reflecting boundary (use outside edge as mirror):
 
-![图片](images/image_17.webp)
+![figure](images/image_17.webp)
 mirroring boundary (use edge as mirror)
 
 mean: all 1/9
@@ -887,7 +887,7 @@ Output layer: softmax
 mask = (rand >= p) / (1 - p) ***can keep the mean same!!
 
 
-注意kernel数量不相加，是分开的，是bias数！，channel是相加的 channel数量不是bias数量
+Note: kernels are not summed, they stay separate, so the number of kernels = the number of biases! Channels are summed, so the number of channels is not the number of biases
 
 
 Stride: amount of movement, default: (1,1)
@@ -1135,7 +1135,7 @@ Potential ‘Harms’ That AI Systems May Cause
 
 (2)Making **unreliable decisions** or delivering poor quality outcomes due to model implementation issues
 
-(7)Denying people their right to **accountability(追责)** for the decisions AI systems make about them
+(7)Denying people their right to **accountability** for the decisions AI systems make about them
 
 
 The Seven European Union Principles
@@ -1154,7 +1154,7 @@ The Seven European Union Principles
 
 **7 Accountability:** Mechanisms should be implemented to ensure responsibility and accountability for AI systems ...
 
-人权 安全 隐私 透明 公正 福祉 责任
+human agency, safety, privacy, transparency, fairness, well-being, accountability
 
 
 five fundamental principles: 
@@ -1169,7 +1169,7 @@ five fundamental principles:
 
 5(4) Explicability: Transparency and explainability
 
-隐私 福祉 安全 公正 透明
+privacy, well-being, safety, fairness, transparency
 
 
 Three main areas:
@@ -1214,7 +1214,7 @@ Unreliable Data
 
 limited diagnostic tools
 
-Proxies(指标): correlated with sensitive attributes
+Proxies: correlated with sensitive attributes
 
 postcode of some minority
 

@@ -42,7 +42,7 @@ Keras 3 核心文档 API 数量级：**约 600–800 个**（文档页面 200+ �
 | ⑥ 保存部署 | saving / export | 记 2 个 |
 | ⑦ 底层算子 | `keras.ops` | **不用学，用时查** |
 
-> [!tip] 关键洞察
+> **提示：关键洞察**
 > 最大的一块 `keras.ops` 恰恰最不用学——它就是 numpy 风格函数（`ops.matmul`、`ops.reshape`…），写自定义层时现查现用。
 
 ### 二八法则：25 个核心 API 覆盖 90% 场景
@@ -90,7 +90,7 @@ model = keras.Sequential([
 model.summary()   # 随时打印结构，养成习惯
 ```
 
-> [!warning] 坑
+> **⚠️ 坑**
 > 不写 `Input` 也能跑（首次喂数据时才 build），但 `summary()` 会报模型未构建。始终显式写 `Input`。
 
 ### 2. `keras.Input` — 数据入口的占位符
@@ -99,7 +99,7 @@ model.summary()   # 随时打印结构，养成习惯
 inputs = keras.Input(shape=(784,))   # shape 不含 batch 维！
 ```
 
-> [!warning] 坑
+> **⚠️ 坑**
 > `shape=(784,)` 表示每个样本 784 维，实际数据是 `(batch, 784)`。新手最常见错误就是把 batch 维写进去。
 
 ### 3. `keras.Model` — Functional API（真正的精髓）
@@ -125,7 +125,7 @@ outputs = layers.Dense(1, activation="sigmoid")(merged)
 model = keras.Model(inputs, outputs)
 ```
 
-> [!tip] 心法
+> **提示：心法**
 > Sequential 用来快速验证想法，Functional 用来干正事。学会 Functional 后基本不会回头。
 
 ---
@@ -221,7 +221,7 @@ layers.LSTM(64, return_sequences=True)  # 返回每一步 → 用于堆叠/序�
 
 - GRU 是 LSTM 简化版：参数少、更快，效果通常接近。**默认先试 GRU**
 
-> [!warning] 最大的坑
+> **⚠️ 最大的坑**
 > 堆叠两层 RNN 时，第一层必须 `return_sequences=True`，否则第二层收不到序列，报 shape 错误。
 
 #### `MultiHeadAttention(num_heads, key_dim)` — Transformer 的心脏
@@ -356,7 +356,7 @@ preds = probs.argmax(axis=-1)       # 取概率最大的类别
 | `loss` 降、`val_loss` 开始升 | **过拟合**，从转折点该停（EarlyStopping 的工作） |
 | 两者都不降 | 学习率/loss 选错，或数据有问题 |
 
-> [!warning] 坑
+> **⚠️ 坑**
 > `validation_split` 直接切走**最后** 20% 数据。若数据按类别排过序，验证集会全是同一类——先 shuffle。
 
 ---

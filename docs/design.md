@@ -86,7 +86,8 @@ KnowCS/
 ├─ vitest.config.ts        测试范围限定 src/**/*.test.ts
 ├─ scripts/
 │   ├─ vite-plugins.mjs    构建期插件（KaTeX 字体瘦身、Markdown 预渲染）
-│   └─ gen-zh-hk.mjs       zh.json → zh-HK.json（OpenCC + 港式术语）
+│   ├─ zh-hk.mjs           简→港繁转换（OpenCC + 港式术语），locale 与内容共用
+│   └─ gen-zh-hk.mjs       zh.json → zh-HK.json
 ├─ docs/                   design / log / plan
 └─ src/
    ├─ main.tsx / App.tsx / i18n.ts / index.css
@@ -96,7 +97,7 @@ KnowCS/
    │                       · backprop · perceptron · autograd · chart · route · lang
    ├─ modules/             各视图组件（Perceptron / PyTorch 已就绪但暂未上架）
    ├─ data/                constants（教学数据）· notes · extensions
-   ├─ content/             notes/*.md + images/*.webp · attention.html
+   ├─ content/             notes/<id>.{en,zh}.md + images/*.webp · attention.{en,zh}.html
    ├─ locales/             en.json · zh.json · zh-HK.json（生成，勿手改）
    └─ ref/                 历史参考版本（不参与构建 / lint / tsc）
 ```
@@ -192,6 +193,7 @@ KnowCS/
 - **文案结构**：按模块命名空间组织（`numpy_module.*`、`bayes.naive.*`、`knn.*`、`app.*` …）。
 - **富文本**：`<Trans i18nKey components={{…}}>` 注入 `<Latex>` / `<strong>`；文案中不要写 Markdown（`**x**` 不会被渲染）。
 - **繁体**：`zh-HK.json` 由 `npm run gen:zh-hk` 生成，严禁手改。
+- **资料包 / 拓展内容**：每篇笔记与拓展页维护 `en` / `zh` 两份源文件。`zh-HK` 在构建期由 `zh` 源转换，规则与 locale 相同（`?html-hk` / `?raw-hk`，见 `scripts/vite-plugins.mjs`）。`PackageModule` / `ExtendModule` 按 `normalizeLang(i18n.resolvedLanguage)` 选取版本，切换语言即时生效。图片以 ES import 引入，三种语言共用一份。`src/content/content.test.ts` 守卫以下几点：双语成对、图片一致、英文版无中文、无 Obsidian 专有语法。
 
 ---
 
@@ -240,7 +242,7 @@ npm run build     # tsc --noEmit && vite build → dist/index.html（门禁）
 4. 在 `en.json` / `zh.json` 补齐 `app.tabs.xxx`、`app.tabs_sub.xxx`、`app.section.xxx.*`、`app.sidebar.exam_tip.content_xxx` 及模块文案，然后 `npm run gen:zh-hk`。
 5. 用 `SeniorAdvice` 收尾；交互元素补 `aria-label` / `aria-pressed`。
 
-新增 Package 笔记：放 `src/content/notes/x.md`（图片放 `images/`，相对引用），在 `src/data/notes.ts` 用 `import x from '…/x.md?html'` 注册即可。
+新增 Package 笔记：放 `src/content/notes/x.en.md` 与 `x.zh.md`（图片放 `images/`，相对引用，两版引用一致），在 `src/data/notes.ts` 以 `?html`（en、zh）+ `?html-hk`（由 zh 生成）注册三种语言。不要使用 Obsidian 的 `> [!tip]` / `[[双链]]`，它们会原样显示。
 
 ---
 
