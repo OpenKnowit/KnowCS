@@ -334,6 +334,28 @@ export const reduce = (a: NDArray, kind: ReduceKind, axis: number | null): NDArr
   return NDArray.create(out, outShape, reduceDType(kind, a.dtype))
 }
 
+/** np.argsort(a, axis)：沿某轴稳定排序后的下标，形状与 a 相同；axis 为 null 时先拉平 */
+export const argsort = (a: NDArray, axis: number | null): NDArray => {
+  const sortIdx = (xs: number[]) => xs.map((_, i) => i).sort((i, j) => xs[i] - xs[j] || i - j)
+  if (axis === null) return NDArray.create(sortIdx(a.values()), [a.size], 'int64')
+  if (a.ndim === 0) throw new PyError('AxisError', `axis ${axis} is out of bounds for array of dimension 0`)
+  const ax = normAxis(axis, a.ndim)
+  const perm = [...a.shape.map((_, i) => i).filter((i) => i !== ax), ax]
+  const vals = transpose(a, perm).values()
+  const n = a.shape[ax]
+  const out: number[] = []
+  for (let i = 0; i < vals.length; i += n) out.push(...sortIdx(vals.slice(i, i + n)))
+  const inv = perm.map((_, i) => perm.indexOf(i))
+  return transpose(NDArray.create(out, perm.map((i) => a.shape[i]), 'int64'), inv).copy()
+}
+
+/** np.expand_dims(a, axis)：在 axis 处插入长度为 1 的新轴，等价于 a[:, …, None]，返回视图 */
+export const expandDims = (a: NDArray, axis: number): NDArray => {
+  const ax = normAxis(axis, a.ndim + 1)
+  const items: IndexItem[] = [...Array.from({ length: ax }, (): IndexItem => ({ kind: 'slice', start: null, stop: null, step: null })), { kind: 'newaxis' }]
+  return getIndex(a, items).value as NDArray
+}
+
 export const dot = (a: NDArray, b: NDArray): NDArray | number => {
   if (a.ndim === 0 || b.ndim === 0) return binaryOp('*', a, b)
   const A = a.ndim === 1 ? reshape(a, [1, a.shape[0]]) : a

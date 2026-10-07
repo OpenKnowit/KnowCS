@@ -144,6 +144,129 @@
         "pit_try": "Try it above →"
       },
       "advice": "Broadcasting doesn't actually copy data in memory, but virtually maps addresses during iteration. Core rule: Compare from the last dimension forward, they must either be equal or one of them is <1>1</1>."
+    },
+    "pairwise": {
+      "title": "3. Pairwise Distance in One NumPy Line (Exam Video)",
+      "intro": "A short animated video on a question that keeps coming back in COMP2211 papers: compute every test-to-train distance with no loops. It uses the exact data from the 2022 Spring midterm Q2(c) and follows the official marking scheme, tracking the shape at every step.",
+      "video_label": "Video: pairwise distance in one NumPy line",
+      "play_video": "Play the video",
+      "replay": "Watch again",
+      "scene_count": "{{count}} scenes",
+      "play": "Play",
+      "pause": "Pause",
+      "prev": "Previous scene",
+      "next": "Next scene",
+      "speed": "Playback speed",
+      "keys": "Click the video to play or pause. Keyboard: Space plays or pauses, ← / → move between scenes. Click a chapter to jump to it.",
+      "code_title": "Try it: the same steps, run by the in-browser interpreter",
+      "output_title": "Output",
+      "advice": "Every year this shows up as KNN or K-Means \"without loops\": 2022S Q2(c) for Euclidean distance, 2023F for Minkowski + np.argsort(…, axis=1)[:, :k], 2023S for a Poincaré distance with np.expand_dims. Marks go to the shape change, the right axis in sum / argsort, and the (num_test, num_train) order. Write the shape as a comment after every step; that alone catches most mistakes.",
+      "scenes": {
+        "question": {
+          "title": "The exam question",
+          "c1": "This exact task was in the COMP2211 2022 Spring midterm (Q2c, 9 points): rewrite a nested-loop distance function with no explicit loops.",
+          "c2": "The marking scheme is blunt: any for loop or list comprehension scores 0. You need the one-line broadcasting trick.",
+          "c3": "Here is the answer we are going to build. Let's take it apart and track the shape at every step."
+        },
+        "data": {
+          "title": "What we want",
+          "c1": "X_test holds 2 points and X_train holds 4, each with 2 coordinates: shapes (2, 2) and (4, 2).",
+          "c2": "We need the distance between every test point and every train point: 2 × 4 = 8 numbers.",
+          "c3": "Row i is test point i and column j is train point j, so the answer has shape (num_test, num_train) = (2, 4). Getting it the wrong way round costs a mark."
+        },
+        "line": {
+          "title": "The one line",
+          "c1": "Read it from the inside out: five operations, and only the first one is tricky.",
+          "c2": "The shape goes (2, 2) & (4, 2) → (2, 4, 2) → (2, 4). The 3-D middle step holds all 8 pairs at once."
+        },
+        "fail": {
+          "title": "Why X_test − X_train fails",
+          "c1": "First instinct: just subtract. NumPy compares shapes from the right, and the last axis is fine: 2 vs 2.",
+          "c2": "But then 2 test rows meet 4 train rows. They differ and neither is 1, so NumPy raises a ValueError.",
+          "c3": "If the counts happened to match, it would be worse: no error, just the wrong pairs. Under the marking scheme, no shape change scores 0 of the 4 subtraction points."
+        },
+        "axes": {
+          "title": "Insert a new axis",
+          "c1": "The fix is to give each array its own axis. None (= np.newaxis) inserts an axis of length 1 where you write it.",
+          "c2": "X_test[:, None, :] is (2, 1, 2), with test points down axis 0. X_train[None, :, :] is (1, 4, 2), with train points along axis 1.",
+          "c3": "Broadcasting will stretch the 1s. np.expand_dims(X_test, 1) does the same thing, and X_train[None] is optional because NumPy pads missing axes on the left."
+        },
+        "broadcast": {
+          "title": "Broadcast: (2, 4, 2)",
+          "c1": "Compare (2, 1, 2) with (1, 4, 2): the last axes match, and in each of the other two one side is 1. Both arrays can stretch.",
+          "c2": "Test points are reused across the 4 columns and train points down the 2 rows. Nothing is copied in memory: the stretched axis has stride 0.",
+          "c3": "Cell [i, j] now holds X_test[i] − X_train[j]. That is all 8 difference vectors at once, shape (2, 4, 2)."
+        },
+        "reduce": {
+          "title": "Square, then sum axis = −1",
+          "c1": "Square every coordinate difference: (5, 5) becomes (25, 25). The shape stays (2, 4, 2).",
+          "c2": "Sum along the last axis, the coordinate axis, so each cell collapses to one number: (2, 4, 2) → (2, 4).",
+          "c3": "axis=2 and axis=-1 are both right. axis=1 adds up different train points and gives (2, 2): it runs, but the result means nothing. The scheme deducts a point for a missing or wrong axis."
+        },
+        "result": {
+          "title": "sqrt → the distance matrix",
+          "c1": "Apply np.sqrt element by element. The shape stays (2, 4), and these are exactly the numbers printed in the exam paper.",
+          "c2": "Row i lists test point i's distance to every train point, so KNN takes np.argsort(D, axis=1)[:, :k]. The 2023 Fall midterm asked exactly this, with Minkowski distance.",
+          "c3": "Here train point r3 at (3, 4) is the nearest neighbour of both test points."
+        },
+        "recap": {
+          "title": "Exam checklist",
+          "c1": "This is the shape trail. In the exam, write it as comments next to your code.",
+          "c2": "Check each item before you hand in. Most lost marks come from a missing axis or the wrong axis.",
+          "c3": "The (n, m, d) middle array is the price of the one-liner. Now run the code yourself below."
+        }
+      },
+      "v": {
+        "question": {
+          "badge": "2022 Spring Midterm · Q2(c) · 9 points",
+          "zero": "Any for loop → 0 points",
+          "one_line": "One line, no loops"
+        },
+        "data": {
+          "cell": "D[i, j] = distance(test i, train j)",
+          "shape": "answer shape"
+        },
+        "line": {
+          "s1": "add axes",
+          "s2": "subtract",
+          "s3": "square",
+          "s4": "sum coords",
+          "s5": "sqrt"
+        },
+        "fail": {
+          "silent": "Silent trap: with 4 test and 4 train points, X_test − X_train runs without error but only pairs row i with row i, giving 4 differences instead of 16."
+        },
+        "axes": {
+          "axis0": "axis 0 = test point i",
+          "axis1": "axis 1 = train point j",
+          "axis2": "axis 2 = coordinates (x, y)",
+          "pad": "missing axes are padded on the left"
+        },
+        "broadcast": {
+          "equal": "equal",
+          "stretch_test": "stretch test",
+          "stretch_train": "stretch train",
+          "ghost": "Dashed = virtual copies made by broadcasting (stride 0)"
+        },
+        "reduce": {
+          "ax_last": "sums x and y ✓",
+          "ax_1": "sums over train points ✗",
+          "ax_0": "sums over test points ✗",
+          "trap": "Square the difference: (a − b)², not a² − b² (−3 points in the scheme)."
+        },
+        "result": {
+          "match": "matches the output printed in the exam paper"
+        },
+        "recap": {
+          "no_loop": "No for loop and no list comprehension, or the answer scores 0",
+          "axis": "Insert the axis: X_test[:, None] or np.expand_dims(X_test, 1)",
+          "square": "Square the difference (a − b)², not a² − b²",
+          "sum": "Sum over the last axis: axis=-1 (or 2)",
+          "order": "Result is (num_test, num_train); swapped costs −1",
+          "general": "Use .shape, never hard-coded 4 or 2",
+          "memory": "Memory: the (n, m, d) intermediate costs n·m·d numbers. For large data, the official solution expands ‖x − y‖² = ‖x‖² + ‖y‖² − 2x·y and uses one matrix product, X_test @ X_train.T, so no 3-D array is ever built."
+        }
+      }
     }
   },
   "backprop_module": {

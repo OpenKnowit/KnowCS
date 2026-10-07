@@ -3,7 +3,7 @@
 // 函数调用与关键字参数、属性、下标与切片。不支持 for / if / def 等语句块。
 
 import {
-  NDArray, PyError, MAX_SIZE, arrayRepr, arrayStr, binaryOp, castValue, dot, formatScalar, getIndex, reduce,
+  NDArray, PyError, MAX_SIZE, arrayRepr, arrayStr, argsort, binaryOp, castValue, dot, expandDims, formatScalar, getIndex, reduce,
   reshape, setIndex, sharesMemory, shapeStr, transpose, unaryOp, checkSize, applyOp, cStrides, broadcastShapes, broadcastTo,
 } from './ndarray'
 import type { AxisNote, BinOp, DType, IndexItem, IndexPlan, ReduceKind } from './ndarray'
@@ -1036,6 +1036,11 @@ class Interp {
     return this.toInt(v)
   }
 
+  /** argsort 的 axis：缺省为 -1，显式 None 表示先拉平 */
+  sortAxis(kw: Record<string, Value>, args: Value[]): number | null {
+    return (kw.axis ?? args[0]) === undefined ? -1 : this.kwInt(kw, args, 0, 'axis')
+  }
+
   dtypeOf(v: Value | undefined): DType | undefined {
     if (!v || v.k === 'none') return undefined
     if (v.k === 'dtype') return v.d
@@ -1090,6 +1095,7 @@ class Interp {
         case 'sum': case 'mean': case 'max': case 'min': case 'argmax': case 'argmin': case 'any': case 'all':
           return fn((args, kw) => this.reduceFn(a, name, args, kw))
         case 'dot': return fn((args) => this.binop('@', obj, args[0]))
+        case 'argsort': return fn((args, kw) => arr(argsort(a, this.sortAxis(kw, args))))
       }
       throw this.err('AttributeError', `'numpy.ndarray' object has no attribute '${name}'`)
     }
@@ -1214,6 +1220,16 @@ class Interp {
       argmax: reducer('argmax'), argmin: reducer('argmin'), any: reducer('any'), all: reducer('all'),
       abs: elementwise('abs', Math.abs, true),
       sqrt: elementwise('sqrt', Math.sqrt),
+      square: elementwise('square', (x) => x * x, true),
+      expand_dims: fn('expand_dims', (args, kw) => {
+        const axis = this.kwInt(kw, args.slice(1), 0, 'axis')
+        if (axis === null) throw this.err('TypeError', "expand_dims() missing required argument 'axis'")
+        return arr(expandDims(asArr(args[0], 'expand_dims'), axis))
+      }),
+      argsort: fn('argsort', (args, kw) => {
+        const a = asArr(args[0], 'argsort')
+        return arr(argsort(a, this.sortAxis(kw, args.slice(1))))
+      }),
       exp: elementwise('exp', Math.exp),
       log: elementwise('log', Math.log),
       newaxis: NONE,

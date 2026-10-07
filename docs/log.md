@@ -7,6 +7,12 @@
 
 ## 进展时间线
 
+### 2026-10-07 — 考点视频：一行 NumPy 求成对距离
+- **feat**：NumPy 模块新增第 3 节「一行 NumPy 求成对距离（考点讲解视频）」（`NumpyPairwiseVideo.tsx`）。这是一段约 2 分 10 秒、共 9 个场景的动画视频：原题与评分标准 → 要算什么 → 一行拆解 → 直接相减为何报错 → 插入新轴 → 广播成 (n, m, d) → 平方并沿 axis=-1 求和（对比错误 axis）→ 开方与 argsort 取 KNN → 考前清单与内存代价。三语字幕，配有时间轴、章节、倍速和键盘控制。
+- **feat**：`lib/pairwise.ts` 提供差张量、平方距离、循环版、展开式版、kNearest、形状追踪等纯函数，另加 9 个测试，用 2022S Q2(c) 的输出作为黄金值。
+- **feat**：minipy 新增 `np.square`、`np.expand_dims`、`np.argsort` / `.argsort()`，输出已与真 NumPy 核对。
+- **决策**：视频做成站内时间轴动画，不嵌 MP4，原因是单文件产物、字幕可三语切换、画面数值由代码计算。另用 Playwright 录屏导出了中英两版 MP4，供站外分享，不入库。
+
 ### 2026-10-05 — Package / Extend 内容三语化
 - **fix（i18n）**：此前资料包 5 篇笔记与 Attention 拓展页只有简体，COMP2211 课程笔记只有英文，与站点语言无关。现在每项内容都有 en / zh 两份源文件，zh-HK 在构建期由简体生成，切换语言即时生效。
 - **feat**：新增英文版 NumPy / pandas / PyTorch / TensorFlow / Keras 笔记和 Attention 页，新增中文版 COMP2211 课程笔记。英文课程笔记中夹杂的中文注释改为英文。清理笔记中会原样显示的 Obsidian 语法（`> [!tip]`、`[[numpy]]`）。
