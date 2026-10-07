@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
-import { AnimatePresence, m } from 'framer-motion'
 import { Check, ChevronDown, Languages, Sigma, WifiOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { normalizeLang, SUPPORTED_LANGS } from '../lib/lang'
@@ -63,17 +62,13 @@ const LanguageMenu = () => {
         <span className="hidden sm:inline">{LANG_LABELS[currentLang]}</span>
         <ChevronDown size={14} className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
       </button>
-      <AnimatePresence>
-        {open && (
-          <m.div
+      {open && (
+          // a CSS fade keeps the animation library out of the entry chunk every page loads
+          <div
             role="menu"
             aria-label={t('app.a11y.language')}
             onKeyDown={onMenuKeyDown}
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50"
+            className="lang-menu absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50"
           >
             {SUPPORTED_LANGS.map((code) => (
               <button
@@ -89,9 +84,8 @@ const LanguageMenu = () => {
                 {currentLang === code && <Check size={14} aria-hidden />}
               </button>
             ))}
-          </m.div>
+          </div>
         )}
-      </AnimatePresence>
     </div>
   )
 }

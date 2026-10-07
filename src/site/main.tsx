@@ -1,6 +1,6 @@
 import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
-import { LazyMotion, MotionConfig, domAnimation } from 'framer-motion'
+import { LazyMotion, MotionConfig } from 'framer-motion'
 import '../index.css'
 import { i18nReady } from '../i18n'
 import { legacyTarget } from '../lib/sitemap'
@@ -13,6 +13,9 @@ const { page = 'home', id = '' } = document.body.dataset
 // Old single-page links (knowcs.online/#/course/knn …) land on the home page: forward them.
 const moved = page === 'home' ? legacyTarget(window.location.hash) : null
 if (moved) window.location.replace(moved)
+
+// animation features load on demand, after first paint (m.* components render statically until then)
+const loadMotionFeatures = () => import('framer-motion').then((r) => r.domAnimation)
 
 const HomePage = lazy(() => import('./pages/HomePage'))
 const ModulePage = lazy(() => import('./pages/ModulePage'))
@@ -40,7 +43,7 @@ if (!moved) {
   void i18nReady.then(() => {
     createRoot(document.getElementById('root')!).render(
       <StrictMode>
-        <LazyMotion features={domAnimation} strict>
+        <LazyMotion features={loadMotionFeatures} strict>
           <MotionConfig reducedMotion="user">
             <Shell section={section}>
               <Suspense fallback={<div className="min-h-[60vh]" aria-busy="true" />}>{content}</Suspense>
