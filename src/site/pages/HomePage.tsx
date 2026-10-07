@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { EPISODES, LECTURES, MODULES, PAPERS, drillUrl, formulasUrl, lectureScope, papersUrl, moduleUrl, noteUrl, watchUrl } from '../../lib/sitemap'
 import { DRILL } from '../../data/drill'
 import type { ModuleInfo } from '../../lib/sitemap'
 import { readVisited } from '../ui'
-import { EpisodeCard } from '../watch/EpisodeCard'
+
+// the explainer thumbnails pull in the animation code and KaTeX: load them after the rest of the page
+const WatchStrip = lazy(() => import('../watch/WatchStrip'))
 
 type Scope = 'all' | 'mid' | 'final'
 
@@ -91,9 +93,9 @@ export default function HomePage() {
               </div>
               <a href={watchUrl()} className="text-sm font-bold text-blue-300 hover:text-blue-200">{t('site.home.watch_all')} →</a>
             </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[...EPISODES].sort((x, y) => y.exams.length - x.exams.length).slice(0, 3).map((e) => <EpisodeCard key={e.id} info={e} />)}
-            </div>
+            <Suspense fallback={<div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((k) => <div key={k} className="aspect-[4/3] animate-pulse rounded-2xl bg-white/10" />)}</div>}>
+              <WatchStrip />
+            </Suspense>
           </div>
         </section>
       )}
