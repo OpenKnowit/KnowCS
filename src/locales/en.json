@@ -1641,7 +1641,8 @@
       "gallery_lead": "Short animated explainers for the ideas the exams keep asking about. Every number on screen is computed live, every chapter pauses for you to think, and each one ends at the page where you practise it.",
       "watch_first": "Watch: {{title}}",
       "watched": "Watched",
-      "gallery_count": "{{n}} explainers · {{done}} watched in this browser"
+      "gallery_count": "{{n}} explainers · {{done}} watched in this browser",
+      "rotate": "Tip: turn your phone sideways and tap ⛶ for a bigger picture. Captions are below the video."
     },
     "xor": {
       "kicker": "Lecture 6 · Multilayer perceptron",

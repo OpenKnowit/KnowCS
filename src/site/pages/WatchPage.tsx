@@ -92,7 +92,8 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
 
       <div className="mt-5">
         <Player episode={ep} onTime={setNow} seekRef={seek} />
-        <p className="mt-2 text-center text-xs text-slate-500">{t('watch.ui.keys')}</p>
+        <p className="mt-2 hidden text-center text-xs text-slate-500 sm:block">{t('watch.ui.keys')}</p>
+        <p className="mt-2 text-center text-xs font-semibold text-slate-500 sm:hidden">{t('watch.ui.rotate')}</p>
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
