@@ -2793,6 +2793,74 @@
         "q": "With a 3×3 kernel, dilation 2, stride 2 and “same” padding on a 10×10 input: what padding and what output size? Which padded rows does kernel row i = 1 read?",
         "a": "pad = 2·(3 − 1)/2 = 2, so the padded input is 14×14. k_eff = 5, output = ⌊(14 − 5)/2⌋ + 1 = 5, i.e. 5×5. Kernel row 1 reads rows 1·2 + 2·r = 2, 4, 6, 8, 10."
       }
+    },
+    "imagenp": {
+      "kicker": "Final 2024 · Problem 2",
+      "title": "Image processing without loops",
+      "sub": "A circular mask built by broadcasting two ranges, and a 3×3 blur done with one-dimensional np.convolve — the two tricks Final 2024 asked for.",
+      "label": {
+        "broadcast_dist": "A row of x-distances plus a column of y-distances broadcasts to the full distance grid — no loops.",
+        "boundary": "“Boundary included” means ≤, not <. The comparison gives True/False, which multiplies as 1/0.",
+        "two_passes": "A 3×3 mean filter is a horizontal 3-tap average followed by a vertical one.",
+        "cheaper": "Two passes of 3 taps instead of 9 multiplications per pixel — and each pass is one-dimensional.",
+        "drop_pad": "Outputs centred on a padding zero mix two rows: those are exactly the columns we cut off.",
+        "ones_note": "Here v = [1, 1, 1] so you can check the sums; the exam uses v = [1/3, 1/3, 1/3].",
+        "edges_dark": "Zero padding darkens the border: edge pixels average in zeros."
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "The 2024 final asked for two image operations with no explicit loops. Both are broadcasting in disguise."
+        },
+        "mask": {
+          "title": "(a) A circular mask",
+          "c1": "Keep the pixels within distance 100 of a centre, zero the rest.",
+          "c2": "np.arange gives every x and every y. Subtract the centre, and broadcast a row against a column: the distance of every pixel, at once.",
+          "c3": "Compare with the radius — boundary included, so ≤ — to get the mask.",
+          "c4": "Multiply the image by the mask. True counts as 1, False as 0.",
+          "ponder": "Why does y_dist need [:, None] but x_dist does not?"
+        },
+        "separable": {
+          "title": "(b) Split the blur",
+          "c1": "The 3×3 blur averages nine neighbours. But that matrix is an outer product of two thirds-vectors.",
+          "c2": "So blurring is a horizontal 3-tap average followed by a vertical one.",
+          "c3": "The question gives v = blur_filter.sum(0) for exactly this reason."
+        },
+        "flatten": {
+          "title": "The flatten trick",
+          "c1": "np.convolve only works on 1-D arrays. So pad every row with a zero at each end…",
+          "c2": "…and flatten the whole image into one long strip.",
+          "c3": "One convolution slides along the strip. Windows centred on a real pixel see its row neighbours — or a padding zero at the edge, which is exactly zero padding.",
+          "c4": "Windows centred on a padding zero straddle two rows. Put one 0 back at each end, reshape, and cut off the first and last column: those bad values disappear."
+        },
+        "result": {
+          "title": "Both directions",
+          "c1": "That is one horizontal pass.",
+          "c2": "Transpose, run the same function, transpose back: the vertical pass.",
+          "c3": "The result is the 3×3 zero-padded mean blur, and the code has no loops."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then try broadcasting shapes yourself in the NumPy playground."
+        }
+      },
+      "recap": {
+        "1": "Circle mask: dist = np.sqrt(x_dist ** 2 + y_dist[:, None] ** 2); img * (dist <= r).",
+        "2": "A 3×3 box blur = horizontal 3-tap pass, then the same on the transpose.",
+        "3": "Flatten trick: pad rows, flatten, np.convolve(…, 'valid'), pad the ends, reshape, drop the pad columns."
+      },
+      "exam": {
+        "points": {
+          "1": "The broadcasting step is worth a mark on its own: one axis must be a column ([:, None]).",
+          "2": "≤ for “boundary included”; using < loses half a mark in the scheme.",
+          "3": "After np.convolve(…, 'valid') the strip is two shorter — add the zeros back before reshaping.",
+          "4": "Watch the paper’s example: np.convolve([1,2,3,4], [0,1,0.5], 'valid') is really [2.5, 4.0], not [2.5, 3.5] as printed."
+        },
+        "source": "Final 2024 (Spring) · Problem 2",
+        "q": "Write apply_circle_mask(img, center_x, center_y) for a 512×512 image and radius 100 (boundary included) without loops.",
+        "a": "indices = np.arange(512); x_dist = indices − center_x; y_dist = indices − center_y; dist = np.sqrt(x_dist ** 2 + y_dist[:, None] ** 2); img_masked = img * (dist <= 100)."
+      }
     }
   }
 }
