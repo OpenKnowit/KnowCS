@@ -1993,6 +1993,99 @@
         "q": "For the lecture’s XOR network (η = 0.5) and the first sample (0, 0) with T = 0: compute O, δk, and the new w₅.",
         "a": "Both hidden outputs are σ(0) = 0.5. O = σ(0.86·0.5 − 1.38·0.5) = σ(−0.26) = 0.435364. δk = (0.435364 − 0)·0.435364·(1 − 0.435364) = 0.107022. New w₅ = 0.86 − 0.5·0.107022·0.5 ≈ 0.833245 (0.833244 without rounding δk first)."
       }
+    },
+    "cnn": {
+      "kicker": "Lectures 7–8 · Convolution and CNNs",
+      "title": "From a sliding window to a CNN’s shape table",
+      "sub": "Read the output-size formula straight off the animation, see why a kernel’s depth matches its input, and why CNNs need a hundredth of an MLP’s weights.",
+      "label": {
+        "image": "image, {{n}} × {{n}}",
+        "output": "output",
+        "count_positions": "How many places can a 3-wide window stand in a row of 7?",
+        "output_same": "output, {{n}} × {{n}}",
+        "same": "One ring of zeros keeps the size: Keras calls this padding=\"same\".",
+        "stride3": "stride 3: jump three cells at a time",
+        "never_seen": "The last row and column are never covered — the lecture says the window “does not fit”.",
+        "depth_matches": "a filter is as deep as its input",
+        "one_map": "Each filter slides over the whole volume and produces one 32 × 32 map. Ten filters, ten maps.",
+        "input": "input",
+        "same_job": "Same input, same output shape: a convolution versus a dense layer",
+        "log_scale": "bars on a log scale",
+        "sharing": "One small kernel is reused at every position (parameter sharing), and each output sees only a small window.",
+        "final22": "Final 2022 Part B Q1 — shapes and parameters, layer by layer",
+        "total": "CNN total:",
+        "mlp": "MLP on raw pixels:"
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "Every final has a table to fill in: the output shape and parameter count of each layer. All of it comes from one picture — a window sliding over an image."
+        },
+        "slide": {
+          "title": "Slide, multiply, add",
+          "c1": "A 7 × 7 image and a 3 × 3 kernel. Put the kernel on the top-left corner.",
+          "c2": "Multiply each pair of numbers, add them up: that is one output value. Then slide one step and repeat.",
+          "c3": "When the window has visited every position it can, the output is complete — and it is smaller than the image."
+        },
+        "size": {
+          "title": "Where the size comes from",
+          "c1": "Look at a single row. A window of width 3 can start at positions 1 to 5 in a row of 7.",
+          "c2": "So the output width is N − K + 1 = 5.",
+          "c3": "Add padding P on both sides and jump S cells at a time, and you get the formula on every exam: ⌊(N − K + 2P) / S⌋ + 1."
+        },
+        "padding": {
+          "title": "Padding",
+          "c1": "Put a ring of zeros around the image. Now the window can be centred on the edge pixels too.",
+          "c2": "With P = 1 and a 3 × 3 kernel, the output is 7 × 7 again — the same size as the input."
+        },
+        "stride": {
+          "title": "Stride",
+          "c1": "Stride 3: the window jumps three cells at a time.",
+          "c2": "7 − 3 = 4, and 4 / 3 is not a whole number. Round down: two positions, a 2 × 2 output.",
+          "c3": "The last row and column are never looked at. Exams floor the result; they call it “does not fit”.",
+          "ponder": "How much padding would make a 3 × 3 kernel with stride 3 fit a 7 × 7 image exactly?"
+        },
+        "channels": {
+          "title": "Depth and filters",
+          "c1": "Real images have channels. Lecture 8’s example: 32 × 32 × 3, ten 5 × 5 filters, stride 1, padding 2.",
+          "c2": "A filter always reaches through the full depth of its input, so each one is 5 × 5 × 3.",
+          "c3": "Each filter produces one 32 × 32 map. Ten filters give a 32 × 32 × 10 output.",
+          "c4": "Parameters: each filter has 5·5·3 weights plus one bias — 760 in total, whatever the image size."
+        },
+        "sharing": {
+          "title": "Why CNNs are small",
+          "c1": "A dense layer producing the same 32 × 32 × 10 output needs a weight for every input–output pair.",
+          "c2": "That is over 31 million weights, against 760.",
+          "c3": "The kernel is shared across positions and only looks locally. That is the whole reason CNNs scale to images."
+        },
+        "stack": {
+          "title": "A whole network",
+          "c1": "Now a full stack from the 2022 final: 224 × 224 × 3 in, 1000 classes out.",
+          "c2": "Each layer’s shape comes from the same formula; pooling and global pooling have no parameters; only conv and dense layers do.",
+          "c3": "About two million parameters in total. Flatten the image into a dense layer instead and you need 150 million."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three rules fill in the whole shape table.",
+          "c2": "Then build your own stack on the CNN shapes page and check every number."
+        }
+      },
+      "recap": {
+        "1": "Output size: ⌊(N − K + 2P) / S⌋ + 1. Padding “same” keeps N / S.",
+        "2": "Conv parameters: (K·K·C_in + 1) × filters — the image size does not matter.",
+        "3": "Pooling, flatten and dropout have no parameters; dense: (inputs + 1) × units."
+      },
+      "exam": {
+        "points": {
+          "1": "Show the working for every layer: ⌊(N − K + 2P) / S⌋ + 1, then the parameter product. Marks are for the working.",
+          "2": "A filter’s depth equals the input’s channel count. The number of filters becomes the output depth.",
+          "3": "Explain the CNN–MLP gap with two phrases: parameter sharing and sparse (local) connections.",
+          "4": "If (N − K + 2P) is not divisible by S, floor — the last pixels are skipped. The 2022 marking scheme slipped here (13 × 13 instead of 14 × 14)."
+        },
+        "source": "Lecture 8 all-in-one example · same format in Final 2022 B Q1 and Final 2023 Q6",
+        "q": "Input 32 × 32 × 3, ten 5 × 5 filters, stride 1, padding 2. What is the output shape, and how many parameters does the layer have?",
+        "a": "⌊(32 − 5 + 2·2) / 1⌋ + 1 = 32, so the output is 32 × 32 × 10. Parameters: (5·5·3 + 1) × 10 = 760."
+      }
     }
   }
 }
