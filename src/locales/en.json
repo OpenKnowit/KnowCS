@@ -856,6 +856,10 @@
         "title": "CNN shapes & parameters",
         "blurb": "Stack layers and get every output shape and parameter count."
       },
+      "pytorch": {
+        "title": "PyTorch: tensors, autograd and the training loop",
+        "blurb": "What a tensor prints, @ versus *, memory shared with NumPy, what loss.backward() fills in, and the five lines of every training step."
+      },
       "alphabeta": {
         "title": "Minimax & alpha-beta",
         "blurb": "Step through the search with α / β and see which branches get pruned."
@@ -1707,7 +1711,7 @@
       "rules": "Conv: (k·k·C<1>in</1> + 1) × filters — the depth of the input counts, the image size does not. Pooling, Flatten and Dropout have none. Dense: (inputs + 1) × units. The +1 is the bias; leave it out only if the paper says “no bias”.",
       "why_title": "Why CNNs need fewer parameters.",
       "why": "One kernel is reused at every position (parameter sharing), and each output only looks at a small window (sparse connections). A dense layer needs a separate weight for every pixel — see the MLP preset. Changing the input size breaks the first dense layer unless a global pooling layer squeezes the map to 1 × 1 first (Final 2023 Q6f).",
-      "keras_title": "Keras code and model.summary()",
+      "keras_title": "Code: Keras and PyTorch, plus model.summary()",
       "head": "Output head",
       "head_classify": "Classify",
       "head_regress": "Regress 0…1",
@@ -1717,7 +1721,50 @@
       "keras_error": "Fix the shape error above first; Keras would refuse this model too.",
       "keras_note": "Keras only knows padding=\"valid\" (no border) or \"same\"; an explicit border of p pixels needs ZeroPadding2D first. input_shape goes on the first layer only, channels last, without the batch size — summary() shows the batch as None.",
       "keras_traps": "The keyword is strides=, not stride=. MaxPooling2D’s strides default to pool_size. Flatten, pooling and Dropout have 0 parameters. Conv2D parameters: (k·k·C_in + 1)·filters.",
-      "keras_slip": "The official 2022 answer writes input_shape=(32, 32, 1) and stride=(2,2). The figure says 27 × 27 × 3 (27 → 9 needs strides 3, 9 → 4 needs strides 2), and Keras’s keyword is strides=. Write the code from the figure."
+      "keras_slip": "The official 2022 answer writes input_shape=(32, 32, 1) and stride=(2,2). The figure says 27 × 27 × 3 (27 → 9 needs strides 3, 9 → 4 needs strides 2), and Keras’s keyword is strides=. Write the code from the figure.",
+      "framework": "Framework",
+      "torch_code": "PyTorch code for this network",
+      "torch_even": "PyTorch needs symmetric padding: an even kernel with padding=\"same\" has no single padding value. Use an odd kernel or a number.",
+      "torch_note": "This is lecture 9’s style: layers in __init__, F.relu in forward, x.view(x.size(0), -1) to flatten. PyTorch is channels-first, (batch, C, H, W), and nn.Conv2d needs in_channels spelled out — the previous layer’s channels.",
+      "torch_traps": "nn.Linear’s input size is C·H·W after the last pooling layer — the number students get wrong. The last layer returns raw logits because nn.CrossEntropyLoss applies softmax itself. Call optimizer.zero_grad() every step: PyTorch adds new gradients to the old ones."
+    },
+    "pytorch": {
+      "lead": "Lecture 9 in five steps: read a tensor’s shape and dtype, tell @ from *, see when a NumPy array changes with its tensor, run loss.backward() by hand on z = w·x + b, and put the training loop in order.",
+      "values": "Graph values",
+      "target": "Target y",
+      "code_title": "The same thing in PyTorch",
+      "code_note": "Lecture 9’s example with one input: requires_grad=True on the parameters, loss.backward() fills w.grad and b.grad.",
+      "attr_title": "Shape, dtype, device",
+      "attr": "Attribute",
+      "attr_note": "Python integers become torch.int64, Python floats torch.float32, a NumPy float64 array stays float64. A reduction like .sum() gives a 0-d tensor, torch.Size([]) — call .item() to get a Python number. Tensors start on the CPU until you .to(device).",
+      "mm_title": "@ is a matrix product, * is element-wise",
+      "mm_note": "Every entry of tensor @ tensor.T is a row dotted with a row: three ones meet three ones, so 3. tensor * tensor multiplies matching entries, so the zero column stays zero. matmul / mul and the out= forms give the same results.",
+      "bridge_title": "The NumPy bridge shares memory",
+      "shared": "my_tensor and np_array are two views of one buffer: an in-place change through either one shows up in both, exactly as the lecture’s output shows.",
+      "not_shared": "my_tensor now has its own memory (x = x + 1 and .clone() build a new tensor), so the two stop following each other.",
+      "graph_aria": "Computational graph of z = w·x + b and its loss, with values and gradients",
+      "ag_title": "What loss.backward() fills in",
+      "back_step": "Next backward step",
+      "back_0": "Forward pass done: every node holds its value.",
+      "back_1": "Start at the loss: ∂loss/∂loss = 1.",
+      "back_2": "Through the sigmoid and cross-entropy: ∂loss/∂z = σ(z) − y.",
+      "back_3": "Into the leaves: w.grad = ∂loss/∂z · x, b.grad = ∂loss/∂z. x gets nothing — it has requires_grad=False.",
+      "formula": "Formula",
+      "accumulate": "Click loss.backward() twice without zero_grad() and watch the gradient double.",
+      "accumulated": "{{n}} backward() calls since the last zero_grad(): PyTorch adds each new gradient to .grad, so it is now {{n}} times too big. That is why every training step starts with optimizer.zero_grad().",
+      "no_grad": "Inside torch.no_grad() PyTorch records no graph: z.requires_grad is False and backward() would fail. Use it (with model.eval()) for testing — less memory, no gradients.",
+      "loop_title": "Put the training loop in order",
+      "loop_sub": "Click the lines in the order they run",
+      "loop_ok": "Right: clear the old gradients, forward, loss, backward, step. (zero_grad() may also come last — what matters is that it runs before the next backward().)",
+      "loop_err": {
+        "loss_first": "The loss needs the model’s outputs, so the forward pass has to come first.",
+        "backward_first": "backward() differentiates the loss, so the loss must exist before you call it.",
+        "step_early": "step() uses the gradients; before backward() they are stale (or zero), so the update is wrong.",
+        "zero_late": "zero_grad() between backward() and step() wipes the gradients you just computed, so step() changes nothing."
+      },
+      "traps": "CPUs can train and run networks — GPUs are just faster (Final 2022 Q1(e) is false). Methods ending in _ such as add_ modify the tensor in place. .numpy() only works on the CPU: call .cpu() first. model.train() turns dropout on, model.eval() turns it off.",
+      "more_title": "Building a CNN in PyTorch?",
+      "more": "The CNN shapes page writes the nn.Module for any layer stack, including the nn.Linear input size after flattening."
     },
     "errors": {
       "csv_header": "Need a header and at least two rows.",
@@ -3593,6 +3640,22 @@
       "cn5": {
         "q": "Dropout with rate 0.5 also drops units at test time.",
         "why": "Dropout is used only during training; at test time every unit is used."
+      },
+      "pt1": {
+        "q": "Deep learning networks cannot be trained or run on a CPU.",
+        "why": "They can; a GPU is only faster. Final 2022 Q1(e) is false."
+      },
+      "pt2": {
+        "q": "Calling loss.backward() twice without optimizer.zero_grad() doubles the stored gradients.",
+        "why": "PyTorch accumulates: each backward() adds to .grad. That is why each step starts with zero_grad()."
+      },
+      "pt3": {
+        "q": "After np_array = my_tensor.numpy(), my_tensor.add_(1) also changes np_array.",
+        "why": "On the CPU they share memory, and add_ works in place, so both change."
+      },
+      "pt4": {
+        "q": "For a 4 × 4 tensor, tensor @ tensor.T and tensor * tensor give the same result.",
+        "why": "@ is the matrix product, * is element-wise. On the lecture’s example the first gives 3 everywhere, the second keeps the zero column."
       },
       "ab1": {
         "q": "Alpha-beta pruning can change the move that minimax would choose.",

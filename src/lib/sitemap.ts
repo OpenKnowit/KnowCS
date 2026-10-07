@@ -2,7 +2,7 @@
 
 export type ModuleId =
   | 'numpy' | 'bayes-basics' | 'naive-bayes' | 'bayes-virus' | 'gaussian-nb' | 'knn' | 'evaluation' | 'cross-validation'
-  | 'kmeans' | 'kmeans-table' | 'perceptron' | 'backprop' | 'xor-mlp' | 'kernel' | 'convolution' | 'otsu' | 'affine' | 'cnn-shapes' | 'alphabeta'
+  | 'kmeans' | 'kmeans-table' | 'perceptron' | 'backprop' | 'xor-mlp' | 'kernel' | 'convolution' | 'otsu' | 'affine' | 'cnn-shapes' | 'pytorch' | 'alphabeta'
 
 export interface ModuleInfo {
   id: ModuleId
@@ -36,6 +36,7 @@ export const MODULES: ModuleInfo[] = [
   { id: 'otsu', lec: 7, kind: 'lab', exams: ['F22', 'F24'] },
   { id: 'affine', lec: 7, kind: 'lab', exams: ['F22', 'F24'] },
   { id: 'cnn-shapes', lec: 8, kind: 'lab', exams: ['F22', 'F23', 'F24'] },
+  { id: 'pytorch', lec: 9, kind: 'lab', exams: ['F22'] },
   { id: 'alphabeta', lec: 10, kind: 'classic', legacy: 'alphabeta', exams: ['F22', 'F23', 'F24'] },
 ]
 
@@ -65,7 +66,7 @@ export const EPISODES: EpisodeInfo[] = [
   { id: 'affine', lec: 7, modules: ['affine'], exams: ['F22', 'F24'], thumb: 81_000 },
   { id: 'cnn', lec: 8, modules: ['convolution', 'cnn-shapes', 'kernel'], exams: ['F22', 'F23', 'F24'], thumb: 112_000 },
   { id: 'dilated', lec: 8, modules: ['convolution', 'cnn-shapes'], exams: ['F24'], thumb: 50_000 },
-  { id: 'autograd', lec: 9, modules: [], exams: ['F22'], thumb: 70_000 },
+  { id: 'autograd', lec: 9, modules: ['pytorch', 'cnn-shapes'], exams: ['F22'], thumb: 70_000 },
   { id: 'alphabeta', lec: 10, modules: ['alphabeta'], exams: ['F22', 'F23', 'F24'], thumb: 52_000 },
   { id: 'ethics', lec: 11, modules: [], exams: ['F23', 'F24'], thumb: 40_000 },
 ]

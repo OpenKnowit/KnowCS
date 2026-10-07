@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { analyse, totalParams, type Layer, type Padding, type Shape } from '../../lib/cnnShapes'
 import { kerasCode, kerasSummary, type Head } from '../../lib/keras'
+import { torchCode } from '../../lib/torchCode'
 import { outputSize } from '../../lib/conv2d'
 import { int } from '../format'
 import { Ans, Btn, Card, LabPage, Note, NumberField, Presets, Slider, Stat, TableWrap, Workspace } from '../ui'
@@ -164,15 +165,24 @@ function StrideStrip() {
 
 function KerasView({ input, layers, head, setHead, f22 }: { input: Shape; layers: Layer[]; head: Head; setHead: (h: Head) => void; f22: boolean }) {
   const { t } = useTranslation()
-  const code = kerasCode(input, layers, head)
+  const [fw, setFw] = useState<'keras' | 'torch'>('keras')
+  const keras = kerasCode(input, layers, head)
+  const torch = torchCode(input, layers, head)
   const summary = kerasSummary(input, layers, head)
-  if (!code || !summary) return <Note tone="bad">{t('lab.cnn.keras_error')}</Note>
+  if (!keras || !summary) return <Note tone="bad">{t('lab.cnn.keras_error')}</Note>
+  const code = fw === 'keras' ? keras : torch
+  const seg = (on: boolean, i: number) => `px-3 py-1.5 text-xs font-bold ${i ? 'border-l border-slate-200' : ''} ${on ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex overflow-hidden rounded-[10px] border border-slate-300" role="group" aria-label={t('lab.cnn.framework')}>
+          {(['keras', 'torch'] as const).map((f, i) => (
+            <button key={f} type="button" aria-pressed={fw === f} onClick={() => setFw(f)} className={seg(fw === f, i)}>{f === 'keras' ? 'Keras' : 'PyTorch'}</button>
+          ))}
+        </div>
         <div className="inline-flex overflow-hidden rounded-[10px] border border-slate-300" role="group" aria-label={t('lab.cnn.head')}>
           {(['classify', 'regress'] as const).map((h, i) => (
-            <button key={h} type="button" aria-pressed={head === h} onClick={() => setHead(h)} className={`px-3 py-1.5 text-xs font-bold ${i ? 'border-l border-slate-200' : ''} ${head === h ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
+            <button key={h} type="button" aria-pressed={head === h} onClick={() => setHead(h)} className={seg(head === h, i)}>
               {t(`lab.cnn.head_${h}`)}
             </button>
           ))}
@@ -180,9 +190,13 @@ function KerasView({ input, layers, head, setHead, f22 }: { input: Shape; layers
         <span className="text-xs text-slate-500">{t(`lab.cnn.head_${head}_note`)}</span>
       </div>
       <div className="grid gap-4 2xl:grid-cols-2">
-        <pre className="overflow-x-auto rounded-xl bg-slate-900 p-4 text-[12px] leading-relaxed text-slate-100" aria-label={t('lab.cnn.keras_code')}>
-          {code.join('\n')}
-        </pre>
+        {code ? (
+          <pre className="overflow-x-auto rounded-xl bg-slate-900 p-4 text-[12px] leading-relaxed text-slate-100" aria-label={t(fw === 'keras' ? 'lab.cnn.keras_code' : 'lab.cnn.torch_code')}>
+            {code.join('\n')}
+          </pre>
+        ) : (
+          <Note tone="warn">{t('lab.cnn.torch_even')}</Note>
+        )}
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="lab-table">
             <tbody>
@@ -196,8 +210,8 @@ function KerasView({ input, layers, head, setHead, f22 }: { input: Shape; layers
         </div>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <Note>{t('lab.cnn.keras_note')}</Note>
-        {f22 ? <Note tone="warn" title={t('lab.cnn.slip_title')}>{t('lab.cnn.keras_slip')}</Note> : <Note tone="warn" title={t('lab.common.exam_traps')}>{t('lab.cnn.keras_traps')}</Note>}
+        <Note>{t(fw === 'keras' ? 'lab.cnn.keras_note' : 'lab.cnn.torch_note')}</Note>
+        {fw === 'torch' ? <Note tone="warn" title={t('lab.common.exam_traps')}>{t('lab.cnn.torch_traps')}</Note> : f22 ? <Note tone="warn" title={t('lab.cnn.slip_title')}>{t('lab.cnn.keras_slip')}</Note> : <Note tone="warn" title={t('lab.common.exam_traps')}>{t('lab.cnn.keras_traps')}</Note>}
       </div>
     </div>
   )
@@ -254,7 +268,7 @@ export default function CnnShapes() {
                       <span className="flex gap-1">
                         <button type="button" aria-label={t('lab.cnn.move_up')} disabled={i === 0} onClick={() => { const n = [...layers]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; edit(n) }} className="rounded px-1.5 text-slate-500 hover:bg-white disabled:opacity-30">↑</button>
                         <button type="button" aria-label={t('lab.cnn.move_down')} disabled={i === layers.length - 1} onClick={() => { const n = [...layers]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; edit(n) }} className="rounded px-1.5 text-slate-500 hover:bg-white disabled:opacity-30">↓</button>
-                        <button type="button" aria-label={t('lab.cnn.remove')} onClick={() => edit(layers.filter((_, j) => j !== i))} className="rounded px-1.5 text-rose-500 hover:bg-white">✕</button>
+                        <button type="button" aria-label={t('lab.cnn.remove')} onClick={() => edit(layers.filter((_, j) => j !== i))} className="rounded px-1.5 text-rose-700 hover:bg-white">✕</button>
                       </span>
                     </div>
                     <LayerEditor layer={l} onChange={(nl) => edit(layers.map((x, j) => (j === i ? nl : x)))} />
@@ -290,7 +304,7 @@ export default function CnnShapes() {
                     <Ans k={`p${i}`} v={info.params} />
                     <td className="left font-sans text-xs text-slate-500">
                       {[info.sizeWork, info.paramWork].filter(Boolean).join(' · ') || (info.layer.kind === 'dropout' ? t('lab.cnn.dropout_work') : '')}
-                      {info.floored && <b className="ml-1 text-amber-600">{t('lab.cnn.floored')}</b>}
+                      {info.floored && <b className="ml-1 text-amber-700">{t('lab.cnn.floored')}</b>}
                     </td>
                   </>
                 )}
@@ -309,7 +323,7 @@ export default function CnnShapes() {
           )}
         </Card>
 
-        <Card step={3} title={t('lab.cnn.keras_title')} sub="Final 2022 B Q2 · Final 2024 Q7(a)">
+        <Card step={3} title={t('lab.cnn.keras_title')} sub="Final 2022 B Q2 · Final 2024 Q7(a) · L9">
           <KerasView input={input} layers={layers} head={head} setHead={setHead} f22={preset === 'f22keras'} />
         </Card>
 

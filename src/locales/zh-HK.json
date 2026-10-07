@@ -856,6 +856,10 @@
         "title": "CNN 形狀與參數",
         "blurb": "疊加網絡層，得到每層的輸出形狀和參數數量。"
       },
+      "pytorch": {
+        "title": "PyTorch：張量、自動求導與訓練循環",
+        "blurb": "張量打印出什麼、@ 與 * 的區別、與 NumPy 共享記憶體、loss.backward() 填了什麼，以及每步訓練的五行程式碼。"
+      },
       "alphabeta": {
         "title": "Minimax 與 Alpha-Beta",
         "blurb": "帶着 α / β 逐步搜索，看哪些分支被剪掉。"
@@ -1707,7 +1711,7 @@
       "rules": "卷積層：(k·k·C<1>in</1> + 1) × 卷積核數 —— 輸入的深度要算，圖像尺寸不算。池化、Flatten 和 Dropout 沒有參數。全連接層：(輸入數 + 1) × 單元數。+1 是偏置；只有試卷寫明 “no bias” 時才去掉。",
       "why_title": "為什麼 CNN 參數更少。",
       "why": "同一個卷積核在每個位置重複使用（參數共享），每個輸出只看一個小窗口（稀疏連接）。全連接層則要給每個像素一個獨立權重 —— 看看 MLP 預設。改變輸入尺寸會讓第一個全連接層失效，除非先用全局池化把特徵圖壓成 1 × 1（Final 2023 Q6f）。",
-      "keras_title": "Keras 程式碼與 model.summary()",
+      "keras_title": "程式碼：Keras 與 PyTorch，以及 model.summary()",
       "head": "輸出層",
       "head_classify": "分類",
       "head_regress": "迴歸 0…1",
@@ -1717,7 +1721,50 @@
       "keras_error": "先修正上面的形狀錯誤；Keras 也會拒絕這個模型。",
       "keras_note": "Keras 只認 padding=\"valid\"（不填充）或 \"same\"；要顯式填充 p 像素需先加 ZeroPadding2D。input_shape 只寫在第一層，通道在後、不含批大小——summary() 裏批大小顯示為 None。",
       "keras_traps": "關鍵字是 strides=，不是 stride=。MaxPooling2D 的 strides 預設等於 pool_size。Flatten、池化、Dropout 都是 0 個參數。Conv2D 參數：(k·k·C_in + 1)·filters。",
-      "keras_slip": "2022 年官方答案寫成 input_shape=(32, 32, 1) 與 stride=(2,2)。圖上是 27 × 27 × 3（27 → 9 需 strides 3，9 → 4 需 strides 2），而 Keras 的關鍵字是 strides=。請按圖寫程式碼。"
+      "keras_slip": "2022 年官方答案寫成 input_shape=(32, 32, 1) 與 stride=(2,2)。圖上是 27 × 27 × 3（27 → 9 需 strides 3，9 → 4 需 strides 2），而 Keras 的關鍵字是 strides=。請按圖寫程式碼。",
+      "framework": "框架",
+      "torch_code": "這個網絡的 PyTorch 程式碼",
+      "torch_even": "PyTorch 需要對稱填充：偶數卷積核配 padding=\"same\" 找不到單一的填充值。請改用奇數卷積核或具體數字。",
+      "torch_note": "這是第 9 講的寫法：層定義在 __init__，forward 裏用 F.relu，用 x.view(x.size(0), -1) 展平。PyTorch 通道在前，(batch, C, H, W)；nn.Conv2d 必須寫出 in_channels——即上一層的通道數。",
+      "torch_traps": "nn.Linear 的輸入大小是最後一個池化層之後的 C·H·W——最容易算錯的數。最後一層返回原始 logits，因為 nn.CrossEntropyLoss 自己會做 softmax。每一步都要調用 optimizer.zero_grad()：PyTorch 會把新梯度累加到舊梯度上。"
+    },
+    "pytorch": {
+      "lead": "第 9 講分五步：讀出張量的 shape 與 dtype，分清 @ 與 *，看 NumPy 陣列何時隨張量一起變，在 z = w·x + b 上手動跑一遍 loss.backward()，再把訓練循環排對順序。",
+      "values": "計算圖取值",
+      "target": "目標 y",
+      "code_title": "對應的 PyTorch 程式碼",
+      "code_note": "第 9 講例子的單輸入版：參數設 requires_grad=True，loss.backward() 會填好 w.grad 與 b.grad。",
+      "attr_title": "shape、dtype、device",
+      "attr": "屬性",
+      "attr_note": "Python 整數變成 torch.int64，Python 浮點數變成 torch.float32，NumPy 的 float64 陣列仍是 float64。.sum() 這類歸約得到 0 維張量 torch.Size([])——用 .item() 取出 Python 數。張量預設在 CPU 上，直到 .to(device)。",
+      "mm_title": "@ 是矩陣乘法，* 是逐元素相乘",
+      "mm_note": "tensor @ tensor.T 的每個元素是兩行的點積：三個 1 對上三個 1，所以是 3。tensor * tensor 逐個元素相乘，所以全零列仍是 0。matmul / mul 以及 out= 寫法結果相同。",
+      "bridge_title": "NumPy 橋接共享記憶體",
+      "shared": "my_tensor 與 np_array 是同一塊記憶體的兩個視圖：通過任一方原地修改，另一方也會變——與講義輸出一致。",
+      "not_shared": "my_tensor 現在有了自己的記憶體（x = x + 1 與 .clone() 都會新建張量），兩者不再同步。",
+      "graph_aria": "z = w·x + b 及其損失的計算圖，顯示數值與梯度",
+      "ag_title": "loss.backward() 填了什麼",
+      "back_step": "下一步反向",
+      "back_0": "前向傳播完成：每個節點都有了數值。",
+      "back_1": "從損失開始：∂loss/∂loss = 1。",
+      "back_2": "穿過 sigmoid 與交叉熵：∂loss/∂z = σ(z) − y。",
+      "back_3": "到達葉子節點：w.grad = ∂loss/∂z · x，b.grad = ∂loss/∂z。x 沒有梯度——它的 requires_grad=False。",
+      "formula": "公式",
+      "accumulate": "不調用 zero_grad()，連點兩次 loss.backward()，看梯度翻倍。",
+      "accumulated": "自上次 zero_grad() 以來調用了 {{n}} 次 backward()：PyTorch 會把新梯度累加到 .grad 上，現在是正確值的 {{n}} 倍。所以每個訓練步都以 optimizer.zero_grad() 開始。",
+      "no_grad": "在 torch.no_grad() 中 PyTorch 不記錄計算圖：z.requires_grad 為 False，backward() 會報錯。測試時配合 model.eval() 使用——省記憶體、不算梯度。",
+      "loop_title": "把訓練循環排好順序",
+      "loop_sub": "按執行順序點擊各行",
+      "loop_ok": "正確：清空舊梯度、前向、算損失、反向、更新。（zero_grad() 放在最後也可以——關鍵是在下一次 backward() 之前執行。）",
+      "loop_err": {
+        "loss_first": "損失需要模型的輸出，所以必須先做前向傳播。",
+        "backward_first": "backward() 是對損失求導，調用前損失必須已經算出。",
+        "step_early": "step() 要用梯度；在 backward() 之前梯度是舊的（或為 0），更新就錯了。",
+        "zero_late": "在 backward() 與 step() 之間調用 zero_grad() 會把剛算好的梯度清空，step() 什麼也不會改。"
+      },
+      "traps": "CPU 也能訓練和執行神經網絡——GPU 只是更快（Final 2022 Q1(e) 為假）。以 _ 結尾的方法如 add_ 會原地修改張量。.numpy() 只能用於 CPU 張量：先 .cpu()。model.train() 開啓 dropout，model.eval() 關閉。",
+      "more_title": "要用 PyTorch 搭 CNN？",
+      "more": "CNN 形狀頁可以為任意層棧生成 nn.Module 程式碼，包括展平後 nn.Linear 的輸入大小。"
     },
     "errors": {
       "csv_header": "需要一行表頭和至少兩行數據。",
@@ -3593,6 +3640,22 @@
       "cn5": {
         "q": "比率為 0.5 的 Dropout 在測試時也會丟棄單元。",
         "why": "Dropout 只在訓練時使用；測試時用上所有單元。"
+      },
+      "pt1": {
+        "q": "深度學習網絡不能在 CPU 上訓練或執行。",
+        "why": "可以，GPU 只是更快。Final 2022 Q1(e) 為假。"
+      },
+      "pt2": {
+        "q": "不調用 optimizer.zero_grad() 而連續兩次 loss.backward()，存下的梯度會翻倍。",
+        "why": "PyTorch 會累加：每次 backward() 都加到 .grad 上。所以每一步都先 zero_grad()。"
+      },
+      "pt3": {
+        "q": "np_array = my_tensor.numpy() 之後，my_tensor.add_(1) 也會改變 np_array。",
+        "why": "在 CPU 上二者共享記憶體，而 add_ 是原地操作，所以兩者都變。"
+      },
+      "pt4": {
+        "q": "對 4 × 4 張量，tensor @ tensor.T 與 tensor * tensor 結果相同。",
+        "why": "@ 是矩陣乘法，* 是逐元素相乘。講義例子中前者全是 3，後者保留全零列。"
       },
       "ab1": {
         "q": "α-β 剪枝可能改變極小化極大會選擇的走法。",

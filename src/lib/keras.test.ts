@@ -52,6 +52,7 @@ describe('kerasSummary', () => {
     ])
     expect(s.total).toBe(22476)
   })
+  // The marking scheme's blanks: (16, 16, 64), (8, 8, 64), 36928 and 1024.
   it('fills in the Final 2024 Q7(a) summary (same padding, one stride-2 conv)', () => {
     const s = kerasSummary([32, 32, 3], [conv(32, 5, 1, 'same'), conv(64, 3, 1, 'same'), pool(2), conv(64, 3, 2, 'same'), conv(64, 3, 1, 'same'), pool(2), flatten, dense(128), dense(10)])!
     expect(s.rows.map((r) => r.shape)).toEqual(['(None, 32, 32, 32)', '(None, 32, 32, 64)', '(None, 16, 16, 64)', '(None, 8, 8, 64)', '(None, 8, 8, 64)', '(None, 4, 4, 64)', '(None, 1024)', '(None, 128)', '(None, 10)'])
