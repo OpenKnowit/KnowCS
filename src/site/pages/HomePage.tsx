@@ -98,7 +98,8 @@ export default function HomePage() {
       <div className="mx-auto grid max-w-[1280px] gap-4 px-4 sm:px-8">
         {LECTURES.filter((n) => scope !== 'mid' || lectureScope(n) === 'mid').map((n) => {
           const mods = MODULES.filter((m) => m.lec === n && matches(m))
-          if (query && !mods.length) return null
+          const eps = EPISODES.filter((e) => e.lec === n && (!query || `${t(`watch.${e.id}.title`)} ${t(`watch.${e.id}.sub`)}`.toLowerCase().includes(query)))
+          if (query && !mods.length && !eps.length) return null
           const focus = scope === 'final' && n >= 6
           return (
             <section key={n} id={`lecture-${n}`} className={`grid scroll-mt-4 gap-4 rounded-3xl border p-4 sm:p-5 md:grid-cols-[220px_minmax(0,1fr)] ${focus ? 'border-rose-200 bg-rose-50/40' : 'border-slate-200 bg-white/60'}`}>
@@ -114,9 +115,23 @@ export default function HomePage() {
                   </span>
                 </div>
               </div>
-              {mods.length ? (
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {mods.map((m) => <ModuleCard key={m.id} m={m} seen={!!visited[m.id]} />)}
+              {mods.length || eps.length ? (
+                <div className="grid gap-3">
+                  {mods.length > 0 && (
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {mods.map((m) => <ModuleCard key={m.id} m={m} seen={!!visited[m.id]} />)}
+                    </div>
+                  )}
+                  {eps.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {eps.map((e) => (
+                        <a key={e.id} href={watchUrl(e.id)} className="inline-flex items-center gap-2 rounded-full bg-slate-900 py-1 pl-1 pr-3.5 text-[13px] font-bold text-white hover:bg-blue-700">
+                          <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-[10px] text-slate-900" aria-hidden>▶</span>
+                          {t(`watch.${e.id}.title`)}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="grid place-items-center rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
