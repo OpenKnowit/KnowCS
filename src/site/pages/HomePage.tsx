@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { EPISODES, LECTURES, MODULES, PAPERS, drillUrl, formulasUrl, lectureScope, moduleUrl, noteUrl, watchUrl } from '../../lib/sitemap'
+import { EPISODES, LECTURES, MODULES, PAPERS, drillUrl, formulasUrl, lectureScope, papersUrl, moduleUrl, noteUrl, watchUrl } from '../../lib/sitemap'
 import { DRILL } from '../../data/drill'
 import type { ModuleInfo } from '../../lib/sitemap'
 import { readVisited } from '../ui'
@@ -60,7 +60,7 @@ export default function HomePage() {
             <p className="mt-3 max-w-2xl text-[17px] text-slate-600">{t('site.home.lead')}</p>
             <div className="mt-5 flex flex-wrap gap-2 text-sm font-bold">
               <span className="rounded-full bg-white px-3 py-1.5 text-slate-700 shadow-sm">{t('site.home.stat_pages', { n: MODULES.length })}</span>
-              <span className="rounded-full bg-white px-3 py-1.5 text-slate-700 shadow-sm">{t('site.home.stat_papers', { n: PAPERS.length })}</span>
+              <a href={papersUrl()} className="rounded-full bg-white px-3 py-1.5 text-amber-700 shadow-sm hover:bg-amber-50">{t('site.home.stat_papers', { n: PAPERS.length })} →</a>
               <a href={noteUrl()} className="rounded-full bg-white px-3 py-1.5 text-blue-700 shadow-sm hover:bg-blue-50">{t('site.home.stat_notes')} →</a>
               <a href={drillUrl()} className="rounded-full bg-white px-3 py-1.5 text-emerald-700 shadow-sm hover:bg-emerald-50">{t('site.home.drill_link', { n: DRILL.length })} →</a>
               <a href={formulasUrl()} className="rounded-full bg-white px-3 py-1.5 text-violet-700 shadow-sm hover:bg-violet-50">{t('formulas.title')} →</a>

@@ -21,12 +21,13 @@ const ExtendPage = lazy(() => import('./pages/ExtendPage'))
 const WatchPage = lazy(() => import('./pages/WatchPage'))
 const DrillPage = lazy(() => import('./pages/DrillPage'))
 const FormulasPage = lazy(() => import('./pages/FormulasPage'))
+const PapersPage = lazy(() => import('./pages/PapersPage'))
 
 const section: Section =
   page === 'notes' || page === 'note' ? 'notes' : page === 'extend' || page === 'extend-item' ? 'extend' : page === 'watch' || page === 'watch-item' ? 'watch' : page === 'drill' || page === 'formulas' ? 'drill' : 'course'
 
 const content =
-  page === 'module' ? <ModulePage id={id} /> : page === 'drill' ? <DrillPage /> : page === 'formulas' ? <FormulasPage /> : page === 'watch' || page === 'watch-item' ? <WatchPage id={id || null} /> : page === 'notes' || page === 'note' ? <NotesPage id={id || null} /> : page === 'extend' || page === 'extend-item' ? <ExtendPage id={id || null} /> : <HomePage />
+  page === 'module' ? <ModulePage id={id} /> : page === 'drill' ? <DrillPage /> : page === 'formulas' ? <FormulasPage /> : page === 'papers' ? <PapersPage /> : page === 'watch' || page === 'watch-item' ? <WatchPage id={id || null} /> : page === 'notes' || page === 'note' ? <NotesPage id={id || null} /> : page === 'extend' || page === 'extend-item' ? <ExtendPage id={id || null} /> : <HomePage />
 
 if (!moved) {
   // render once the current language's strings have loaded

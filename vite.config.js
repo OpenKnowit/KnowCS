@@ -36,6 +36,8 @@ function pageMeta(page) {
       return pick("drill.title", "drill.lead")
     case "formulas":
       return pick("formulas.title", "formulas.lead")
+    case "papers":
+      return pick("papers.title", "papers.lead")
     case "notes":
       return pick("app.section.package.title", "app.section.package.subtitle")
     case "note":
