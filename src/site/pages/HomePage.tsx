@@ -89,7 +89,7 @@ export default function HomePage() {
               <a href={watchUrl()} className="text-sm font-bold text-blue-300 hover:text-blue-200">{t('site.home.watch_all')} →</a>
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {EPISODES.slice(0, 3).map((e) => <EpisodeCard key={e.id} info={e} />)}
+              {[...EPISODES].sort((x, y) => y.exams.length - x.exams.length).slice(0, 3).map((e) => <EpisodeCard key={e.id} info={e} />)}
             </div>
           </div>
         </section>

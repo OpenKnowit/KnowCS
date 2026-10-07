@@ -1637,7 +1637,9 @@
       "gallery_eyebrow": "讲解视频",
       "gallery_title": "看着概念动起来",
       "gallery_lead": "针对考试反复出现的概念做的短动画讲解。画面上每个数字都是实时算出来的，每章都会停下来让你先想一想，看完直接跳到对应的练习页。",
-      "watch_first": "先看讲解：{{title}}"
+      "watch_first": "先看讲解：{{title}}",
+      "watched": "已看",
+      "gallery_count": "共 {{n}} 集 · 本机已看 {{done}} 集"
     },
     "xor": {
       "kicker": "第 6 讲 · 多层感知机",

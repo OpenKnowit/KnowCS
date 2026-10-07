@@ -1637,7 +1637,9 @@
       "gallery_eyebrow": "講解視頻",
       "gallery_title": "看着概念動起來",
       "gallery_lead": "針對考試反覆出現的概念做的短動畫講解。畫面上每個數字都是實時算出來的，每章都會停下來讓你先想一想，看完直接跳到對應的練習頁。",
-      "watch_first": "先看講解：{{title}}"
+      "watch_first": "先看講解：{{title}}",
+      "watched": "已看",
+      "gallery_count": "共 {{n}} 集 · 本機已看 {{done}} 集"
     },
     "xor": {
       "kicker": "第 6 講 · 多層感知機",

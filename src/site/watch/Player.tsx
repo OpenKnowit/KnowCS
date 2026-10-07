@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { cueAt, fmtClock, locate, stopBetween, timeline } from '../../lib/explainer'
 import type { TimedScene } from '../../lib/explainer'
 import { C } from './stage'
+import { markWatched } from './watched'
 
 export interface Scene extends TimedScene {
   id: string
@@ -57,6 +58,10 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
   const ended = t >= tl.total
 
   useEffect(() => onTime?.(t), [t, onTime])
+  const done = t >= tl.total * 0.9
+  useEffect(() => {
+    if (done) markWatched(ep)
+  }, [done, ep])
 
   useEffect(() => {
     if (!playing) return

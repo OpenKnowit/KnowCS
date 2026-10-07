@@ -7,10 +7,12 @@ import type { EpisodeInfo } from '../../lib/sitemap'
 import { Frame } from './Player'
 import type { Episode } from './Player'
 import { EPISODE_CODE } from './episodes'
+export { readWatched } from './watched'
 
 export const lengthOf = (e: Episode) => timeline(e.scenes).total
 
-export function EpisodeCard({ info, big = false }: { info: EpisodeInfo; big?: boolean }) {
+
+export function EpisodeCard({ info, big = false, watched = false }: { info: EpisodeInfo; big?: boolean; watched?: boolean }) {
   const { t } = useTranslation()
   const ep = EPISODE_CODE[info.id]
   return (
@@ -21,6 +23,7 @@ export function EpisodeCard({ info, big = false }: { info: EpisodeInfo; big?: bo
           <PlayCircle className="h-14 w-14 text-white opacity-0 drop-shadow-lg transition group-hover:opacity-100" />
         </span>
         <span className="absolute bottom-2 right-2 rounded-md bg-black/70 px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">{fmtClock(lengthOf(ep))}</span>
+        {watched && <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black uppercase text-white shadow">{t('watch.ui.watched')}</span>}
       </div>
       <div className="p-4">
         <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">

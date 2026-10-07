@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { EPISODES, moduleUrl, watchUrl } from '../../lib/sitemap'
+import { EPISODES, LECTURES, lectureScope, moduleUrl, watchUrl } from '../../lib/sitemap'
 import type { EpisodeInfo } from '../../lib/sitemap'
 import { fmtClock, locate, timeline } from '../../lib/explainer'
 import { Player, capKey } from '../watch/Player'
-import { EpisodeCard, lengthOf } from '../watch/EpisodeCard'
+import { EpisodeCard, lengthOf, readWatched } from '../watch/EpisodeCard'
 import type { Episode } from '../watch/Player'
 import { EPISODE_CODE } from '../watch/episodes'
 import { usePaperLabel } from '../ui'
 
 function Gallery() {
   const { t } = useTranslation()
+  const [watched] = useState(readWatched)
   useEffect(() => {
     document.title = `${t('watch.ui.gallery_title')} · KnowCS`
   }, [t])
@@ -20,9 +21,18 @@ function Gallery() {
       <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-blue-600">{t('watch.ui.gallery_eyebrow')}</p>
       <h1 className="mt-2 text-[clamp(30px,4vw,46px)] font-black leading-tight tracking-tight">{t('watch.ui.gallery_title')}</h1>
       <p className="mt-2 max-w-2xl text-[17px] text-slate-600">{t('watch.ui.gallery_lead')}</p>
-      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {EPISODES.map((e) => <EpisodeCard key={e.id} info={e} />)}
-      </div>
+      <p className="mt-3 text-sm font-bold text-slate-500">{t('watch.ui.gallery_count', { n: EPISODES.length, done: EPISODES.filter((e) => watched[e.id]).length })}</p>
+      {LECTURES.filter((n) => EPISODES.some((e) => e.lec === n)).map((n) => (
+        <section key={n} className="mt-8" aria-labelledby={`watch-lec-${n}`}>
+          <h2 id={`watch-lec-${n}`} className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-500">
+            {t('site.lecture_long', { n })} · {t(`site.lectures.${n}`)}
+            <span className={`rounded-full px-2 py-0.5 text-[10px] ${lectureScope(n) === 'mid' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>{t(lectureScope(n) === 'mid' ? 'site.home.badge_mid' : 'site.home.badge_final')}</span>
+          </h2>
+          <div className="mt-3 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {EPISODES.filter((e) => e.lec === n).map((e) => <EpisodeCard key={e.id} info={e} watched={!!watched[e.id]} />)}
+          </div>
+        </section>
+      ))}
     </main>
   )
 }
