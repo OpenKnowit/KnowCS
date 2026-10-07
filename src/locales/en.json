@@ -1637,7 +1637,9 @@
       "gallery_eyebrow": "Explainers",
       "gallery_title": "See the idea move",
       "gallery_lead": "Short animated explainers for the ideas the exams keep asking about. Every number on screen is computed live, every chapter pauses for you to think, and each one ends at the page where you practise it.",
-      "watch_first": "Watch: {{title}}"
+      "watch_first": "Watch: {{title}}",
+      "watched": "Watched",
+      "gallery_count": "{{n}} explainers · {{done}} watched in this browser"
     },
     "xor": {
       "kicker": "Lecture 6 · Multilayer perceptron",
