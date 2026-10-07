@@ -9,6 +9,7 @@
 
 ### 2026-10-08 — 入口与资料包 chunk 瘦身
 - **perf**：Framer Motion 的动画引擎改为首屏后异步加载（`LazyMotion` 异步 features，语言菜单改用 CSS 淡入），所有页面共用的入口 chunk 341KB → 291KB（gzip 94KB）。
+- **perf**：讲解视频按集分 chunk（`useEpisode` 钩子），讲解页只下载本集代码（XOR 约 14KB），共享卡片 chunk 159KB → 17KB。
 - **perf**：资料包笔记按「笔记 × 语言」分 chunk 懒加载，列表页只静态引入字符数（插件新增 `?chars` / `?chars-hk`），资料包页面 chunk 334KB → 37.5KB；正文加载时显示骨架屏。
 
 ### 2026-10-08 — Service Worker、可安装、404 页

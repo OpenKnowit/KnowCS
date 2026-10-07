@@ -6,7 +6,7 @@ import { watchUrl } from '../../lib/sitemap'
 import type { EpisodeInfo } from '../../lib/sitemap'
 import { Frame } from './Player'
 import type { Episode } from './Player'
-import { EPISODE_CODE } from './episodes'
+import { useEpisode } from './useEpisode'
 export { readWatched } from './watched'
 
 export const lengthOf = (e: Episode) => timeline(e.scenes).total
@@ -14,15 +14,15 @@ export const lengthOf = (e: Episode) => timeline(e.scenes).total
 
 export function EpisodeCard({ info, big = false, watched = false }: { info: EpisodeInfo; big?: boolean; watched?: boolean }) {
   const { t } = useTranslation()
-  const ep = EPISODE_CODE[info.id]
+  const ep = useEpisode(info.id)
   return (
     <a href={watchUrl(info.id)} className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100">
       <div className="relative">
-        <Frame episode={ep} t={info.thumb} />
+        {ep ? <Frame episode={ep} t={info.thumb} /> : <div className="aspect-video w-full animate-pulse bg-[#0e1117]" />}
         <span className="absolute inset-0 grid place-items-center bg-slate-900/0 transition group-hover:bg-slate-900/25">
           <PlayCircle className="h-14 w-14 text-white opacity-0 drop-shadow-lg transition group-hover:opacity-100" />
         </span>
-        <span className="absolute bottom-2 right-2 rounded-md bg-black/70 px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">{fmtClock(lengthOf(ep))}</span>
+        <span className="absolute bottom-2 right-2 rounded-md bg-black/70 px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">{ep ? fmtClock(lengthOf(ep)) : '…'}</span>
         {watched && <span className="absolute left-2 top-2 rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-black uppercase text-white shadow">{t('watch.ui.watched')}</span>}
       </div>
       <div className="p-4">

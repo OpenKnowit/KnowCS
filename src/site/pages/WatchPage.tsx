@@ -7,7 +7,7 @@ import { fmtClock, locate, timeline } from '../../lib/explainer'
 import { Player, capKey } from '../watch/Player'
 import { EpisodeCard, lengthOf, readWatched } from '../watch/EpisodeCard'
 import type { Episode } from '../watch/Player'
-import { EPISODE_CODE } from '../watch/episodes'
+import { useEpisode } from '../watch/useEpisode'
 import { usePaperLabel } from '../ui'
 
 function Gallery() {
@@ -61,7 +61,7 @@ function Transcript({ episode, now, onSeek }: { episode: Episode; now: number; o
 function EpisodePage({ info }: { info: EpisodeInfo }) {
   const { t } = useTranslation()
   const paper = usePaperLabel()
-  const ep = EPISODE_CODE[info.id]
+  const ep = useEpisode(info.id)
   const [now, setNow] = useState(0)
   const [shown, setShown] = useState(false)
   const seek = useRef<((t: number) => void) | null>(null)
@@ -83,7 +83,7 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
       <p className="mt-1 max-w-3xl text-[16px] text-slate-600">{t(`watch.${info.id}.sub`)}</p>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-slate-600 shadow-sm">
-          <Clock className="h-3 w-3" /> {fmtClock(lengthOf(ep))}
+          <Clock className="h-3 w-3" /> {ep ? fmtClock(lengthOf(ep)) : '…'}
         </span>
         {info.exams.map((p) => (
           <span key={p} className="whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800">{paper(p)}</span>
@@ -91,7 +91,7 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
       </div>
 
       <div className="mt-5">
-        <Player episode={ep} onTime={setNow} seekRef={seek} />
+        {ep ? <Player episode={ep} onTime={setNow} seekRef={seek} /> : <div className="aspect-video w-full animate-pulse rounded-2xl bg-[#0e1117]" aria-busy="true" />}
         <p className="mt-2 hidden text-center text-xs text-slate-500 sm:block">{t('watch.ui.keys')}</p>
         <p className="mt-2 text-center text-xs font-semibold text-slate-500 sm:hidden">{t('watch.ui.rotate')}</p>
       </div>
@@ -99,15 +99,17 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
         <section className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6">
           <h2 className="mb-3 text-lg font-black">{t('watch.ui.transcript')}</h2>
-          <Transcript
-            episode={ep}
-            now={now}
-            onSeek={(v) => {
-              seek.current?.(v)
-              // shareable link to this chapter
-              history.replaceState(null, '', `#t=${Math.round(v / 1000)}`)
-            }}
-          />
+          {ep && (
+            <Transcript
+              episode={ep}
+              now={now}
+              onSeek={(v) => {
+                seek.current?.(v)
+                // shareable link to this chapter
+                history.replaceState(null, '', `#t=${Math.round(v / 1000)}`)
+              }}
+            />
+          )}
         </section>
         <aside className="grid content-start gap-5">
           <section className="rounded-3xl border border-amber-200 bg-amber-50/60 p-5">
