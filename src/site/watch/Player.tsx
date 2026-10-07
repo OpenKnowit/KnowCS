@@ -40,7 +40,11 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
   const ep = episode.id
   const scenes = episode.scenes
   const tl = useMemo(() => timeline(scenes), [scenes])
-  const [t, setT] = useState(0)
+  // #t=72 in the URL starts the episode at 1:12 (paused)
+  const [t, setT] = useState(() => {
+    const m = /(?:^#|&)t=(\d+(?:\.\d+)?)/.exec(typeof window === 'undefined' ? '' : window.location.hash)
+    return m ? Math.min(timeline(scenes).total, Number(m[1]) * 1000) : 0
+  })
   const [playing, setPlaying] = useState(false)
   const [ponder, setPonder] = useState<number | null>(null)
   const [speed, setSpeed] = useState(1)
