@@ -5,14 +5,14 @@ import { Trans, useTranslation } from 'react-i18next'
 import { LineChart } from '../components/LineChart'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
-import { KNN_RAW_DATA } from '../data/constants'
+import { KNN_RAW_DATA, KNN_STATS } from '../data/constants'
 import { computeKnn, looErrorCurve, nudgeTestPoint, scaleLinear, svgToDataPoint } from '../lib/knn'
 import type { KnnStats, TestPoint } from '../types'
 
 const WIDTH = 400
 const HEIGHT = 400
 const K_VALUES = Array.from({ length: 15 }, (_, i) => i + 1)
-const STATS: KnnStats = { meanH: 164, meanW: 62.33, stdH: 4.33, stdW: 2.63, minH: 155, maxH: 175, minW: 55, maxW: 70 }
+const STATS: KnnStats = KNN_STATS
 
 const px = (h: number) => scaleLinear(h, STATS.minH, STATS.maxH, WIDTH)
 const py = (w: number) => HEIGHT - scaleLinear(w, STATS.minW, STATS.maxW, HEIGHT)
