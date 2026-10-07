@@ -2188,6 +2188,88 @@
         "q": "Medicines A(1,1), B(2,1), C(4,3), D(5,4). Run K-Means with k = 2, starting centres A and B, Euclidean distance. Give the clusters and centres after it converges.",
         "a": "Round 1: A → C1; B, C, D → C2. New centres C1 = (1, 1), C2 = (3.67, 2.67). Round 2: A, B → C1; C, D → C2. New centres C1 = (1.5, 1), C2 = (4.5, 3.5). Round 3: no change, so stop: {A, B} and {C, D}."
       }
+    },
+    "alphabeta": {
+      "kicker": "Lecture 10 · Minimax and alpha-beta",
+      "title": "Alpha-beta: skipping what cannot matter",
+      "sub": "Minimax looks at every leaf. Alpha-beta proves that some leaves cannot change the answer, and never looks at them.",
+      "label": {
+        "max_row": "MAX picks the largest child",
+        "min_row": "MIN picks the smallest child",
+        "leaf_row": "leaves: scores of final positions",
+        "bubble": "Fill in from the bottom: each MAX node takes the largest child value, each MIN node the smallest.",
+        "root_value": "the value of the game",
+        "leaves_seen": "leaves evaluated",
+        "cut": "Cut at {{node}}: α = {{a}} ≥ β = {{b}} — skip {{n}} child",
+        "why_1": "The root (MAX) can already get {{a}} through B.",
+        "why_2": "C is a MIN node. After seeing F = 2, C is worth at most 2, whatever G holds.",
+        "why_3": "MAX will never choose a move worth ≤ 2 over one worth 7. So G cannot matter.",
+        "good_order": "Good move order",
+        "bad_order": "Same leaves, bad order",
+        "root_is": "root value = {{v}}",
+        "order_note": "Pruning never changes the answer, only how much work it takes. Best moves first prune the most."
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "Every final asks you to run alpha-beta by hand: which nodes get pruned, and what are α and β along the way. Let us watch it happen."
+        },
+        "tree": {
+          "title": "A game tree",
+          "c1": "Two players take turns. MAX wants the score high, MIN wants it low.",
+          "c2": "Triangles pointing up are MAX’s turns, pointing down are MIN’s.",
+          "c3": "The leaves are scores of finished positions, from MAX’s point of view."
+        },
+        "minimax": {
+          "title": "Minimax",
+          "c1": "Minimax fills the tree from the bottom up.",
+          "c2": "Each MAX node takes the largest child value; each MIN node the smallest.",
+          "c3": "The root gets 7: with best play from both sides, that is the score.",
+          "ponder": "Minimax looked at all 8 leaves. Can you spot one whose value cannot possibly change the answer?"
+        },
+        "search": {
+          "title": "Alpha-beta, step by step",
+          "c1": "Alpha-beta searches the same tree depth-first, left to right, carrying two numbers down.",
+          "c2": "α is the best score MAX is already guaranteed on this path; β is the best MIN is guaranteed. They start at −∞ and +∞.",
+          "c3": "At E, the first leaf is 8. E is a MAX node, so it is worth at least 8 — but B, above it, already has 7 and will take the smaller. α ≥ β: skip E’s second leaf.",
+          "c4": "B returns 7, so the root’s α becomes 7. Now C: its first child F is worth only 2.",
+          "c5": "C is a MIN node, so it is worth at most 2. α = 7 ≥ β = 2: the whole subtree G is cut. Only 5 of 8 leaves were evaluated."
+        },
+        "why": {
+          "title": "Why the cut is safe",
+          "c1": "Look at the second cut more slowly.",
+          "c2": "The root can already guarantee 7 by moving to B.",
+          "c3": "C is a MIN node that has found 2, so its value is at most 2, whatever G contains.",
+          "c4": "MAX will never pick C. Whatever is under G, the root value stays 7. That is the rule: cut when α ≥ β."
+        },
+        "order": {
+          "title": "Move order matters",
+          "c1": "With this order, alpha-beta evaluated 5 leaves.",
+          "c2": "Rearrange the same eight values badly and it has to look at all 8 — but the answer is still 7.",
+          "c3": "So pruning saves work without changing the result, and checking the best moves first saves the most."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then run your own leaf values on the alpha-beta page, step by step."
+        }
+      },
+      "recap": {
+        "1": "Minimax: MAX nodes take the largest child, MIN nodes the smallest, filled from the leaves up.",
+        "2": "Alpha-beta passes α (MAX’s guarantee) and β (MIN’s guarantee) down, and cuts the remaining children when α ≥ β.",
+        "3": "Pruning never changes the root value; good move order prunes more."
+      },
+      "exam": {
+        "points": {
+          "1": "Write α and β at every node you enter, in the order you enter them — that is what the marking scheme checks.",
+          "2": "At a MAX node update α; at a MIN node update β; cut the remaining children as soon as α ≥ β.",
+          "3": "Mark pruned branches clearly, including whole subtrees, not just single leaves.",
+          "4": "True/false: alpha-beta returns the same root value as minimax (true); it always prunes something (false — order matters)."
+        },
+        "source": "Lecture 10 · the same task appears in the 2022, 2023 and 2024 finals",
+        "q": "For the tree MAX( MIN( MAX(6,7), MAX(8,9) ), MIN( MAX(1,2), MAX(0,4) ) ), run alpha-beta left to right. Which leaves are never evaluated, and what is the root value?",
+        "a": "D = 7 so B’s β = 7. At E the first leaf 8 gives α = 8 ≥ β = 7: the leaf 9 is pruned. B = 7, root α = 7. At C, F = 2 gives β = 2 ≤ α = 7: the whole subtree MAX(0,4) is pruned. Root value 7; leaves 9, 0 and 4 are never evaluated."
+      }
     }
   }
 }

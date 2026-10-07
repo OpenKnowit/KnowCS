@@ -1,4 +1,5 @@
 import type { AbNode, AbStep } from '../types'
+import { AB_LEAF_IDS, AB_NODES } from '../data/constants'
 
 // Alpha-Beta 剪枝的纯逻辑：给定一棵带叶子值的博弈树，
 // 生成完整的逐步追踪（DFS + α/β 剪枝），供可视化按结构化字段渲染。
@@ -198,3 +199,15 @@ export function minimaxValue(nodes: Record<string, AbNode>, nodeId = 'A'): numbe
   const childVals = (node.children ?? []).map((c) => minimaxValue(nodes, c))
   return node.type === 'max' ? Math.max(...childVals) : Math.min(...childVals)
 }
+
+/** The standard 3-level tree with the given eight leaf values (left to right). */
+export function treeWithLeaves(values: readonly number[]): Record<string, AbNode> {
+  const nodes: Record<string, AbNode> = JSON.parse(JSON.stringify(AB_NODES))
+  AB_LEAF_IDS.forEach((id, i) => {
+    nodes[id].value = values[i]
+  })
+  return nodes
+}
+
+/** How many leaves alpha-beta actually evaluates. */
+export const leavesEvaluated = (steps: AbStep[]): number => steps.filter((s) => s.type === 'leaf_eval').length
