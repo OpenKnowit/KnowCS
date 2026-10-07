@@ -1889,6 +1889,110 @@
         "q": "0.1% of a population carries a virus. The test is positive for 99% of carriers and negative for 95% of non-carriers. A patient tests positive. What is P(virus | +)?",
         "a": "P(+) = 0.99 × 0.001 + 0.05 × 0.999 = 0.05094. P(V | +) = 0.00099 / 0.05094 ≈ 0.0194, about 2%."
       }
+    },
+    "backprop": {
+      "kicker": "Lecture 6 · Backpropagation",
+      "title": "Backpropagation by the numbers",
+      "sub": "One forward pass, one error, and the chain rule run backwards through lecture 6’s XOR network — every number the final exam asks for.",
+      "label": {
+        "lecture_net": "Lecture 6 · round 1, step 1",
+        "edge_key": "Edge colour: blue positive, red negative. Thickness = |weight|.",
+        "how_wrong": "how wrong the output is",
+        "how_steep": "how steep the sigmoid is at this point",
+        "how_much_input": "how much signal came in along w₅",
+        "delta_k_is": "The first two factors are reused for every weight into O: that product is δk.",
+        "blame": "Blame flows back along the same edges, scaled by their weights.",
+        "old_w5": "Use w₅ and w₆ from before this step’s update — the lecture does.",
+        "zero_input": "With input (0, 0), the gradient for w₁…w₄ is zero: those weights cannot move this step. Only the θs change.",
+        "loss": "loss ½(T − O)², mean of 4 samples",
+        "epochs": "epoch {{n}}",
+        "after_10000": "After 10,000 epochs",
+        "rate_title": "The learning rate η decides the step size",
+        "rate_small": "too small: creeps towards the bottom",
+        "rate_good": "about right: lands in a few steps",
+        "rate_large": "too large: overshoots and climbs out"
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "Every final asks you to push numbers through a small network and update its weights by hand. Let us do it once, slowly, and see why each factor is there."
+        },
+        "setup": {
+          "title": "The network",
+          "c1": "This is lecture 6’s 2-2-1 network for XOR: six weights, three biases, all starting at the lecture’s values.",
+          "c2": "The learning rate is 0.5 and every neuron uses the sigmoid.",
+          "c3": "First sample: input (0, 0), target T = 0."
+        },
+        "forward": {
+          "title": "Forward pass",
+          "c1": "Signals flow left to right. Each neuron adds up weight times input, adds θ, and applies the sigmoid.",
+          "c2": "With input (0, 0) both hidden sums are zero, and σ(0) is exactly 0.5.",
+          "c3": "The output neuron gets 0.86 × 0.5 − 1.38 × 0.5 = −0.26, so O = σ(−0.26) ≈ 0.4354.",
+          "c4": "We wanted 0. The error is E = ½(T − O)²."
+        },
+        "chain": {
+          "title": "The chain rule",
+          "c1": "To fix w₅ we need to know how E changes when w₅ changes. The chain rule splits that into three simpler questions.",
+          "c2": "How does E change with O? That is O − T: how wrong we are.",
+          "c3": "How does O change with its input z? For the sigmoid that is O(1 − O): the slope of the curve.",
+          "c4": "How does z change with w₅? By h₁, the signal travelling along w₅.",
+          "c5": "The first two factors do not depend on which weight we are fixing. Together they are δk = 0.107022."
+        },
+        "update_out": {
+          "title": "Update the output weights",
+          "c1": "The update rule: subtract η times δ times whatever flows into that weight.",
+          "c2": "For w₅ that input is h₁ = 0.5: w₅ becomes 0.833244 (the lecture rounds δk first and prints 0.833245 — both get the mark).",
+          "c3": "w₆ and θ₃ move the same way — θ’s input is always 1."
+        },
+        "hidden": {
+          "title": "Blame the hidden neurons",
+          "c1": "Hidden neurons have no target. Their share of the error comes back through the weights.",
+          "c2": "Each δj multiplies δk by the weight it travelled along, then by the sigmoid slope h(1 − h).",
+          "c3": "δj1 = 0.023008 and δj2 = −0.036922. h₂ fed the output through a negative weight, so its blame has the opposite sign.",
+          "c4": "One exam detail: these deltas use w₅ and w₆ from before the update."
+        },
+        "update_hidden": {
+          "title": "Update the hidden weights",
+          "c1": "Same rule for the first layer: w ← w − η δj x.",
+          "c2": "But this input is (0, 0). Every x is zero, so w₁ to w₄ do not change at all.",
+          "c3": "Only the biases move. Over the next three samples the other weights get their turn.",
+          "ponder": "If both hidden neurons started with identical weights, would they ever become different?"
+        },
+        "train": {
+          "title": "Repeat ten thousand times",
+          "c1": "That was one step for one sample. An epoch runs all four samples; then repeat.",
+          "c2": "The loss falls slowly at first, then quickly once the hidden layer finds a useful shape.",
+          "c3": "After 10,000 epochs the network gives outputs close to 0, 1, 1, 0: XOR, learned."
+        },
+        "rate": {
+          "title": "Choosing η",
+          "c1": "η scales every step. Here is the same descent on a simple bowl with three learning rates.",
+          "c2": "Too small and you creep towards the bottom.",
+          "c3": "About right and you land in a few steps.",
+          "c4": "Too large and each step overshoots further than the last. Exams ask exactly this trade-off."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three formulas cover every backprop question in this course.",
+          "c2": "Then open the XOR page and run these steps yourself, with Quiz mode on."
+        }
+      },
+      "recap": {
+        "1": "Output: δk = (O − T)·O(1 − O). Hidden: δj = Oj(1 − Oj)·δk·wjk, using the old wjk.",
+        "2": "Update: w ← w − η·δ·(the input of that weight); a bias’s input is 1.",
+        "3": "Zero inputs give zero updates; η too large overshoots, too small crawls."
+      },
+      "exam": {
+        "points": {
+          "1": "Write the course’s sign convention: δk = (O − T)·O(1 − O) and subtract. Mixing (T − O) with subtraction flips every update.",
+          "2": "The hidden deltas use the weights before this sample’s update — say so if the paper is ambiguous.",
+          "3": "A weight whose input is 0 does not change in that step; biases always change because their input is 1.",
+          "4": "Step activations cannot be trained by backprop (zero gradient almost everywhere, Final 2024 Q4c)."
+        },
+        "source": "Lecture 6 example · Final 2024 Q4(d) asks the same steps on another network",
+        "q": "For the lecture’s XOR network (η = 0.5) and the first sample (0, 0) with T = 0: compute O, δk, and the new w₅.",
+        "a": "Both hidden outputs are σ(0) = 0.5. O = σ(0.86·0.5 − 1.38·0.5) = σ(−0.26) = 0.435364. δk = (0.435364 − 0)·0.435364·(1 − 0.435364) = 0.107022. New w₅ = 0.86 − 0.5·0.107022·0.5 ≈ 0.833245 (0.833244 without rounding δk first)."
+      }
     }
   }
 }
