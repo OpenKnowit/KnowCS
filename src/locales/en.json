@@ -2714,6 +2714,85 @@
         "q": "For Z = Yes, blood pressure has μ = 73 and σ = 6.2. Compute the likelihood of blood pressure 66.",
         "a": "f(66) = 1 / (√(2π) · 6.2) · exp(−(66 − 73)² / (2 · 6.2²)) = 0.06434 · exp(−0.6374) ≈ 0.0340."
       }
+    },
+    "dilated": {
+      "kicker": "Final 2024 · Problem 6",
+      "title": "Dilated convolution, the way the final codes it",
+      "sub": "A 3×3 kernel that sees a 5×5 area, the sizes you need for “same” padding, and the shift-and-add loop behind the six TODOs — checked against the paper’s printed output.",
+      "label": {
+        "d1": "Dilation 1: an ordinary 3×3 kernel. It sees a 3×3 patch.",
+        "d2": "Dilation 2: the same 9 weights, spread out with gaps. Now they span 5×5.",
+        "same_params": "Bigger receptive field, same 9 parameters.",
+        "paper_formula": "The paper gives the ordinary size formula. Replace the kernel size with k_eff.",
+        "padded": "input (10×10), padded by 2",
+        "sum_after": "output after {{n}} of 3 kernel cells",
+        "matches": "This is exactly the output printed in the paper’s test script.",
+        "todos": "The six TODOs",
+        "mask": "Each entry survives with probability 1 − p; multiplying by the mask zeroes the rest.",
+        "why_dropout": "Dropout stops neurons relying on any single input, which reduces overfitting.",
+        "test_time": "It is used only during training. (Many libraries also divide by 1 − p; this question does not ask for it.)"
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "The 2024 final introduced something the lectures only mention: dilated convolution. Here is the whole idea, then the code."
+        },
+        "dilation": {
+          "title": "Spreading the kernel",
+          "c1": "An ordinary 3×3 kernel reads a 3×3 patch.",
+          "c2": "With dilation 2, leave one pixel between taps. Same nine weights, but they now cover a 5×5 area.",
+          "c3": "That is the point: a wider view without more parameters."
+        },
+        "formula": {
+          "title": "The sizes",
+          "c1": "The effective kernel size is d(k − 1) + 1: here 5.",
+          "c2": "“Same” padding needs d(k − 1)/2 zeros on each side: here 2.",
+          "c3": "Then the usual output formula, with k_eff instead of k: for the test, a 10×10 input with stride 2 gives 5×5.",
+          "c4": "That is TODO 1, 2 and 3.",
+          "ponder": "Before the next part: which padded rows does kernel row i read, for output rows 0, 1, 2, …?"
+        },
+        "shift": {
+          "title": "Shift and add",
+          "c1": "The given code does not slide the window. It loops over the nine kernel cells instead.",
+          "c2": "Kernel cell (i, j) reads rows i·d + r·S and columns j·d + c·S: one strided slice of the padded input.",
+          "c3": "Multiply that slice by kernel[i][j] and add it to the output. The test kernel has ones on its diagonal, so three slices add up.",
+          "c4": "After the third slice the output is exactly the matrix printed in the paper."
+        },
+        "todos": {
+          "title": "Filling in the code",
+          "c1": "So the six blanks are: the padding, the two output sizes…",
+          "c2": "…the row and column indices for each kernel cell, with np.arange…",
+          "c3": "…and the accumulation: kernel[i, j] times the slice picked by those indices."
+        },
+        "dropout": {
+          "title": "Part (b): dropout",
+          "c1": "Part (b) is one line: a random mask that keeps each value with probability 1 − p.",
+          "c2": "np.random.rand gives uniform numbers in [0, 1); comparing with p gives True with probability 1 − p.",
+          "c3": "Dropping random activations stops the network relying on any single one — regularisation.",
+          "c4": "Only during training. At test time every neuron is used."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then revisit convolution and output sizes on the practice pages."
+        }
+      },
+      "recap": {
+        "1": "Dilation spreads the kernel: k_eff = d(k − 1) + 1, same parameters, wider view.",
+        "2": "Same padding = d(k − 1)/2; output = ⌊(N + 2·pad − k_eff)/S⌋ + 1.",
+        "3": "Shift-and-add: for each kernel cell, add kernel[i][j] × input[i·d + S·r, j·d + S·c]."
+      },
+      "exam": {
+        "points": {
+          "1": "Replace k by d(k − 1) + 1 everywhere the size formula uses the kernel size.",
+          "2": "Check your formulas against the printed test output — 10×10, d = 2, S = 2, same padding must give 5×5.",
+          "3": "The loop is over kernel cells, so each step adds a whole strided slice; build the indices with np.arange(output_size) * stride.",
+          "4": "Dropout mask: np.random.rand(*shape) > p keeps each value with probability 1 − p."
+        },
+        "source": "Final 2024 (Spring) · Problem 6",
+        "q": "With a 3×3 kernel, dilation 2, stride 2 and “same” padding on a 10×10 input: what padding and what output size? Which padded rows does kernel row i = 1 read?",
+        "a": "pad = 2·(3 − 1)/2 = 2, so the padded input is 14×14. k_eff = 5, output = ⌊(14 − 5)/2⌋ + 1 = 5, i.e. 5×5. Kernel row 1 reads rows 1·2 + 2·r = 2, 4, 6, 8, 10."
+      }
     }
   }
 }

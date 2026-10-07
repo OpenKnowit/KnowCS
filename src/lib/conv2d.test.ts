@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { convolve, outputSize, pad } from './conv2d'
+import { convolve, outputSize, pad, dilatedConv } from './conv2d'
 
 const values = (g: ReturnType<typeof pad>) => g.map((r) => r.map((c) => c.value))
 const LECTURE_IMG = [[10, 1, 3, 2, 6], [4, 3, 5, 8, 0], [8, 7, 9, 6, 5]]
@@ -55,5 +55,25 @@ describe('outputSize', () => {
     expect(outputSize(7, 3, 0, 1)).toEqual({ size: 5, exact: true })
     expect(outputSize(7, 3, 0, 2)).toEqual({ size: 3, exact: true })
     expect(outputSize(7, 3, 0, 3).exact).toBe(false)
+  })
+})
+
+describe('dilatedConv (Final 2024 Q6a)', () => {
+  it('reproduces the printed test-script output', () => {
+    const img = Array.from({ length: 10 }, (_, r) => Array.from({ length: 10 }, (_, c) => r * 10 + c))
+    const res = dilatedConv(img, [[1, 0, 0], [0, 1, 0], [0, 0, 1]], 2, 2, 'same')
+    expect(res.pad).toBe(2)
+    expect(res.effective).toBe(5)
+    expect(res.out).toEqual([
+      [22, 26, 30, 34, 8],
+      [62, 66, 72, 78, 34],
+      [102, 126, 132, 138, 74],
+      [142, 186, 192, 198, 114],
+      [80, 142, 146, 150, 154],
+    ])
+  })
+  it('dilation 1, valid padding is an ordinary convolution', () => {
+    const img = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    expect(dilatedConv(img, [[1, 1], [1, 1]]).out).toEqual([[12, 16], [24, 28]])
   })
 })
