@@ -1249,7 +1249,10 @@ class Interp {
       case 'sum': case 'mean': case 'max': case 'min': case 'argmax': case 'argmin': case 'any': case 'all': case 'prod': case 'std': case 'var':
         return M('reduce', (a) => (args, kw) => this.reduceFn(a, name, args, kw), { axisPos: 0, defaultAxis: null })
       case 'cumsum': return M('scan', (a) => (args, kw) => arr(cumsum(a, this.kwInt(kw, args, 0, 'axis'))), { axisPos: 0, defaultAxis: null })
-      case 'argsort': return M('sort', (a) => (args, kw) => arr(sortAlong(a, kw.axis?.k === 'none' ? null : this.kwInt(kw, args, 0, 'axis') ?? -1).order), { axisPos: 0, defaultAxis: -1 })
+      case 'argsort': return M('sort', (a) => (args, kw) => {
+        const v = kw.axis ?? args[0]
+        return arr(sortAlong(a, v === undefined ? -1 : v.k === 'none' ? null : this.toInt(v)).order)
+      }, { axisPos: 0, defaultAxis: -1 })
       case 'dot': return M('matmul', (a) => (args) => this.binop('@', arr(a), args[0]))
     }
     return null
@@ -1482,7 +1485,11 @@ class Interp {
       transpose: fn('transpose', (args) => arr(transpose(asArr(args[0], 'transpose'), args[1] ? this.toShape([args[1]]) : undefined)), 'move'),
       ravel: fn('ravel', (args) => arr(reshape(asArr(args[0], 'ravel'), [-1])), 'move'),
       swapaxes: fn('swapaxes', (args) => arr(swapaxes(asArr(args[0], 'swapaxes'), this.toInt(args[1]), this.toInt(args[2]))), 'move'),
-      expand_dims: fn('expand_dims', (args, kw) => arr(expandDims(asArr(args[0], 'expand_dims'), this.toInt(kw.axis ?? args[1]))), 'move', { axisPos: 1 }),
+      expand_dims: fn('expand_dims', (args, kw) => {
+        const axis = kw.axis ?? args[1]
+        if (!axis || axis.k === 'none') throw this.err('TypeError', "expand_dims() missing required argument 'axis'")
+        return arr(expandDims(asArr(args[0], 'expand_dims'), this.toInt(axis)))
+      }, 'move', { axisPos: 1 }),
       squeeze: fn('squeeze', (args, kw) => arr(squeeze(asArr(args[0], 'squeeze'), this.kwInt(kw, args, 1, 'axis'))), 'move', { axisPos: 1, defaultAxis: null }),
       concatenate: fn('concatenate', (args, kw) => {
         const ax = kw.axis ?? args[1]
