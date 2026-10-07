@@ -2086,6 +2086,108 @@
         "q": "Input 32 × 32 × 3, ten 5 × 5 filters, stride 1, padding 2. What is the output shape, and how many parameters does the layer have?",
         "a": "⌊(32 − 5 + 2·2) / 1⌋ + 1 = 32, so the output is 32 × 32 × 10. Parameters: (5·5·3 + 1) × 10 = 760."
       }
+    },
+    "kmeans": {
+      "kicker": "Lecture 4 · K-Means clustering",
+      "title": "K-Means: two steps, repeated",
+      "sub": "Assign every point to its nearest centre, move each centre to its points’ mean, repeat. Watch why it always stops, why it can stop in the wrong place, and how the exam table is filled in.",
+      "label": {
+        "no_labels": "36 points, no labels. Can we find the groups?",
+        "seeds": "Start with k centres — here placed by hand, badly on purpose.",
+        "step_a": "Step A",
+        "step_b": "Step B",
+        "assign": "Assign: every point joins its nearest centre.",
+        "update": "Update: every centre moves to the mean of its points.",
+        "round": "Round {{r}}",
+        "moved": "{{n}} points changed cluster",
+        "converged": "No point changed cluster: converged.",
+        "why_a": "each point switches only to a closer centre, so its term can only shrink.",
+        "why_b": "the mean is the point with the smallest total squared distance to the group.",
+        "why_stop": "SSE never goes up, and there are only finitely many ways to split the points — so the loop must stop.",
+        "other_seeds": "Same data, different starting centres",
+        "vs": "vs",
+        "stuck": "Two centres share one blob and one centre straddles two. No single step can improve it, so K-Means stops here.",
+        "restarts": "That is a local minimum. In practice: run several times from different seeds and keep the lowest SSE.",
+        "medicine": "Lecture 4: four medicines, k = 2, seeds A and B",
+        "point": "point",
+        "cluster": "cluster",
+        "table_done": "Round 2 changes nobody’s cluster, so the algorithm stops.",
+        "elbow": "The elbow: after k = 3 the SSE barely drops.",
+        "not_min": "Do not pick the k with the smallest SSE — that is always k = n."
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "K-Means appears in six of the nine past papers, almost always as a table you fill in round by round. Here is what that table is doing."
+        },
+        "data": {
+          "title": "Points without labels",
+          "c1": "Here are 36 points with no labels. We suspect there are groups.",
+          "c2": "K-Means needs one number from us: k, how many groups to look for.",
+          "c3": "Then it needs k starting centres. We place three deliberately badly, to watch the algorithm recover."
+        },
+        "steps": {
+          "title": "The two steps",
+          "c1": "Step A, assign: measure the distance from each point to every centre, and give the point the colour of the nearest one.",
+          "c2": "The coloured regions show which centre is nearest everywhere on the plane.",
+          "c3": "Step B, update: move each centre to the average position of the points it just won.",
+          "c4": "That average is all the update step ever does."
+        },
+        "iterate": {
+          "title": "Repeat until nothing changes",
+          "c1": "Now repeat: assign, update, assign, update.",
+          "c2": "Watch the SSE bars: the total squared distance from points to their centres, after each round.",
+          "c3": "In the last round no point changes cluster. Then the centres cannot move again — that is convergence.",
+          "ponder": "Will the SSE ever go up from one round to the next? Why, or why not?"
+        },
+        "why": {
+          "title": "Why it always stops",
+          "c1": "Everything K-Means does lowers one number, the SSE.",
+          "c2": "The assign step only moves a point to a closer centre.",
+          "c3": "The update step puts each centre at its group’s mean, the best place for squared distances.",
+          "c4": "SSE never rises and there are finitely many partitions, so K-Means always converges — but not necessarily to the best answer."
+        },
+        "local": {
+          "title": "Stuck in a local minimum",
+          "c1": "Same points, three other starting centres.",
+          "c2": "It converges — at an SSE more than three times worse.",
+          "c3": "So “K-Means always converges” is true, but “to the optimal clustering” is false. A classic true/false question."
+        },
+        "table": {
+          "title": "The exam table",
+          "c1": "On paper it looks like this. Lecture 4: four medicines, k = 2, starting at A and B.",
+          "c2": "Fill the distance table, take the nearest centre, then average each cluster to get the new centres.",
+          "c3": "Round 2 uses the new centres. Same table, same steps.",
+          "c4": "Nobody changed cluster, so we stop. The sentence the marking scheme wants: the cluster assignment no longer changes."
+        },
+        "elbow": {
+          "title": "Choosing k",
+          "c1": "k is not learned. To choose it, run K-Means for k = 1, 2, 3 … and plot the best SSE.",
+          "c2": "The curve falls steeply, then flattens. The bend — the elbow — is the k to choose.",
+          "c3": "Never choose the smallest SSE: k = n puts each point in its own cluster with SSE zero."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then fill in a table yourself on the K-Means by hand page, with Quiz mode on."
+        }
+      },
+      "recap": {
+        "1": "Assign to the nearest centre, move each centre to its cluster mean, repeat until no point changes.",
+        "2": "SSE never increases, so it always converges — but possibly to a local minimum that depends on the seeds.",
+        "3": "Choose k with the elbow method, not the smallest SSE."
+      },
+      "exam": {
+        "points": {
+          "1": "Show the full distance table every round, then the new centres as means. Use the distance the question names (some papers want squared distance).",
+          "2": "Ties go to the lower-numbered centre unless the paper says otherwise — write your rule down.",
+          "3": "Stop only after a full round in which no point changes cluster; that sentence earns the mark.",
+          "4": "True/false favourites: it always converges (true); it finds the global optimum (false); a cluster can end up empty (true)."
+        },
+        "source": "Lecture 4 practice · same format in the 2022 Fall, 2022 Spring, 2023 Fall, 2023 Spring and 2025 Spring midterms",
+        "q": "Medicines A(1,1), B(2,1), C(4,3), D(5,4). Run K-Means with k = 2, starting centres A and B, Euclidean distance. Give the clusters and centres after it converges.",
+        "a": "Round 1: A → C1; B, C, D → C2. New centres C1 = (1, 1), C2 = (3.67, 2.67). Round 2: A, B → C1; C, D → C2. New centres C1 = (1.5, 1), C2 = (4.5, 3.5). Round 3: no change, so stop: {A, B} and {C, D}."
+      }
     }
   }
 }
