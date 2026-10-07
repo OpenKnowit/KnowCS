@@ -26,7 +26,7 @@ export function EpisodeCard({ info, big = false, watched = false }: { info: Epis
         {watched && <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black uppercase text-white shadow">{t('watch.ui.watched')}</span>}
       </div>
       <div className="p-4">
-        <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+        <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
           {t('site.lecture_short', { n: info.lec })} · {t(`site.lectures.${info.lec}`)}
         </div>
         <b className={`mt-1 block font-extrabold text-slate-900 group-hover:text-blue-700 ${big ? 'text-xl' : 'text-[15px]'}`}>{t(`watch.${info.id}.title`)}</b>

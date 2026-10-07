@@ -194,7 +194,7 @@ export default function Convolution() {
               <div className="mb-1.5 text-xs font-bold text-slate-500">{flip ? t('lab.conv.kernel_flipped') : t('lab.conv.kernel_raw')}</div>
               <Grid label={t('lab.conv.kernel')} cells={res.kernel.map((row) => row.map((v) => ({ text: kstr(v), cls: 'border-indigo-200 bg-indigo-50 text-indigo-800' })))} />
               {flip && (
-                <p className="mt-1.5 text-[11px] text-slate-400">
+                <p className="mt-1.5 text-[11px] text-slate-500">
                   {t('lab.conv.written', { k: kernel.map((row) => row.map(kstr).join(' ')).join(' / ') })}
                 </p>
               )}
@@ -244,7 +244,7 @@ export default function Convolution() {
                 </tr>
               ))}
             </TableWrap>
-            {kernel.flat().some((v) => !Number.isInteger(v)) && <p className="mt-2 text-xs text-slate-400">{t('lab.conv.rounded')}</p>}
+            {kernel.flat().some((v) => !Number.isInteger(v)) && <p className="mt-2 text-xs text-slate-500">{t('lab.conv.rounded')}</p>}
           </Card>
         </div>
 
@@ -256,7 +256,7 @@ export default function Convolution() {
                 <button key={m.v} type="button" onClick={() => { setMode(m.v); if (padN === 0) setPadN(1); custom() }} className={`rounded-xl border p-3 text-left ${m.v === mode ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 hover:border-slate-300'}`}>
                   <div className="mb-1 flex items-baseline justify-between gap-2">
                     <b className="text-[13px]">{t(`lab.conv.modes.${m.v}`)}</b>
-                    <code className="text-[11px] text-slate-400">{m.demo}</code>
+                    <code className="text-[11px] text-slate-500">{m.demo}</code>
                   </div>
                   <div className="overflow-x-auto">
                     <div className="inline-grid gap-[2px] font-mono text-[11px]" style={{ gridTemplateColumns: `repeat(${g[0].length}, 26px)` }}>
@@ -269,7 +269,7 @@ export default function Convolution() {
               )
             })}
           </div>
-          <p className="mt-2 text-xs text-slate-400">{t('lab.conv.modes_note')}</p>
+          <p className="mt-2 text-xs text-slate-500">{t('lab.conv.modes_note')}</p>
         </Card>
 
         <div className="grid gap-5 xl:grid-cols-2">

@@ -229,7 +229,7 @@ export default function KMeansTable() {
               )
             })}
           </div>
-          <p className="mt-2 text-xs text-slate-400">{t('lab.km.table_note')}</p>
+          <p className="mt-2 text-xs text-slate-500">{t('lab.km.table_note')}</p>
         </Card>
 
         <Note tone={isLast && result.converged ? 'good' : 'info'} title={isLast && result.converged ? t('lab.km.converged_title') : t('lab.km.not_done_title')}>

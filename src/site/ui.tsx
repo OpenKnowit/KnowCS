@@ -87,7 +87,7 @@ export function PageBar({ id, extra }: { id: ModuleId; extra?: ReactNode }) {
   return (
     <div className="sticky top-0 z-40 border-b border-slate-200 bg-[#f1f5f9]/90 backdrop-blur">
       <div className="mx-auto flex max-w-[1480px] items-center gap-3 px-4 py-2 sm:px-6">
-        <nav className="min-w-0 truncate text-[13px] text-slate-400" aria-label={t('site.ui.breadcrumb')}>
+        <nav className="min-w-0 truncate text-[13px] text-slate-500" aria-label={t('site.ui.breadcrumb')}>
           <a href="/" className="font-semibold text-slate-500 hover:text-blue-600">{t('app.nav.course')}</a>
           {' / '}
           <a href={`/#lecture-${mod.lec}`} className="font-bold text-slate-600 hover:text-blue-600">
@@ -199,7 +199,7 @@ export function Card({ title, step, sub, right, children, className = '', flat =
               {title}
             </h2>
           )}
-          {sub && <span className="text-xs text-slate-400">{sub}</span>}
+          {sub && <span className="text-xs text-slate-500">{sub}</span>}
           {right}
         </div>
       )}
@@ -227,7 +227,7 @@ export function Presets<T extends string>({ items, value, onPick }: { items: Pre
           className={`rounded-xl border px-3 py-2 text-left text-[13px] font-semibold transition ${p.id === value ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
         >
           {p.title}
-          {p.note && <small className="mt-0.5 block text-xs font-medium text-slate-400">{p.note}</small>}
+          {p.note && <small className="mt-0.5 block text-xs font-medium text-slate-500">{p.note}</small>}
         </button>
       ))}
     </div>
@@ -319,7 +319,7 @@ const STAT_TONES = { none: 'text-slate-900', good: 'text-emerald-600', bad: 'tex
 export function Stat({ k, v, d, tone = 'none' }: { k: string; v: ReactNode; d?: ReactNode; tone?: keyof typeof STAT_TONES }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-      <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">{k}</div>
+      <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">{k}</div>
       <div className={`mt-0.5 font-mono text-[22px] font-extrabold ${STAT_TONES[tone]}`}>{v}</div>
       {d && <div className="text-xs text-slate-500">{d}</div>}
     </div>

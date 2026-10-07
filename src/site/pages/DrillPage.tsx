@@ -26,7 +26,7 @@ function Item({ d, chosen, onChoose }: { d: DrillItem; chosen: boolean | undefin
   const right = answered && chosen === d.answer
   const btn = (v: boolean) => {
     const picked = chosen === v
-    const tone = !answered ? 'border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-700' : v === d.answer ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : picked ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-400'
+    const tone = !answered ? 'border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-700' : v === d.answer ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : picked ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-500'
     return (
       <button type="button" onClick={() => onChoose(v)} aria-pressed={picked} className={`min-w-[84px] rounded-full border-2 px-4 py-1.5 text-sm font-black transition ${tone}`}>
         {t(v ? 'drill.true' : 'drill.false')}

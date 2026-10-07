@@ -25,7 +25,7 @@ function ModuleCard({ m, seen }: { m: ModuleInfo; seen: boolean }) {
   return (
     <a href={moduleUrl(m.id)} className="group flex flex-col gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">{t('site.lecture_short', { n: m.lec })} · {t(`site.lectures.${m.lec}`)}</span>
+        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">{t('site.lecture_short', { n: m.lec })} · {t(`site.lectures.${m.lec}`)}</span>
         {seen && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700">{t('site.home.seen')}</span>}
       </div>
       <b className="text-[15px] font-extrabold text-slate-900 group-hover:text-blue-700">{t(`site.modules.${m.id}.title`)}</b>
@@ -78,7 +78,7 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-slate-400">{t(`site.home.scope_${scope}_hint`)}</p>
+            <p className="mt-2 text-xs text-slate-500">{t(`site.home.scope_${scope}_hint`)}</p>
           </div>
         </div>
       </section>
