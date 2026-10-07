@@ -7,10 +7,11 @@ import { cnn } from './cnn'
 import { dilated } from './dilated'
 import { evaluate } from './evaluate'
 import { gaussian } from './gaussian'
+import { imagenp } from './imagenp'
 import { kmeans } from './kmeans'
 import { knn } from './knn'
 import { perceptron } from './perceptron'
 import { xor } from './xor'
 
 /** Animation code for every episode listed in sitemap EPISODES. */
-export const EPISODE_CODE: Record<string, Episode> = { xor, bayes, backprop: backpropEp, cnn, kmeans, alphabeta, knn, perceptron, evaluate, broadcast, gaussian, dilated }
+export const EPISODE_CODE: Record<string, Episode> = { xor, bayes, backprop: backpropEp, cnn, kmeans, alphabeta, knn, perceptron, evaluate, broadcast, gaussian, dilated, imagenp }

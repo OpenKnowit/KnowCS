@@ -59,6 +59,7 @@ export const EPISODES: EpisodeInfo[] = [
   { id: 'perceptron', lec: 5, modules: ['perceptron'], exams: ['22F', '22S', '23F', '23S'], thumb: 66_000 },
   { id: 'xor', lec: 6, modules: ['xor-mlp', 'perceptron', 'backprop'], exams: ['22S', '23S', '25S', 'F23', 'F24'], thumb: 102_000 },
   { id: 'backprop', lec: 6, modules: ['xor-mlp', 'backprop'], exams: ['F22', 'F23', 'F24'], thumb: 62_000 },
+  { id: 'imagenp', lec: 7, modules: ['convolution', 'numpy', 'kernel'], exams: ['F24'], thumb: 52_000 },
   { id: 'cnn', lec: 8, modules: ['convolution', 'cnn-shapes', 'kernel'], exams: ['F22', 'F23', 'F24'], thumb: 112_000 },
   { id: 'dilated', lec: 8, modules: ['convolution', 'cnn-shapes'], exams: ['F24'], thumb: 50_000 },
   { id: 'alphabeta', lec: 10, modules: ['alphabeta'], exams: ['F22', 'F23', 'F24'], thumb: 52_000 },
