@@ -1,16 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { generateAbSteps, minimaxValue } from './alphabeta'
-import { AB_LEAF_IDS, AB_NODES, AB_PRESETS } from '../data/constants'
-import type { AbNode } from '../types'
-
-/** 用一组叶子值克隆出一棵树。 */
-function treeWithLeaves(values: number[]): Record<string, AbNode> {
-  const nodes: Record<string, AbNode> = JSON.parse(JSON.stringify(AB_NODES))
-  AB_LEAF_IDS.forEach((id, i) => {
-    nodes[id].value = values[i]
-  })
-  return nodes
-}
+import { generateAbSteps, leavesEvaluated, minimaxValue, treeWithLeaves } from './alphabeta'
+import { AB_PRESETS } from '../data/constants'
 
 describe('generateAbSteps', () => {
   it('剪枝得到的根值与无剪枝 minimax 一致（所有预设）', () => {
@@ -22,7 +12,7 @@ describe('generateAbSteps', () => {
     }
   })
 
-  it('默认 user 预设的根值为 3', () => {
+  it('默认 user 预设的根值为 6', () => {
     // 树：MAX( MIN(MAX(3,5),MAX(2,4)), MIN(MAX(6,1),MAX(0,7)) )
     //  = MAX( MIN(5,4), MIN(6,7) ) = MAX(4,6) = 6 ... 校验 minimax
     const tree = treeWithLeaves(AB_PRESETS.user)
@@ -71,5 +61,15 @@ describe('generateAbSteps', () => {
     expect(first.nodeId).toBe('A')
     expect(first.alpha).toBe(-Infinity)
     expect(first.beta).toBe(Infinity)
+  })
+})
+
+describe('leavesEvaluated', () => {
+  it('counts the leaves alpha-beta looks at', () => {
+    expect(leavesEvaluated(generateAbSteps(treeWithLeaves(AB_PRESETS.alpha)))).toBe(5)
+    // the same eight values in a bad order: nothing is pruned, the root value is unchanged
+    const worst = treeWithLeaves([0, 4, 1, 2, 8, 9, 6, 7])
+    expect(leavesEvaluated(generateAbSteps(worst))).toBe(8)
+    expect(minimaxValue(worst)).toBe(minimaxValue(treeWithLeaves(AB_PRESETS.alpha)))
   })
 })
