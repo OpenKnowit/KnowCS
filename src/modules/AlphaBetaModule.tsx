@@ -160,7 +160,7 @@ export const AlphaBetaModule = () => {
 
           {/* SVG 树 */}
           <div className="bg-slate-900 rounded-[2rem] p-4 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 text-[9px] bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 backdrop-blur">
+            <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 text-[11px] font-semibold text-slate-200 bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 backdrop-blur">
               <div className="flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-indigo-500" />{t('alphabeta.legend.active')}</div>
               <div className="flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-emerald-500" />{t('alphabeta.legend.visited')}</div>
               <div className="flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-rose-500" />{t('alphabeta.legend.pruned')}</div>

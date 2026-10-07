@@ -43,8 +43,27 @@
   .lab-table tr:last-child td { @apply border-b-0; }
   .lab-table .left { @apply text-left; }
   .lab-table tr.cur td { @apply bg-blue-50; }
-  .lab-table tr.dim td { @apply text-slate-400; }
+  .lab-table tr.dim td { @apply text-slate-500; }
   .lab-table td.win { @apply bg-emerald-50 font-extrabold text-emerald-700; }
-  .lab-table td.changed { @apply text-rose-600 font-extrabold; }
+  .lab-table td.changed { @apply text-rose-700 font-extrabold; }
   .formula { @apply font-mono text-[13px] leading-7 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 overflow-x-auto whitespace-pre-wrap; }
+}
+
+/*
+ * Contrast floor for secondary text (WCAG AA, 4.5:1 for small text). Older modules use slate-400/500 on both
+ * white cards and dark slate panels; one class cannot pass on both, so pick the shade from the surface.
+ * Unlayered on purpose: it must beat Tailwind's utilities layer.
+ */
+main :is(.text-slate-400, .text-slate-500, .text-gray-400, .text-gray-500) {
+  color: color-mix(in oklab, var(--color-slate-500) 70%, var(--color-slate-600));
+}
+main :is(.bg-slate-800, .bg-slate-900, .bg-slate-950, .bg-gray-900, .bg-black, [class*='bg-[#0'], [class*='bg-[#1']) :is(.text-slate-400, .text-slate-500, .text-gray-400, .text-gray-500) {
+  color: var(--color-slate-400);
+}
+/* a white card inside a dark panel is a light surface again */
+main :is(.bg-slate-800, .bg-slate-900, .bg-slate-950, .bg-gray-900, .bg-black) :is(.bg-white, .bg-slate-50) :is(.text-slate-400, .text-slate-500, .text-gray-400, .text-gray-500) {
+  color: color-mix(in oklab, var(--color-slate-500) 70%, var(--color-slate-600));
+}
+main .formula .text-rose-600 {
+  color: var(--color-rose-700);
 }

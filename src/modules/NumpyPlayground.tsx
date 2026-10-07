@@ -372,7 +372,7 @@ export const NumpyPlayground = () => {
             />
           </div>
           <div className="flex flex-wrap items-center gap-3 px-3 py-2 border-t border-slate-700/60 bg-slate-950/40">
-            <button onClick={runNow} className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold">
+            <button onClick={runNow} className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-sky-700 hover:bg-sky-600 text-white text-xs font-semibold">
               <Play size={12} /> {t('numpy_module.playground.run')}
             </button>
             <span className="text-[11px] text-slate-400">{t('numpy_module.playground.shortcut')}</span>
