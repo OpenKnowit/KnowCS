@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { eseg, lerp, lerp2, seg, window01 } from '../../../lib/explainer'
 import { XOR_POINTS, classify, hidden, linear, orNandAnd, sigmoid, sweepLine } from '../../../lib/xorWarp'
 import type { Vec2 } from '../../../lib/xorWarp'
+import { clipLine, halfPlane } from '../../../lib/geom2d'
 import type { Episode } from '../Player'
 import { At, C, DrawLine, Grid, Svg, Tex, TitleCard } from '../stage'
 
@@ -111,30 +112,11 @@ function Points({ a = 0, b = 0, o = 1, rings }: { a?: number; b?: number; o?: nu
   )
 }
 
-/** Clip the line w1 x + w2 y + b = 0 to the input window and return display endpoints. */
-const clipLine = (w1: number, w2: number, b: number, lo = -0.5, hi = 1.5): [Pt, Pt] | null => {
-  const pts: Vec2[] = []
-  if (Math.abs(w2) > 1e-9) for (const x of [lo, hi]) pts.push([x, -(w1 * x + b) / w2])
-  if (Math.abs(w1) > 1e-9) for (const y of [lo, hi]) pts.push([-(w2 * y + b) / w1, y])
-  const ok = pts.filter(([x, y]) => x >= lo - 1e-9 && x <= hi + 1e-9 && y >= lo - 1e-9 && y <= hi + 1e-9)
-  return ok.length >= 2 ? [IN(ok[0]), IN(ok[1])] : null
+const clipIn = (w1: number, w2: number, b: number): [Pt, Pt] | null => {
+  const seg2 = clipLine(w1, w2, b, -0.5, 1.5)
+  return seg2 ? [IN(seg2[0]), IN(seg2[1])] : null
 }
-
-/** Half-plane w·x + b > 0 shaded inside the input window (a polygon clipped to the box). */
-const halfPlane = (w1: number, w2: number, b: number): string => {
-  const box: Vec2[] = [[-0.5, -0.5], [1.5, -0.5], [1.5, 1.5], [-0.5, 1.5]]
-  const f = (v: Vec2) => w1 * v[0] + w2 * v[1] + b
-  const out: Vec2[] = []
-  box.forEach((a, i) => {
-    const c = box[(i + 1) % 4]
-    if (f(a) > 0) out.push(a)
-    if (f(a) > 0 !== f(c) > 0) {
-      const k = f(a) / (f(a) - f(c))
-      out.push([a[0] + k * (c[0] - a[0]), a[1] + k * (c[1] - a[1])])
-    }
-  })
-  return out.map((v) => IN(v).join(',')).join(' ')
-}
+const shadeIn = (w1: number, w2: number, b: number): string => halfPlane(w1, w2, b, -0.5, 1.5).map((v) => IN(v).join(',')).join(' ')
 
 // ------------------------------------------------------------------ scenes
 
@@ -187,13 +169,13 @@ function LinesScene({ p }: { p: number }) {
     const aa = lerp(0.3, 0.3 + 3 * Math.PI, eseg(q, 0.05, 0.92))
     best = Math.max(best, sweepLine(aa, 0.42 * Math.sin(aa * 1.7)).score)
   }
-  const ln = clipLine(...w)
+  const ln = clipIn(...w)
   const rings = XOR_POINTS.map((pt) => ((w[0] * pt.x[0] + w[1] * pt.x[1] + w[2] > 0 ? 1 : 0) === pt.t ? undefined : C.yellow))
   return (
     <>
       <Svg>
         <Grid o={0.35} />
-        <polygon points={halfPlane(...w)} fill={C.blue} opacity={0.12} />
+        <polygon points={shadeIn(...w)} fill={C.blue} opacity={0.12} />
         <InputAxes />
         {ln && <line x1={ln[0][0]} y1={ln[0][1]} x2={ln[1][0]} y2={ln[1][1]} stroke={C.text} strokeWidth={3.5} />}
         <Points rings={rings} />
