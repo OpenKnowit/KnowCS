@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import en from '../../locales/en.json'
 import { EPISODES } from '../../lib/sitemap'
 import { EPISODE_CODE } from './episodes'
+import { episodeIds } from './useEpisode'
 
 type Tree = Record<string, unknown>
 const get = (o: unknown, path: string): unknown => path.split('.').reduce<unknown>((a, k) => (a && typeof a === 'object' ? (a as Tree)[k] : undefined), o)
@@ -9,6 +10,7 @@ const get = (o: unknown, path: string): unknown => path.split('.').reduce<unknow
 describe('explainer episodes', () => {
   it('every listed episode has code and every coded episode is listed', () => {
     expect(EPISODES.map((e) => e.id).sort()).toEqual(Object.keys(EPISODE_CODE).sort())
+    expect(episodeIds().sort()).toEqual(Object.keys(EPISODE_CODE).sort())
   })
 
   for (const ep of Object.values(EPISODE_CODE))

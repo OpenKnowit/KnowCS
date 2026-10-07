@@ -16,5 +16,5 @@ import { otsu } from './otsu'
 import { perceptron } from './perceptron'
 import { xor } from './xor'
 
-/** Animation code for every episode listed in sitemap EPISODES. */
+/** Every episode, loaded together — used by tests. Pages load one chunk per episode through useEpisode. */
 export const EPISODE_CODE: Record<string, Episode> = { xor, bayes, backprop: backpropEp, cnn, kmeans, alphabeta, knn, perceptron, evaluate, broadcast, gaussian, dilated, imagenp, otsu, ethics, autograd }
