@@ -52,6 +52,7 @@ function TreeView({ tree, values, step, hl, showAB }: { tree: Record<string, AbN
             {n.type === 'min' && <polygon points={`${X(n)},${Y(n) + 34} ${X(n) + 36},${Y(n) - 24} ${X(n) - 36},${Y(n) - 24}`} fill={C.bg} stroke={stroke} strokeWidth={4} />}
             {isLeaf && <rect x={X(n) - 26} y={Y(n) - 26} width={52} height={52} rx={8} fill={C.bg} stroke={stroke} strokeWidth={3} />}
             {cut && <line x1={X(n) - 30} y1={Y(n) - 30} x2={X(n) + 30} y2={Y(n) + 30} stroke={C.red} strokeWidth={4} />}
+            {!isLeaf && <text x={X(n) - 50} y={Y(n) + 6} textAnchor="end" fill={C.muted} fontSize={22} fontWeight={700}>{id}</text>}
           </g>
         )
       })}
