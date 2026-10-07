@@ -60,6 +60,7 @@ export const EPISODES: EpisodeInfo[] = [
   { id: 'xor', lec: 6, modules: ['xor-mlp', 'perceptron', 'backprop'], exams: ['22S', '23S', '25S', 'F23', 'F24'], thumb: 102_000 },
   { id: 'backprop', lec: 6, modules: ['xor-mlp', 'backprop'], exams: ['F22', 'F23', 'F24'], thumb: 62_000 },
   { id: 'cnn', lec: 8, modules: ['convolution', 'cnn-shapes', 'kernel'], exams: ['F22', 'F23', 'F24'], thumb: 112_000 },
+  { id: 'dilated', lec: 8, modules: ['convolution', 'cnn-shapes'], exams: ['F24'], thumb: 50_000 },
   { id: 'alphabeta', lec: 10, modules: ['alphabeta'], exams: ['F22', 'F23', 'F24'], thumb: 52_000 },
 ]
 

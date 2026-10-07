@@ -80,3 +80,27 @@ export function convolve(img: number[][], kernel: number[][], o: ConvOptions): C
   )
   return { padded, kernel: k, out, origin }
 }
+
+/**
+ * Dilated convolution as Final 2024 Q6(a) implements it (cross-correlation, zero padding):
+ * effective kernel size d·(k − 1) + 1, 'same' pads d·(k − 1) / 2 on each side, and the output is built by
+ * looping over kernel cells — each cell adds kernel[i][j] × a strided slice of the padded input.
+ */
+export function dilatedConv(img: number[][], kernel: number[][], dilation = 1, stride = 1, padding: 'valid' | 'same' = 'valid'): { out: number[][]; pad: number; effective: number; rows: number[][]; cols: number[][] } {
+  const k = kernel.length
+  const effective = dilation * (k - 1) + 1
+  const pad = padding === 'same' ? Math.floor((dilation * (k - 1)) / 2) : 0
+  const n = img.length
+  const m = img[0].length
+  const P = (r: number, c: number) => (r < pad || c < pad || r >= n + pad || c >= m + pad ? 0 : img[r - pad][c - pad])
+  const oh = Math.floor((n + 2 * pad - effective) / stride) + 1
+  const ow = Math.floor((m + 2 * pad - effective) / stride) + 1
+  const out = Array.from({ length: oh }, () => Array<number>(ow).fill(0))
+  // rows[i] / cols[j]: the padded-input indices that kernel cell (i, j) reads, one per output row / column
+  const rows = Array.from({ length: k }, (_, i) => Array.from({ length: oh }, (_, r) => i * dilation + r * stride))
+  const cols = Array.from({ length: k }, (_, j) => Array.from({ length: ow }, (_, c) => j * dilation + c * stride))
+  for (let i = 0; i < k; i++)
+    for (let j = 0; j < k; j++)
+      for (let r = 0; r < oh; r++) for (let c = 0; c < ow; c++) out[r][c] += kernel[i][j] * P(rows[i][r], cols[j][c])
+  return { out, pad, effective, rows, cols }
+}
