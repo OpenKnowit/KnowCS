@@ -1639,6 +1639,10 @@
           "title": "Keras padding=\"same\"",
           "note": "Final 2024 Q7(a): stride 2 halves the size"
         },
+        "f22keras": {
+          "title": "Final 2022 B Q2: emotion CNN in Keras",
+          "note": "27×27×3 → 12 emotions, no padding, 3×3 kernels"
+        },
         "mlp": {
           "title": "MLP on raw pixels",
           "note": "Final 2022 B Q1(f)(ii): count and compare"
@@ -1702,7 +1706,18 @@
       "rules_title": "Parameter rules.",
       "rules": "Conv: (k·k·C<1>in</1> + 1) × filters — the depth of the input counts, the image size does not. Pooling, Flatten and Dropout have none. Dense: (inputs + 1) × units. The +1 is the bias; leave it out only if the paper says “no bias”.",
       "why_title": "Why CNNs need fewer parameters.",
-      "why": "One kernel is reused at every position (parameter sharing), and each output only looks at a small window (sparse connections). A dense layer needs a separate weight for every pixel — see the MLP preset. Changing the input size breaks the first dense layer unless a global pooling layer squeezes the map to 1 × 1 first (Final 2023 Q6f)."
+      "why": "One kernel is reused at every position (parameter sharing), and each output only looks at a small window (sparse connections). A dense layer needs a separate weight for every pixel — see the MLP preset. Changing the input size breaks the first dense layer unless a global pooling layer squeezes the map to 1 × 1 first (Final 2023 Q6f).",
+      "keras_title": "Keras code and model.summary()",
+      "head": "Output head",
+      "head_classify": "Classify",
+      "head_regress": "Regress 0…1",
+      "head_classify_note": "last Dense: one unit per class, softmax; loss categorical_crossentropy",
+      "head_regress_note": "last Dense: units=1, sigmoid; loss mean_squared_error (Final 2022 B Q2(b))",
+      "keras_code": "Keras code for this network",
+      "keras_error": "Fix the shape error above first; Keras would refuse this model too.",
+      "keras_note": "Keras only knows padding=\"valid\" (no border) or \"same\"; an explicit border of p pixels needs ZeroPadding2D first. input_shape goes on the first layer only, channels last, without the batch size — summary() shows the batch as None.",
+      "keras_traps": "The keyword is strides=, not stride=. MaxPooling2D’s strides default to pool_size. Flatten, pooling and Dropout have 0 parameters. Conv2D parameters: (k·k·C_in + 1)·filters.",
+      "keras_slip": "The official 2022 answer writes input_shape=(32, 32, 1) and stride=(2,2). The figure says 27 × 27 × 3 (27 → 9 needs strides 3, 9 → 4 needs strides 2), and Keras’s keyword is strides=. Write the code from the figure."
     },
     "errors": {
       "csv_header": "Need a header and at least two rows.",
