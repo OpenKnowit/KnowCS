@@ -3500,5 +3500,9 @@
     "watch": "explainer",
     "asked": "asked in {{paper}}",
     "note": "Amber = midterm, red = final. Every final also has true/false questions (see Concept check) and a short ethics question (see the ethics explainer)."
+  },
+  "notfound": {
+    "title": "Page not found",
+    "lead": "This address does not exist (any more). The site moved to one page per topic in October 2026 — start from one of these:"
   }
 }

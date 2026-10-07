@@ -38,6 +38,8 @@ function pageMeta(page) {
       return pick("formulas.title", "formulas.lead")
     case "papers":
       return pick("papers.title", "papers.lead")
+    case "notfound":
+      return pick("notfound.title", "notfound.lead")
     case "notes":
       return pick("app.section.package.title", "app.section.package.subtitle")
     case "note":
@@ -110,7 +112,7 @@ writeFileSync(
   resolve(ROOT, "public/sitemap.xml"),
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${PAGES.filter((p) => p.kind !== "redirect").map((p) => `  <url><loc>${urlOf(p)}</loc></url>`).join("\n")}
+${PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound").map((p) => `  <url><loc>${urlOf(p)}</loc></url>`).join("\n")}
 </urlset>
 `,
 )
