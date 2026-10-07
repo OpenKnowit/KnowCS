@@ -3063,6 +3063,111 @@
         "a": "Pixels ≤ 100: 2, 4, 8, 16, 32, 64 → μ1 = 21. Pixels > 100: 128 × 3 → μ2 = 128. New T = (21 + 128)/2 = 74.5. Result: the first two rows become 0 and the bottom row 255."
       }
     },
+    "affine": {
+      "kicker": "Lecture 7 · Image processing",
+      "title": "One matrix moves every pixel",
+      "sub": "Translation, reflection and rotation as lecture 7’s 2 × 3 matrix — what they keep, why a 3 × 3 kernel cannot flip, and which flips are safe augmentations.",
+      "label": {
+        "y_down": "x counts columns to the right, y counts rows downward, (0, 0) is the top-left pixel.",
+        "the_one": "The extra 1 is what lets a matrix also shift.",
+        "last_column": "(tx, ty) sits in the last column — the column the 1 multiplies.",
+        "x_axis": "x-axis (y = 0)",
+        "upside_down": "“Reflect along the x-axis” = upside down.",
+        "answer": "Answer: mirror the columns instead.",
+        "step1": "shift the centre to (0, 0)",
+        "step2": "rotate by θ = {{deg}}°",
+        "step3": "shift back",
+        "ccw": "y points down, so a positive θ turns counter-clockwise on screen.",
+        "stage0": "Rotation",
+        "stage1": "Shear",
+        "stage2": "Uniform scaling",
+        "parallel": "straight & parallel lines, midpoints",
+        "lengths": "distances",
+        "angles": "angles",
+        "may": "“An affine transformation may preserve distances and angles” — TRUE (Final 2024 Q1(f)).",
+        "input_row": "input row",
+        "flipped_row": "after a horizontal flip",
+        "kernel_reach": "A 3 × 3 kernel reaches one pixel. The corner pixel needs a value {{n}} pixels away.",
+        "sixty_three": "On a 64 × 64 image: up to 63 pixels. No 3 × 3 kernel can flip it (Final 2024 Q5(e)).",
+        "still_cat": "still a cat",
+        "not_digit": "not a digit",
+        "aug_q": "Which augmentation helps cats vs dogs but not handwritten digits?",
+        "aug_answer": "Final 2022: a horizontal flip. Rotations and reflections earn the marks."
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "Translate, flip, rotate: lecture 7 does all of them with one 2 × 3 matrix. Here is why that works, and what the finals ask about it."
+        },
+        "coords": {
+          "title": "Pixel coordinates",
+          "c1": "First, the coordinates. x counts columns to the right, y counts rows downward, and (0, 0) is the top-left pixel.",
+          "c2": "So “up” on screen means a smaller y. Keep that in mind — it decides which way a rotation turns.",
+          "c3": "Every transform in the lecture has the same shape: multiply [x, y, 1] by a 2 × 3 matrix M. The extra 1 is what lets a matrix also shift."
+        },
+        "translate": {
+          "title": "Translation",
+          "c1": "Translation adds tx to every x and ty to every y.",
+          "c2": "In M that is the identity on the left and (tx, ty) in the last column — the column the 1 multiplies.",
+          "c3": "cv2.warpAffine fills the pixels nothing moved into with 0."
+        },
+        "reflect": {
+          "title": "Reflection",
+          "c1": "Reflection along the x-axis. Step one: y becomes −y, so the picture flips over row 0 and lands above the frame.",
+          "c2": "Step two: add rows − 1 to slide it back in. The top row and the bottom row have swapped.",
+          "c3": "So “reflect along the x-axis” turns the picture upside down: M = [[1, 0, 0], [0, −1, rows − 1]].",
+          "c4": "Before we go on: which matrix mirrors the picture left to right instead?",
+          "ponder": "Which 2 × 3 matrix mirrors the picture left to right? Write it down before you continue."
+        },
+        "rotate": {
+          "title": "Rotation about the centre",
+          "c1": "Answer: x becomes −x + (cols − 1), so M = [[−1, 0, cols − 1], [0, 1, 0]] — reflection along the y-axis.",
+          "c2": "Rotation about the centre is three moves. First shift the centre to the origin…",
+          "c3": "…then rotate about the origin. With y pointing down, a positive angle turns counter-clockwise on screen…",
+          "c4": "…and shift back. Multiply the three and you get exactly the lecture’s matrix — the one cv2.getRotationMatrix2D returns."
+        },
+        "survive": {
+          "title": "What survives?",
+          "c1": "What does an affine map keep? Watch a grid and a right triangle. A rotation keeps every length and every angle.",
+          "c2": "A shear keeps lines straight and parallel lines parallel, but lengths and angles change.",
+          "c3": "Uniform scaling keeps the angles but not the lengths.",
+          "c4": "Parallel lines and midpoints survive every affine map; distances and angles only some of them. So “may preserve distances and angles” is true."
+        },
+        "global": {
+          "title": "Point, local or global?",
+          "c1": "Is a flip a point operation? Each output pixel copies its value from somewhere else, so no — that is why Final 2022’s statement is false.",
+          "c2": "Is it at least local? A 3 × 3 kernel only reaches one pixel away, but the edge pixels of a flip need values from the far side.",
+          "c3": "On a 64 × 64 image that is up to 63 pixels, so no 3 × 3 kernel can flip it. And since no value changes, the histogram stays the same."
+        },
+        "augment": {
+          "title": "Augmentation",
+          "c1": "Flips and rotations are also the classic data augmentations. Mirror a cat: still a cat.",
+          "c2": "Mirror a handwritten 2: not a digit any more. That is the Final 2022 answer — a horizontal flip helps cats vs dogs, not digits.",
+          "c3": "Rotate a 6 by 180° and it reads as a 9. An augmentation must never change the label."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then try every transform yourself on the practice page."
+        }
+      },
+      "recap": {
+        "1": "Every transform is [x′, y′] = M · [x, y, 1]; the last column shifts. In image coordinates y points down.",
+        "2": "Reflecting along the x-axis turns the image upside down: y′ = −y + (rows − 1). Rotation = shift, rotate, shift back.",
+        "3": "Affine maps keep parallel lines, not always distances or angles; they are not point operations, and a flip is global."
+      },
+      "exam": {
+        "points": {
+          "1": "Write M as a 2 × 3 matrix acting on [x, y, 1]: the left 2 × 2 block turns, mirrors or scales; the last column shifts.",
+          "2": "Reflections need the shift: x′ = −x + (cols − 1) or y′ = −y + (rows − 1), so corners land on corners.",
+          "3": "T/F favourites: affine transforms are not point operations (Final 2022 F); they may preserve distances and angles (Final 2024 T).",
+          "4": "Augmentation: a horizontal flip suits cats vs dogs but not digits (Final 2022) — rotations and reflections earn the marks."
+        },
+        "source": "Final 2024 (Spring) · Problem 5(e)",
+        "q": "Is it possible to design a 3 × 3 kernel and apply convolution with it to flip a 64 × 64 image horizontally or vertically? If yes, give such a kernel. If not, explain why.",
+        "a": "No. Flipping is a global operation: the output pixel in column x takes the input pixel in column 63 − x, up to 63 pixels away. A 3 × 3 convolution is local — every output sees only its 3 × 3 neighbourhood, with the same weights everywhere — so it cannot reach that far."
+      }
+    },
     "ethics": {
       "kicker": "Lecture 11 · Ethics of AI",
       "title": "AI ethics for the final",

@@ -3,6 +3,7 @@ import type { Episode } from './Player'
 
 /** One chunk per episode, so a page downloads only the explainers it shows. */
 const LOADERS: Record<string, () => Promise<Episode>> = {
+  affine: () => import('./episodes/affine').then((m) => m.affine),
   alphabeta: () => import('./episodes/alphabeta').then((m) => m.alphabeta),
   autograd: () => import('./episodes/autograd').then((m) => m.autograd),
   backprop: () => import('./episodes/backprop').then((m) => m.backpropEp),
