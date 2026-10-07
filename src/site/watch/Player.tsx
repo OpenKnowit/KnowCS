@@ -123,8 +123,15 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
     seek(tl.starts[j])
   }
   const toggleFull = () => {
-    if (document.fullscreenElement) void document.exitFullscreen()
-    else void box.current?.requestFullscreen?.()
+    if (document.fullscreenElement) {
+      void document.exitFullscreen()
+      return
+    }
+    void box.current
+      ?.requestFullscreen?.()
+      // on phones, full screen is most useful sideways; browsers that cannot lock simply ignore this
+      .then(() => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.('landscape'))
+      .catch(() => {})
   }
   useEffect(() => {
     const on = () => setFull(document.fullscreenElement === box.current)
