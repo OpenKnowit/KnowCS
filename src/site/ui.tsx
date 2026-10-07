@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { answerMatches } from './format'
-import { MODULES, PAPERS, moduleUrl, neighbours } from '../lib/sitemap'
+import { EPISODES, MODULES, PAPERS, moduleUrl, neighbours, watchUrl } from '../lib/sitemap'
 import type { ModuleId } from '../lib/sitemap'
 
 // ---------------------------------------------------------------- quiz mode
@@ -130,6 +130,12 @@ export function ModuleHero({ id, lead }: { id: ModuleId; lead?: ReactNode }) {
         </div>
         <h1 className="mt-1 text-[clamp(26px,3.2vw,36px)] font-black tracking-tight">{t(`site.modules.${id}.title`)}</h1>
         <p className="mt-1.5 text-slate-600">{lead ?? t(`site.modules.${id}.blurb`)}</p>
+        {EPISODES.filter((e) => e.modules.includes(id)).map((e) => (
+          <a key={e.id} href={watchUrl(e.id)} className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-900 py-1.5 pl-1.5 pr-4 text-[13px] font-bold text-white shadow-md shadow-slate-300 hover:bg-blue-700">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-[10px] text-slate-900" aria-hidden>▶</span>
+            {t('watch.ui.watch_first', { title: t(`watch.${e.id}.title`) })}
+          </a>
+        ))}
       </div>
       {mod.exams.length > 0 && (
         <div className="flex max-w-xl flex-wrap justify-start gap-1.5 sm:justify-end" aria-label={t('site.ui.asked_in')}>

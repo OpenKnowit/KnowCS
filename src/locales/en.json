@@ -451,7 +451,8 @@
     "nav": {
       "course": "Course",
       "package": "Package",
-      "extend": "Extend"
+      "extend": "Extend",
+      "watch": "Watch"
     },
     "tabs_sub": {
       "numpy": "View vs Copy & Broadcasting",
@@ -879,7 +880,10 @@
       "seen": "opened",
       "empty_9": "No past paper tested PyTorch — read the PyTorch notes instead.",
       "empty_11": "Ethics is multiple choice: flashcards are planned.",
-      "empty": "Coming soon."
+      "empty": "Coming soon.",
+      "watch_title": "Explainers",
+      "watch_lead": "Short animated explainers of the most-examined ideas — watch one, then practise it.",
+      "watch_all": "All explainers"
     }
   },
   "lab": {
@@ -1605,6 +1609,144 @@
       "cnn_needs_3d": "Needs an h × w × c input (place it before Flatten).",
       "cnn_kernel_big": "Kernel is larger than the (padded) input.",
       "cnn_needs_flatten": "Dense expects a flat vector — add Flatten first."
+    }
+  },
+  "watch": {
+    "ui": {
+      "video": "explainer video",
+      "player": "Explainer video: {{title}}",
+      "play": "Play",
+      "pause": "Pause",
+      "replay": "Replay",
+      "prev_chapter": "Previous chapter",
+      "next_chapter": "Next chapter",
+      "speed": "Playback speed",
+      "captions": "Captions",
+      "fullscreen": "Full screen",
+      "seek": "Seek",
+      "ponder": "Pause and ponder",
+      "continue": "Continue",
+      "recap": "Recap",
+      "try_it": "Now try it yourself — the practice pages are linked below the video.",
+      "keys": "Space play/pause · ← → 5 s · J / L chapter · C captions · F full screen",
+      "transcript": "Chapters and transcript",
+      "exam_corner": "Exam corner",
+      "show_answer": "Show the answer",
+      "practise": "Practise it",
+      "up_next": "Up next",
+      "gallery_eyebrow": "Explainers",
+      "gallery_title": "See the idea move",
+      "gallery_lead": "Short animated explainers for the ideas the exams keep asking about. Every number on screen is computed live, every chapter pauses for you to think, and each one ends at the page where you practise it.",
+      "watch_first": "Watch: {{title}}"
+    },
+    "xor": {
+      "kicker": "Lecture 6 · Multilayer perceptron",
+      "title": "Why XOR needs a hidden layer",
+      "sub": "One neuron draws one straight line. Watch a hidden layer bend the plane until one line is enough.",
+      "label": {
+        "one_line": "A single neuron: one straight line, output 1 on one side.",
+        "this_line": "this line gets",
+        "best": "best so far",
+        "blue_side": "Shaded side → output 1. Yellow rings mark mistakes.",
+        "dont_bend": "Don’t bend the line. Move the points.",
+        "hidden_moves": "The hidden layer gives every point new coordinates (h₁, h₂).",
+        "step1": "Step 1 · linear",
+        "lines_stay": "Straight lines stay straight, parallel lines stay parallel.",
+        "still_stuck": "Still no line separates them: a linear map alone cannot help.",
+        "step2": "Step 2 · squash",
+        "into_square": "Every point is squeezed into the unit square — and the plane is now bent.",
+        "step3": "Step 3 · one line",
+        "one_line_now": "In hidden space a single straight line does the job.",
+        "pulled_back": "That one line, seen back in the input plane",
+        "band": "is a curved band around (0,1) and (1,0). Two hidden lines, one non-linear boundary.",
+        "exam": "How the exam asks it",
+        "trap_linear": "Trap: with a linear activation, extra layers add nothing — the whole network is still one line."
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "Exam after exam asks the same question: why can a single perceptron not learn XOR, and what does a hidden layer change?"
+        },
+        "points": {
+          "title": "Four points",
+          "c1": "XOR has just four inputs. It outputs 1 when exactly one of x₁, x₂ is 1 — blue — and 0 otherwise — red.",
+          "c2": "Put them on the plane: the blue points sit on one diagonal, the red points on the other.",
+          "c3": "A single neuron computes step(w₁x₁ + w₂x₂ + b). Its boundary w₁x₁ + w₂x₂ + b = 0 is one straight line."
+        },
+        "lines": {
+          "title": "Try every line",
+          "c1": "So let us try lines. Every position, every angle.",
+          "c2": "Some get two points right, many get three. Watch the best score.",
+          "c3": "It never reaches four. Three out of four is the best any straight line can do.",
+          "ponder": "Before the next chapter: can you prove no line works, using only four inequalities?"
+        },
+        "proof": {
+          "title": "The four-line proof",
+          "c1": "Write down what each point demands from w₁, w₂ and b.",
+          "c2": "(0,0) must give 0, so b ≤ 0. The two blue points need w₁ + b > 0 and w₂ + b > 0.",
+          "c3": "Add those two: w₁ + w₂ + 2b > 0, so w₁ + w₂ + b > −b, which is at least 0.",
+          "c4": "But (1,1) must give 0, so w₁ + w₂ + b ≤ 0. Contradiction. This is the full-mark answer to 2025 Spring Q7(c)."
+        },
+        "idea": {
+          "title": "Change the question",
+          "c1": "If no line fits the points, change the points. That is exactly what a hidden layer does.",
+          "c2": "Each hidden neuron computes a new coordinate. The output neuron then draws its line in that new space, not in the original one."
+        },
+        "stretch": {
+          "title": "Step 1: a linear map",
+          "c1": "First the weights: z = 3(Wx + c). Watch the whole grid move with it.",
+          "c2": "A linear map can stretch, shear and shift the plane…",
+          "c3": "…but straight lines stay straight and parallel lines stay parallel.",
+          "c4": "So the points are still not separable. A linear step alone changes nothing — which is why the activation matters."
+        },
+        "squash": {
+          "title": "Step 2: the sigmoid squash",
+          "c1": "Now the activation. σ squeezes every number into the range 0 to 1.",
+          "c2": "Applied to both coordinates, it squashes the stretched plane into the unit square. The grid lines bend.",
+          "c3": "The red point (1,1) is pushed to the top-right corner, (0,0) to the bottom-left edge, and both blue points end up near the bottom right."
+        },
+        "separate": {
+          "title": "Step 3: one straight line",
+          "c1": "Here are the four points in hidden space, with their new coordinates.",
+          "c2": "The output neuron draws one straight line: y = step(h₁ − h₂ − 0.4).",
+          "c3": "Both blue points are on one side, both red points on the other. XOR solved.",
+          "c4": "Look at the corners: h₁ behaves like OR, h₂ like AND, and the output says “OR but not AND” — which is XOR.",
+          "ponder": "Why does the activation have to be non-linear? What would happen to the bent grid without σ?"
+        },
+        "pullback": {
+          "title": "Back in the input plane",
+          "c1": "Let us carry that straight line back through the network: undo the squash…",
+          "c2": "…undo the stretch, and colour every input by the network’s answer.",
+          "c3": "The straight line in hidden space becomes a curved band in the input plane. That non-linear boundary is what a single neuron could never draw."
+        },
+        "exam": {
+          "title": "The exam version",
+          "c1": "Exams often want the weights by hand with step activations. One standard answer: h₁ = OR, h₂ = NAND, output = AND.",
+          "c2": "Check the table row by row: only (0,1) and (1,0) make both hidden units fire.",
+          "c3": "And a classic trap: stack linear layers and you get W₂W₁x — still one linear function, still one line. The non-linearity is the whole point."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to remember for the exam.",
+          "c2": "Next: try the XOR page, where you can train this network with backpropagation step by step."
+        }
+      },
+      "recap": {
+        "1": "One neuron = one straight line. XOR’s four inequalities contradict each other.",
+        "2": "A hidden layer moves the points: linear map, then a non-linear squash.",
+        "3": "In hidden space one line separates them; pulled back, it is a curved boundary."
+      },
+      "exam": {
+        "points": {
+          "1": "Prove “a single perceptron cannot learn XOR” with the four inequalities: b < 0, w₁ + b > 0, w₂ + b > 0, w₁ + w₂ + b < 0.",
+          "2": "Two hidden neurons are enough. A common hand answer is OR and NAND feeding an AND.",
+          "3": "Without a non-linear activation, any number of layers collapses into one linear layer.",
+          "4": "“Make the points linearly separable after the first layer” — sketch the hidden-space picture to show it."
+        },
+        "source": "2025 Spring midterm · Problem 7(c)",
+        "q": "Network A is a single perceptron, Network B adds one hidden layer with two neurons. Show that A cannot learn XOR, and give weights with which B can.",
+        "a": "A: (0,0)→0 needs b < 0; (0,1), (1,0)→1 need w₂ + b > 0 and w₁ + b > 0, so w₁ + w₂ > −2b; (1,1)→0 needs w₁ + w₂ < −b < −2b. Contradiction. B (step units): h₁ = step(x₁ + x₂ − 0.5), h₂ = step(−x₁ − x₂ + 1.5), y = step(h₁ + h₂ − 1) with output 1 only when the sum is > 0."
+      }
     }
   }
 }

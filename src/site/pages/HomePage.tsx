@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LECTURES, MODULES, PAPERS, lectureScope, moduleUrl, noteUrl } from '../../lib/sitemap'
+import { EPISODES, LECTURES, MODULES, PAPERS, lectureScope, moduleUrl, noteUrl, watchUrl } from '../../lib/sitemap'
 import type { ModuleInfo } from '../../lib/sitemap'
 import { readVisited } from '../ui'
+import { EpisodeCard } from '../watch/EpisodeCard'
 
 type Scope = 'all' | 'mid' | 'final'
 
@@ -76,6 +77,23 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {!query && (
+        <section className="mx-auto mb-6 max-w-[1280px] px-4 sm:px-8" aria-labelledby="home-watch">
+          <div className="rounded-3xl bg-slate-900 p-4 text-white sm:p-6">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 id="home-watch" className="text-xl font-black">▶ {t('site.home.watch_title')}</h2>
+                <p className="mt-1 text-sm text-slate-300">{t('site.home.watch_lead')}</p>
+              </div>
+              <a href={watchUrl()} className="text-sm font-bold text-blue-300 hover:text-blue-200">{t('site.home.watch_all')} →</a>
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {EPISODES.slice(0, 3).map((e) => <EpisodeCard key={e.id} info={e} />)}
+            </div>
+          </div>
+        </section>
+      )}
 
       <div className="mx-auto grid max-w-[1280px] gap-4 px-4 sm:px-8">
         {LECTURES.filter((n) => scope !== 'mid' || lectureScope(n) === 'mid').map((n) => {

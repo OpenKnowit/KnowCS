@@ -38,6 +38,21 @@ export const MODULES: ModuleInfo[] = [
   { id: 'alphabeta', lec: 10, kind: 'classic', legacy: 'alphabeta', exams: ['F22', 'F23', 'F24'] },
 ]
 
+/** Explainer videos (/watch/<id>/): in-browser animations with captions, one per heavily examined idea. */
+export interface EpisodeInfo {
+  id: string
+  lec: number
+  /** practice pages that go with it */
+  modules: ModuleId[]
+  exams: string[]
+  /** thumbnail frame (ms into the episode) */
+  thumb: number
+}
+
+export const EPISODES: EpisodeInfo[] = [
+  { id: 'xor', lec: 6, modules: ['xor-mlp', 'perceptron', 'backprop'], exams: ['22S', '23S', '25S', 'F23', 'F24'], thumb: 102_000 },
+]
+
 export const NOTE_IDS = ['numpy', 'pandas', 'pytorch', 'tensorflow', 'keras', 'kevin'] as const
 export const EXTEND_IDS = ['attention'] as const
 
@@ -67,6 +82,7 @@ export const PAPERS: Paper[] = [
 
 export const moduleUrl = (id: string): string => `/${id}/`
 export const noteUrl = (id?: string): string => (id ? `/notes/${id}/` : '/notes/')
+export const watchUrl = (id?: string): string => (id ? `/watch/${id}/` : '/watch/')
 export const extendUrl = (id?: string): string => (id ? `/extend/${id}/` : '/extend/')
 
 export const neighbours = (id: ModuleId): { prev: ModuleInfo | null; next: ModuleInfo | null } => {
@@ -108,12 +124,16 @@ export type PageSpec =
   | { kind: 'note'; path: string; id: string }
   | { kind: 'extend'; path: string }
   | { kind: 'extend-item'; path: string; id: string }
+  | { kind: 'watch'; path: string }
+  | { kind: 'watch-item'; path: string; id: string }
   | { kind: 'redirect'; path: string; to: string }
 
 /** Every HTML file the build emits. path is the output file, relative to the site root. */
 export const PAGES: PageSpec[] = [
   { kind: 'home', path: 'index.html' },
   ...MODULES.map((m): PageSpec => ({ kind: 'module', path: `${m.id}/index.html`, id: m.id })),
+  { kind: 'watch', path: 'watch/index.html' },
+  ...EPISODES.map((e): PageSpec => ({ kind: 'watch-item', path: `watch/${e.id}/index.html`, id: e.id })),
   { kind: 'notes', path: 'notes/index.html' },
   ...NOTE_IDS.map((id): PageSpec => ({ kind: 'note', path: `notes/${id}/index.html`, id })),
   { kind: 'extend', path: 'extend/index.html' },

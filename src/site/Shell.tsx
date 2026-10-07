@@ -12,7 +12,7 @@ const LANG_LABELS: Record<LangCode, string> = {
   'zh-HK': '繁體中文',
 }
 
-export type Section = 'course' | 'notes' | 'extend'
+export type Section = 'course' | 'watch' | 'notes' | 'extend'
 
 const LanguageMenu = () => {
   const { t, i18n } = useTranslation()
@@ -98,6 +98,7 @@ const LanguageMenu = () => {
 
 const NAV: { section: Section; href: string; key: string }[] = [
   { section: 'course', href: '/', key: 'app.nav.course' },
+  { section: 'watch', href: '/watch/', key: 'app.nav.watch' },
   { section: 'notes', href: '/notes/', key: 'app.nav.package' },
   { section: 'extend', href: '/extend/', key: 'app.nav.extend' },
 ]

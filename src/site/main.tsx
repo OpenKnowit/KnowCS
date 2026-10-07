@@ -18,11 +18,13 @@ const HomePage = lazy(() => import('./pages/HomePage'))
 const ModulePage = lazy(() => import('./pages/ModulePage'))
 const NotesPage = lazy(() => import('./pages/NotesPage'))
 const ExtendPage = lazy(() => import('./pages/ExtendPage'))
+const WatchPage = lazy(() => import('./pages/WatchPage'))
 
-const section: Section = page === 'notes' || page === 'note' ? 'notes' : page === 'extend' || page === 'extend-item' ? 'extend' : 'course'
+const section: Section =
+  page === 'notes' || page === 'note' ? 'notes' : page === 'extend' || page === 'extend-item' ? 'extend' : page === 'watch' || page === 'watch-item' ? 'watch' : 'course'
 
 const content =
-  page === 'module' ? <ModulePage id={id} /> : page === 'notes' || page === 'note' ? <NotesPage id={id || null} /> : page === 'extend' || page === 'extend-item' ? <ExtendPage id={id || null} /> : <HomePage />
+  page === 'module' ? <ModulePage id={id} /> : page === 'watch' || page === 'watch-item' ? <WatchPage id={id || null} /> : page === 'notes' || page === 'note' ? <NotesPage id={id || null} /> : page === 'extend' || page === 'extend-item' ? <ExtendPage id={id || null} /> : <HomePage />
 
 if (!moved) {
   createRoot(document.getElementById('root')!).render(
