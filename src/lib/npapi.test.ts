@@ -5,6 +5,16 @@ import { runPython } from './minipy'
 // Not included on purpose: 0-d results echo as `12` instead of `np.int64(12)`, and det() is exact (-2.0)
 // where LAPACK prints -2.0000000000000004.
 const CASES: [string, string][] = [
+  ["from numpy.polynomial import Polynomial\np = Polynomial([1, 2, 3])\np", "Polynomial([1., 2., 3.], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')"],
+  ["from numpy.polynomial import Polynomial\np = Polynomial([1, 2, 3])\np.roots()", "array([-0.33333333-0.47140452j, -0.33333333+0.47140452j])"],
+  ["from numpy.polynomial import Polynomial\np = Polynomial([1, 2, 3])\np.deriv()", "Polynomial([2., 6.], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')"],
+  ["from numpy.polynomial import Polynomial\np = Polynomial([1, 2, 3])\np.integ()", "Polynomial([0., 1., 1., 1.], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')"],
+  ["from numpy.polynomial import Polynomial\np = Polynomial([1, 2, 3])\nq = Polynomial([0, 1])\np * q", "Polynomial([0., 1., 2., 3.], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')"],
+  ["from numpy.polynomial import Polynomial\np = Polynomial([1, 2, 3])\np(np.array([0, 1, 2]))", "array([ 1.,  6., 17.])"],
+  ["from numpy.polynomial import Polynomial\nx = np.linspace(0, 4, 5)\ny = 0.5 * x ** 2 - 2 * x + 3\nPolynomial.fit(x, y, deg=2).convert()", "Polynomial([ 3. , -2. ,  0.5], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')"],
+  ["x = np.linspace(0, 4, 5)\ny = 0.5 * x ** 2 - 2 * x + 3\nnp.polyfit(x, y, 2)", "array([ 0.5, -2. ,  3. ])"],
+  ["from numpy.polynomial import Polynomial\nPolynomial([1, -3, 2]).roots()", "array([0.5, 1. ])"],
+  ["from numpy.polynomial import Polynomial\np = Polynomial([1, 2])\np ** 2 + 1", "Polynomial([2., 4., 4.], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')"],
   ['np.array([0.26642920868471265, 0.0001])', 'array([2.66429209e-01, 1.00000000e-04])'],
   ['np.array([1e-5, 1.0])', 'array([1.e-05, 1.e+00])'],
   ['np.array([0.3297457005828619, 0.00020365])', 'array([3.29745701e-01, 2.03650000e-04])'],

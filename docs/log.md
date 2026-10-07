@@ -7,6 +7,11 @@
 
 ## 进展时间线
 
+### 2026-10-08 — NumPy 面板：多项式；合并成对距离视频
+- **merge**：合并 `worktree-pairwise-video`（成对距离考点视频，此前只部署未合入）。其解释器新增的 square / expand_dims / argsort 由 main 上的扩展 API 覆盖，保留 argsort 的语义（默认 axis=-1，None 展平）。
+- **feat**：NumPy 面板新增「多项式」分组：`from numpy.polynomial import Polynomial`、求值 / 求导 / 积分 / 求根（含复根）/ 运算 / 拟合 / convert，以及 `np.polyfit` / `np.polyval`，结果画成曲线图。笔记第 3 节的代码块可一键在面板中运行。
+- **test**：新增 `poly.test.ts`，`npapi.test.ts` 增加 10 个多项式用例（NumPy 2.2.6 真实输出），共 329 个通过。
+
 ### 2026-10-08 — NumPy 笔记右侧的 API 可视化面板
 - **feat**：Package 的 NumPy 笔记右侧新增「NumPy 实时演示」面板：55 个 API 示例分 8 组，可搜索、可改代码即时运行；每次调用都画出输入与结果网格，悬停结果格子显示它由哪些输入格子得到（规约标出被合并的轴和被选中的最值，矩阵乘标出行与列，搬运类显示原样复制自哪里）。笔记中可演示的名字可点击跳转。整页在该笔记下放宽到 1440px。
 - **feat（解释器）**：新增约 45 个 NumPy 函数 / 方法与 `np.linalg`、`np.random` 子模块；为函数、方法、运算符、比较、`.T`、下标读取记录 `CallTrace`，搬运类调用在元素编号数组上重放得到来源。
