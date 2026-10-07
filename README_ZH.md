@@ -1,67 +1,36 @@
-# CS Helper (KnowitCS)
+# KnowCS —— COMP2211 交互式学习实验室
 
 **中文** | [English](./README.md)
 
-这是一个关于 HKUST COMP2211 (Machine Learning) 的交互式学习网站。该项目旨在通过可视化的方式帮助学生理解机器学习中的核心概念，目前项目正在持续更新中。
+KnowCS 是面向香港科技大学 **COMP2211（Exploring Artificial Intelligence）** 的交互式学习网站。每个页面都围绕期中、期末反复考到的概念设计，画面上的每个数字都由经过测试的代码实时算出。
 
-## 🌟 在线体验
+**在线访问：** <https://knowcs.online> —— English / 简体中文 / 繁體中文（`?lang=en`、`?lang=zh`、`?lang=zh-HK`）。
 
-你可以通过以下链接体验该项目：
+## 网站内容
 
-- **中文版**: [https://knowcs.online/?lang=zh](https://knowcs.online/?lang=zh)
-- **英文版**: [https://knowcs.online/?lang=en](https://knowcs.online/?lang=en)
+| 栏目 | 地址 | 内容 |
+|---|---|---|
+| 课程地图 | `/` | 第 1–11 讲，每讲的练习页、讲解视频与考试标记。 |
+| 练习页 | `/<主题>/` | 18 个动手页面（NumPy、贝叶斯、KNN、模型评估、K-Means、感知机、反向传播、卷积、Otsu、CNN 形状、α-β 剪枝……），大多可直接填写考试要求的表格，并有「自测」模式。 |
+| 讲解视频 | `/watch/` | 15 集在浏览器中运行的 3Blue1Brown 风格动画讲解：章节、字幕、「停下来想一想」、文字稿，以及附往年题的考点角。 |
+| 概念自测 | `/drill/` | 42 道仿期末 Problem 1 的原创判断题，附解释。 |
+| 公式表 | `/formulas/` | 考试用到的全部公式及陷阱提示，可打印为三页 A4。 |
+| 考点地图 | `/papers/` | 九份往年试卷分别考了哪些主题。 |
+| 资料包 / 拓展 | `/notes/`、`/extend/` | 资料包笔记（NumPy 附实时 API 面板、pandas、PyTorch……）与拓展页面。 |
 
-## 📚 内容来源与计划
+## 开发
 
-目前，本项目的内容主要参考了 [moyunxiang/COMP2211](https://github.com/moyunxiang/COMP2211/blob/main/COMP2211.md) 的学习笔记。之后会根据Desmond教授的COMP2211授课内逐步更新。
+```bash
+npm install
+npm run dev        # http://localhost:5174
+npm run lint       # ESLint
+npm test           # Vitest（400+ 个测试）
+npm run typecheck  # tsc --noEmit
+npm run build      # 多页构建，输出到 dist/
+```
 
-**未来计划：**
+技术栈：React 19、TypeScript（strict）、Vite 7（多页，页面清单在 `src/lib/sitemap.ts`）、Tailwind CSS 4、Framer Motion、KaTeX、react-i18next。所有计算都在 `src/lib/` 并配有单元测试；讲解视频是 `src/site/watch/` 中按时间轴驱动的 React/SVG 场景。贡献约定见 [CLAUDE.md](./CLAUDE.md)，开发日志与规划见 [docs/](./docs/)。
 
-- 持续更新更多 COMP2211 相关的可视化模块。
-- 本项目的COMP2211部分将会合并 [moyunxiang/COMP2211](https://github.com/moyunxiang/COMP2211/blob/main/COMP2211.md)，作为其互动补充部分。
-- COMP2211部分将会以MIT协议开源，共学生们学习参考。
+## 致谢
 
-## 🧩 可视化模块
-
-### 卷积核实验室 (Kernel Laboratory)
-交互式模拟卷积核（滤波器）如何从图像中提取特征。
-- **过程可视化**: 实时演示 $(I * K)_{x,y}$ 运算，并排展示输入图像 ($I$)、卷积核 ($K$) 和输出特征图。
-- **交互式卷积核**: 体验 **Sobel-X/Y**（边缘检测）、**Laplacian**（二阶导数/突变点捕捉）和 **Identity** 等预设卷积核，或自定义卷积核数值。
-- **教学洞见**: 直观理解卷积核作为局部特征过滤器如何捕捉空间模式。
-
-## 🛠️ 技术栈
-
-本项目基于现代前端技术栈构建，注重性能与交互体验：
-
-- **核心框架**: [React](https://react.dev/) (v19) - 用于构建用户界面。
-- **构建工具**: [Vite](https://vitejs.dev/) - 提供极速的开发服务器和构建体验。
-- **样式方案**: [Tailwind CSS](https://tailwindcss.com/) (v4) - 实用优先的 CSS 框架，快速构建现代 UI。
-- **动画引擎**: [Framer Motion](https://www.framer.com/motion/) - 实现流畅的交互动画效果（如梯度下降追踪、矩阵变换）。
-- **数学公式**: [KaTeX](https://katex.org/) - 高性能的 LaTeX 公式渲染库。
-- **国际化**: [react-i18next](https://react.i18next.com/) - 支持 English / 简体中文 / 繁體中文，自动检测浏览器语言。
-- **图标库**: [Lucide React](https://lucide.dev/) - 简洁美观的图标组件。
-- **单文件构建**: `vite-plugin-singlefile` - 将整个应用打包为单个 HTML 文件，便于分发和部署。
-
-## 🚀 本地运行
-
-1. 克隆仓库：
-
-   ```bash
-   git clone https://github.com/CharlesZhang2023/cshelper.git
-   ```
-2. 安装依赖：
-
-   ```bash
-   cd cshelper
-   npm install
-   ```
-3. 启动开发服务器：
-
-   ```bash
-   npm run dev
-   ```
-4. 构建项目：
-
-   ```bash
-   npm run build
-   ```
+早期内容参考了 [moyunxiang/COMP2211](https://github.com/moyunxiang/COMP2211/blob/main/COMP2211.md) 的学习笔记。考试例题均依据课程讲义与往年试卷改写或重新计算，仅供学习使用。

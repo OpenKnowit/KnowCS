@@ -83,6 +83,7 @@ GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm 
 
 - `src/lib/sitemap.ts` —— 唯一页面清单：模块（讲次 / 试卷）、笔记、拓展、URL、旧链接映射（`#/course/x` → `/x/`，`/lab/*.html` 跳转页）。`vite.config.js` 据此生成 HTML 入口。
 - `src/site/watch/` —— 讲解视频：`Player.tsx`（时间轴播放器）、`stage.tsx`（1600×900 舞台坐标、配色、`At`/`Tex`）、`episodes/*.tsx`（每集一组场景，`render(p)` 为场景进度的纯函数）。新增一集：计算放 `src/lib/` 配测试 → 写 episode → 在 `episodes/index.ts` 与 `sitemap.ts` 的 `EPISODES` 注册 → `watch.<id>.*` 文案（字幕键 `scenes.<scene>.c<k>`，数量与 `cues` 对齐）。
+- `src/data/drill.ts`、`src/data/formulas.ts` —— 概念自测（`/drill/`）与公式表（`/formulas/`）的数据，文案在 `drill.*`、`formulas.*`；`/papers/` 考点地图由 `MODULES[].exams` 反推。对应测试会用库函数核对可计算的答案、并检查 KaTeX 能排版每条公式。
 - `src/site/` —— 全站共用入口 `main.tsx`（按 `<body data-page>` 懒加载页面）、`Shell.tsx`（顶栏 / 页脚 / 语言）、`ui.tsx`（PageBar、LabPage、Workspace、`<Ans>` 自测格等）、`pages/`（Home / Module / Notes / Extend）、`modules/`（10 个考点实验页）。
 - `src/modules/*.tsx` —— 8 个经典课程模块 + Package / Extend 视图（Perceptron / PyTorch 已写好、暂未上架）。动画一律用 `m.*`，不要用 `motion.*`。
 - `src/components/*.tsx` —— 共享组件（Latex / LineChart / SectionTitle / SeniorAdvice）。
