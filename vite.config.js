@@ -1,6 +1,6 @@
 // KnowCS: a multi-page site. Every page in src/lib/sitemap.ts gets its own HTML file, generated into site/
 // (gitignored) when the config loads; all pages share one entry script that renders the right page.
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
@@ -59,7 +59,8 @@ function pageHtml(page) {
   const head = `<meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#2563eb" />
-    <link rel="icon" type="image/svg+xml" href="${FAVICON}" />`
+    <link rel="icon" type="image/svg+xml" href="${FAVICON}" />
+    <link rel="manifest" href="/manifest.webmanifest" />`
   if (page.kind === "redirect") {
     return `<!doctype html>
 <html lang="en">
@@ -115,6 +116,21 @@ writeFileSync(
 ${PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound").map((p) => `  <url><loc>${urlOf(p)}</loc></url>`).join("\n")}
 </urlset>
 `,
+)
+copyFileSync(resolve("src/sw/sw.js"), resolve(ROOT, "public/sw.js"))
+// installable as an app: the favicon as a real file, plus a manifest
+writeFileSync(resolve(ROOT, "public/icon.svg"), decodeURIComponent(FAVICON.replace("data:image/svg+xml,", "")))
+writeFileSync(
+  resolve(ROOT, "public/manifest.webmanifest"),
+  JSON.stringify({
+    name: "KnowCS · COMP2211 Interactive ML Lab",
+    short_name: "KnowCS",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#f1f5f9",
+    theme_color: "#2563eb",
+    icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }],
+  }),
 )
 writeFileSync(resolve(ROOT, "public/robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`)
 
