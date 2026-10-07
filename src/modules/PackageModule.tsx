@@ -1,9 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { KeyboardEvent, MouseEvent } from 'react'
 import { m } from 'framer-motion'
-import { ArrowLeft, FileText, Package } from 'lucide-react'
+import { ArrowLeft, FileText, MousePointerClick, Package } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { NOTES } from '../data/notes'
+import { NOTE_LINKS } from '../data/numpyApis'
+import type { ApiCat } from '../data/numpyApis'
 import { normalizeLang } from '../lib/lang'
+import { NumpyApiPanel } from './NumpyApiPanel'
 
 interface PackageModuleProps {
   openId: string | null
@@ -16,11 +20,44 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
   const { t, i18n } = useTranslation()
   const lang = normalizeLang(i18n.resolvedLanguage)
   const openNote = NOTES.find((n) => n.id === openId)
+  const withPanel = openNote?.id === 'numpy'
+  const panelRef = useRef<HTMLDivElement>(null)
+  // 笔记里点了哪个名字：决定 NumPy 面板打开哪一组（key 递增让面板按新入口重置）
+  const [focus, setFocus] = useState<{ cat: ApiCat | null; missing: string | null; n: number }>({ cat: null, missing: null, n: 0 })
 
   // 打开笔记时回到页面顶部，避免停留在卡片网格的滚动位置
   useEffect(() => {
     if (openId) window.scrollTo({ top: 0 })
   }, [openId])
+
+  // NumPy 笔记：把能在面板里演示的行内 `code` 名字标成可点击（直接改 HTML 字符串，重渲染 / 切换语言都不会丢）
+  const noteHtml = useMemo(() => {
+    if (!openNote) return ''
+    const html = openNote.body[lang].html
+    if (!withPanel) return html
+    const title = t('numpy_api.link_hint').replace(/"/g, '&quot;')
+    // 行内 code 没有属性；代码块里的是 <code class="language-…">，不会被匹配
+    return html.replace(/<code>([^<]+)<\/code>/g, (whole, name: string) =>
+      name in NOTE_LINKS ? `<code class="np-link" role="button" tabindex="0" title="${title}">${name}</code>` : whole,
+    )
+  }, [openNote, lang, withPanel, t])
+
+  const followLink = (target: EventTarget) => {
+    const el = (target as HTMLElement).closest?.('code.np-link')
+    if (!el) return
+    const name = el.textContent?.trim() ?? ''
+    const cat = NOTE_LINKS[name] ?? null
+    setFocus((f) => ({ cat, missing: cat ? null : name, n: f.n + 1 }))
+    // 窄屏时面板在正文下方：滚过去
+    if (window.matchMedia('(max-width: 1279px)').matches) panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+  const onArticleClick = (e: MouseEvent) => followLink(e.target)
+  const onArticleKey = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if ((e.target as HTMLElement).closest?.('code.np-link')) e.preventDefault()
+      followLink(e.target)
+    }
+  }
 
   if (openNote) {
     return (
@@ -34,7 +71,21 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
           </button>
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${openNote.tagClass}`}>{openNote.tag}</span>
         </div>
-        <article key={lang} lang={lang} className="note-prose max-w-3xl" dangerouslySetInnerHTML={{ __html: openNote.body[lang].html }} />
+        {withPanel ? (
+          <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,560px)]">
+            <div className="min-w-0 space-y-4">
+              <p className="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900">
+                <MousePointerClick size={14} aria-hidden /> {t('numpy_api.link_hint')}
+              </p>
+              <article key={lang} lang={lang} className="note-prose" onClick={onArticleClick} onKeyDown={onArticleKey} dangerouslySetInnerHTML={{ __html: noteHtml }} />
+            </div>
+            <div ref={panelRef} className="scroll-mt-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pb-2">
+              <NumpyApiPanel key={focus.n} initialCat={focus.cat} missing={focus.missing} />
+            </div>
+          </div>
+        ) : (
+          <article key={lang} lang={lang} className="note-prose max-w-3xl" dangerouslySetInnerHTML={{ __html: noteHtml }} />
+        )}
       </m.div>
     )
   }

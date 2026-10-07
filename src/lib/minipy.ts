@@ -5,8 +5,13 @@
 import {
   NDArray, PyError, MAX_SIZE, arrayRepr, arrayStr, binaryOp, castValue, dot, formatScalar, getIndex, reduce,
   reshape, setIndex, sharesMemory, shapeStr, transpose, unaryOp, checkSize, applyOp, cStrides, broadcastShapes, broadcastTo,
+  reduceDType,
 } from './ndarray'
 import type { AxisNote, BinOp, DType, IndexItem, IndexPlan, ReduceKind } from './ndarray'
+import {
+  SandboxRandom, concatenate, cumsum, det, expandDims, flip, hstack, inv, norm, outer, repeat, roundHalfEven, sortAlong,
+  squeeze, stack, swapaxes, tile, trace, unique, vstack, commonDType,
+} from './ndops'
 
 // ================= 词法 =================
 
@@ -430,6 +435,19 @@ export const parse = (src: string): Stmt[] => new Parser(tokenize(src)).program(
 
 type Fn = (args: Value[], kw: Record<string, Value>) => Value
 
+/** 可视化用的 API 分类：决定「输出元素来自哪些输入元素」的计算方式 */
+export type ApiKind = 'create' | 'move' | 'elementwise' | 'reduce' | 'scan' | 'matmul' | 'sort' | 'unique' | 'linalg' | 'random' | 'info'
+
+interface ApiMeta {
+  /** 'np.sum' / 'ndarray.sum' / 'np.linalg.inv' … */
+  name: string
+  kind: ApiKind
+  /** axis 参数在位置参数中的下标（不含 self） */
+  axisPos?: number
+  /** 未给 axis 时的默认值（None 记为 null） */
+  defaultAxis?: number | null
+}
+
 export type Value =
   | { k: 'int'; v: number }
   | { k: 'float'; v: number }
@@ -441,7 +459,7 @@ export type Value =
   | { k: 'slice'; start: Value; stop: Value; step: Value }
   | { k: 'ellipsis' }
   | { k: 'array'; a: NDArray }
-  | { k: 'fn'; name: string; call: Fn }
+  | { k: 'fn'; name: string; call: Fn; api?: ApiMeta; self?: NDArray; rebind?: (self: NDArray) => Fn }
   | { k: 'type'; name: string; call: Fn; dtype?: DType }
   | { k: 'module'; name: string; attrs: Record<string, Value> }
   | { k: 'dtype'; d: DType }
@@ -586,6 +604,29 @@ export interface IndexTrace {
   aliases: AliasEffect[]
 }
 
+export interface Operand {
+  label: string
+  snap: GridSnapshot
+}
+
+/** 一次 API 调用 / 运算符 / 下标读取的记录，供 API 可视化面板使用 */
+export interface CallTrace {
+  id: number
+  line: number
+  code: string
+  /** 'np.sum'、'ndarray.reshape'、'op:+'、'ndarray.T'、'index' … */
+  api: string
+  kind: ApiKind
+  /** 参与运算的数组（逐元素运算时也包括标量），按出现顺序 */
+  operands: Operand[]
+  axis: number | null
+  /** 数组或标量结果；返回元组等其他类型时为 null */
+  result: GridSnapshot | null
+  resultText: string
+  /** kind = 'move'：结果每个元素拷贝自 [第几个操作数, 其扁平下标] */
+  source?: [number, number][]
+}
+
 export interface VarInfo {
   name: string
   kind: string
@@ -601,6 +642,7 @@ export interface RunResult {
   out: string | null
   error: { type: string; message: string; line?: number } | null
   traces: IndexTrace[]
+  calls: CallTrace[]
   vars: VarInfo[]
 }
 
@@ -613,8 +655,12 @@ class Interp {
   env = new Map<string, Value>()
   stdout: string[] = []
   traces: IndexTrace[] = []
+  calls: CallTrace[] = []
   line = 0
   quiet = 0
+  /** >0 while re-running a call on id arrays to recover element provenance */
+  replaying = 0
+  rng = new SandboxRandom()
   builtins: Record<string, Value>
   np: Value
 
@@ -792,9 +838,11 @@ class Interp {
       const items = this.toIndexItems(idx)
       const { plan, value } = getIndex(a, items)
       const res: Value = typeof value === 'number' ? fromScalar(value, a.dtype) : arr(value)
-      if (!this.quiet) {
+      if (!this.quiet && !this.replaying) {
         const out = typeof value === 'number' ? { shape: [], values: [value], dtype: a.dtype } : snap(value)
         this.record(this.targetOf(node), this.text(node), a, before, plan, 'read', out)
+        const flatOf = new Map(a.addresses().map((x, i) => [x, i]))
+        this.pushCall('index', 'move', this.text(node), [{ label: this.targetOf(node), v: arr(NDArray.create(before.values, before.shape, before.dtype)) }], res, null, plan.addresses.map((x) => [0, flatOf.get(x)!]))
       }
       return res
     }
@@ -888,6 +936,101 @@ class Interp {
     })
   }
 
+  // ---------- API 调用追踪 ----------
+
+  /** 收集参与运算的数组（逐元素运算时也收集数值标量），标签取自源码 */
+  collectOperands(nodes: Node[], vals: Value[], scalars: boolean): { label: string; v: Value }[] {
+    const out: { label: string; v: Value }[] = []
+    const seen = new Set<NDArray>()
+    const walk = (node: Node | null, v: Value, label: string) => {
+      if (v.k === 'array') {
+        if (!seen.has(v.a)) {
+          seen.add(v.a)
+          out.push({ label, v })
+        }
+      } else if ((v.k === 'list' || v.k === 'tuple') && v.items.some((x) => x.k === 'array')) {
+        const lit = node && (node.k === 'list' || node.k === 'tuple') ? node.items : null
+        v.items.forEach((x, i) => walk(lit ? lit[i] : null, x, lit ? this.text(lit[i]) : `${label}[${i}]`))
+      } else if (scalars && isNum(v)) {
+        out.push({ label, v })
+      }
+    }
+    vals.forEach((v, i) => walk(nodes[i] ?? null, v, nodes[i] ? this.text(nodes[i]) : `arg${i}`))
+    return out
+  }
+
+  resultSnap(v: Value): GridSnapshot | null {
+    if (v.k === 'array') return snap(v.a)
+    if (isNum(v)) return { shape: [], values: [numOf(v)], dtype: v.k === 'float' ? 'float64' : v.k === 'bool' ? 'bool' : 'int64' }
+    return null
+  }
+
+  pushCall(api: string, kind: ApiKind, code: string, ops: { label: string; v: Value }[], res: Value, axis: number | null, source?: [number, number][]) {
+    this.calls.push({
+      id: this.calls.length,
+      line: this.line,
+      code,
+      api,
+      kind,
+      operands: ops.map((o) => ({ label: o.label, snap: o.v.k === 'array' ? snap(o.v.a) : this.resultSnap(o.v)! })),
+      axis,
+      result: this.resultSnap(res),
+      resultText: repr(res),
+      source,
+    })
+  }
+
+  /** 在「元素编号」数组上重放一次搬运类调用，得到结果每个元素的来源 */
+  replayMove(ops: { v: Value }[], run: (subst: (v: Value) => Value) => Value): [number, number][] | undefined {
+    const ID = 1_000_000
+    const ids = new Map<NDArray, NDArray>()
+    ops.forEach((o, k) => {
+      if (o.v.k === 'array') ids.set(o.v.a, NDArray.create(o.v.a.values().map((_, f) => k * ID + f), o.v.a.shape, 'int64'))
+    })
+    const subst = (v: Value): Value => {
+      if (v.k === 'array') return ids.has(v.a) ? arr(ids.get(v.a)!) : v
+      if (v.k === 'list' || v.k === 'tuple') return { k: v.k, items: v.items.map(subst) } as Value
+      return v
+    }
+    this.replaying++
+    try {
+      const r = run(subst)
+      if (r.k !== 'array') return undefined
+      return r.a.values().map((id) => [Math.floor(id / ID), id % ID] as [number, number])
+    } catch {
+      return undefined
+    } finally {
+      this.replaying--
+    }
+  }
+
+  tracedCall(f: Value & { k: 'fn' }, n: Node & { k: 'call' }, args: Value[], kw: Record<string, Value>): Value {
+    const meta = f.api!
+    const selfNode = f.self && n.fn.k === 'attr' ? n.fn.obj : null
+    const nodes = selfNode ? [selfNode, ...n.args] : n.args
+    const vals = f.self ? [arr(f.self), ...args] : args
+    const ops = this.collectOperands(nodes, vals, meta.kind === 'elementwise')
+    // 先拍快照：调用本身可能改动输入（如原地操作）
+    const opSnaps = ops.map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
+    const res = f.call(args, kw)
+    let axis: number | null = null
+    if (meta.axisPos !== undefined) {
+      const av = kw.axis ?? args[meta.axisPos]
+      axis = av === undefined || av.k === 'none' ? meta.defaultAxis ?? null : isNum(av) ? numOf(av) : null
+    }
+    let source: [number, number][] | undefined
+    if (meta.kind === 'move') {
+      source = this.replayMove(ops, (subst) => {
+        const call = f.self && f.rebind ? f.rebind((subst(arr(f.self)) as { a: NDArray }).a) : f.call
+        const skw: Record<string, Value> = {}
+        for (const k in kw) skw[k] = subst(kw[k])
+        return call(args.map(subst), skw)
+      })
+    }
+    this.pushCall(meta.name, meta.kind, this.text(n), opSnaps, res, axis, source)
+    return res
+  }
+
   // ---------- 求值 ----------
 
   eval(n: Node): Value {
@@ -908,7 +1051,11 @@ class Interp {
       case 'tuple': return tuple(n.items.map((x) => this.eval(x)))
       case 'unary': {
         const x = this.eval(n.x)
-        if (x.k === 'array') return arr(unaryOp(n.op, x.a))
+        if (x.k === 'array') {
+          const res = arr(unaryOp(n.op, x.a))
+          if (!this.replaying && !this.quiet && n.op !== '+') this.pushCall(`op:${n.op}x`, 'elementwise', this.text(n), [{ label: this.text(n.x), v: arr(x.a.copy()) }], res, null)
+          return res
+        }
         if (!isNum(x)) throw this.err('TypeError', `bad operand type for unary ${n.op}: '${typeName(x)}'`)
         if (n.op === '~') {
           if (x.k === 'float') throw this.err('TypeError', "bad operand type for unary ~: 'float'")
@@ -930,20 +1077,43 @@ class Interp {
         for (let i = 0; i < n.ops.length; i++) {
           const r = this.eval(n.xs[i + 1])
           result = this.compare(n.ops[i], l, r)
+          if ((l.k === 'array' || r.k === 'array') && !this.replaying && !this.quiet) {
+            const ops = this.collectOperands([n.xs[i], n.xs[i + 1]], [l, r], true).map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
+            this.pushCall(`op:${n.ops[i]}`, 'elementwise', n.ops.length === 1 ? this.text(n) : `${this.text(n.xs[i])} ${n.ops[i]} ${this.text(n.xs[i + 1])}`, ops, result, null)
+          }
           if (i < n.ops.length - 1 && !this.truthy(result)) return result
           l = r
         }
         return result
       }
       case 'ifexp': return this.truthy(this.eval(n.cond)) ? this.eval(n.a) : this.eval(n.b)
-      case 'bin': return this.binop(n.op, this.eval(n.l), this.eval(n.r))
-      case 'attr': return this.getAttr(this.eval(n.obj), n.name)
+      case 'bin': {
+        const l = this.eval(n.l)
+        const r = this.eval(n.r)
+        const res = this.binop(n.op, l, r)
+        if ((l.k === 'array' || r.k === 'array') && !this.replaying && !this.quiet) {
+          const ops = this.collectOperands([n.l, n.r], [l, r], n.op !== '@').map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
+          this.pushCall(`op:${n.op}`, n.op === '@' ? 'matmul' : 'elementwise', this.text(n), ops, res, null)
+        }
+        return res
+      }
+      case 'attr': {
+        const obj = this.eval(n.obj)
+        const res = this.getAttr(obj, n.name)
+        if (obj.k === 'array' && n.name === 'T' && !this.replaying && !this.quiet) {
+          const ops = [{ label: this.text(n.obj), v: arr(obj.a.copy()) }]
+          const source = this.replayMove([{ v: obj }], (subst) => this.getAttr(subst(obj), 'T'))
+          this.pushCall('ndarray.T', 'move', this.text(n), ops, res, null, source)
+        }
+        return res
+      }
       case 'call': {
         const f = this.eval(n.fn)
         const args = n.args.map((x) => this.eval(x))
         const kw: Record<string, Value> = {}
         for (const { name, v } of n.kw) kw[name] = this.eval(v)
         if (f.k !== 'fn' && f.k !== 'type') throw this.err('TypeError', `'${typeName(f)}' object is not callable`)
+        if (f.k === 'fn' && f.api && !this.replaying && !this.quiet) return this.tracedCall(f, n, args, kw)
         return f.call(args, kw)
       }
       case 'sub': return this.getItem(n, this.eval(n.obj), this.eval(n.idx))
@@ -1051,18 +1221,67 @@ class Interp {
   reduceFn(a: NDArray, kind: ReduceKind, args: Value[], kw: Record<string, Value>): Value {
     const axis = this.kwInt(kw, args, 0, 'axis')
     const res = reduce(a, kind, axis)
-    if (typeof res === 'number') {
-      const d: DType = kind === 'mean' ? 'float64' : kind === 'any' || kind === 'all' ? 'bool' : kind.startsWith('arg') ? 'int64' : kind === 'sum' && a.dtype === 'bool' ? 'int64' : a.dtype
-      return fromScalar(res, d)
-    }
+    if (typeof res === 'number') return fromScalar(res, reduceDType(kind, a.dtype))
     return arr(res)
+  }
+
+  /** ndarray 方法表：impl(self) 返回可调用对象，便于在元素编号数组上重放 */
+  arrayMethod(name: string): { impl: (a: NDArray) => Fn; meta: ApiMeta } | null {
+    const M = (kind: ApiKind, impl: (a: NDArray) => Fn, extra: Partial<ApiMeta> = {}) => ({ impl, meta: { name: `ndarray.${name}`, kind, ...extra } })
+    switch (name) {
+      case 'reshape': return M('move', (a) => (args, kw) => arr(reshape(a, this.toShape(kw.shape ? [kw.shape] : args))))
+      case 'transpose': return M('move', (a) => (args) => arr(transpose(a, args.length ? this.toShape(args) : undefined)))
+      case 'copy': return M('move', (a) => () => arr(a.copy()))
+      case 'flatten': return M('move', (a) => () => arr(NDArray.create(a.values(), [a.size], a.dtype)))
+      case 'ravel': return M('move', (a) => () => arr(reshape(a, [-1])))
+      case 'squeeze': return M('move', (a) => (args, kw) => arr(squeeze(a, this.kwInt(kw, args, 0, 'axis'))), { axisPos: 0, defaultAxis: null })
+      case 'swapaxes': return M('move', (a) => (args) => arr(swapaxes(a, this.toInt(args[0]), this.toInt(args[1]))))
+      case 'repeat': return M('move', (a) => (args, kw) => arr(repeat(a, this.toInt(kw.repeats ?? args[0]), this.kwInt(kw, args, 1, 'axis'))), { axisPos: 1, defaultAxis: null })
+      case 'astype': return M('elementwise', (a) => (args, kw) => arr(NDArray.create(a.values(), a.shape, this.dtypeOf(kw.dtype ?? args[0]) ?? a.dtype)))
+      case 'round': return M('elementwise', (a) => (args, kw) => arr(this.roundArr(a, this.kwInt(kw, args, 0, 'decimals') ?? 0)))
+      case 'clip': return M('elementwise', (a) => (args, kw) => this.clip(arr(a), kw.min ?? kw.a_min ?? args[0], kw.max ?? kw.a_max ?? args[1]))
+      case 'tolist': return M('info', (a) => () => this.toList(a))
+      case 'item': return M('info', (a) => () => {
+        if (a.size !== 1) throw this.err('ValueError', 'can only convert an array of size 1 to a Python scalar')
+        return fromScalar(a.values()[0], a.dtype)
+      })
+      case 'nonzero': return M('info', (a) => () => this.nonzero(a))
+      case 'sum': case 'mean': case 'max': case 'min': case 'argmax': case 'argmin': case 'any': case 'all': case 'prod': case 'std': case 'var':
+        return M('reduce', (a) => (args, kw) => this.reduceFn(a, name, args, kw), { axisPos: 0, defaultAxis: null })
+      case 'cumsum': return M('scan', (a) => (args, kw) => arr(cumsum(a, this.kwInt(kw, args, 0, 'axis'))), { axisPos: 0, defaultAxis: null })
+      case 'argsort': return M('sort', (a) => (args, kw) => arr(sortAlong(a, kw.axis?.k === 'none' ? null : this.kwInt(kw, args, 0, 'axis') ?? -1).order), { axisPos: 0, defaultAxis: -1 })
+      case 'dot': return M('matmul', (a) => (args) => this.binop('@', arr(a), args[0]))
+    }
+    return null
+  }
+
+  roundArr(a: NDArray, decimals: number): NDArray {
+    return NDArray.create(a.values().map((v) => roundHalfEven(v, decimals)), a.shape, a.dtype === 'bool' ? 'int64' : a.dtype)
+  }
+
+  /** np.maximum / np.minimum：逐元素取大 / 取小（NaN 传播），支持广播 */
+  extremum(l: Value, r: Value, pick: (x: number, y: number) => number): Value {
+    const a = toArray(l)
+    const b = toArray(r)
+    const shape = broadcastShapes([a.shape, b.shape])
+    const av = broadcastTo(a, shape).values()
+    const bv = broadcastTo(b, shape).values()
+    const res = NDArray.create(av.map((x, i) => (Number.isNaN(x) || Number.isNaN(bv[i]) ? NaN : pick(x, bv[i]))), shape, commonDType([a, b]))
+    return l.k === 'array' || r.k === 'array' || l.k === 'list' || r.k === 'list' ? arr(res) : fromScalar(res.values()[0], res.dtype)
+  }
+
+  clip(a: Value, lo: Value | undefined, hi: Value | undefined): Value {
+    let v = a
+    if (lo && lo.k !== 'none') v = this.extremum(v, lo, Math.max)
+    if (hi && hi.k !== 'none') v = this.extremum(v, hi, Math.min)
+    return v
   }
 
   getAttr(obj: Value, name: string): Value {
     const fn = (call: Fn): Value => ({ k: 'fn', name, call })
     if (obj.k === 'module') {
       const v = obj.attrs[name]
-      if (!v) throw this.err('AttributeError', `module 'numpy' has no attribute '${name}' (not available in this sandbox)`)
+      if (!v) throw this.err('AttributeError', `module '${obj.name}' has no attribute '${name}' (not available in this sandbox)`)
       return v
     }
     if (obj.k === 'array') {
@@ -1075,22 +1294,9 @@ class Interp {
         case 'T': return arr(transpose(a))
         case 'base': return a.base ? arr(a.base) : NONE
         case 'strides': return tuple(a.strides.map((s) => int(s * 8)))
-        case 'reshape': return fn((args) => arr(reshape(a, this.toShape(args))))
-        case 'transpose': return fn((args) => arr(transpose(a, args.length ? this.toShape(args) : undefined)))
-        case 'copy': return fn(() => arr(a.copy()))
-        case 'flatten': return fn(() => arr(NDArray.create(a.values(), [a.size], a.dtype)))
-        case 'ravel': return fn(() => arr(reshape(a, [-1])))
-        case 'astype': return fn((args, kw) => arr(NDArray.create(a.values(), a.shape, this.dtypeOf(kw.dtype ?? args[0]) ?? a.dtype)))
-        case 'tolist': return fn(() => this.toList(a))
-        case 'item': return fn(() => {
-          if (a.size !== 1) throw this.err('ValueError', 'can only convert an array of size 1 to a Python scalar')
-          return fromScalar(a.values()[0], a.dtype)
-        })
-        case 'nonzero': return fn(() => this.nonzero(a))
-        case 'sum': case 'mean': case 'max': case 'min': case 'argmax': case 'argmin': case 'any': case 'all':
-          return fn((args, kw) => this.reduceFn(a, name, args, kw))
-        case 'dot': return fn((args) => this.binop('@', obj, args[0]))
       }
+      const m = this.arrayMethod(name)
+      if (m) return { k: 'fn', name, call: m.impl(a), api: m.meta, self: a, rebind: m.impl }
       throw this.err('AttributeError', `'numpy.ndarray' object has no attribute '${name}'`)
     }
     if (obj.k === 'list' && name === 'append') {
@@ -1125,10 +1331,17 @@ class Interp {
   // ---------- numpy 命名空间与内置函数 ----------
 
   makeNumpy(): Value {
-    const fn = (name: string, call: Fn): Value => ({ k: 'fn', name, call })
+    const api = (prefix: string) => (name: string, call: Fn, kind?: ApiKind, extra: Partial<ApiMeta> = {}): Value => ({
+      k: 'fn', name, call, api: kind ? { name: `${prefix}.${name}`, kind, ...extra } : undefined,
+    })
+    const fn = api('np')
     const asArr = (v: Value | undefined, name: string): NDArray => {
       if (!v) throw this.err('TypeError', `${name}() missing required argument`)
       return toArray(v)
+    }
+    const seq = (v: Value | undefined, name: string): NDArray[] => {
+      if (!v || (v.k !== 'list' && v.k !== 'tuple')) throw this.err('TypeError', `${name}() expects a sequence of arrays, e.g. ${name}([a, b])`)
+      return v.items.map((x) => toArray(x))
     }
     const filled = (name: string, fill: number) =>
       fn(name, (args, kw) => {
@@ -1139,25 +1352,90 @@ class Interp {
         checkSize(shape)
         const dtype = this.dtypeOf(kw.dtype ?? args[1]) ?? 'float64'
         return arr(NDArray.create(new Array(shape.reduce((p, x) => p * x, 1)).fill(fill), shape, dtype))
-      })
-    const reducer = (kind: ReduceKind) => fn(kind, (args, kw) => this.reduceFn(asArr(args[0], kind), kind, args.slice(1), kw))
-    const elementwise = (name: string, f: (x: number) => number, keepInt = false) =>
+      }, 'create')
+    const like = (name: string, fill: (args: Value[], kw: Record<string, Value>) => Value) =>
+      fn(name, (args, kw) => {
+        const a = asArr(args[0], name)
+        const f = fill(args, kw)
+        const dtype = this.dtypeOf(kw.dtype) ?? (name === 'full_like' ? a.dtype : a.dtype)
+        return arr(NDArray.create(new Array(a.size).fill(numOf(f)), a.shape, dtype))
+      }, 'create')
+    const reducer = (kind: ReduceKind) => fn(kind, (args, kw) => this.reduceFn(asArr(args[0], kind), kind, args.slice(1), kw), 'reduce', { axisPos: 1, defaultAxis: null })
+    const elementwise = (name: string, f: (x: number) => number, out: 'float' | 'same' | 'int-keep' = 'float') =>
       fn(name, (args) => {
         const a = asArr(args[0], name)
-        const dtype: DType = keepInt && a.dtype !== 'float64' ? (a.dtype === 'bool' ? 'int64' : a.dtype) : 'float64'
+        const dtype: DType = out === 'float' ? 'float64' : a.dtype === 'bool' ? 'int64' : a.dtype
         const res = NDArray.create(a.values().map(f), a.shape, dtype)
         return args[0].k === 'array' || args[0].k === 'list' ? arr(res) : fromScalar(res.values()[0], dtype)
-      })
+      }, 'elementwise')
+    const ufunc2 = (name: string, op: BinOp) => fn(name, (args) => this.binop(op, args[0], args[1]), 'elementwise')
+    const logical = (name: string, f: (x: number, y: number) => number) =>
+      fn(name, (args) => {
+        const a = toArray(args[0])
+        const b = toArray(args[1])
+        const shape = broadcastShapes([a.shape, b.shape])
+        const bv = broadcastTo(b, shape).values()
+        return arr(NDArray.create(broadcastTo(a, shape).values().map((x, i) => f(x ? 1 : 0, bv[i] ? 1 : 0)), shape, 'bool'))
+      }, 'elementwise')
     const dt = (d: DType, name: string): Value => ({ k: 'type', name: `numpy.${name}`, dtype: d, call: (args) => fromScalar(castValue(numOf(args[0] ?? int(0)), d), d) })
+    const shapeArg = (args: Value[]): number[] => (args.length === 1 && (args[0].k === 'tuple' || args[0].k === 'list') ? this.toShape(args) : args.map((x) => this.toInt(x)))
+
+    const rnd = api('np.random')
+    const random: Value = {
+      k: 'module',
+      name: 'numpy.random',
+      attrs: {
+        seed: rnd('seed', (args) => { this.rng.seed(args[0] ? this.toInt(args[0]) : 0); return NONE }),
+        rand: rnd('rand', (args) => {
+          const shape = shapeArg(args)
+          if (!shape.length) return float(this.rng.next())
+          checkSize(shape)
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => this.rng.next()), shape, 'float64'))
+        }, 'random'),
+        randn: rnd('randn', (args) => {
+          const shape = shapeArg(args)
+          if (!shape.length) return float(this.rng.normal())
+          checkSize(shape)
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => this.rng.normal()), shape, 'float64'))
+        }, 'random'),
+        randint: rnd('randint', (args, kw) => {
+          let lo = this.toInt(args[0])
+          const hi = kw.high ?? args[1]
+          let hiN: number
+          if (!hi || hi.k === 'none') { hiN = lo; lo = 0 } else hiN = this.toInt(hi)
+          if (hiN <= lo) throw this.err('ValueError', 'high <= low')
+          const size = kw.size ?? args[2]
+          const draw = () => lo + Math.floor(this.rng.next() * (hiN - lo))
+          if (!size || size.k === 'none') return int(draw())
+          const shape = this.toShape([size])
+          checkSize(shape)
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, draw), shape, 'int64'))
+        }, 'random'),
+      },
+    }
+    const la = api('np.linalg')
+    const linalg: Value = {
+      k: 'module',
+      name: 'numpy.linalg',
+      attrs: {
+        inv: la('inv', (args) => arr(inv(asArr(args[0], 'inv'))), 'linalg'),
+        det: la('det', (args) => float(det(asArr(args[0], 'det'))), 'linalg'),
+        norm: la('norm', (args, kw) => {
+          const r = norm(asArr(args[0], 'norm'), this.kwInt(kw, args, 1, 'axis'))
+          return typeof r === 'number' ? float(r) : arr(r)
+        }, 'reduce', { axisPos: 1, defaultAxis: null }),
+      },
+    }
 
     const attrs: Record<string, Value> = {
+      // ---- creation
       array: fn('array', (args, kw) => {
         if (!args[0]) throw this.err('TypeError', "array() missing required argument 'object'")
         const src = toArray(args[0], this.dtypeOf(kw.dtype ?? args[1]))
         return arr(src === (args[0] as { a?: NDArray }).a ? src.copy() : src)
-      }),
-      asarray: fn('asarray', (args, kw) => arr(toArray(args[0], this.dtypeOf(kw.dtype)))),
-      copy: fn('copy', (args) => arr(asArr(args[0], 'copy').copy())),
+      }, 'create'),
+      asarray: fn('asarray', (args, kw) => arr(toArray(args[0], this.dtypeOf(kw.dtype))), 'create'),
+      copy: fn('copy', (args) => arr(asArr(args[0], 'copy').copy()), 'move'),
       arange: fn('arange', (args, kw) => {
         const nums = args.map((x) => { if (!isNum(x)) throw this.err('TypeError', 'arange() arguments must be numbers'); return x })
         if (!nums.length) throw this.err('TypeError', 'arange() requires stop to be specified.')
@@ -1169,14 +1447,14 @@ class Interp {
         if (n > MAX_SIZE) throw this.err('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${MAX_SIZE}`)
         const vals = Array.from({ length: n }, (_, i) => numOf(start) + i * s)
         return arr(NDArray.create(vals, [n], this.dtypeOf(kw.dtype) ?? (isFloat ? 'float64' : 'int64')))
-      }),
+      }, 'create'),
       linspace: fn('linspace', (args, kw) => {
         const a = numOf(args[0])
         const b = numOf(args[1])
         const n = this.kwInt(kw, args, 2, 'num') ?? 50
         if (n > MAX_SIZE) throw this.err('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${MAX_SIZE}`)
         return arr(NDArray.create(Array.from({ length: n }, (_, i) => (n === 1 ? a : a + ((b - a) * i) / (n - 1))), [n], 'float64'))
-      }),
+      }, 'create'),
       zeros: filled('zeros', 0),
       ones: filled('ones', 1),
       full: fn('full', (args, kw) => {
@@ -1185,16 +1463,43 @@ class Interp {
         const fill = kw.fill_value ?? args[1]
         const dtype = this.dtypeOf(kw.dtype ?? args[2]) ?? scalarDType(fill)
         return arr(NDArray.create(new Array(shape.reduce((p, x) => p * x, 1)).fill(numOf(fill)), shape, dtype))
-      }),
+      }, 'create'),
       eye: fn('eye', (args, kw) => {
         const n = this.toInt(args[0])
         checkSize([n, n])
         return arr(NDArray.create(Array.from({ length: n * n }, (_, i) => (i % (n + 1) === 0 ? 1 : 0)), [n, n], this.dtypeOf(kw.dtype) ?? 'float64'))
-      }),
-      reshape: fn('reshape', (args, kw) => arr(reshape(asArr(args[0], 'reshape'), this.toShape([kw.shape ?? kw.newshape ?? args[1]])))),
-      transpose: fn('transpose', (args) => arr(transpose(asArr(args[0], 'transpose')))),
+      }, 'create'),
+      identity: fn('identity', (args, kw) => {
+        const n = this.toInt(args[0])
+        checkSize([n, n])
+        return arr(NDArray.create(Array.from({ length: n * n }, (_, i) => (i % (n + 1) === 0 ? 1 : 0)), [n, n], this.dtypeOf(kw.dtype) ?? 'float64'))
+      }, 'create'),
+      zeros_like: like('zeros_like', () => int(0)),
+      ones_like: like('ones_like', () => int(1)),
+      full_like: like('full_like', (args, kw) => kw.fill_value ?? args[1] ?? int(0)),
+      // ---- shape & data movement
+      reshape: fn('reshape', (args, kw) => arr(reshape(asArr(args[0], 'reshape'), this.toShape([kw.shape ?? kw.newshape ?? args[1]]))), 'move'),
+      transpose: fn('transpose', (args) => arr(transpose(asArr(args[0], 'transpose'), args[1] ? this.toShape([args[1]]) : undefined)), 'move'),
+      ravel: fn('ravel', (args) => arr(reshape(asArr(args[0], 'ravel'), [-1])), 'move'),
+      swapaxes: fn('swapaxes', (args) => arr(swapaxes(asArr(args[0], 'swapaxes'), this.toInt(args[1]), this.toInt(args[2]))), 'move'),
+      expand_dims: fn('expand_dims', (args, kw) => arr(expandDims(asArr(args[0], 'expand_dims'), this.toInt(kw.axis ?? args[1]))), 'move', { axisPos: 1 }),
+      squeeze: fn('squeeze', (args, kw) => arr(squeeze(asArr(args[0], 'squeeze'), this.kwInt(kw, args, 1, 'axis'))), 'move', { axisPos: 1, defaultAxis: null }),
+      concatenate: fn('concatenate', (args, kw) => {
+        const ax = kw.axis ?? args[1]
+        return arr(concatenate(seq(args[0], 'concatenate'), ax && ax.k === 'none' ? null : ax ? this.toInt(ax) : 0))
+      }, 'move', { axisPos: 1, defaultAxis: 0 }),
+      stack: fn('stack', (args, kw) => arr(stack(seq(args[0], 'stack'), this.kwInt(kw, args, 1, 'axis') ?? 0)), 'move', { axisPos: 1, defaultAxis: 0 }),
+      vstack: fn('vstack', (args) => arr(vstack(seq(args[0], 'vstack'))), 'move'),
+      hstack: fn('hstack', (args) => arr(hstack(seq(args[0], 'hstack'))), 'move'),
+      tile: fn('tile', (args, kw) => {
+        const r = kw.reps ?? args[1]
+        return arr(tile(asArr(args[0], 'tile'), r.k === 'tuple' || r.k === 'list' ? this.toShape([r]) : [this.toInt(r)]))
+      }, 'move'),
+      repeat: fn('repeat', (args, kw) => arr(repeat(asArr(args[0], 'repeat'), this.toInt(kw.repeats ?? args[1]), this.kwInt(kw, args, 2, 'axis'))), 'move', { axisPos: 2, defaultAxis: null }),
+      flip: fn('flip', (args, kw) => arr(flip(asArr(args[0], 'flip'), this.kwInt(kw, args, 1, 'axis'))), 'move', { axisPos: 1, defaultAxis: null }),
       shares_memory: fn('shares_memory', (args) => bool(sharesMemory(asArr(args[0], 'shares_memory'), asArr(args[1], 'shares_memory')))),
       may_share_memory: fn('may_share_memory', (args) => bool(asArr(args[0], 'may_share_memory').data === asArr(args[1], 'may_share_memory').data)),
+      // ---- selection
       where: fn('where', (args) => {
         const cond = asArr(args[0], 'where')
         if (args.length === 1) return this.nonzero(cond)
@@ -1206,20 +1511,67 @@ class Interp {
         const yv = broadcastTo(y, shape).values()
         const dtype: DType = x.dtype === 'float64' || y.dtype === 'float64' ? 'float64' : x.dtype === 'bool' && y.dtype === 'bool' ? 'bool' : 'int64'
         return arr(NDArray.create(cv.map((v, i) => (v ? xv[i] : yv[i])), shape, dtype))
-      }),
-      nonzero: fn('nonzero', (args) => this.nonzero(asArr(args[0], 'nonzero'))),
-      dot: fn('dot', (args) => this.binop('@', args[0], args[1])),
-      matmul: fn('matmul', (args) => this.binop('@', args[0], args[1])),
+      }, 'elementwise'),
+      nonzero: fn('nonzero', (args) => this.nonzero(asArr(args[0], 'nonzero')), 'info'),
+      // ---- linear algebra
+      dot: fn('dot', (args) => this.binop('@', args[0], args[1]), 'matmul'),
+      matmul: fn('matmul', (args) => this.binop('@', args[0], args[1]), 'matmul'),
+      outer: fn('outer', (args) => arr(outer(asArr(args[0], 'outer'), asArr(args[1], 'outer'))), 'matmul'),
+      trace: fn('trace', (args) => {
+        const a = asArr(args[0], 'trace')
+        return fromScalar(trace(a), a.dtype === 'float64' ? 'float64' : 'int64')
+      }, 'linalg'),
+      linalg,
+      random,
+      // ---- reductions, scans, sorting
       sum: reducer('sum'), mean: reducer('mean'), max: reducer('max'), min: reducer('min'),
       argmax: reducer('argmax'), argmin: reducer('argmin'), any: reducer('any'), all: reducer('all'),
-      abs: elementwise('abs', Math.abs, true),
+      prod: reducer('prod'), std: reducer('std'), var: reducer('var'), count_nonzero: reducer('count_nonzero'),
+      cumsum: fn('cumsum', (args, kw) => arr(cumsum(asArr(args[0], 'cumsum'), this.kwInt(kw, args, 1, 'axis'))), 'scan', { axisPos: 1, defaultAxis: null }),
+      sort: fn('sort', (args, kw) => {
+        const ax = kw.axis ?? args[1]
+        return arr(sortAlong(asArr(args[0], 'sort'), ax && ax.k === 'none' ? null : ax ? this.toInt(ax) : -1).sorted)
+      }, 'sort', { axisPos: 1, defaultAxis: -1 }),
+      argsort: fn('argsort', (args, kw) => {
+        const ax = kw.axis ?? args[1]
+        return arr(sortAlong(asArr(args[0], 'argsort'), ax && ax.k === 'none' ? null : ax ? this.toInt(ax) : -1).order)
+      }, 'sort', { axisPos: 1, defaultAxis: -1 }),
+      unique: fn('unique', (args) => arr(unique(asArr(args[0], 'unique'))), 'unique'),
+      // ---- element-wise math
+      abs: elementwise('abs', Math.abs, 'same'),
       sqrt: elementwise('sqrt', Math.sqrt),
       exp: elementwise('exp', Math.exp),
       log: elementwise('log', Math.log),
+      sin: elementwise('sin', Math.sin),
+      cos: elementwise('cos', Math.cos),
+      square: elementwise('square', (x) => x * x, 'same'),
+      // numpy 2: floor / ceil keep integer dtypes
+      floor: elementwise('floor', Math.floor, 'same'),
+      ceil: elementwise('ceil', Math.ceil, 'same'),
+      sign: elementwise('sign', (x) => (Number.isNaN(x) ? NaN : Math.sign(x) || 0), 'same'),
+      round: fn('round', (args, kw) => {
+        const a = asArr(args[0], 'round')
+        const res = this.roundArr(a, this.kwInt(kw, args, 1, 'decimals') ?? 0)
+        return args[0].k === 'array' || args[0].k === 'list' ? arr(res) : fromScalar(res.values()[0], res.dtype)
+      }, 'elementwise'),
+      around: fn('around', (args, kw) => {
+        const a = asArr(args[0], 'around')
+        const res = this.roundArr(a, this.kwInt(kw, args, 1, 'decimals') ?? 0)
+        return args[0].k === 'array' || args[0].k === 'list' ? arr(res) : fromScalar(res.values()[0], res.dtype)
+      }, 'elementwise'),
+      add: ufunc2('add', '+'), subtract: ufunc2('subtract', '-'), multiply: ufunc2('multiply', '*'), divide: ufunc2('divide', '/'), power: ufunc2('power', '**'),
+      maximum: fn('maximum', (args) => this.extremum(args[0], args[1], Math.max), 'elementwise'),
+      minimum: fn('minimum', (args) => this.extremum(args[0], args[1], Math.min), 'elementwise'),
+      clip: fn('clip', (args, kw) => this.clip(args[0], kw.a_min ?? kw.min ?? args[1], kw.a_max ?? kw.max ?? args[2]), 'elementwise'),
+      logical_and: logical('logical_and', (x, y) => x & y),
+      logical_or: logical('logical_or', (x, y) => x | y),
+      logical_not: fn('logical_not', (args) => arr(NDArray.create(asArr(args[0], 'logical_not').values().map((x) => (x ? 0 : 1)), asArr(args[0], 'logical_not').shape, 'bool')), 'elementwise'),
+      // ---- constants & dtypes
       newaxis: NONE,
       nan: float(NaN),
       inf: float(Infinity),
       pi: float(Math.PI),
+      e: float(Math.E),
       int64: dt('int64', 'int64'),
       int32: dt('int64', 'int32'),
       float64: dt('float64', 'float64'),
@@ -1322,5 +1674,5 @@ export const runPython = (src: string): RunResult => {
     else if (e instanceof RangeError) error = { type: 'RecursionError', message: 'expression too deeply nested', line: it.line }
     else error = { type: 'InternalError', message: e instanceof Error ? e.message : String(e), line: it.line }
   }
-  return { stdout: it.stdout.join(''), out, error, traces: it.traces, vars: it.vars() }
+  return { stdout: it.stdout.join(''), out, error, traces: it.traces, calls: it.calls, vars: it.vars() }
 }
