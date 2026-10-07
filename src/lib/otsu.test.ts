@@ -33,3 +33,13 @@ describe('point operations', () => {
     expect(histogram([0, 0, 255], 4)).toEqual([2, 0, 0, 1])
   })
 })
+
+describe('Final 2024 Q5(b)', () => {
+  it('matches the official one-iteration answer', () => {
+    const it1 = otsuIterations([2, 4, 8, 16, 32, 64, 128, 128, 128], 100)[0]
+    expect(it1.mu1).toBe(21)
+    expect(it1.mu2).toBe(128)
+    expect(it1.next).toBe(74.5)
+    expect(threshold([2, 4, 8, 16, 32, 64, 128, 128, 128], it1.next)).toEqual([0, 0, 0, 0, 0, 0, 255, 255, 255])
+  })
+})
