@@ -98,7 +98,15 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
         <section className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6">
           <h2 className="mb-3 text-lg font-black">{t('watch.ui.transcript')}</h2>
-          <Transcript episode={ep} now={now} onSeek={(v) => seek.current?.(v)} />
+          <Transcript
+            episode={ep}
+            now={now}
+            onSeek={(v) => {
+              seek.current?.(v)
+              // shareable link to this chapter
+              history.replaceState(null, '', `#t=${Math.round(v / 1000)}`)
+            }}
+          />
         </section>
         <aside className="grid content-start gap-5">
           <section className="rounded-3xl border border-amber-200 bg-amber-50/60 p-5">
