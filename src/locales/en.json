@@ -2536,6 +2536,91 @@
         "q": "80 samples, 4 classes with 20 each, sorted by class and not shuffled, are split into 2 folds for cross-validation. If a sample is classified correctly only when its class appears in the training fold, what is the mean accuracy? How do you fix it?",
         "a": "Fold 1 holds classes 0 and 1, fold 2 holds classes 2 and 3. Each test fold’s classes are absent from its training fold, so both folds score 0%: mean 0%. Shuffle the data (or stratify the folds) before splitting; then every fold sees every class."
       }
+    },
+    "broadcast": {
+      "kicker": "Lecture 1 · NumPy",
+      "title": "Broadcasting, and pairwise distances in one line",
+      "sub": "Why (3, 1) + (1, 4) gives (3, 4), why (2, 3) + (2,) fails, and how one line of NumPy computes every distance between two sets of points.",
+      "label": {
+        "shape": "An array is a grid of numbers. Its shape lists the length of each axis.",
+        "elementwise": "Arithmetic works element by element — as long as NumPy can line the shapes up.",
+        "pair_up": "Same shape: each cell meets the cell in the same position.",
+        "rule": "Different shapes: compare axes from the right. Equal, or one of them 1.",
+        "right_align": "A length-1 axis is copied (stretched) to match the other — without using extra memory.",
+        "mismatch": "The last axes are 3 and 2: neither is 1, so NumPy raises a ValueError.",
+        "fixed": "b[:, None] turns b into a column (2, 1). Now axis −1 is 3 vs 1: stretch it.",
+        "no_loops": "Every test point minus every training point, squared, summed over the coordinate axis — no Python loops.",
+        "memory": "The expanded form never builds the (n, m, d) array: it needs only (n, m) memory."
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "Every midterm has a NumPy question, and most of them come down to one idea: broadcasting."
+        },
+        "shape": {
+          "title": "Shapes",
+          "c1": "This array has 2 rows and 3 columns: shape (2, 3).",
+          "c2": "Axis 0 runs down the rows, axis 1 across the columns.",
+          "c3": "Arithmetic on arrays is element by element."
+        },
+        "same": {
+          "title": "Same shape",
+          "c1": "When the shapes match, each element pairs with the element in the same place.",
+          "c2": "Two (2, 3) arrays give a (2, 3) result."
+        },
+        "stretch": {
+          "title": "The broadcasting rule",
+          "c1": "Now a column of shape (3, 1) and a row of shape (1, 4).",
+          "c2": "Line the shapes up from the right and compare each axis: they must be equal, or one of them must be 1.",
+          "c3": "Each length-1 axis is stretched: the column copies itself sideways, the row copies itself downwards.",
+          "c4": "Now both are (3, 4), and they add element by element."
+        },
+        "mismatch": {
+          "title": "When it fails",
+          "c1": "A (2, 3) array plus a vector of length 2.",
+          "c2": "Align from the right: 3 against 2. Neither is 1 — ValueError.",
+          "ponder": "How could you change b so that each row of a gets its own number from b?"
+        },
+        "fix": {
+          "title": "The fix: add an axis",
+          "c1": "Insert a new axis: b[:, None] has shape (2, 1).",
+          "c2": "Now the last axis is 3 against 1, so b stretches across each row. Each row gets its own value."
+        },
+        "pairwise": {
+          "title": "Pairwise distances in one line",
+          "c1": "The 2022 Spring midterm: distances from 2 test points to 4 training points.",
+          "c2": "Give the test points a middle axis and the training points a first axis: (2, 1, 2) and (1, 4, 2). Broadcasting produces every difference: (2, 4, 2).",
+          "c3": "Square and sum along the last axis — the coordinates — to get a (2, 4) table of squared distances.",
+          "c4": "Take the square root, and argsort each row to find the nearest neighbours."
+        },
+        "expand": {
+          "title": "The memory-friendly version",
+          "c1": "Expand the square: ‖x − y‖² = ‖x‖² + ‖y‖² − 2x·y.",
+          "c2": "Each term broadcasts to (2, 4): a column of test norms, a row of training norms, and a matrix product.",
+          "c3": "Same numbers, but no three-dimensional array in memory."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then try it in the NumPy playground, where every call shows its shapes."
+        }
+      },
+      "recap": {
+        "1": "Compare shapes from the right: each axis must be equal or 1; length-1 axes stretch.",
+        "2": "Use None (np.newaxis) to add an axis so the shapes line up.",
+        "3": "Pairwise distances: X[:, None, :] − Y[None, :, :], square, sum over axis −1, square root."
+      },
+      "exam": {
+        "points": {
+          "1": "Write the shapes at every step: (n, 1, d) − (1, m, d) → (n, m, d) → sum(axis=−1) → (n, m).",
+          "2": "Summing over the wrong axis is the most common mistake — the coordinate axis is the last one.",
+          "3": "If a question says “no loops”, broadcasting or the ‖x‖² + ‖y‖² − 2x·y expansion is expected.",
+          "4": "A shape error question: align from the right and name the first axis that is neither equal nor 1."
+        },
+        "source": "2022 Spring midterm Q2(c) · broadcasting appears in every midterm 2022–2025",
+        "q": "X_train has shape (4, 2) and X_test has shape (2, 2). Write one line of NumPy that returns the (2, 4) matrix of Euclidean distances, and give the shape after each step.",
+        "a": "np.sqrt(((X_test[:, None, :] - X_train[None, :, :]) ** 2).sum(axis=-1)). Shapes: (2, 1, 2) − (1, 4, 2) → (2, 4, 2); squaring keeps (2, 4, 2); sum(axis=-1) → (2, 4); sqrt keeps (2, 4)."
+      }
     }
   }
 }

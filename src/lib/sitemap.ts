@@ -50,6 +50,7 @@ export interface EpisodeInfo {
 }
 
 export const EPISODES: EpisodeInfo[] = [
+  { id: 'broadcast', lec: 1, modules: ['numpy'], exams: ['22F', '22S', '23F', '23S', '24S', '25S'], thumb: 64_000 },
   { id: 'bayes', lec: 2, modules: ['bayes-virus', 'naive-bayes', 'bayes-basics'], exams: ['22F', '22S', '23F', '24S', '25S', 'F22', 'F23', 'F24'], thumb: 62_000 },
   { id: 'knn', lec: 3, modules: ['knn', 'evaluation', 'cross-validation'], exams: ['22F', '22S', '23F', '23S', '24S', '25S', 'F22'], thumb: 62_000 },
   { id: 'evaluate', lec: 3, modules: ['evaluation', 'cross-validation'], exams: ['22F', '23F', '24S', 'F22', 'F24'], thumb: 42_000 },
