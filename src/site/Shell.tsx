@@ -12,7 +12,7 @@ const LANG_LABELS: Record<LangCode, string> = {
   'zh-HK': '繁體中文',
 }
 
-export type Section = 'course' | 'watch' | 'notes' | 'extend'
+export type Section = 'course' | 'watch' | 'drill' | 'notes' | 'extend'
 
 const LanguageMenu = () => {
   const { t, i18n } = useTranslation()
@@ -99,6 +99,7 @@ const LanguageMenu = () => {
 const NAV: { section: Section; href: string; key: string }[] = [
   { section: 'course', href: '/', key: 'app.nav.course' },
   { section: 'watch', href: '/watch/', key: 'app.nav.watch' },
+  { section: 'drill', href: '/drill/', key: 'app.nav.drill' },
   { section: 'notes', href: '/notes/', key: 'app.nav.package' },
   { section: 'extend', href: '/extend/', key: 'app.nav.extend' },
 ]
@@ -127,7 +128,7 @@ export function Shell({ section, children }: { section: Section; children: React
               key={n.section}
               href={n.href}
               aria-current={section === n.section ? 'page' : undefined}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-bold transition ${section === n.section ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`rounded-full px-2.5 py-1.5 text-sm font-bold transition sm:px-3.5 ${section === n.section ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:text-slate-800'}`}
             >
               {t(n.key)}
             </a>

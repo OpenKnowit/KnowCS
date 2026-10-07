@@ -452,7 +452,8 @@
       "course": "Course",
       "package": "Package",
       "extend": "Extend",
-      "watch": "Watch"
+      "watch": "Watch",
+      "drill": "Check"
     },
     "tabs_sub": {
       "numpy": "View vs Copy & Broadcasting",
@@ -883,7 +884,8 @@
       "empty": "Coming soon.",
       "watch_title": "Explainers",
       "watch_lead": "Short animated explainers of the most-examined ideas — watch one, then practise it.",
-      "watch_all": "All explainers"
+      "watch_all": "All explainers",
+      "drill_link": "{{n}} true/false checks"
     }
   },
   "lab": {
@@ -3094,6 +3096,193 @@
         "source": "Final 2024 (Spring) · Problem 9",
         "q": "From what areas should organisations ensure the AI models they have in production function ethically?",
         "a": "Data ethics (consent, privacy, unbiased and representative data); AI model fairness (fair decisions and recommendations); AI model monitoring and maintenance (watch for model drift and keep the model working as intended)."
+      }
+    }
+  },
+  "drill": {
+    "title": "Concept check",
+    "eyebrow": "True or false?",
+    "lead": "Every final opens with ten true/false questions. These are original statements of the same kind, grouped by lecture. Answer, read why, and follow the link to the explainer or practice page.",
+    "true": "True",
+    "false": "False",
+    "correct": "Correct",
+    "wrong": "Not quite",
+    "answer_is": "The answer is {{a}}.",
+    "score": "{{right}} correct out of {{done}} answered · {{total}} statements",
+    "reset": "Start again",
+    "only_wrong": "Show only my mistakes",
+    "show_all": "Show all",
+    "watch": "Watch: {{title}}",
+    "practise": "Practise: {{title}}",
+    "all": "All lectures",
+    "items": {
+      "np1": {
+        "q": "If a = np.arange(12).reshape(3, 4), then a[:, 1].shape is (3,).",
+        "why": "Indexing a column with a single integer removes that axis: three rows, one value each — a 1-D array of length 3. a[:, 1:2] would keep it as (3, 1)."
+      },
+      "np2": {
+        "q": "Adding an array of shape (4, 1) to one of shape (3,) gives shape (4, 3).",
+        "why": "Align from the right: (4, 1) and (1, 3). Each axis is equal or 1, so both stretch to (4, 3)."
+      },
+      "np3": {
+        "q": "Adding an array of shape (2, 3) to one of shape (2,) works by broadcasting.",
+        "why": "Aligned from the right, the last axes are 3 and 2 — neither is 1, so NumPy raises a ValueError. b[:, None] (shape (2, 1)) would work."
+      },
+      "np4": {
+        "q": "A basic slice such as a[1:3] is a copy, so changing it can never change a.",
+        "why": "Basic slicing returns a view of the same memory. Writing to the slice changes a. Use .copy() for an independent array."
+      },
+      "by1": {
+        "q": "If a test is 99% accurate, a positive result means a 99% chance of having the condition.",
+        "why": "It depends on the base rate. With 0.1% prevalence and 5% false positives, only about 2% of positives are real (lecture 2’s virus example)."
+      },
+      "by2": {
+        "q": "Naive Bayes assumes the features are conditionally independent given the class.",
+        "why": "That is the “naive” assumption: P(e₁, …, e_d | B) = ∏ P(eⱼ | B). It is rarely exactly true but often works well."
+      },
+      "by3": {
+        "q": "With α-Laplace smoothing (α > 0), a feature value never seen with a class still gets a non-zero likelihood.",
+        "why": "(0 + α) / (count(B) + mα) is positive, so one unseen combination no longer zeroes the whole product."
+      },
+      "by4": {
+        "q": "To classify with naive Bayes you must compute the evidence P(E) in the denominator.",
+        "why": "P(E) is the same for every class, so it cannot change which class wins. Compare P(B)∏P(eⱼ | B) directly; normalise only if a probability is asked for."
+      },
+      "by5": {
+        "q": "A Gaussian likelihood f(x) used in naive Bayes can be greater than 1.",
+        "why": "It is a density, not a probability. With a small σ the peak 1/(√(2π)σ) exceeds 1 — e.g. σ = 0.1 gives about 3.99."
+      },
+      "kn1": {
+        "q": "KNN has no real training phase, but predicting gets slower as the training set grows.",
+        "why": "KNN stores the data. Each prediction measures the distance to every stored point, so the cost grows with the data."
+      },
+      "kn2": {
+        "q": "Standardizing the features cannot change which points are a test point’s nearest neighbours.",
+        "why": "It can. Standardizing rescales each axis, which changes distances — in lecture 3’s T-shirt example the fifth neighbour changes."
+      },
+      "kn3": {
+        "q": "With two classes, an odd k avoids ties in the KNN vote.",
+        "why": "Two classes and an odd number of votes cannot split evenly."
+      },
+      "kn4": {
+        "q": "k = 1 usually gives a smoother decision boundary than k = 15.",
+        "why": "The opposite: k = 1 follows every point (jagged, overfitting); a large k averages over many neighbours (smooth, possibly underfitting)."
+      },
+      "ev1": {
+        "q": "A classifier can have 95% accuracy and 0% recall on the positive class.",
+        "why": "With 5 positives in 100, always predicting “negative” is 95% accurate and finds none of the positives."
+      },
+      "ev2": {
+        "q": "Precision is the number of true positives divided by everything the model predicted positive.",
+        "why": "Precision = TP / (TP + FP). Recall divides by everything that is actually positive: TP / (TP + FN)."
+      },
+      "ev3": {
+        "q": "D-fold cross-validation on data sorted by class, without shuffling, can give 0% accuracy.",
+        "why": "With 4 classes × 20 sorted samples and D = 2, each test fold holds only classes the training fold never saw."
+      },
+      "km1": {
+        "q": "K-Means always converges to the clustering with the lowest possible SSE.",
+        "why": "It always converges, but possibly to a local minimum that depends on the initial centroids."
+      },
+      "km2": {
+        "q": "In K-Means, the SSE never increases from one round to the next.",
+        "why": "Assignment moves points only to closer centroids, and the mean is the best centre for squared distances, so neither step can raise the SSE."
+      },
+      "km3": {
+        "q": "A K-Means cluster can end up with no points.",
+        "why": "A badly placed initial centroid may be nearest to no point at all."
+      },
+      "km4": {
+        "q": "The best k for K-Means is the one with the smallest SSE.",
+        "why": "SSE keeps falling as k grows and reaches 0 at k = n. Use the elbow method instead."
+      },
+      "pc1": {
+        "q": "A single perceptron can learn XOR if it is trained for enough epochs.",
+        "why": "XOR is not linearly separable, so no line works; the perceptron rule never stops changing the weights."
+      },
+      "pc2": {
+        "q": "The perceptron learning rule changes the weights only when the output is wrong.",
+        "why": "Δw = η(T − O)x is zero when T = O."
+      },
+      "pc3": {
+        "q": "For a sample at x = (0, 0), the perceptron rule can still change the bias θ.",
+        "why": "Δw = η(T − O)x is zero, but Δθ = η(T − O) — the bias’s input is always 1."
+      },
+      "ml1": {
+        "q": "Stacking several layers with linear activations lets an MLP learn XOR.",
+        "why": "A composition of linear maps is linear: W₂(W₁x + c₁) + c₂ is still one line. A non-linear activation is required."
+      },
+      "ml2": {
+        "q": "For a two-class problem, the output layer can be one sigmoid unit or two softmax units.",
+        "why": "Both give a valid class probability; softmax over two units is equivalent to a sigmoid of the difference."
+      },
+      "ml3": {
+        "q": "A dense network 3 → 4 → 2 (with biases) has 26 trainable parameters.",
+        "why": "(3 + 1)·4 + (4 + 1)·2 = 16 + 10 = 26."
+      },
+      "ml4": {
+        "q": "A binary step activation works well with backpropagation.",
+        "why": "Its gradient is 0 almost everywhere, so there is nothing to follow. A steep sigmoid σ(cx) approximates it with a usable gradient."
+      },
+      "ml5": {
+        "q": "If all weights start at zero, the two hidden neurons of the lecture’s network stay identical during training.",
+        "why": "They compute the same value and receive the same δ, so every update is the same — the symmetry is never broken."
+      },
+      "im1": {
+        "q": "Flipping an image horizontally changes its grey-level histogram.",
+        "why": "A flip moves pixels without changing any value, so the histogram is identical."
+      },
+      "im2": {
+        "q": "Thresholding and contrast stretching are both point operations.",
+        "why": "Each output pixel depends only on the same input pixel’s value."
+      },
+      "im3": {
+        "q": "Otsu’s method chooses the threshold automatically and gives the same T for the same image every time.",
+        "why": "That is exactly the advantage the 2024 marking scheme asks for: automatic and reproducible."
+      },
+      "im4": {
+        "q": "A suitable 3×3 kernel can flip a 64×64 image horizontally by convolution.",
+        "why": "A 3×3 kernel only sees a 3×3 neighbourhood, but flipping needs values from up to 63 pixels away."
+      },
+      "cn1": {
+        "q": "The number of weights in a convolutional layer depends on the input image’s height and width.",
+        "why": "It depends on the kernel size, the input depth and the number of filters: (k·k·C_in + 1) × filters."
+      },
+      "cn2": {
+        "q": "A 32×32×3 input with ten 5×5 filters, stride 1 and padding 2 gives a 32×32×10 output.",
+        "why": "⌊(32 − 5 + 2·2)/1⌋ + 1 = 32 per side; ten filters give depth 10."
+      },
+      "cn3": {
+        "q": "Max-pooling layers have trainable parameters.",
+        "why": "Pooling just takes the maximum (or mean) of each window; there is nothing to learn."
+      },
+      "cn4": {
+        "q": "With dilation 2, a 3×3 kernel covers a 5×5 area using 9 weights.",
+        "why": "Effective size d(k − 1) + 1 = 5, but there are still 3 × 3 = 9 weights."
+      },
+      "cn5": {
+        "q": "Dropout with rate 0.5 also drops units at test time.",
+        "why": "Dropout is used only during training; at test time every unit is used."
+      },
+      "ab1": {
+        "q": "Alpha-beta pruning can change the move that minimax would choose.",
+        "why": "Pruning only skips branches that cannot affect the result; the root value and the chosen move are the same as minimax."
+      },
+      "ab2": {
+        "q": "Alpha-beta pruning always prunes at least one branch.",
+        "why": "With a bad move order nothing may be pruned — all leaves are examined, still with the same answer."
+      },
+      "ab3": {
+        "q": "Examining the best moves first lets alpha-beta prune more of the tree.",
+        "why": "Good bounds early make α ≥ β happen sooner, so more branches are cut."
+      },
+      "et1": {
+        "q": "Removing the race column from the data guarantees that a model cannot discriminate by race.",
+        "why": "Proxy features such as postcode can be correlated with race and let the model recover it."
+      },
+      "et2": {
+        "q": "Model drift is a reason to keep monitoring a model after it is deployed.",
+        "why": "As incoming data changes, accuracy can change — monitoring and maintenance is one of the three areas of AI ethics."
       }
     }
   }
