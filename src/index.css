@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* KnowCS Lab 有自己的样式表，不把它的类打进主站 */
+@source not "./lab";
 
 /* 公式不受外层 uppercase 影响：否则 α→Α、δ_k→Δ_K，数学含义被改变 */
 .katex { text-transform: none; }

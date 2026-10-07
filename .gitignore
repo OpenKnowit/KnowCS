@@ -25,3 +25,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# KnowCS Lab build
+dist-lab
+
+# Local scratch (DNS snapshots, browser test profiles) — never committed
+work/

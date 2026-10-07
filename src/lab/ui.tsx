@@ -1,0 +1,305 @@
+/* eslint-disable react-refresh/only-export-components -- shared lab UI kit: components + one hook */
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { answerMatches } from './format'
+import { LAB, lecture, moduleById, paperLabel, type Module } from './registry'
+
+// ---------------------------------------------------------------- quiz mode
+interface Quiz {
+  on: boolean
+  get: (key: string) => string
+  set: (key: string, value: string) => void
+}
+const QuizCtx = createContext<Quiz>({ on: false, get: () => '', set: () => {} })
+
+/**
+ * A table cell holding an answer. With "Quiz me" on it becomes an input that is graded on blur.
+ * Typed answers are remembered per (key, expected value), so changing the data clears them.
+ */
+export function Ans({ v, k, className = '' }: { v: string | number; k: string; className?: string }) {
+  const quiz = useContext(QuizCtx)
+  const expected = String(v)
+  if (!quiz.on) return <td className={className}>{expected}</td>
+  return (
+    <td className={className}>
+      <QuizInput id={`${k}=${expected}`} expected={expected} quiz={quiz} label={k} />
+    </td>
+  )
+}
+
+function QuizInput({ id, expected, quiz, label }: { id: string; expected: string; quiz: Quiz; label: string }) {
+  const [graded, setGraded] = useState(() => quiz.get(id) !== '')
+  const value = quiz.get(id)
+  const ok = value.trim() !== '' && answerMatches(value, expected)
+  const tone = !graded || value.trim() === '' ? 'border-dashed border-indigo-400 bg-indigo-50' : ok ? 'border-emerald-500 bg-emerald-50' : 'border-rose-500 bg-rose-50'
+  return (
+    <input
+      aria-label={`answer for ${label}`}
+      className={`w-20 rounded-md border px-1.5 py-0.5 text-center font-mono text-[13px] outline-none focus:ring-2 focus:ring-indigo-300 ${tone}`}
+      value={value}
+      onChange={(e) => {
+        quiz.set(id, e.target.value)
+        setGraded(false)
+      }}
+      onBlur={() => setGraded(true)}
+      onKeyDown={(e) => e.key === 'Enter' && setGraded(true)}
+      title={graded && !ok && value ? 'Not quite — check your working' : undefined}
+    />
+  )
+}
+
+// ---------------------------------------------------------------- progress (per-browser convenience only)
+const VISITED_KEY = 'knowcs-lab:visited'
+export function readVisited(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(VISITED_KEY) ?? '{}') as Record<string, number>
+  } catch {
+    return {}
+  }
+}
+function recordVisit(id: string) {
+  try {
+    localStorage.setItem(VISITED_KEY, JSON.stringify({ ...readVisited(), [id]: Date.now() }))
+  } catch {
+    /* storage blocked: progress is optional */
+  }
+}
+
+// ---------------------------------------------------------------- page shell
+export function LabPage({ id, lead, quiz = false, children }: { id: string; lead?: string; quiz?: boolean; children: ReactNode }) {
+  const mod = moduleById(id)!
+  const [quizOn, setQuizOn] = useState(false)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const ctx = useMemo<Quiz>(() => ({ on: quizOn, get: (k) => answers[k] ?? '', set: (k, v) => setAnswers((a) => ({ ...a, [k]: v })) }), [quizOn, answers])
+  useEffect(() => recordVisit(id), [id])
+  return (
+    <QuizCtx.Provider value={ctx}>
+      <TopBar current={mod} quiz={quiz ? { on: quizOn, toggle: () => setQuizOn((q) => !q) } : undefined} />
+      <main className="mx-auto max-w-[1480px] px-4 pb-16 pt-6 sm:px-6">
+        <Hero mod={mod} lead={lead} />
+        {children}
+      </main>
+    </QuizCtx.Provider>
+  )
+}
+
+export function TopBar({ current, quiz }: { current?: Module; quiz?: { on: boolean; toggle: () => void } }) {
+  const idx = current ? LAB.findIndex((m) => m.id === current.id) : -1
+  const prev = idx > 0 ? LAB[idx - 1] : null
+  const next = idx >= 0 && idx < LAB.length - 1 ? LAB[idx + 1] : null
+  const pill = 'whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-600 hover:border-slate-300 hover:text-slate-900'
+  return (
+    <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-slate-200 bg-white/85 px-3 py-2.5 backdrop-blur sm:px-5">
+      <a href="index.html" className="flex shrink-0 items-center gap-2 font-extrabold text-slate-900" title="All lab pages">
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-600 text-[13px] font-black text-white">K</span>
+        <span>KnowCS Lab</span>
+      </a>
+      {current && (
+        <span className="hidden min-w-0 truncate text-[13px] text-slate-400 md:block">
+          / <b className="font-bold text-slate-600">L{current.lec} · {lecture(current.lec).title}</b> / {current.title}
+        </span>
+      )}
+      <span className="flex-1" />
+      <nav className="flex gap-1.5" aria-label="Page navigation">
+        {quiz && (
+          <button type="button" onClick={quiz.toggle} aria-pressed={quiz.on} className={`${pill} ${quiz.on ? '!border-indigo-600 !bg-indigo-600 !text-white' : ''}`} title="Hide the answers in the exam tables and type them yourself">
+            ✎<span className="hidden sm:inline"> Quiz me</span>
+          </button>
+        )}
+        {prev && (
+          <a className={pill} href={`${prev.id}.html`} title={prev.title}>
+            ←<span className="hidden sm:inline"> Prev</span>
+          </a>
+        )}
+        {next && (
+          <a className={pill} href={`${next.id}.html`} title={next.title}>
+            <span className="hidden sm:inline">Next </span>→
+          </a>
+        )}
+      </nav>
+    </header>
+  )
+}
+
+function Hero({ mod, lead }: { mod: Module; lead?: string }) {
+  const lec = lecture(mod.lec)
+  return (
+    <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div className="max-w-3xl">
+        <div className="text-xs font-extrabold uppercase tracking-[0.12em] text-blue-600">
+          Lecture {lec.n} · {lec.title}
+        </div>
+        <h1 className="mt-1 text-[clamp(26px,3.2vw,36px)] font-black tracking-tight">{mod.title}</h1>
+        <p className="mt-1.5 text-slate-600">{lead ?? mod.blurb}</p>
+      </div>
+      <div className="flex max-w-xl flex-wrap justify-start gap-1.5 sm:justify-end" aria-label="Past papers with this pattern">
+        {mod.exams.map((p) => (
+          <span key={p} className="whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+            {paperLabel(p)}
+          </span>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------- layout
+export function Workspace({ controls, children, wide = false }: { controls: ReactNode; children: ReactNode; wide?: boolean }) {
+  return (
+    <div className={`grid items-start gap-5 ${wide ? 'lg:grid-cols-[400px_minmax(0,1fr)]' : 'lg:grid-cols-[340px_minmax(0,1fr)]'}`}>
+      <aside className="grid gap-4 lg:sticky lg:top-[68px]">{controls}</aside>
+      <div className="grid min-w-0 gap-5">{children}</div>
+    </div>
+  )
+}
+
+export function Card({ title, step, sub, right, children, className = '', flat = false }: { title?: ReactNode; step?: number; sub?: ReactNode; right?: ReactNode; children?: ReactNode; className?: string; flat?: boolean }) {
+  return (
+    <section className={`min-w-0 rounded-[20px] border border-slate-200 p-4 sm:p-5 ${flat ? 'bg-slate-50' : 'bg-white'} ${className}`}>
+      {(title || sub || right) && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          {title && (
+            <h2 className="flex items-center text-[15px] font-extrabold">
+              {step !== undefined && <span className="mr-2 grid h-[22px] w-[22px] place-items-center rounded-full bg-blue-600 text-xs font-extrabold text-white">{step}</span>}
+              {title}
+            </h2>
+          )}
+          {sub && <span className="text-xs text-slate-400">{sub}</span>}
+          {right}
+        </div>
+      )}
+      {children}
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------- controls
+export interface PresetItem<T extends string = string> {
+  id: T
+  title: string
+  note?: string
+}
+
+export function Presets<T extends string>({ items, value, onPick }: { items: PresetItem<T>[]; value: T | null; onPick: (id: T) => void }) {
+  return (
+    <div className="grid gap-1.5">
+      {items.map((p) => (
+        <button
+          key={p.id}
+          type="button"
+          onClick={() => onPick(p.id)}
+          aria-pressed={p.id === value}
+          className={`rounded-xl border px-3 py-2 text-left text-[13px] font-semibold transition ${p.id === value ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+        >
+          {p.title}
+          {p.note && <small className="mt-0.5 block text-xs font-medium text-slate-400">{p.note}</small>}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export function Seg<T extends string | number>({ options, value, onChange, label }: { options: { v: T; label: ReactNode }[]; value: T; onChange: (v: T) => void; label?: string }) {
+  return (
+    <div className="grid gap-1.5">
+      {label && <span className="text-xs font-bold text-slate-500">{label}</span>}
+      <div className="inline-flex w-fit flex-wrap overflow-hidden rounded-[10px] border border-slate-300" role="group" aria-label={label}>
+        {options.map((o, i) => (
+          <button
+            key={String(o.v)}
+            type="button"
+            aria-pressed={o.v === value}
+            onClick={() => onChange(o.v)}
+            className={`px-3 py-1.5 text-xs font-bold ${i ? 'border-l border-slate-200' : ''} ${o.v === value ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function Slider({ label, value, min, max, step, onChange, display }: { label: ReactNode; value: number; min: number; max: number; step: number; onChange: (v: number) => void; display?: string }) {
+  return (
+    <label className="grid gap-1">
+      <span className="flex justify-between gap-2 text-xs font-bold text-slate-500">
+        <span>{label}</span>
+        <output className="font-mono text-blue-700">{display ?? value}</output>
+      </span>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full" />
+    </label>
+  )
+}
+
+export function NumberField({ label, value, onChange, step = 1, min, max, className = '' }: { label: ReactNode; value: number; onChange: (v: number) => void; step?: number; min?: number; max?: number; className?: string }) {
+  return (
+    <label className={`grid gap-1 ${className}`}>
+      <span className="text-xs font-bold text-slate-500">{label}</span>
+      <input
+        type="number"
+        value={Number.isFinite(value) ? value : ''}
+        step={step}
+        min={min}
+        max={max}
+        onChange={(e) => e.target.value !== '' && onChange(Number(e.target.value))}
+        className="w-full rounded-[10px] border border-slate-300 bg-white px-2.5 py-1.5 font-mono text-sm outline-none focus:ring-2 focus:ring-blue-300"
+      />
+    </label>
+  )
+}
+
+export function Btn({ children, onClick, primary = false, disabled = false, title }: { children: ReactNode; onClick: () => void; primary?: boolean; disabled?: boolean; title?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`rounded-[10px] border px-3.5 py-2 text-[13px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${primary ? 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700' : 'border-slate-300 bg-white text-slate-800 hover:border-slate-400'}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+// ---------------------------------------------------------------- read-outs
+type Tone = 'info' | 'warn' | 'bad' | 'good'
+const NOTE_TONES: Record<Tone, string> = {
+  info: 'border-blue-200 bg-blue-50 text-blue-950',
+  warn: 'border-amber-200 bg-amber-50 text-amber-950',
+  bad: 'border-rose-200 bg-rose-50 text-rose-950',
+  good: 'border-emerald-200 bg-emerald-50 text-emerald-950',
+}
+export function Note({ tone = 'info', title, children }: { tone?: Tone; title?: string; children: ReactNode }) {
+  return (
+    <div className={`rounded-xl border px-3.5 py-2.5 text-[13.5px] leading-relaxed ${NOTE_TONES[tone]}`}>
+      {title && <b className="font-extrabold">{title} </b>}
+      {children}
+    </div>
+  )
+}
+
+const STAT_TONES = { none: 'text-slate-900', good: 'text-emerald-600', bad: 'text-rose-600', blue: 'text-blue-600', warn: 'text-amber-600' }
+export function Stat({ k, v, d, tone = 'none' }: { k: string; v: ReactNode; d?: ReactNode; tone?: keyof typeof STAT_TONES }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+      <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">{k}</div>
+      <div className={`mt-0.5 font-mono text-[22px] font-extrabold ${STAT_TONES[tone]}`}>{v}</div>
+      {d && <div className="text-xs text-slate-500">{d}</div>}
+    </div>
+  )
+}
+
+export function TableWrap({ children }: { children: ReactNode }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200">
+      <table className="lab-table">
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  )
+}
+
+export function Swatch({ color }: { color: string }) {
+  return <i className="mr-1.5 inline-block h-2.5 w-2.5 rounded-[3px] align-[-1px]" style={{ background: color }} />
+}

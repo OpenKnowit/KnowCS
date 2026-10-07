@@ -6,8 +6,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config([
-  // dist 是构建产物；src/ref 是未被引用的参考/备份代码；.claude 含遗留 worktree，均不参与 lint
-  { ignores: ['dist', 'src/ref', '.claude'] },
+  // dist / dist-lab 是构建产物；src/ref 是未被引用的参考/备份代码；.claude 含遗留 worktree；work 是本地临时目录（不入库），均不参与 lint
+  { ignores: ['dist', 'dist-lab', 'src/ref', '.claude', 'work'] },
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
     extends: [

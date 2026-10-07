@@ -64,6 +64,7 @@
 
 | 事项 | 状态 | 说明 |
 |------|------|------|
+| **KnowCS Lab：多页布局 + 10 个新模块**（2026-10-07） | 🟡 待选首页 | `/lab/` 已上线 10 个模块页与 3 个首页草图（A 课程地图 / B 考点雷达 / C 学习路径）。用户选定首页后：主站改为多页构建、迁入现有 8 个模块、补三语 |
 | **Alpha-Beta 剪枝模块（L10）** | ✅ 已集成上线（2026-06-07） | `module/alphabeta.html` / `alphabeta_aligned.html` 为独立 HTML 沙盒（DFS + α/β 剪枝逐步追踪，含 Tic-Tac-Toe 式博弈树）。下一步：移植为 `src/modules/AlphaBetaModule.tsx`，接入 Tab 路由与 i18n，按第 8 节落地步骤执行 |
 
 ---
