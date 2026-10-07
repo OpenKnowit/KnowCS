@@ -9,6 +9,15 @@ import type { ApiCat } from '../data/numpyApis'
 import { normalizeLang } from '../lib/lang'
 import { NumpyApiPanel } from './NumpyApiPanel'
 
+/** Placeholder while a note's HTML chunk downloads. */
+const NoteSkeleton = () => (
+  <div className="max-w-3xl space-y-3" aria-busy="true">
+    {[70, 95, 88, 92, 60, 85].map((w, i) => (
+      <div key={i} className="h-4 animate-pulse rounded bg-slate-100" style={{ width: `${w}%` }} />
+    ))}
+  </div>
+)
+
 interface PackageModuleProps {
   openId: string | null
   onOpen: (id: string | null) => void
@@ -25,6 +34,19 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
   // 笔记里点了哪个名字：决定 NumPy 面板打开哪一组（key 递增让面板按新入口重置）
   const [focus, setFocus] = useState<{ cat: ApiCat | null; entry: string | null; missing: string | null; n: number }>({ cat: null, entry: null, missing: null, n: 0 })
 
+  // 正文懒加载：打开的笔记 × 当前语言
+  const [body, setBody] = useState<{ key: string; html: string } | null>(null)
+  const bodyKey = openNote ? `${openNote.id}:${lang}` : ''
+  useEffect(() => {
+    if (!openNote) return
+    let live = true
+    void openNote.load[lang]().then((m) => live && setBody({ key: `${openNote.id}:${lang}`, html: m.default.html }))
+    return () => {
+      live = false
+    }
+  }, [openNote, lang])
+  const bodyHtml = body && body.key === bodyKey ? body.html : null
+
   // 打开笔记时回到页面顶部，避免停留在卡片网格的滚动位置
   useEffect(() => {
     if (openId) window.scrollTo({ top: 0 })
@@ -32,8 +54,8 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
 
   // NumPy 笔记：把能在面板里演示的行内 `code` 名字标成可点击（直接改 HTML 字符串，重渲染 / 切换语言都不会丢）
   const noteHtml = useMemo(() => {
-    if (!openNote) return ''
-    const html = openNote.body[lang].html
+    if (!openNote || bodyHtml === null) return ''
+    const html = bodyHtml
     if (!withPanel) return html
     const title = t('numpy_api.link_hint').replace(/"/g, '&quot;')
     const run = t('numpy_api.run_block')
@@ -46,7 +68,7 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
         const id = blockEntry(block)
         return id ? `<div class="np-block">${block}<button type="button" class="np-run" data-entry="${id}">▶ ${run}</button></div>` : block
       })
-  }, [openNote, lang, withPanel, t])
+  }, [openNote, bodyHtml, withPanel, t])
 
   const followLink = (target: EventTarget) => {
     const runBtn = (target as HTMLElement).closest?.('button.np-run') as HTMLElement | null
@@ -88,14 +110,18 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
               <p className="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900">
                 <MousePointerClick size={14} aria-hidden /> {t('numpy_api.link_hint')}
               </p>
-              <article key={lang} lang={lang} className="note-prose" onClick={onArticleClick} onKeyDown={onArticleKey} dangerouslySetInnerHTML={{ __html: noteHtml }} />
+              {noteHtml ? (
+                <article key={lang} lang={lang} className="note-prose" onClick={onArticleClick} onKeyDown={onArticleKey} dangerouslySetInnerHTML={{ __html: noteHtml }} />
+              ) : (
+                <NoteSkeleton />
+              )}
             </div>
             <div ref={panelRef} className="scroll-mt-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pb-2">
               <NumpyApiPanel key={focus.n} initialCat={focus.cat} initialEntry={focus.entry} missing={focus.missing} />
             </div>
           </div>
         ) : (
-          <article key={lang} lang={lang} className="note-prose max-w-3xl" dangerouslySetInnerHTML={{ __html: noteHtml }} />
+          noteHtml ? <article key={lang} lang={lang} className="note-prose max-w-3xl" dangerouslySetInnerHTML={{ __html: noteHtml }} /> : <NoteSkeleton />
         )}
       </m.div>
     )
@@ -122,7 +148,7 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
             <div>
               <h4 className="font-black text-slate-800 text-sm leading-snug group-hover:text-blue-600 transition-colors">{t(note.titleKey)}</h4>
               <p className="text-[11px] text-slate-400 mt-2 font-medium">
-                {Math.round(note.body[lang].chars / 100) / 10}k {t('package.chars')} · Markdown
+                {Math.round(note.chars[lang] / 100) / 10}k {t('package.chars')} · Markdown
               </p>
             </div>
           </m.button>

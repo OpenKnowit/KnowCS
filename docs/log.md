@@ -7,6 +7,10 @@
 
 ## 进展时间线
 
+### 2026-10-08 — 入口与资料包 chunk 瘦身
+- **perf**：Framer Motion 的动画引擎改为首屏后异步加载（`LazyMotion` 异步 features，语言菜单改用 CSS 淡入），所有页面共用的入口 chunk 341KB → 291KB（gzip 94KB）。
+- **perf**：资料包笔记按「笔记 × 语言」分 chunk 懒加载，列表页只静态引入字符数（插件新增 `?chars` / `?chars-hk`），资料包页面 chunk 334KB → 37.5KB；正文加载时显示骨架屏。
+
 ### 2026-10-08 — Service Worker、可安装、404 页
 - **perf**：新增 `src/sw/sw.js`（构建时复制到站点根目录，仅生产环境注册）：内容哈希的 `/assets/*` 走缓存优先（服务器虽发 no-cache，重复访问也几乎不再请求网络），页面走网络优先并以最近一次为离线后备；资产缓存上限 200 条，新版本激活时清理旧缓存。实测二次加载 28/28 个资源来自 SW，断网可打开已访问页面。
 - **feat**：`manifest.webmanifest` + `icon.svg`，可“添加到主屏幕”；`404.html` 站点风格页面（待 Nginx 配置 `error_page 404 /404.html` 后生效）。

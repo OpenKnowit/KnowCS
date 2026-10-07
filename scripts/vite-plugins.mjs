@@ -32,7 +32,7 @@ export function katexFontSlim() {
 }
 
 // ---------------------------------------------------------------------------
-// 2) Markdown 构建期预渲染：`import note from './x.md?html'` → { html, chars }
+// 2) Markdown 构建期预渲染：`import note from './x.md?html'` → { html, chars }；`?chars` 只给字符数
 //    `?html-hk`：先把简体源文件转成香港繁体（与 zh-HK.json 同一套规则）再渲染
 //    用 remark/rehype 在构建期把笔记转成 HTML 字符串，运行时无需打包 markdown 解析器。
 //    - 相对路径图片改为 ES import（单文件打包下即 data URI），并加 loading="lazy"
@@ -84,10 +84,12 @@ export function markdownHtml() {
     enforce: 'pre',
     async load(id) {
       const [file, query] = id.split('?')
-      if (!file.endsWith('.md') || (query !== 'html' && query !== 'html-hk')) return null
+      if (!file.endsWith('.md') || !['html', 'html-hk', 'chars', 'chars-hk'].includes(query)) return null
       this.addWatchFile(file)
       const src = readFileSync(file, 'utf8')
-      const md = query === 'html-hk' ? toHK(src) : src
+      const md = query.endsWith('-hk') ? toHK(src) : src
+      // `?chars` / `?chars-hk`: just the length, so a note list need not load every note's HTML
+      if (query.startsWith('chars')) return `export default ${md.length};`
       const imports = []
       const html = String(
         await unified()
