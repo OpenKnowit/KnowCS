@@ -51,6 +51,7 @@ export interface EpisodeInfo {
 
 export const EPISODES: EpisodeInfo[] = [
   { id: 'bayes', lec: 2, modules: ['bayes-virus', 'naive-bayes', 'bayes-basics'], exams: ['22F', '22S', '23F', '24S', '25S', 'F22', 'F23', 'F24'], thumb: 62_000 },
+  { id: 'kmeans', lec: 4, modules: ['kmeans-table', 'kmeans'], exams: ['22F', '22S', '23F', '23S', '25S', 'F23'], thumb: 40_000 },
   { id: 'xor', lec: 6, modules: ['xor-mlp', 'perceptron', 'backprop'], exams: ['22S', '23S', '25S', 'F23', 'F24'], thumb: 102_000 },
   { id: 'backprop', lec: 6, modules: ['xor-mlp', 'backprop'], exams: ['F22', 'F23', 'F24'], thumb: 62_000 },
   { id: 'cnn', lec: 8, modules: ['convolution', 'cnn-shapes', 'kernel'], exams: ['F22', 'F23', 'F24'], thumb: 116_000 },
