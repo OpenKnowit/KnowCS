@@ -1747,6 +1747,148 @@
         "q": "Network A is a single perceptron, Network B adds one hidden layer with two neurons. Show that A cannot learn XOR, and give weights with which B can.",
         "a": "A: (0,0)→0 needs b < 0; (0,1), (1,0)→1 need w₂ + b > 0 and w₁ + b > 0, so w₁ + w₂ > −2b; (1,1)→0 needs w₁ + w₂ < −b < −2b. Contradiction. B (step units): h₁ = step(x₁ + x₂ − 0.5), h₂ = step(−x₁ − x₂ + 1.5), y = step(h₁ + h₂ − 1) with output 1 only when the sum is > 0."
       }
+    },
+    "bayes": {
+      "kicker": "Lecture 2 · Naive Bayes",
+      "title": "A 99% accurate test — and you are probably fine",
+      "sub": "Count 10,000 people and Bayes’ rule stops being a formula. Then see why one zero breaks naive Bayes, and how Laplace fixes it.",
+      "label": {
+        "have_it": "of people have the virus",
+        "hit": "of infected people test positive",
+        "spec": "of healthy people test negative",
+        "positive_q": "You test positive. How likely is it that you have the virus?",
+        "people": "people",
+        "infected": "have the virus ({{pct}})",
+        "everyone_tested": "Everyone takes the test.",
+        "inf_pos": "{{n}} of the {{of}} infected test positive",
+        "healthy_pos": "{{n}} healthy people test positive too",
+        "false_alarms": "The false alarms outnumber the real cases fifty to one.",
+        "all_pos": "Everyone with a positive result",
+        "infected_short": "infected",
+        "healthy_short": "healthy",
+        "not_99": "A positive result means about a 2% chance — not 99%.",
+        "these_10": "these 10 are infected",
+        "num_is": "numerator = the {{n}} infected people who test positive",
+        "den_is": "denominator = all {{n}} people who test positive",
+        "test_again": "Test positive again: yesterday’s answer becomes today’s prior.",
+        "before": "before any test",
+        "after_n": "after positive test {{n}}",
+        "posterior_prior": "Each positive result multiplies the odds by 0.99 / 0.05 ≈ 20.",
+        "patient": "Patient:",
+        "normalise": "Normalised:",
+        "vs": "vs",
+        "argmax": "To classify you only compare the two products — the shared denominator never changes the winner.",
+        "zero_kills": "One count of zero makes the whole product zero.",
+        "no_low": "No patient with Z = No had low blood pressure, so P(Low | No) = 0 / 5 — and the other three symptoms no longer matter.",
+        "alpha_note": "α = 1: pretend every value was seen once more. m = number of values the feature can take.",
+        "all_evidence": "Now every symptom counts again, and no class is ruled out by one missing combination."
+      },
+      "feat": {
+        "BP": "BP",
+        "Fever": "fever",
+        "Diabetes": "diabetes",
+        "Vomit": "vomit"
+      },
+      "val": {
+        "BP": {
+          "High": "high",
+          "Low": "low"
+        },
+        "Fever": {
+          "No": "none",
+          "High": "high"
+        },
+        "Diabetes": {
+          "Yes": "yes"
+        },
+        "Vomit": {
+          "Yes": "yes"
+        }
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "This is the example from lecture 2, and some version of it appears in almost every paper."
+        },
+        "question": {
+          "title": "The question",
+          "c1": "One person in a thousand carries a virus.",
+          "c2": "The test catches 99% of infected people, and clears 95% of healthy people.",
+          "c3": "You test positive. Most people guess 99%, or maybe 95%.",
+          "ponder": "Make your own guess before we count. What is the chance you are infected?"
+        },
+        "crowd": {
+          "title": "Count people, not percentages",
+          "c1": "Forget percentages for a moment. Picture 10,000 people.",
+          "c2": "0.1% of them — just 10 people — have the virus."
+        },
+        "test": {
+          "title": "Everyone takes the test",
+          "c1": "Now test everybody.",
+          "c2": "The 10 infected people: 99% of 10 is 9.9, so about 10 positive results.",
+          "c3": "The 9,990 healthy people: 5% of them get a false positive. That is about 500 people.",
+          "c4": "The test is good. The problem is that there are so many more healthy people to make mistakes on."
+        },
+        "gather": {
+          "title": "Only the positives",
+          "c1": "You tested positive, so you are one of these. Gather everyone with a positive result.",
+          "c2": "510 people: 10 infected, 500 healthy.",
+          "c3": "So your chance is 10 out of 510 — about 2%. The base rate, not the test, dominates."
+        },
+        "formula": {
+          "title": "The same thing as Bayes’ rule",
+          "c1": "Bayes’ rule is exactly this counting, written with probabilities.",
+          "c2": "The numerator is the infected positives. The denominator is every positive — the total probability of a positive result.",
+          "c3": "Plug in the lecture’s numbers: 0.00099 over 0.05094, about 0.0194. Write the denominator out in full — that is where exam marks are."
+        },
+        "again": {
+          "title": "Test again",
+          "c1": "What if you take the test a second time, and it is positive again?",
+          "c2": "Use 2% as the new prior. One more positive takes it to about 28%, a third to about 89%.",
+          "c3": "That is the idea behind repeat testing — and a favourite follow-up question."
+        },
+        "naive": {
+          "title": "Many pieces of evidence",
+          "c1": "Real problems have several symptoms. Lecture 2’s disease Z table has four.",
+          "c2": "Naive Bayes assumes the symptoms are independent given the class, so the likelihood is just a product.",
+          "c3": "Multiply prior and likelihoods for each class, straight from the counts in the table.",
+          "c4": "Z = No wins. Normalise only if the question asks for a probability."
+        },
+        "zero": {
+          "title": "When one count is zero",
+          "c1": "Now change one symptom: this patient has low blood pressure.",
+          "c2": "In the training data, no patient with Z = No had low blood pressure.",
+          "c3": "So that factor is zero, and it wipes out the whole product — no matter what the other symptoms say.",
+          "ponder": "Without collecting more data, how could you stop one unseen combination from vetoing a class?"
+        },
+        "laplace": {
+          "title": "α-Laplace smoothing",
+          "c1": "Pretend you saw every value α more times than you did.",
+          "c2": "Add α on top, and m·α at the bottom, where m is how many values the feature can take: 3 for blood pressure, 2 for diabetes.",
+          "c3": "Nothing is zero any more. Exams love to ask for exactly this table with α = 1."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then try the base-rate page, and the naive Bayes table with smoothing switched on."
+        }
+      },
+      "recap": {
+        "1": "Turn percentages into counts out of 10,000: 10 true positives versus 500 false ones.",
+        "2": "P(V | +) = P(+ | V)P(V) / P(+), and P(+) adds both ways of testing positive.",
+        "3": "Naive Bayes multiplies likelihoods; one zero kills a class, so smooth with (count + α) / (N + mα)."
+      },
+      "exam": {
+        "points": {
+          "1": "Always write the denominator with the total-probability rule: P(+) = P(+ | V)P(V) + P(+ | H)P(H).",
+          "2": "A positive result from a rare condition is usually a false alarm — expect an answer near 2%, not 99%.",
+          "3": "For classification you may drop the denominator: compare P(B)·∏P(eⱼ | B) across classes.",
+          "4": "Laplace smoothing adds α to every count and m·α to the class total; m is the number of values of that feature, not the number of features."
+        },
+        "source": "Lecture 2 · asked in this form in 2022 Fall and 2022 Spring midterms",
+        "q": "0.1% of a population carries a virus. The test is positive for 99% of carriers and negative for 95% of non-carriers. A patient tests positive. What is P(virus | +)?",
+        "a": "P(+) = 0.99 × 0.001 + 0.05 × 0.999 = 0.05094. P(V | +) = 0.00099 / 0.05094 ≈ 0.0194, about 2%."
+      }
     }
   }
 }
