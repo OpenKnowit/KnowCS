@@ -13,6 +13,40 @@ const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vi
 const DESCRIPTION = "KnowCS: interactive visual lab for HKUST COMP2211 Machine Learning: Naive Bayes, KNN, K-Means, perceptrons, backpropagation, convolution, CNNs and alpha-beta pruning. English / 简体中文 / 繁體中文."
 
 const escape = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
+const SITE = "https://knowcs.online"
+const EN = JSON.parse(readFileSync(new URL("./src/locales/en.json", import.meta.url), "utf8"))
+const ZH = JSON.parse(readFileSync(new URL("./src/locales/zh.json", import.meta.url), "utf8"))
+const get = (o, path) => path.split(".").reduce((a, k) => (a && typeof a === "object" ? a[k] : undefined), o)
+
+/** Static title / description for link previews and search engines (the app sets the live title per language). */
+function pageMeta(page) {
+  const pick = (titleKey, descKey) => {
+    const en = get(EN, titleKey)
+    const zh = get(ZH, titleKey)
+    return { title: en && zh && en !== zh ? `${en} · ${zh}` : en ?? "KnowCS", description: (descKey && get(EN, descKey)) || DESCRIPTION }
+  }
+  switch (page.kind) {
+    case "module":
+      return pick(`site.modules.${page.id}.title`, `site.modules.${page.id}.blurb`)
+    case "watch":
+      return pick("watch.ui.gallery_title", "watch.ui.gallery_lead")
+    case "watch-item":
+      return pick(`watch.${page.id}.title`, `watch.${page.id}.sub`)
+    case "drill":
+      return pick("drill.title", "drill.lead")
+    case "notes":
+      return pick("app.section.package.title", "app.section.package.subtitle")
+    case "note":
+      return pick(`package.notes.${page.id}`, "app.section.package.subtitle")
+    case "extend":
+      return pick("app.section.extend.title", "app.section.extend.subtitle")
+    case "extend-item":
+      return pick(`extend.items.${page.id}.title`, "app.section.extend.subtitle")
+    default:
+      return { title: "COMP2211 Interactive ML Lab · 交互式机器学习实验室", description: DESCRIPTION }
+  }
+}
+const urlOf = (page) => `${SITE}/${page.path.replace(/index\.html$/, "")}`
 
 function pageHtml(page) {
   const up = "../".repeat(page.path.split("/").length)
@@ -35,16 +69,23 @@ function pageHtml(page) {
 </html>
 `
   }
+  const meta = pageMeta(page)
   return `<!doctype html>
 <html lang="en">
   <head>
     ${head}
-    <meta name="description" content="${escape(DESCRIPTION)}" />
-    <meta property="og:title" content="KnowCS · COMP2211 Interactive ML Lab" />
-    <meta property="og:description" content="Drag sliders, click canvases and watch machine-learning algorithms work step by step." />
-    <title>KnowCS · COMP2211 Interactive ML Lab</title>
+    <meta name="description" content="${escape(meta.description)}" />
+    <link rel="canonical" href="${urlOf(page)}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="KnowCS" />
+    <meta property="og:url" content="${urlOf(page)}" />
+    <meta property="og:title" content="${escape(meta.title)}" />
+    <meta property="og:description" content="${escape(meta.description)}" />
+    <meta name="twitter:card" content="summary" />
+    <title>${escape(meta.title)} · KnowCS</title>
   </head>
   <body data-page="${page.kind}" data-id="${page.id ?? ""}">
+    <noscript>KnowCS needs JavaScript: every page is an interactive visualisation. · 本站的互动页面需要启用 JavaScript。</noscript>
     <div id="root"></div>
     <script type="module" src="${up}src/site/main.tsx"></script>
   </body>
@@ -59,6 +100,17 @@ for (const page of PAGES) {
   mkdirSync(dirname(file), { recursive: true })
   writeFileSync(file, pageHtml(page))
 }
+// sitemap.xml and robots.txt, served from the site root
+mkdirSync(resolve(ROOT, "public"), { recursive: true })
+writeFileSync(
+  resolve(ROOT, "public/sitemap.xml"),
+  `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${PAGES.filter((p) => p.kind !== "redirect").map((p) => `  <url><loc>${urlOf(p)}</loc></url>`).join("\n")}
+</urlset>
+`,
+)
+writeFileSync(resolve(ROOT, "public/robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`)
 
 export default defineConfig({
   root: ROOT,
