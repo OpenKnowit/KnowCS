@@ -123,6 +123,7 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
               )}
             </div>
           </section>
+          {info.modules.length > 0 && (
           <section className="rounded-3xl border border-slate-200 bg-white p-5">
             <h2 className="text-lg font-black">{t('watch.ui.practise')}</h2>
             <div className="mt-3 grid gap-2">
@@ -134,6 +135,7 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
               ))}
             </div>
           </section>
+          )}
           {next && (
             <section>
               <h2 className="mb-2 text-sm font-black uppercase tracking-wider text-slate-400">{t('watch.ui.up_next')}</h2>

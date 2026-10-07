@@ -64,6 +64,7 @@ export const EPISODES: EpisodeInfo[] = [
   { id: 'cnn', lec: 8, modules: ['convolution', 'cnn-shapes', 'kernel'], exams: ['F22', 'F23', 'F24'], thumb: 112_000 },
   { id: 'dilated', lec: 8, modules: ['convolution', 'cnn-shapes'], exams: ['F24'], thumb: 50_000 },
   { id: 'alphabeta', lec: 10, modules: ['alphabeta'], exams: ['F22', 'F23', 'F24'], thumb: 52_000 },
+  { id: 'ethics', lec: 11, modules: [], exams: ['F23', 'F24'], thumb: 40_000 },
 ]
 
 export const NOTE_IDS = ['numpy', 'pandas', 'pytorch', 'tensorflow', 'keras', 'kevin'] as const

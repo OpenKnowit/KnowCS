@@ -5,6 +5,7 @@ import { bayes } from './bayes'
 import { broadcast } from './broadcast'
 import { cnn } from './cnn'
 import { dilated } from './dilated'
+import { ethics } from './ethics'
 import { evaluate } from './evaluate'
 import { gaussian } from './gaussian'
 import { imagenp } from './imagenp'
@@ -15,4 +16,4 @@ import { perceptron } from './perceptron'
 import { xor } from './xor'
 
 /** Animation code for every episode listed in sitemap EPISODES. */
-export const EPISODE_CODE: Record<string, Episode> = { xor, bayes, backprop: backpropEp, cnn, kmeans, alphabeta, knn, perceptron, evaluate, broadcast, gaussian, dilated, imagenp, otsu }
+export const EPISODE_CODE: Record<string, Episode> = { xor, bayes, backprop: backpropEp, cnn, kmeans, alphabeta, knn, perceptron, evaluate, broadcast, gaussian, dilated, imagenp, otsu, ethics }

@@ -2945,6 +2945,156 @@
         "q": "The 3×3 image [2 4 8 / 16 32 64 / 128 128 128] is thresholded with Otsu’s method from T = 100, one iteration. What is the new threshold and the resulting image?",
         "a": "Pixels ≤ 100: 2, 4, 8, 16, 32, 64 → μ1 = 21. Pixels > 100: 128 × 3 → μ2 = 128. New T = (21 + 128)/2 = 74.5. Result: the first two rows become 0 and the bottom row 255."
       }
+    },
+    "ethics": {
+      "kicker": "Lecture 11 · Ethics of AI",
+      "title": "AI ethics for the final",
+      "sub": "The three areas a company must cover, how the EU’s seven principles map onto five common grounds, and six ways unfairness gets into a model.",
+      "label": {
+        "areas_q": "From which areas should an organisation make sure its AI models in production behave ethically?",
+        "areas_mark": "Final 2024 Problem 9: one point for each area.",
+        "match_q": "Lecture 11 practice: match each EU principle to a common ground.",
+        "surprise": "The two to remember: privacy (C) and accountability (G) both go to autonomy.",
+        "causes": "Where does unfairness come from?",
+        "loop_note": "Each turn of the loop makes the data look more convincing, though nothing about the world has changed.",
+        "moral_q": "What would a machine need in order to act as a moral agent?",
+        "trolley": "The self-driving-car dilemma is a metaphor for hard trade-offs, not a realistic scenario."
+      },
+      "area": {
+        "1": {
+          "name": "Data ethics",
+          "what": "Consent, privacy and secure handling; data that represents everyone fairly."
+        },
+        "2": {
+          "name": "Model fairness",
+          "what": "Models built so their decisions and recommendations are fair."
+        },
+        "3": {
+          "name": "Monitoring and maintenance",
+          "what": "Watch for model drift as incoming data changes; keep it working as intended."
+        }
+      },
+      "eu": {
+        "A": "Human agency and oversight",
+        "B": "Technical robustness and safety",
+        "C": "Privacy and data governance",
+        "D": "Transparency",
+        "E": "Diversity, non-discrimination, fairness",
+        "F": "Societal and environmental well-being",
+        "G": "Accountability"
+      },
+      "ground": {
+        "1": "Autonomy",
+        "2": "Beneficence",
+        "3": "Non-maleficence",
+        "4": "Justice",
+        "5": "Explicability"
+      },
+      "cause": {
+        "human": {
+          "name": "Human bias",
+          "eg": "Past hiring decisions train a hiring model, and it learns the old preferences."
+        },
+        "loop": {
+          "name": "Feedback loops",
+          "eg": "Predictions decide where data is collected, so the data confirms the predictions."
+        },
+        "sample": {
+          "name": "Sample size disparity",
+          "eg": "Fewer examples of a minority group make the model less accurate for that group."
+        },
+        "unreliable": {
+          "name": "Unreliable data",
+          "eg": "Noisier data for some groups, e.g. an inaccurate census in some neighbourhoods."
+        },
+        "proxy": {
+          "name": "Proxies",
+          "eg": "Remove race, keep postcode — the model can still recover it."
+        },
+        "culture": {
+          "name": "Cultural unawareness",
+          "eg": "A team that all looks alike may not notice who the system fails."
+        }
+      },
+      "loop": {
+        "1": "Send police where the model predicts crime",
+        "2": "More patrols record more incidents there",
+        "3": "The new data shows more crime there",
+        "4": "The model predicts even more crime there"
+      },
+      "moral": {
+        "1": "Beliefs about the world",
+        "2": "Pro-attitudes: intentions",
+        "3": "Moral knowledge",
+        "4": "The ability to work out the consequences of its own actions"
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "The last question of every final is about ethics. It is short, it is definitional, and the marks are easy if you know the lists."
+        },
+        "areas": {
+          "title": "Three areas",
+          "c1": "Final 2024 asked: in which areas must an organisation make sure its AI behaves ethically?",
+          "c2": "Data ethics: consent, privacy, secure handling, and data that represents people fairly.",
+          "c3": "Model fairness: building models whose decisions are fair.",
+          "c4": "Monitoring and maintenance: models drift as the data changes, so they must be watched and updated.",
+          "c5": "Three areas, one point each."
+        },
+        "principles": {
+          "title": "Seven principles, five grounds",
+          "c1": "The EU lists seven principles for trustworthy AI.",
+          "c2": "The many lists of principles boil down to five common grounds: autonomy, beneficence, non-maleficence, justice and explicability.",
+          "c3": "The lecture’s practice problem asks you to match them.",
+          "ponder": "Try it before the answer: which common ground does accountability (G) belong to?"
+        },
+        "match": {
+          "title": "The official matching",
+          "c1": "Human agency, privacy and accountability go to autonomy. Robustness and safety to non-maleficence.",
+          "c2": "Transparency to explicability, fairness to justice, well-being to beneficence.",
+          "c3": "Written as the answer table: A1, B3, C1, D5, E4, F2, G1."
+        },
+        "causes": {
+          "title": "Where unfairness comes from",
+          "c1": "Lecture 11 lists six causes of unfair models.",
+          "c2": "Human bias in the labels, and feedback loops where predictions shape the data.",
+          "c3": "Too few samples from a group, or less reliable data about it.",
+          "c4": "Proxy features that stand in for a removed sensitive attribute.",
+          "c5": "And blind spots in the team that builds the system."
+        },
+        "loop": {
+          "title": "A feedback loop",
+          "c1": "Follow one loop around: the model sends patrols to a neighbourhood.",
+          "c2": "More patrols record more incidents there, and the new data seems to confirm the model.",
+          "c3": "So it predicts even more crime there — whatever the real rate is."
+        },
+        "moral": {
+          "title": "Moral machines",
+          "c1": "Can a machine make moral decisions?",
+          "c2": "It would need beliefs about the world, intentions, moral knowledge, and the ability to compute the consequences of its actions.",
+          "c3": "The self-driving-car dilemma is a metaphor for the trade-offs autonomous systems face."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three lists to know by heart for the last question."
+        }
+      },
+      "recap": {
+        "1": "Three areas: data ethics, model fairness, monitoring and maintenance.",
+        "2": "Five common grounds: autonomy, beneficence, non-maleficence, justice, explicability.",
+        "3": "Unfairness: human bias, feedback loops, sample size disparity, unreliable data, proxies, cultural unawareness."
+      },
+      "exam": {
+        "points": {
+          "1": "Name the three areas exactly: data ethics, AI model fairness, AI model monitoring and maintenance.",
+          "2": "Know the lecture’s matching table: A1, B3, C1, D5, E4, F2, G1.",
+          "3": "For “why might a model be unfair”, give a cause and an example — e.g. proxies: postcode standing in for race.",
+          "4": "Model drift is the reason monitoring matters: accuracy changes as incoming data changes."
+        },
+        "source": "Final 2024 (Spring) · Problem 9",
+        "q": "From what areas should organisations ensure the AI models they have in production function ethically?",
+        "a": "Data ethics (consent, privacy, unbiased and representative data); AI model fairness (fair decisions and recommendations); AI model monitoring and maintenance (watch for model drift and keep the model working as intended)."
+      }
     }
   }
 }
