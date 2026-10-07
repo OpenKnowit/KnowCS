@@ -146,6 +146,13 @@ KnowCS/
   - **代码与知识卡片**：等价 NumPy 代码交给 `lib/minipy` 实际运行，输出与报错和真 NumPy 一致。下方 4 张知识卡片：三句话规则、为何快、COMP2211 用例（标准化 / 偏置 / KNN 两两差 / 灰度化）、`(n,)` 与 `(n,1)` 陷阱。
   - **数据**：A = arange，B = (arange+1)×10，结果里一眼能看出两边各贡献了什么。
 
+- **NumPy API 面板**（`NumpyApiPanel.tsx`，显示在 Package 的 NumPy 笔记右侧）：
+  - **目录**：`data/numpyApis.ts` 共 55 个示例，分 8 组（创建 / 形状 / 索引 / 运算 / 规约 / 排序 / 线性代数 / 随机），说明文案在 `numpy_api.api.*`。支持搜索；笔记里能演示的行内名字（`numpy.linalg`、`ndarray` …）渲染时加 `np-link`，点击打开对应分组；沙盒外的命名空间（`np.fft`、`np.polynomial` …）给出提示。
+  - **调用追踪**：`minipy` 为每次 NumPy 函数 / 数组方法 / 运算符 / 比较 / `.T` / 下标读取记录一条 `CallTrace`（源码、API 名、类别、操作数快照、axis、结果）。搬运类调用（reshape、stack、tile、flip、索引…）在「元素编号数组」上重放一次，直接得到每个结果元素的来源。
+  - **溯源**（`lib/npTrace.ts`）：按类别算出结果每个元素依赖的输入元素——逐元素（含广播）、沿轴规约（最值 / argmax 标出被选中的元素）、累加、矩阵乘（第 i 行 × 第 j 列）、排序、去重、trace / inv / det。悬停结果格子高亮来源，悬停输入格子高亮受影响的结果。
+  - **新增 API**（`lib/ndops.ts` + `minipy`）：concatenate / stack / vstack / hstack / tile / repeat / flip / swapaxes / expand_dims / squeeze、sort / argsort / unique、cumsum、prod / std / var / count_nonzero、round（银行家舍入）/ clip / maximum / minimum / square / floor / ceil / sign / sin / cos / add… / logical_*、outer / trace、`np.linalg.inv/det/norm`、`np.random.seed/rand/randn/randint`（自带种子生成器，数值与 NumPy 不同）、*_like / identity。`npapi.test.ts` 以 NumPy 2.2.6 的真实输出为黄金值（70 例）；已知差异：0 维结果显示为 `12` 而非 `np.int64(12)`，det 为精确值。
+  - 打开 NumPy 笔记时整页放宽到 1440px（`App.tsx` 的 `wide`），≥1280px 时面板吸顶并可独立滚动，窄屏放在正文下方。
+
 ### 6.2 BackpropModule — 反向传播（单输出 sigmoid 神经元）
 - 网络 i, j → k，六个滑块：`O_i`、`O_j`、`w_ik`、`w_jk`、`T_k`、`η`。
 - 「Notebook」四步全部**代入当前数值**：前向（net / O / E）→ 链式法则 → `δ_k = (T−O)·O(1−O)` → `Δw = η·δ·O`。

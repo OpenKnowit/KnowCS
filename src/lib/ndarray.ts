@@ -290,10 +290,11 @@ export const normAxis = (axis: number, ndim: number): number => {
 
 // ---------------- 规约 ----------------
 
-export type ReduceKind = 'sum' | 'mean' | 'max' | 'min' | 'argmax' | 'argmin' | 'any' | 'all'
+export type ReduceKind = 'sum' | 'mean' | 'max' | 'min' | 'argmax' | 'argmin' | 'any' | 'all' | 'prod' | 'std' | 'var' | 'count_nonzero'
 
 const REDUCE_NAME: Record<ReduceKind, string> = {
   sum: 'add', mean: 'mean', max: 'maximum', min: 'minimum', argmax: 'argmax', argmin: 'argmin', any: 'logical_or', all: 'logical_and',
+  prod: 'multiply', std: 'std', var: 'var', count_nonzero: 'count_nonzero',
 }
 
 const reduceValues = (kind: ReduceKind, xs: number[]): number => {
@@ -309,14 +310,22 @@ const reduceValues = (kind: ReduceKind, xs: number[]): number => {
     case 'argmin': return xs.reduce((bi, x, i) => (x < xs[bi] ? i : bi), 0)
     case 'any': return xs.some((x) => x !== 0) ? 1 : 0
     case 'all': return xs.every((x) => x !== 0) ? 1 : 0
+    case 'prod': return xs.reduce((p, x) => p * x, 1)
+    case 'var': case 'std': {
+      if (!xs.length) return NaN
+      const m = xs.reduce((s, x) => s + x, 0) / xs.length
+      const v = xs.reduce((s, x) => s + (x - m) ** 2, 0) / xs.length // ddof = 0, numpy's default
+      return kind === 'std' ? Math.sqrt(v) : v
+    }
+    case 'count_nonzero': return xs.filter((x) => x !== 0).length
   }
 }
 
 export const reduceDType = (kind: ReduceKind, dtype: DType): DType => {
-  if (kind === 'mean') return 'float64'
+  if (kind === 'mean' || kind === 'std' || kind === 'var') return 'float64'
   if (kind === 'any' || kind === 'all') return 'bool'
-  if (kind === 'argmax' || kind === 'argmin') return 'int64'
-  if (kind === 'sum' && dtype === 'bool') return 'int64'
+  if (kind === 'argmax' || kind === 'argmin' || kind === 'count_nonzero') return 'int64'
+  if ((kind === 'sum' || kind === 'prod') && dtype === 'bool') return 'int64'
   return dtype
 }
 
@@ -615,6 +624,7 @@ export const setIndex = (a: NDArray, items: IndexItem[], value: NDArray): IndexP
 const fmtFloatRaw = (v: number): string => {
   if (Number.isNaN(v)) return 'nan'
   if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf'
+  if (Object.is(v, -0)) return '-0.' // toFixed drops the sign of negative zero; numpy keeps it
   return v.toFixed(8).replace(/0+$/, '')
 }
 
@@ -630,7 +640,9 @@ const needsScientific = (values: number[]): boolean => {
 const formatScientific = (values: number[]): string[] => {
   const parts = values.map((v) => {
     if (!Number.isFinite(v)) return null
-    const [mant, exp] = v.toExponential().split('e')
+    // shortest round-trip digits, capped at numpy's default precision of 8 (trailing zeros dropped)
+    let [mant, exp] = v.toExponential().split('e')
+    if ((mant.split('.')[1] ?? '').length > 8) [mant, exp] = v.toExponential(8).replace(/\.?0+e/, 'e').split('e')
     const [i, f = ''] = mant.split('.')
     const e = Number(exp)
     return { i, f, e: `e${e < 0 ? '-' : '+'}${String(Math.abs(e)).padStart(2, '0')}` }

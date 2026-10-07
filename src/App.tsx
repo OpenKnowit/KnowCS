@@ -255,6 +255,10 @@ export default function App() {
     if (item) strip.scrollTo({ left: item.offsetLeft - (strip.clientWidth - item.offsetWidth) / 2, behavior: 'smooth' })
   }, [activeTab, route.mode])
 
+  // NumPy 笔记带右侧 API 面板：整页放宽，正文和面板都有足够空间
+  const wide = route.mode === 'package' && route.item === 'numpy'
+  const frame = wide ? 'max-w-[1440px]' : 'max-w-6xl'
+
   const goMode = (mode: AppMode) =>
     navigate(mode === 'course' ? { mode, tab: lastTab } : { mode, item: null })
 
@@ -289,7 +293,7 @@ export default function App() {
           </a>
 
           {/* Header */}
-          <header className="max-w-6xl mx-auto mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <header className={`${frame} mx-auto mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4`}>
             <div>
               <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{t('app.title')}</h1>
               <div className="flex items-center gap-3 mt-2">
@@ -321,7 +325,7 @@ export default function App() {
             <main
               id="main-content"
               tabIndex={-1}
-              className="max-w-6xl mx-auto bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-200 min-h-[700px] p-5 sm:p-8 md:p-12 focus:outline-none"
+              className={`${frame} mx-auto bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-200 min-h-[700px] p-5 sm:p-8 md:p-12 focus:outline-none`}
             >
               <AnimatePresence mode="wait">
                 <m.div
@@ -408,7 +412,7 @@ export default function App() {
           )}
 
           {/* Footer */}
-          <footer className="max-w-6xl mx-auto mt-12 pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 text-slate-400 text-xs font-medium uppercase tracking-widest text-center md:text-left">
+          <footer className={`${frame} mx-auto mt-12 pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 text-slate-400 text-xs font-medium uppercase tracking-widest text-center md:text-left`}>
             <p>{t('app.footer.copyright')}</p>
             <div className="flex flex-wrap justify-center gap-6 md:gap-8">
               <span className="flex items-center gap-2"><WifiOff size={14} aria-hidden /> {t('app.footer.local')}</span>

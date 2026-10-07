@@ -86,7 +86,7 @@ GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm 
 - `src/App.tsx` —— 根组件：`COURSE_TABS` 注册表 + Hash 路由（`#/course/<id>`、`#/package/<id>`、`#/extend/<id>`）。
 - `src/modules/*.tsx` —— 8 个课程模块 + Package / Extend 视图（Perceptron / PyTorch 已写好、暂未上架）。动画一律用 `m.*`，不要用 `motion.*`。
 - `src/components/*.tsx` —— 共享组件（Latex / LineChart / SectionTitle / SeniorAdvice）。
-- `src/lib/*.ts` —— 纯计算逻辑（knn / bayes / backprop / kmeans / alphabeta / chart / route / lang …）+ 同目录 Vitest 单元测试。`ndarray.ts` + `minipy.ts` 是 NumPy 实验台用的迷你 NumPy 与 Python 子集解释器，改索引语义时要对照真 NumPy 的输出；`broadcast.ts` 负责广播规则讲解。
+- `src/lib/*.ts` —— 纯计算逻辑（knn / bayes / backprop / kmeans / alphabeta / chart / route / lang …）+ 同目录 Vitest 单元测试。`ndarray.ts` + `ndops.ts` + `minipy.ts` 是 NumPy 实验台与 NumPy 笔记 API 面板共用的迷你 NumPy 与 Python 子集解释器，改语义时要对照真 NumPy 的输出（`npapi.test.ts` 存放真实输出）；`npTrace.ts` 计算每个结果元素来自哪些输入元素；`broadcast.ts` 负责广播规则讲解。
 - `src/types.ts` + `src/data/constants.ts` —— 共享类型定义与类型化数据常量。
 - `src/i18n.ts` + `src/locales/` —— 国际化初始化与三语文案。`<Trans>` 一律用 `components={{1: …}}` 显式映射，文案里不要写 Markdown。
 - `scripts/vite-plugins.mjs` —— 构建期插件（KaTeX 字体瘦身、`*.md?html` 预渲染）。
