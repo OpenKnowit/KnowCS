@@ -7,6 +7,14 @@
 
 ## 进展时间线
 
+### 2026-10-07 — KnowCS Lab：10 个新模块页 + 3 个首页草图（/lab/）
+- **feat**：新增独立多页原型 `/lab/`（React + TS + Tailwind，`vite.lab.config.js`），每个模块一个 HTML 页面，全宽布局、上一页/下一页导航、「Quiz me」把考试表格变成可判分的填空。10 个新页面对应历年试卷高频而主站缺失的考点：贝叶斯基率、Gaussian 朴素贝叶斯、混淆矩阵与 F1/MCC、D 折交叉验证陷阱、K-Means 手算表、感知机更新表、XOR 与反向传播、卷积填充与翻转、直方图与 Otsu、CNN 形状与参数。
+- **feat**：三个首页草图供选择：A 课程地图、B 考点雷达（16 个题型 × 9 份试卷）、C 学习路径（自查清单 + 本机进度）。
+- **决策**：题目数据改写数字后标注「Pattern of 20xx Qn」，不直接搬运试卷原题（试卷标注仅限校内学术使用）；讲义例题原样使用。
+- **发现**：2022 期末 Part B Q1(c) 评分标准第 4 层输出尺寸有误（13×13，应为 14×14），页面中提示。
+- **test**：新增 10 个 lib + `src/lab/format.ts` 共 58 个用例，以讲义与评分标准的数值为黄金值（如 5/68、0.0194、macro-F1 0.407、MCC 0.14、1,558,656 参数、反传 δk = 0.107022），共 219 个通过。
+- **chore**：ESLint 忽略 `dist-lab`、`work`；`.gitignore` 加 `dist-lab`；部署时 release 目录同时包含 `index.html` 与 `lab/`。
+
 ### 2026-10-05 — Package / Extend 内容三语化
 - **fix（i18n）**：此前资料包 5 篇笔记与 Attention 拓展页只有简体，COMP2211 课程笔记只有英文，与站点语言无关。现在每项内容都有 en / zh 两份源文件，zh-HK 在构建期由简体生成，切换语言即时生效。
 - **feat**：新增英文版 NumPy / pandas / PyTorch / TensorFlow / Keras 笔记和 Attention 页，新增中文版 COMP2211 课程笔记。英文课程笔记中夹杂的中文注释改为英文。清理笔记中会原样显示的 Obsidian 语法（`> [!tip]`、`[[numpy]]`）。

@@ -83,6 +83,8 @@ main.tsx                       入口，挂载 <App/>，引入 i18n
 KnowCS/
 ├─ index.html              Vite 入口（title / description / OG meta / 内联 favicon）
 ├─ vite.config.js          插件链：katexFontSlim → markdownHtml → react → singlefile；注入 __APP_VERSION__
+├─ vite.lab.config.js      KnowCS Lab 多页构建（lab/*.html → dist-lab/lab/）
+├─ lab/                    Lab 各页面的 HTML 入口（index、home-a/b/c、10 个模块）
 ├─ vitest.config.ts        测试范围限定 src/**/*.test.ts
 ├─ scripts/
 │   ├─ vite-plugins.mjs    构建期插件（KaTeX 字体瘦身、Markdown 预渲染）
@@ -95,6 +97,8 @@ KnowCS/
    ├─ hooks/               useHashRoute
    ├─ lib/                 纯计算 + *.test.ts：knn · bayes · kernel · ndarray · minipy · broadcast · alphabeta · kmeans
    │                       · backprop · perceptron · autograd · chart · route · lang
+   │                       · bayesRule · gaussianNb · metrics · crossval · kmeansTable · perceptronTable · mlp · conv2d · otsu · cnnShapes（Lab 用）
+   ├─ lab/                 KnowCS Lab：main.tsx · ui.tsx · registry.ts · format.ts · lab.css · pages/ · homes/
    ├─ modules/             各视图组件（Perceptron / PyTorch 已就绪但暂未上架）
    ├─ data/                constants（教学数据）· notes · extensions
    ├─ content/             notes/<id>.{en,zh}.md + images/*.webp · attention.{en,zh}.html
@@ -173,6 +177,28 @@ KnowCS/
 ### 6.8 KMeansModule — K-Means 聚类
 - EM 迭代动画（播放 / 单步 / 重置）、K=2–5、WCSS、Elbow 曲线、Raw / Z-score。
 
+### 6.9 KnowCS Lab — `/lab/` 多页原型
+独立于主站单文件产物的**多页 React 原型**，用于试验「每个模块一个 HTML 页面」的布局与新模块，选定后再迁入主站。
+- **构建**：`vite.lab.config.js`，`lab/*.html` 每个文件一个入口，共用 `src/lab/main.tsx`（按 `<body data-page>` 动态 import 页面，各页只下载自己的 chunk）。产物在 `dist-lab/lab/`，部署时整个 `lab/` 目录放进 release，线上地址 `https://knowcs.online/lab/`。不使用 singlefile。
+- **外壳**（`src/lab/ui.tsx`）：顶栏（返回总览 / 上一页 / 下一页 / Quiz me）、Hero（讲次 + 出现过该题型的试卷）、左控件右画布的 `Workspace`、卡片/预设/分段按钮等。`<Ans>` 单元格在「Quiz me」开启时变成输入框，失焦判分（分数、四舍五入、Unicode 负号都接受；很小的数按相对误差判）。访问记录存 `localStorage`，只做本机进度便利。
+- **内容注册表**（`src/lab/registry.ts`）：讲次、9 份试卷、10 个新页面、8 个主站模块，以及 16 个「反复出现的题型 × 试卷」映射，供首页草图与页面徽章使用。
+- **10 个新页面**（纯计算均在 `src/lib/` 并配测试，测试用讲义与评分标准的数字作黄金值）：
+  | 页面 | lib | 要点 |
+  |---|---|---|
+  | Bayes & the base rate | `bayesRule.ts` | 10,000 人方格、自然频率树、P(B \| not E) 变体、「再测一次」 |
+  | Gaussian Naive Bayes | `gaussianNb.ts` | 每类钟形曲线、样本标准差 (n−1)、乘积与后验 |
+  | Confusion matrix & F1 | `metrics.ts` | 点类别拆出 TP/FN/FP/TN、行=实际/预测切换、macro/weighted F1、MCC、NumPy 写法 |
+  | D-fold cross-validation trap | `crossval.ts` | 排序不打乱 → 0%/50%/100%，打乱与分层对比，各 D 的平均准确率 |
+  | K-Means by hand | `kmeansTable.ts` | 逐轮距离表、平局归 C1、SSE、空簇、1-D/2-D、欧氏/平方/曼哈顿 |
+  | Perceptron learning table | `perceptronTable.ts` | 考试表格逐行、激活约定（1/0 或 ±1，z≥0 或 z>0）、决策线、XOR 不收敛 |
+  | XOR & backprop by numbers | `mlp.ts` | 讲义 2-2-1 网络，输入空间 / 隐藏空间两图，按考试公式的一步反传表，参数计数 |
+  | Convolution, padding & flips | `conv2d.ts` | 四种填充（zero/replicate/reflect/mirror）、翻转与否、步长、输出尺寸、核取值范围 |
+  | Histogram, contrast & Otsu | `otsu.ts` | 点运算与直方图、Otsu 迭代表、图像↔直方图配对题 |
+  | CNN shapes & parameters | `cnnShapes.ts` | 可编辑层栈、逐层形状与参数及算式、与 MLP 对比、步长示意 |
+- **首页草图**：A 课程地图（按讲次）、B 考点雷达（题型 × 试卷热力图）、C 学习路径（时间线 + 能力自查清单）。
+- **语言**：原型暂为英文；选定版本迁入主站时按 i18n 规则补齐三语。
+- **已知出入**：2022 期末 Part B Q1(c) 评分标准第 4 层写 13×13，按公式应为 14×14（遗漏 padding）；页面与测试以公式为准并注明。
+
 ---
 
 ## 7. 状态管理
@@ -214,6 +240,8 @@ npm run lint      # ESLint（门禁）
 npm test          # Vitest（门禁）
 npm run typecheck # tsc --noEmit（门禁）
 npm run build     # tsc --noEmit && vite build → dist/index.html（门禁）
+npm run dev:lab   # Lab 开发服务器（http://localhost:5175/lab/index.html）
+npm run build:lab # tsc --noEmit && vite build -c vite.lab.config.js → dist-lab/lab/
 ```
 
 **单文件体积优化**（2026-10，4.55MB → 1.99MB，gzip 2.46MB → 1.07MB）：
@@ -241,6 +269,8 @@ npm run build     # tsc --noEmit && vite build → dist/index.html（门禁）
 3. 在 `App.tsx` 的 `COURSE_TABS` 追加 `{ id, icon, Component, tip }`，并在 `types.ts` 的 `TabId` 加上 id——路由自动生效。
 4. 在 `en.json` / `zh.json` 补齐 `app.tabs.xxx`、`app.tabs_sub.xxx`、`app.section.xxx.*`、`app.sidebar.exam_tip.content_xxx` 及模块文案，然后 `npm run gen:zh-hk`。
 5. 用 `SeniorAdvice` 收尾；交互元素补 `aria-label` / `aria-pressed`。
+
+新增 Lab 页面：纯计算写 `src/lib/xxx.ts` + 测试 → 在 `lab/` 加 `xxx.html`（复制任一页，改 `data-page` 与标题）→ `src/lab/pages/Xxx.tsx` 用 `LabPage` / `Workspace` / `Ans` 搭页面 → 在 `src/lab/main.tsx` 的 `PAGES` 和 `src/lab/registry.ts` 的 `LAB` 各加一项。
 
 新增 Package 笔记：放 `src/content/notes/x.en.md` 与 `x.zh.md`（图片放 `images/`，相对引用，两版引用一致），在 `src/data/notes.ts` 以 `?html`（en、zh）+ `?html-hk`（由 zh 生成）注册三种语言。不要使用 Obsidian 的 `> [!tip]` / `[[双链]]`，它们会原样显示。
 

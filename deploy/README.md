@@ -8,9 +8,9 @@ GitHub Actions only validates the project. PinMe deployment has been removed.
 
 ## Publish a new build
 
-Run `npm run lint`, `npm test`, `npm run typecheck` and `npm run build` first.
-Upload `dist/index.html` into a new timestamped directory under
-`/opt/1panel/www/sites/knowcs/releases/`. Compare local and remote SHA-256.
+Run `npm run lint`, `npm test`, `npm run typecheck`, `npm run build` and `npm run build:lab` first.
+Upload `dist/index.html` and the `dist-lab/lab/` directory (served at `/lab/`) into a new timestamped
+directory under `/opt/1panel/www/sites/knowcs/releases/`. Compare local and remote SHA-256.
 Create a temporary symlink targeting that release, then atomically replace
 `/opt/1panel/www/sites/knowcs/current` using `sudo mv -Tf`.
 Do not remove prior releases. Static updates do not require an OpenResty reload.

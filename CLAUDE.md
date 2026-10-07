@@ -28,6 +28,8 @@ npm test          # Vitest 单元测试（部署门禁）
 npm run typecheck # tsc --noEmit 严格类型检查（部署门禁）
 npm run build     # 生产构建：tsc --noEmit && vite build → dist/ 单 HTML（部署门禁）
 npm run preview   # 预览构建产物
+npm run dev:lab   # KnowCS Lab 多页原型开发服务器（http://localhost:5175/lab/index.html）
+npm run build:lab # Lab 生产构建 → dist-lab/lab/（部署时整个 lab/ 放进 release）
 ```
 
 ## 构建与服务器部署
@@ -90,4 +92,5 @@ GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm 
 - `scripts/vite-plugins.mjs` —— 构建期插件（KaTeX 字体瘦身、`*.md?html` 预渲染）。
 - `dist/` —— 构建产物，不入库（CI 每次重新构建）。
 - `src/ref/` —— 历史参考版本（.jsx），**不参与构建、已在 lint/tsc 忽略**。
+- `lab/` + `src/lab/` —— KnowCS Lab：每模块一个 HTML 页面的多页原型（10 个新模块 + 3 个首页草图），线上 `/lab/`。原型暂为英文，迁入主站时再补三语；计算同样放 `src/lib/` 并配测试。
 - `docs/` —— 设计 / 日志 / 计划三份文档（见上）。
