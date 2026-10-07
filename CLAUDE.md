@@ -4,7 +4,7 @@
 
 ## 项目简介
 
-CS Helper (KnowitCS) 是面向 HKUST COMP2211（机器学习）的**交互式学习网站**：纯前端、单页、单文件打包，通过可视化模块帮助学生理解机器学习核心概念。在线 Demo：中文 <https://knowcs.online>。
+CS Helper (KnowitCS) 是面向 HKUST COMP2211（机器学习）的**交互式学习网站**：纯前端、多页静态站（每个模块一个 URL），通过可视化模块帮助学生理解机器学习核心概念与考点。在线 Demo：中文 <https://knowcs.online>。
 
 ## 文档导航（docs/）
 
@@ -16,7 +16,7 @@ CS Helper (KnowitCS) 是面向 HKUST COMP2211（机器学习）的**交互式学
 
 ## 技术栈速览
 
-React 19 · TypeScript（strict）· Vite 7 · Tailwind CSS 4 · Framer Motion 12（`LazyMotion` + `m.*`）· KaTeX · react-i18next · `vite-plugin-singlefile`（全站内联为单个 HTML）。图表用自研 SVG `LineChart`；Markdown 笔记在构建期预渲染（`scripts/vite-plugins.mjs`）。
+React 19 · TypeScript（strict）· Vite 7 · Tailwind CSS 4 · Framer Motion 12（`LazyMotion` + `m.*`）· KaTeX · react-i18next · Vite 多入口（页面清单 `src/lib/sitemap.ts`，构建时生成 `site/**/index.html`）。图表用自研 SVG `LineChart`；Markdown 笔记在构建期预渲染（`scripts/vite-plugins.mjs`）。
 
 ## 常用命令
 
@@ -26,10 +26,8 @@ npm run dev       # 开发服务器（http://localhost:5174）
 npm run lint      # ESLint 检查（部署门禁）
 npm test          # Vitest 单元测试（部署门禁）
 npm run typecheck # tsc --noEmit 严格类型检查（部署门禁）
-npm run build     # 生产构建：tsc --noEmit && vite build → dist/ 单 HTML（部署门禁）
+npm run build     # 生产构建：tsc --noEmit && vite build → dist/ 多页（部署门禁）
 npm run preview   # 预览构建产物
-npm run dev:lab   # KnowCS Lab 多页原型开发服务器（http://localhost:5175/lab/index.html）
-npm run build:lab # Lab 生产构建 → dist-lab/lab/（部署时整个 lab/ 放进 release）
 ```
 
 ## 构建与服务器部署
@@ -38,7 +36,7 @@ npm run build:lab # Lab 生产构建 → dist-lab/lab/（部署时整个 lab/ �
 
 GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm ci`、lint、test、typecheck、build，不再自动发布到 PinMe，也不消耗 PinMe 余额。
 
-发布步骤见 `deploy/README.md`。站点目录为 `/opt/1panel/www/sites/knowcs`；`releases/<timestamp>/index.html` 保存每次构建，`current` 软链接指向线上版本。通过原子替换软链接发布，保留旧版本供回滚。Nginx 配置模板为 `deploy/knowcs.online.conf`，证书由 Certbot webroot 签发及自动续期。
+发布步骤见 `deploy/README.md`。站点目录为 `/opt/1panel/www/sites/knowcs`；`releases/<timestamp>/` 保存每次构建的整个 `dist/`，`current` 软链接指向线上版本。通过原子替换软链接发布，保留旧版本供回滚。Nginx 配置模板为 `deploy/knowcs.online.conf`，证书由 Certbot webroot 签发及自动续期。
 
 ### 服务器与域名（2026-10-05 已核实）
 
@@ -59,7 +57,7 @@ GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm 
 
 ### 推送与发布是两步
 
-- **GitHub 推送**只触发 `Validate KnowCS`，不会更新服务器。完成推送后仍需上传已验证的 `dist/index.html`、核对 SHA-256、原子切换 `current`。
+- **GitHub 推送**只触发 `Validate KnowCS`，不会更新服务器。完成推送后仍需上传已验证的 `dist/` 全部内容、核对 SHA-256、原子切换 `current`。
 - GitHub SSH 曾连接失败；可使用已有 `gh` 登录凭据通过 HTTPS 推送，不在命令中放 token：
 
   ```bash
@@ -83,14 +81,15 @@ GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm 
 
 ## 目录要点
 
-- `src/App.tsx` —— 根组件：`COURSE_TABS` 注册表 + Hash 路由（`#/course/<id>`、`#/package/<id>`、`#/extend/<id>`）。
-- `src/modules/*.tsx` —— 8 个课程模块 + Package / Extend 视图（Perceptron / PyTorch 已写好、暂未上架）。动画一律用 `m.*`，不要用 `motion.*`。
+- `src/lib/sitemap.ts` —— 唯一页面清单：模块（讲次 / 试卷）、笔记、拓展、URL、旧链接映射（`#/course/x` → `/x/`，`/lab/*.html` 跳转页）。`vite.config.js` 据此生成 HTML 入口。
+- `src/site/` —— 全站共用入口 `main.tsx`（按 `<body data-page>` 懒加载页面）、`Shell.tsx`（顶栏 / 页脚 / 语言）、`ui.tsx`（PageBar、LabPage、Workspace、`<Ans>` 自测格等）、`pages/`（Home / Module / Notes / Extend）、`modules/`（10 个考点实验页）。
+- `src/modules/*.tsx` —— 8 个经典课程模块 + Package / Extend 视图（Perceptron / PyTorch 已写好、暂未上架）。动画一律用 `m.*`，不要用 `motion.*`。
 - `src/components/*.tsx` —— 共享组件（Latex / LineChart / SectionTitle / SeniorAdvice）。
-- `src/lib/*.ts` —— 纯计算逻辑（knn / bayes / backprop / kmeans / alphabeta / chart / route / lang …）+ 同目录 Vitest 单元测试。`ndarray.ts` + `ndops.ts` + `minipy.ts` 是 NumPy 实验台与 NumPy 笔记 API 面板共用的迷你 NumPy 与 Python 子集解释器，改语义时要对照真 NumPy 的输出（`npapi.test.ts` 存放真实输出）；`npTrace.ts` 计算每个结果元素来自哪些输入元素；`broadcast.ts` 负责广播规则讲解。
+- `src/lib/*.ts` —— 纯计算逻辑（knn / bayes / backprop / kmeans / alphabeta / chart / sitemap / lang …）+ 同目录 Vitest 单元测试。`ndarray.ts` + `ndops.ts` + `minipy.ts` 是 NumPy 实验台与 NumPy 笔记 API 面板共用的迷你 NumPy 与 Python 子集解释器，改语义时要对照真 NumPy 的输出（`npapi.test.ts` 存放真实输出）；`npTrace.ts` 计算每个结果元素来自哪些输入元素；`broadcast.ts` 负责广播规则讲解。
 - `src/types.ts` + `src/data/constants.ts` —— 共享类型定义与类型化数据常量。
 - `src/i18n.ts` + `src/locales/` —— 国际化初始化与三语文案。`<Trans>` 一律用 `components={{1: …}}` 显式映射，文案里不要写 Markdown。
 - `scripts/vite-plugins.mjs` —— 构建期插件（KaTeX 字体瘦身、`*.md?html` 预渲染）。
-- `dist/` —— 构建产物，不入库（CI 每次重新构建）。
+- `dist/`、`site/` —— 构建产物与生成的 HTML 入口，不入库。
 - `src/ref/` —— 历史参考版本（.jsx），**不参与构建、已在 lint/tsc 忽略**。
-- `lab/` + `src/lab/` —— KnowCS Lab：每模块一个 HTML 页面的多页原型（10 个新模块 + 3 个首页草图），线上 `/lab/`。原型暂为英文，迁入主站时再补三语；计算同样放 `src/lib/` 并配测试。
+- 实验页文案在 `lab.<page>.*`；解析错误抛 `LabError`（`src/lib/labError.ts`），文案在 `lab.errors.*`。
 - `docs/` —— 设计 / 日志 / 计划三份文档（见上）。

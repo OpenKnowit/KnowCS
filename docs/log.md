@@ -7,6 +7,12 @@
 
 ## 进展时间线
 
+### 2026-10-08 — 合并为多页站点：首页改为课程地图，10 个考点页三语化
+- **feat（结构）**：主站由单文件 SPA 改为多页静态站。页面清单集中在 `src/lib/sitemap.ts`，`vite.config.js` 据此生成每页的 HTML 入口，所有页面共用 `src/site/main.tsx`。每个模块一个 URL（`/knn/`、`/bayes-virus/` …），笔记在 `/notes/<id>/`，拓展在 `/extend/<id>/`。首页采用 Lab 草图 A「课程地图」（按讲次、搜索、期中/期末范围、已看标记），B / C 草图移除。
+- **feat（兼容）**：旧链接 `#/course/x`、`#/package/x`、`#/extend/x` 在首页自动跳到新 URL；`/lab/*.html` 构建为跳转页。
+- **feat（i18n）**：10 个考点页、页面骨架与首页全部三语化（`site.*`、`lab.<page>.*`）。解析错误改为 `LabError` 错误码，文案在 `lab.errors.*`；`cnnShapes` 的层错误也改为错误码。
+- **chore**：移除 `vite-plugin-singlefile`、`App.tsx`、Hash 路由（`route.ts`、`useHashRoute`）与 `vite.lab.config.js`；发布改为上传整个 `dist/`。
+
 ### 2026-10-08 — NumPy 面板：多项式；合并成对距离视频
 - **merge**：合并 `worktree-pairwise-video`（成对距离考点视频，此前只部署未合入）。其解释器新增的 square / expand_dims / argsort 由 main 上的扩展 API 覆盖，保留 argsort 的语义（默认 axis=-1，None 展平）。
 - **feat**：NumPy 面板新增「多项式」分组：`from numpy.polynomial import Polynomial`、求值 / 求导 / 积分 / 求根（含复根）/ 运算 / 拟合 / convert，以及 `np.polyfit` / `np.polyval`，结果画成曲线图。笔记第 3 节的代码块可一键在面板中运行。

@@ -26,8 +26,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# KnowCS Lab build
-dist-lab
 
 # Local scratch (DNS snapshots, browser test profiles) — never committed
 work/
+
+# Generated HTML entries for the multi-page build (see vite.config.js)
+/site/

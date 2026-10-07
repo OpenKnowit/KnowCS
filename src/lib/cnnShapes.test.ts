@@ -40,6 +40,6 @@ describe('analyse', () => {
   })
 
   it('flags Dense before Flatten', () => {
-    expect(analyse([8, 8, 3], [{ kind: 'dense', units: 4, bias: true }])[0].error).toMatch(/Flatten/)
+    expect(analyse([8, 8, 3], [{ kind: 'dense', units: 4, bias: true }])[0].error).toBe('needs_flatten')
   })
 })

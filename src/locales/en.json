@@ -750,5 +750,861 @@
     "run_block": "Run in the NumPy panel",
     "plot_label": "Polynomial curves",
     "plot_points": "data points"
+  },
+  "site": {
+    "paper_mid": "{{year}} {{term}} mid",
+    "paper_final": "Final {{year}}",
+    "term_Fall": "Fall",
+    "term_Spring": "Spring",
+    "lecture_short": "L{{n}}",
+    "lecture_long": "Lecture {{n}}",
+    "lectures": {
+      "1": "Intro & NumPy",
+      "2": "Naive Bayes",
+      "3": "K-Nearest Neighbors",
+      "4": "K-Means Clustering",
+      "5": "Neurons & Perceptron",
+      "6": "Multilayer Perceptron",
+      "7": "Image Processing",
+      "8": "Convolutional Networks",
+      "9": "PyTorch",
+      "10": "Minimax & Alpha-Beta",
+      "11": "Ethics of AI"
+    },
+    "ui": {
+      "breadcrumb": "You are here",
+      "prev": "Prev",
+      "next": "Next",
+      "quiz": "Quiz me",
+      "quiz_hint": "Hide the answers in the exam tables and type them yourself",
+      "asked_in": "Past papers with this pattern",
+      "answer_for": "answer for {{label}}",
+      "not_quite": "Not quite — check your working"
+    },
+    "modules": {
+      "numpy": {
+        "title": "NumPy indexing & broadcasting",
+        "blurb": "Run NumPy in the browser and see where every element comes from."
+      },
+      "bayes-basics": {
+        "title": "Bayes basics",
+        "blurb": "Fire and smoke: prior, likelihood and posterior with live sliders."
+      },
+      "bayes-virus": {
+        "title": "Bayes & the base rate",
+        "blurb": "Why a 99% accurate test is usually wrong: 10,000 people in one picture."
+      },
+      "naive-bayes": {
+        "title": "Naive Bayes (categorical)",
+        "blurb": "The disease Z table by hand, with Laplace smoothing and log mode."
+      },
+      "gaussian-nb": {
+        "title": "Gaussian Naive Bayes",
+        "blurb": "Numerical features: one bell curve per class, likelihood = curve height."
+      },
+      "knn": {
+        "title": "K-Nearest Neighbors",
+        "blurb": "Click to classify, standardize the features, pick K from the error curve."
+      },
+      "evaluation": {
+        "title": "Confusion matrix & F1",
+        "blurb": "TP / FP / FN per class, precision, recall, macro-F1 and MCC."
+      },
+      "cross-validation": {
+        "title": "D-fold cross-validation trap",
+        "blurb": "Sorted data and no shuffle can score 0%. See which classes each fold loses."
+      },
+      "kmeans": {
+        "title": "K-Means animation",
+        "blurb": "Watch the assign / update loop, the elbow curve and Z-scores."
+      },
+      "kmeans-table": {
+        "title": "K-Means by hand",
+        "blurb": "The exam table: distances, assignment, new centroids, until nothing moves."
+      },
+      "perceptron": {
+        "title": "Perceptron learning table",
+        "blurb": "Row-by-row updates of w and θ, and the decision line they draw."
+      },
+      "backprop": {
+        "title": "Backpropagation",
+        "blurb": "One sigmoid neuron: the chain rule with live numbers."
+      },
+      "xor-mlp": {
+        "title": "XOR & backprop by numbers",
+        "blurb": "Why one line fails, how a hidden layer bends space, δ by δ."
+      },
+      "kernel": {
+        "title": "Edge-detection kernels",
+        "blurb": "Sobel, Laplacian and your own kernels on an image."
+      },
+      "convolution": {
+        "title": "Convolution, padding & flips",
+        "blurb": "Four padding modes, the kernel flip, stride and output size."
+      },
+      "otsu": {
+        "title": "Histogram, contrast & Otsu",
+        "blurb": "Point operations reshape the histogram; Otsu finds the threshold."
+      },
+      "cnn-shapes": {
+        "title": "CNN shapes & parameters",
+        "blurb": "Stack layers and get every output shape and parameter count."
+      },
+      "alphabeta": {
+        "title": "Minimax & alpha-beta",
+        "blurb": "Step through the search with α / β and see which branches get pruned."
+      }
+    },
+    "home": {
+      "tab_title": "COMP2211 Interactive ML Lab",
+      "eyebrow": "HKUST COMP2211 · Exploring AI",
+      "title_a": "Every lecture, ",
+      "title_b": "one page you can touch.",
+      "lead": "Pick a lecture, open its page, drag the numbers. Each page shows the exact table the exam asks for — and lets you fill it in yourself.",
+      "stat_pages": "{{n}} interactive pages",
+      "stat_papers": "{{n}} past papers mapped",
+      "stat_notes": "Study notes",
+      "find": "Find a topic",
+      "find_placeholder": "e.g. padding, F1, backprop…",
+      "scope": "Exam scope",
+      "scope_all": "Everything",
+      "scope_mid": "Midterm",
+      "scope_final": "Final",
+      "scope_all_hint": "All eleven lectures.",
+      "scope_mid_hint": "Midterms cover lectures 1–6.",
+      "scope_final_hint": "Finals cover everything, weighted towards lectures 6–11.",
+      "badge_mid": "midterm + final",
+      "badge_final": "final only",
+      "in_papers": "in {{n}}/{{total}} papers",
+      "seen": "opened",
+      "empty_9": "No past paper tested PyTorch — read the PyTorch notes instead.",
+      "empty_11": "Ethics is multiple choice: flashcards are planned.",
+      "empty": "Coming soon."
+    }
+  },
+  "lab": {
+    "common": {
+      "quiz_sub": "Turn on “Quiz me” to fill in the blanks yourself",
+      "quantity": "Quantity",
+      "value": "Value",
+      "exam_pattern": "Exam pattern.",
+      "exam_traps": "Exam traps.",
+      "example": "Example",
+      "dataset": "Dataset",
+      "settings": "Settings",
+      "class": "Class",
+      "prior": "Prior",
+      "posterior": "Posterior",
+      "product": "Product",
+      "prev": "← Prev",
+      "next": "Next →",
+      "back": "← Back",
+      "play": "Play",
+      "pause": "Pause",
+      "reset": "Reset",
+      "cant_read": "Can’t read the input."
+    },
+    "bayes": {
+      "lead": "A test that is 99% sensitive can still be wrong most of the time it says “positive”. The reason is the base rate: how rare the condition is in the first place.",
+      "scenario": "Scenario",
+      "probabilities": "Probabilities",
+      "prior_label": "P({{B}}) — base rate",
+      "hit_label": "P({{E}} | {{B}}) — hit rate",
+      "fa_label": "P({{E}} | not {{B}}) — false alarms",
+      "observed": "We observed",
+      "not": "not {{x}}",
+      "again_text": "<1>Test again.</1> Today’s posterior becomes tomorrow’s prior. Press it twice and watch a rare condition become likely.",
+      "again_btn": "Test again → posterior becomes prior",
+      "grid_title": "10,000 people, one square each",
+      "grid_aria": "Grid of 10,000 people coloured by group",
+      "focus": "Show only people with “{{evid}}”",
+      "people": "people",
+      "tree_title": "Natural-frequency tree",
+      "answer_title": "The answer",
+      "answer_q": "Among everyone with “{{evid}}”, how many really have “{{B}}”?",
+      "prior_was": "Prior was <1>{{p}}</1>. The evidence multiplied the odds by <3>{{lr}}</3> (likelihood ratio P({{evid}}|{{B}}) ÷ P({{evid}}|{{notB}})).",
+      "base_rate_title": "Base-rate effect.",
+      "base_rate_text": "{{fp}} false alarms from the large healthy group swamp the {{tp}} true hits.",
+      "working_title": "The exam working",
+      "total_prob": "Total probability",
+      "bayes_rule": "Bayes’ rule",
+      "exam_text": "Midterms give three numbers — a prior, P(E|B) and P(E|not B) — and ask for P(E) with the total-probability rule, then P(B|E) with Bayes’ rule. Watch for the twist: some papers ask for P(B | <1>not</1> E), which uses 1 − P(E|B) and 1 − P(E|not B). Switch “We observed” to try it.",
+      "presets": {
+        "virus": {
+          "title": "Virus test",
+          "note": "Lecture 2 · 0.1% infected, 99% / 95% accurate",
+          "B": "Virus",
+          "E": "Positive"
+        },
+        "grade": {
+          "title": "Exam-style: top grade",
+          "note": "Pattern of 2022 Fall Q3 (numbers changed)",
+          "B": "A+",
+          "E": "Midterm > 90"
+        },
+        "course": {
+          "title": "Exam-style: “not good” course",
+          "note": "Pattern of 2022 Spring Q3 — asks P(B | not E)",
+          "B": "Prof teaches",
+          "E": "Good course"
+        },
+        "spam": {
+          "title": "Spam filter",
+          "note": "Common prior, decent filter",
+          "B": "Spam",
+          "E": "Flagged"
+        }
+      }
+    },
+    "gnb": {
+      "lead": "When a feature is a number (temperature, score, pulse), Naive Bayes stops counting and fits one bell curve per class. The likelihood is the height of that curve at the test value.",
+      "curve_aria": "Gaussian curve per class; click to move the test value",
+      "training": "Training data",
+      "training_sub": "label, feature, feature…",
+      "training_aria": "Training data as CSV",
+      "summary": "{{c}} classes · {{f}} features",
+      "std": "Standard deviation",
+      "std_sample": "sample (n − 1)",
+      "std_pop": "population (n)",
+      "test": "Test sample",
+      "test_sub": "drag, or click a chart",
+      "fit_title": "Fit μ and σ per class",
+      "given": "given in the question",
+      "class_word": "class",
+      "multiply": "Multiply and compare",
+      "multiply_sub": "P(class) × Π f(xᵢ | class) — P(E) cancels",
+      "predict_ratio": "Predict <1>{{name}}</1> — its product is <3>{{ratio}}</3> the other class’s. Posterior = product ÷ sum of products; P(E) is the same for every class, so the exam only needs the products to decide.",
+      "predict": "Predict <1>{{name}}</1>. Posterior = product ÷ sum of products; P(E) is the same for every class, so the exam only needs the products to decide.",
+      "traps": "(1) The course uses the <1>sample</1> standard deviation, dividing by n − 1. (2) f(x) is a density, not a probability — it can be larger than 1 when σ is small. (3) In mixed tables, numbers use the Gaussian while categories still use counts (with Laplace smoothing if a count is 0).",
+      "naive_title": "Why “naive”?",
+      "naive_text": "Each feature gets its own curve and the curves are simply multiplied. That assumes the features are independent given the class — the 2023 final asked what goes wrong when two features are strongly correlated.",
+      "presets": {
+        "dengue": {
+          "title": "Exam-style: dengue fever",
+          "note": "Pattern of Final 2024 Q3 (numbers changed)"
+        },
+        "lecture": {
+          "title": "Lecture 2: disease Z (continuous)",
+          "note": "μ and σ given; BP = 66, Fever = 97"
+        },
+        "bands": {
+          "title": "Three classes: grade band",
+          "note": "Two numeric features, unequal spreads"
+        }
+      },
+      "names": {
+        "temperature": "temperature",
+        "pulse": "pulse",
+        "assignment": "assignment",
+        "midterm": "midterm",
+        "blood pressure": "blood pressure",
+        "fever": "fever",
+        "Dengue": "Dengue",
+        "No dengue": "No dengue",
+        "Yes": "Yes",
+        "No": "No",
+        "High": "High",
+        "Mid": "Mid",
+        "Low": "Low"
+      }
+    },
+    "eval": {
+      "lead": "Accuracy hides which class the model fails on. Pick a class and the matrix splits into its true positives, false negatives, false positives and true negatives.",
+      "labels": "Labels",
+      "manual": "matrix edited by hand",
+      "actual": "Actual",
+      "predicted": "Predicted",
+      "labels_hint": "Comma or space separated — or type straight into the matrix cells.",
+      "rows_are": "Matrix rows are",
+      "rows_hint": "The 2024 Spring midterm put <1>actual</1> on rows; the 2023 Fall midterm put <3>predicted</3> on rows. Read the axis labels before you sum.",
+      "nothing": "Nothing to score yet.",
+      "cm": "Confusion matrix",
+      "cm_sub": "click a class name",
+      "cell_aria": "actual {{a}}, predicted {{p}}",
+      "tp": "correct",
+      "fn": "missed",
+      "fp": "false alarm",
+      "tn": "everything else",
+      "one_picture": "Class “{{c}}” in one picture",
+      "tp_d": "said {{c}}, right",
+      "fn_d": "was {{c}}, missed",
+      "fp_d": "said {{c}}, wrong",
+      "pr_question": "Precision asks “when I say {{c}}, am I right?” Recall asks “of all real {{c}}, how many did I find?”",
+      "per_class": "Per-class table",
+      "precision": "Precision",
+      "recall": "Recall",
+      "summary": "Summary scores",
+      "accuracy": "Accuracy",
+      "accuracy_d": "{{n}} / {{total}} on the diagonal",
+      "macro_d": "mean of per-class F1",
+      "weighted_d": "F1 weighted by support",
+      "micro_d": "= accuracy (one label each)",
+      "mcc_d": "−1 … 0 random … 1",
+      "flattering": "Accuracy is flattering this model.",
+      "gap": "It is {{pts}} points above macro-F1 because one class dominates.",
+      "mcc_random": "MCC = {{mcc}} says it is close to a random guess.",
+      "mcc_ok": "MCC = {{mcc}} says it is still informative.",
+      "agree": "Accuracy and F1 agree here, so the classes are reasonably balanced.",
+      "numpy": "Same thing in NumPy",
+      "numpy_sub": "2024 Spring Q3(e) pattern",
+      "code_rows_actual": "cm rows = actual, columns = predicted",
+      "code_rows_pred": "cm rows = predicted, columns = actual",
+      "code_div_pred": "÷ predicted totals",
+      "code_div_act": "÷ actual totals",
+      "traps": "(1) Which axis is actual? Precision divides by the <1>predicted</1> total, recall by the <3>actual</3> total. (2) Macro-F1 is the plain average of per-class F1 — not F1 of the averaged precision and recall. (3) On imbalanced data accuracy can be high while the rare class is never found; MCC and F1 expose it.",
+      "presets": {
+        "three": {
+          "title": "Exam-style: 3 classes",
+          "note": "Pattern of 2024 Spring Q3 (labels changed)"
+        },
+        "disease": {
+          "title": "Exam-style: rare disease",
+          "note": "Pattern of Final 2022 Q3(a): accuracy vs F1"
+        },
+        "mcc": {
+          "title": "Lecture 3: MCC example",
+          "note": "TP 90 · FP 4 · TN 1 · FN 5"
+        },
+        "lazy": {
+          "title": "Lazy model: always “no”",
+          "note": "95% accuracy, finds nothing"
+        }
+      }
+    },
+    "cv": {
+      "lead": "D-fold cross-validation cuts the data into D consecutive chunks. If the data is sorted by class and never shuffled, some training sets never see a class — and every test sample of that class is wrong.",
+      "classes": "Classes",
+      "per_class": "Samples per class",
+      "folds": "Folds D",
+      "before": "Before splitting",
+      "keep_sorted": "Keep sorted",
+      "shuffle": "Shuffle",
+      "stratify": "Stratify",
+      "reshuffle": "Reshuffle",
+      "assumption_title": "Exam assumption.",
+      "assumption": "A test sample is correct if its class appears anywhere in the training folds, and wrong otherwise. That is all you need to explain the 0% / 50% / 100% results.",
+      "cut": "{{n}} samples cut into {{d}} folds",
+      "order_sorted": "x₀, x₁, … in the order given",
+      "order_shuffled": "shuffled first",
+      "order_stratified": "each class dealt evenly into the folds",
+      "order_short_sorted": "sorted",
+      "order_short_shuffled": "shuffled",
+      "order_short_stratified": "stratified",
+      "fold": "Fold {{k}}",
+      "class_x": "class {{c}}",
+      "rounds": "Each round: one fold tests, the rest train",
+      "test_fold": "Test fold {{k}}",
+      "tip_seen": "test · class seen in training ✓",
+      "tip_unseen": "test · class never seen in training ✗",
+      "tip_train": "training",
+      "legend": "Bright = test fold, faded = training. A dark underline marks test samples whose class never appears in training.",
+      "exam_table": "The exam table",
+      "th_fold": "Test fold",
+      "th_train": "Classes in training",
+      "th_test": "Classes in test",
+      "th_correct": "Correct",
+      "th_acc": "Accuracy",
+      "mean": "Mean accuracy",
+      "unseen_rounds": "Rounds with an unseen class",
+      "every_d": "Mean accuracy for every D",
+      "click_bar": "D (click a bar)",
+      "how_title": "How to answer.",
+      "how": "For each D, write which classes land in each fold, say which training sets lose a whole class, and average the fold accuracies. Then give the fix: <1>shuffle before splitting</1>, or better, <3>stratify</3> so every fold keeps the class proportions.",
+      "loo_title": "Why D = number of samples always works here.",
+      "loo": "Leave-one-out leaves every other sample of the class in training, so with at least two samples per class the exam assumption never fails — the 2022 Fall paper made the same point about splitting an unbalanced dataset.",
+      "presets": {
+        "four": {
+          "title": "4 classes × 20, sorted",
+          "note": "Pattern of 2024 Spring Q7 — D = 2, 3, 5"
+        },
+        "five": {
+          "title": "5 classes, sorted",
+          "note": "Pattern of 2023 Fall Q7 — D = 2, 5, 6"
+        },
+        "six": {
+          "title": "6 patients, 2 classes",
+          "note": "Pattern of Final 2024 Q3(b) — folds of 2 and 3"
+        }
+      }
+    },
+    "km": {
+      "lead": "Exactly the table the midterm asks for: distance from every point to every centroid, pick the nearest, average each cluster, repeat until no point changes cluster.",
+      "presets": {
+        "medicine": {
+          "title": "Lecture 4: medicines",
+          "note": "Seeds A(1,1), B(2,1) — practice problem"
+        },
+        "line": {
+          "title": "Exam-style: 1-D data",
+          "note": "Pattern of 2022 Spring Q5 (numbers changed)"
+        },
+        "plane": {
+          "title": "Exam-style: 2-D, run to convergence",
+          "note": "Pattern of 2023 Spring Q5 — ties go to C1"
+        },
+        "squared": {
+          "title": "Exam-style: squared distance + SSE",
+          "note": "Pattern of 2023 Fall Q5"
+        },
+        "empty": {
+          "title": "An empty cluster",
+          "note": "A bad seed can end up owning nothing"
+        }
+      },
+      "plot_aria": "Points, centroids and their movement",
+      "data": "Data",
+      "data_sub": "name x [y], one per line",
+      "points": "Points",
+      "seeds": "Initial centroids",
+      "distance": "Distance",
+      "m_euclidean": "Euclidean",
+      "m_squared": "Squared Euclidean",
+      "m_manhattan": "Manhattan",
+      "rounds": "Rounds",
+      "round_of": "Round {{r}} / {{n}}",
+      "run_end": "Run to the end",
+      "moved": "Moved this round",
+      "sse": "SSE after update",
+      "round_title": "Round {{r}}: measure, assign, re-average",
+      "round_sub": "○ centroid used this round  ◆ new mean",
+      "dist_table": "Distance table ({{m}})",
+      "point": "Point",
+      "to": "to {{c}}",
+      "closest": "Closest",
+      "new_c": "New {{c}}",
+      "mean_of": "mean of {{names}}",
+      "empty_keeps": "empty cluster — keeps {{c}}",
+      "table_note": "Highlighted rows changed cluster since the previous round. Ties go to the lower-numbered centroid.",
+      "converged_title": "Converged.",
+      "not_done_title": "Not finished yet.",
+      "converged": "In round {{r}} every point kept its cluster, so the means cannot move again. That is the sentence the marking scheme wants: “the cluster assignment remains the same”.",
+      "not_done": "Press Next. K-Means stops only after a full round in which no point changes cluster ({{n}} rounds here).",
+      "not_done_never": "Press Next. K-Means stops only after a full round in which no point changes cluster ({{n}} rounds here, without converging).",
+      "empty_note": "One cluster ended up empty — a true/false favourite (2024 Spring: “possible” is True).",
+      "traps": "Use the distance the question names — 2023 Fall wanted <1>squared</1> distances. Round only when the paper says so (usually 2 decimals). Ties go to centroid 1 unless told otherwise. K-Means always converges, but not necessarily to the best clustering: a different seed can give a different answer.",
+      "choose_k": "Choosing k is not part of the algorithm. Exams ask for the elbow method: plot SSE against k and pick where the curve stops dropping sharply — not the k with the smallest SSE (that is always k = n)."
+    },
+    "perc": {
+      "lead": "Feed one row at a time: compute O, and only if it is wrong move w and θ by η(T − O)x. Watch the decision line jump until every point is on its side — or never, if no straight line exists.",
+      "presets": {
+        "and": {
+          "title": "Lecture 5: logical AND",
+          "note": "w = (0.1, 0.5), θ = −0.8, η = 0.2"
+        },
+        "or": {
+          "title": "Lecture 5 practice: logical OR",
+          "note": "Same start as AND"
+        },
+        "course": {
+          "title": "Exam-style: course ratings",
+          "note": "Pattern of 2022 Fall Q6 — f = 1 only if z > 0"
+        },
+        "pm": {
+          "title": "Exam-style: ±1 outputs",
+          "note": "Pattern of 2022 Spring Q6 — f = 1 if z ≥ 0 else −1"
+        },
+        "xor": {
+          "title": "XOR — never settles",
+          "note": "Not linearly separable (lecture 5 “Problem”)"
+        }
+      },
+      "plot_aria": "Training points and the current decision line",
+      "rule": "f(z) = {{high}} if z {{op}} 0, otherwise {{low}}",
+      "setup": "Setup",
+      "rows_label": "Training rows: x1 x2 T",
+      "outputs": "Outputs",
+      "at_zero": "At z = 0 the output is",
+      "line_title": "The decision line",
+      "line_sub": "blue side → output high · dashed = before this row",
+      "row_title": "Row {{row}}: epoch {{epoch}}, sample {{sample}}",
+      "start": "Start",
+      "next_row": "Next row →",
+      "finish_epoch": "Finish epoch",
+      "new_w": "new",
+      "correct": "Correct — nothing changes.",
+      "start_text": "Start: w = {{w}}, θ = {{theta}}, η = {{eta}}. Press <1>Next row</1>.",
+      "converged_title": "Converged.",
+      "converged": "Epoch {{n}} made no changes, so every row is classified correctly. The data is linearly separable.",
+      "no_conv_title": "No convergence after {{n}} epochs.",
+      "no_conv": "The weights keep changing. If no straight line can separate the classes (XOR), the perceptron rule never stops.",
+      "epoch_note": "An epoch has converged only when a <1>whole pass</1> makes no update — an exam answer of “not converged in 1 epoch” needs exactly that reason.",
+      "table_title": "The exam table",
+      "ep": "Ep.",
+      "activation_title": "Read the activation first.",
+      "activation": "Papers disagree: lecture 5 and 2022 Spring output high when z ≥ 0, 2022 Fall only when z > 0, and outputs may be 0/1 or −1/+1. With −1/+1 outputs a mistake gives T − O = ±2, so the step doubles. Rows that land exactly on z = 0 are where students lose marks.",
+      "separable_title": "Linearly separable?",
+      "separable": "The perceptron convergence theorem: if a separating line exists, this rule finds one in finitely many updates. If none exists (XOR, or “success iff both ratings are 2 or 3” in 2022 Fall), you need a hidden layer — see the next page."
+    },
+    "xor": {
+      "lead": "A single neuron draws one straight line, and XOR needs two. A hidden layer draws two lines, squashes the plane, and in the new (h₁, h₂) space one line is enough. Backpropagation finds those weights δ by δ.",
+      "presets": {
+        "lecture": {
+          "title": "Lecture 6 example",
+          "note": "w = −0.65, 0.64, 1.11, 0.84, 0.86, −1.38 · θ = 0 · η = 0.5"
+        },
+        "hand": {
+          "title": "Hand-picked weights (step)",
+          "note": "Pattern of 2023 Spring Q7(c) / 2025 Spring Q7 — OR & NAND → AND"
+        },
+        "zeros": {
+          "title": "All weights zero",
+          "note": "Final 2022 Q3(d): why zero init fails"
+        }
+      },
+      "input_aria": "Network output over the input plane",
+      "hidden_aria": "Samples in hidden-unit space",
+      "net_aria": "2-2-1 network with current values",
+      "start_from": "Start from",
+      "random": "Random weights",
+      "network": "Network",
+      "activation": "Activation",
+      "binary_step": "binary step",
+      "train": "Train",
+      "eta": "Learning rate η",
+      "apply": "Apply update for ({{x}})",
+      "plus_epoch": "+1 epoch",
+      "status": "Epoch {{epoch}} · next sample {{sample}} of 4 · loss {{loss}}",
+      "step_title": "No training with a step function.",
+      "step_note": "Its gradient is 0 almost everywhere, so backprop has nothing to follow (Final 2024 Q4c). The fix: a steep sigmoid σ(cx) approximates the step and still has a gradient.",
+      "net_title": "Network on input ({{x}}), target {{t}}",
+      "net_sub": "edge width = |weight| · blue +, red −",
+      "input_title": "Input space",
+      "input_sub": "dashed = hidden units",
+      "hidden_title": "Hidden space",
+      "hidden_sub": "one line splits it",
+      "solved_title": "XOR solved.",
+      "unsolved_title": "Not solved yet.",
+      "solved": "All four points fall on the right side. Look at the hidden-space plot: the hidden layer moved (0,1) and (1,0) to one side of a single straight line — that is exactly what the 2023 Spring hint (“make the points linearly separable after the first layer”) asks you to construct.",
+      "unsolved": "Some points are still misclassified. Train more, or adjust weights by hand until the hidden-space plot becomes separable by one line.",
+      "symmetric": "Both hidden units have identical weights, so they always compute the same value and receive the same δ — they can never become different. This is why all-zero initialisation fails.",
+      "step_card": "One backprop step on ({{x}}), T = {{t}}",
+      "step_sub": "exam formulas · Turn on “Quiz me”",
+      "forward": "Forward",
+      "backward": "Backward",
+      "input_of": "input of that weight",
+      "before": "Before",
+      "grad_term": "Gradient term",
+      "after": "After",
+      "hidden_delta_note": "Hidden δ uses w5 and w6 <1>before</1> this step’s update, as on the lecture slides. With the lecture start, round 1 gives δk = 0.107022 and new w5 = 0.833245.",
+      "loss_title": "Loss while training",
+      "loss_sub": "½(T − O)² averaged over the 4 samples",
+      "loss_aria": "Loss curve",
+      "epoch_n": "epoch {{n}}",
+      "overshoot": "A very large η can overshoot and oscillate instead of settling.",
+      "count_title": "Count the parameters",
+      "count_sub": "2022 Spring Q7(c), Final 2024 Q4(a)",
+      "layers_label": "Neurons per layer (input, hidden…, output)",
+      "wb": "weights + biases",
+      "wb_note": "every non-input neuron has one weight per input plus one bias",
+      "try": "Try 3, 4, 2 (answer 26) or 3, 2, 1 (8 weights + 3 biases = 11).",
+      "traps": "The course writes δk = (O − T)·O(1 − O) and <1>subtracts</1>: w ← w − ηδO. Some books write (T − O) and add — same result, but use the paper’s convention. With a <2>linear</2> activation, stacking layers adds nothing: the whole network collapses to one neuron (2022 Spring Q7b).",
+      "output_title": "Output layer choice.",
+      "output_note": "Binary: 1 sigmoid unit. Multi-class: softmax over n units. Multi-label: n sigmoid units (Final 2022). Never ReLU at the output of a classifier: its range is unbounded, so there is no natural cut-off."
+    },
+    "conv": {
+      "lead": "Slide the kernel over the padded image, multiply cell by cell, add up. Then answer the three things exams always ask: what padding does at the border, whether the kernel is flipped, and how big the output is.",
+      "presets": {
+        "lecture7": {
+          "title": "Lecture 7: edge kernel",
+          "note": "3×5 image, [−1 0 1] kernel, no padding"
+        },
+        "lecture8": {
+          "title": "Lecture 8 practice: flip the kernel",
+          "note": "5×5, zero padding 1 — first row 12 18 3 21 0"
+        },
+        "stride": {
+          "title": "Exam-style: stride 2, padding 1",
+          "note": "Pattern of Final 2022 B Q1(a) — flipped vs not"
+        },
+        "reflect": {
+          "title": "Exam-style: reflect, then average",
+          "note": "Pattern of Final 2022 A Q4(b) / Final 2024 Q5(c)"
+        },
+        "big": {
+          "title": "7×7 with stride 3",
+          "note": "Lecture 8: “does not fit”"
+        }
+      },
+      "gallery": {
+        "average": {
+          "name": "Average",
+          "effect": "smoothing / blur"
+        },
+        "sharpen": {
+          "name": "Sharpen",
+          "effect": "boosts the centre against its neighbours"
+        },
+        "prewitt_x": {
+          "name": "Prewitt x",
+          "effect": "vertical edges (left–right change)"
+        },
+        "sobel_x": {
+          "name": "Sobel x",
+          "effect": "vertical edges, centre row weighted 2"
+        },
+        "sobel_y": {
+          "name": "Sobel y",
+          "effect": "horizontal edges"
+        },
+        "identity": {
+          "name": "Identity",
+          "effect": "does nothing"
+        }
+      },
+      "modes": {
+        "zero": "Zero",
+        "replicate": "Replicate",
+        "reflect": "Reflect",
+        "mirror": "Mirror"
+      },
+      "inputs": "Image and kernel",
+      "inputs_sub": "numbers or fractions like 1/9",
+      "image": "Image",
+      "kernel": "Kernel",
+      "padding": "Padding p",
+      "pad_mode": "Padding mode",
+      "stride": "Stride s",
+      "flip": "Flip 180° (convolution)",
+      "raw": "As written (correlation)",
+      "slide_title": "Slide the window",
+      "slide_sub": "click any output cell, or play",
+      "padded_label": "Padded input ({{h}}×{{w}}) — hatched = padding",
+      "padded": "Padded input",
+      "copied_from": "copied from ({{at}})",
+      "zero_padding": "zero padding",
+      "kernel_flipped": "Kernel after flipping",
+      "kernel_raw": "Kernel as written",
+      "written": "written: {{k}}",
+      "output_label": "Output ({{h}}×{{w}})",
+      "output": "Output",
+      "play_all": "Play all positions",
+      "size_title": "Output size",
+      "size_sub": "lecture 8 formula",
+      "height": "height",
+      "width": "width ",
+      "fits": "The window lands exactly on the last column and row.",
+      "nofit_title": "Does not fit exactly.",
+      "nofit_one": "(n − k + 2p) is not divisible by the stride, so the last pixel is never covered. Exams floor the result — the lecture calls 7×7 with a 3×3 kernel and stride 3 “does not fit”.",
+      "nofit_many": "(n − k + 2p) is not divisible by the stride, so the last pixels are never covered. Exams floor the result — the lecture calls 7×7 with a 3×3 kernel and stride 3 “does not fit”.",
+      "table_title": "Output table",
+      "rounded": "Final 2022 rounded averages to integers — check what the paper says.",
+      "modes_title": "The four padding modes on this image",
+      "modes_sub": "padding 2 so the pattern is visible",
+      "modes_note": "Final 2022 and Final 2024 called the edge-repeating version “reflection padding”. If a paper is ambiguous, write which one you used.",
+      "range_title": "Range of this kernel on an 8-bit image",
+      "pos_sum": "sum of positive weights",
+      "neg_sum": "sum of negative weights",
+      "back_to": "back to 0…255",
+      "inside": "already inside 0…255",
+      "gallery_title": "Name that kernel",
+      "gallery_sub": "Final 2024 Q5(d) — click to load",
+      "flip_title": "Flip or not?",
+      "flip_note": "Lecture 7’s formula O(x,y) = Σ K(m,n)·I(x−m, y−n) is true convolution, which rotates the kernel by 180°; lecture 8’s practice says “don’t forget to flip”. Final 2022 accepted both answers (73 unflipped, 27 flipped). Symmetric kernels give the same result either way.",
+      "local_title": "Local, not global.",
+      "local_note": "A 3×3 kernel only sees a 3×3 neighbourhood, so no kernel can flip a 64×64 image — a pixel’s new value would have to come from up to {{n}} pixels away (Final 2024 Q5e)."
+    },
+    "otsu": {
+      "lead": "A point operation changes each pixel on its own, so you can read its effect straight off the histogram. Otsu’s method picks the threshold automatically: split at T, average both sides, move T to the midpoint, repeat.",
+      "presets": {
+        "photo": {
+          "title": "Low-contrast scene",
+          "note": "All pixels squeezed into 95…165"
+        },
+        "coins": {
+          "title": "Coins on a table",
+          "note": "Two clear peaks — Otsu’s favourite"
+        },
+        "grid4": {
+          "title": "Exam-style: 4×4 grid",
+          "note": "Pattern of Final 2022 A Q4(b)(iii) — start at the mean"
+        },
+        "grid3": {
+          "title": "Exam-style: 3×3, T₀ = 100",
+          "note": "Pattern of Final 2024 Q5(b)"
+        }
+      },
+      "hist_aria": "Grey-level histogram",
+      "image": "Image",
+      "operation": "Operation",
+      "ops": {
+        "original": "Original",
+        "stretch": "Stretch",
+        "flip": "Flip",
+        "threshold": "Threshold",
+        "otsu": "Otsu"
+      },
+      "t_label": "Threshold T (pixel > T → 255)",
+      "iteration": "iteration {{i}} / {{n}}",
+      "before": "Before",
+      "original_aria": "Original image",
+      "after_none": "After (no change)",
+      "after_otsu": "After: Otsu threshold T = {{T}}",
+      "after": "After: {{op}}",
+      "out_aria": "Transformed image",
+      "iters_title": "Otsu iterations",
+      "px": "{{n}} px",
+      "t0_fixed": "The question fixes T₀ = {{T}}.",
+      "t0_mean": "T₀ is the mean intensity, {{T}}.",
+      "stop_one": "Stop when T stops changing — here after {{count}} iteration, at <1>T = {{T}}</1>.",
+      "stop_other": "Stop when T stops changing — here after {{count}} iterations, at <1>T = {{T}}</1>.",
+      "why_title": "Why Otsu?",
+      "why": "It chooses T automatically from the histogram, so two people thresholding the same image get the same result (Final 2024 Q5b).",
+      "match_title": "Match each image to its histogram",
+      "match_sub": "Final 2024 Q5(a) pattern",
+      "transformed": "Transformed image {{l}}",
+      "goes_with": "({{l}}) goes with",
+      "histogram": "histogram {{l}}",
+      "match": {
+        "stretch": {
+          "name": "Contrast stretching",
+          "why": "same shape, spread over 0…255"
+        },
+        "threshold": {
+          "name": "Binary thresholding",
+          "why": "only two bars: 0 and 255"
+        },
+        "flip": {
+          "name": "Horizontal flip",
+          "why": "identical histogram — pixels just move"
+        }
+      },
+      "check": "Check",
+      "kind_title": "Point, local or global?",
+      "type": "Type",
+      "why_col": "Why",
+      "kinds": {
+        "point": {
+          "op": "Contrast stretching, thresholding",
+          "type": "point",
+          "why": "new value depends only on the old value"
+        },
+        "local": {
+          "op": "Convolution (blur, edges)",
+          "type": "local",
+          "why": "needs the neighbourhood"
+        },
+        "flip": {
+          "op": "Flip, rotate, translate",
+          "type": "not point",
+          "why": "the value comes from a different position"
+        },
+        "global": {
+          "op": "Choosing T with Otsu",
+          "type": "global",
+          "why": "uses the whole histogram"
+        }
+      },
+      "traps": "Write which side of T a pixel equal to T goes to (here R1: ≤ T). Thresholding outputs only two values, so its histogram has two bars. A flip leaves the histogram untouched — that is how the 2024 final expected you to spot it."
+    },
+    "cnn": {
+      "lead": "Every final exam has this table: the output shape and parameter count of each layer. Build any stack, see every number with its working, and compare it with an MLP on raw pixels.",
+      "presets": {
+        "aio": {
+          "title": "Lecture 8: all-in-one example",
+          "note": "32×32×3, ten 5×5 kernels, stride 1, pad 2"
+        },
+        "mnist": {
+          "title": "Lecture 8: MNIST model.summary()",
+          "note": "Conv 32 → Conv 64 → Pool → Dense 128 → 10"
+        },
+        "stem": {
+          "title": "Exam-style: deep stem + classifier",
+          "note": "Pattern of Final 2022 B Q1(c)–(f)"
+        },
+        "f23": {
+          "title": "Exam-style: CONV-5 / POOL-2 / FC",
+          "note": "Pattern of Final 2023 Q6(c), 128×128 input"
+        },
+        "same": {
+          "title": "Keras padding=\"same\"",
+          "note": "Final 2024 Q7(a): stride 2 halves the size"
+        },
+        "mlp": {
+          "title": "MLP on raw pixels",
+          "note": "Final 2022 B Q1(f)(ii): count and compare"
+        }
+      },
+      "kinds": {
+        "conv": "Conv2D",
+        "pool": "Pooling",
+        "globalpool": "Global pool",
+        "flatten": "Flatten",
+        "dense": "Dense",
+        "dropout": "Dropout"
+      },
+      "f": {
+        "padding": "padding",
+        "filters": "filters",
+        "kernel": "kernel",
+        "stride": "stride",
+        "size": "size",
+        "units": "units",
+        "height": "height",
+        "width": "width",
+        "channels": "channels"
+      },
+      "input_name": "input",
+      "volumes_aria": "Output volume after each layer",
+      "strip": {
+        "n": "input n",
+        "k": "kernel k",
+        "p": "padding p",
+        "s": "stride s"
+      },
+      "strip_aria": "Window positions along one row",
+      "not_div": "{{a}} is not divisible by {{s}}: red cells are never covered",
+      "input_title": "Input (h × w × channels)",
+      "layers": "Layers",
+      "move_up": "Move up",
+      "move_down": "Move down",
+      "remove": "Remove",
+      "add": "Add layer",
+      "volumes_title": "The volume after each layer",
+      "volumes_sub": "height ∝ log(size), depth ∝ log(channels)",
+      "table_title": "Shape and parameter table",
+      "th": {
+        "layer": "Layer",
+        "input": "Input",
+        "output": "Output",
+        "params": "Params",
+        "working": "Working"
+      },
+      "dropout_work": "no parameters, shape unchanged",
+      "floored": "floored",
+      "total": "Total parameters",
+      "mlp": "MLP on raw pixels",
+      "ratio": "Ratio",
+      "ratio_d": "MLP ÷ this network",
+      "slip_title": "Spot the slip in the official answer.",
+      "slip": "The 2022 marking scheme printed 13 × 13 for layer 4, but ⌊(27 − 3 + 2·1) / 2⌋ + 1 = 14. Thirteen is what you get if you forget the padding. Layer 5 is 7 × 7 either way, and the parameter counts do not depend on it.",
+      "strip_title": "Where does the output size come from?",
+      "strip_sub": "one row of the image",
+      "rules_title": "Parameter rules.",
+      "rules": "Conv: (k·k·C<1>in</1> + 1) × filters — the depth of the input counts, the image size does not. Pooling, Flatten and Dropout have none. Dense: (inputs + 1) × units. The +1 is the bias; leave it out only if the paper says “no bias”.",
+      "why_title": "Why CNNs need fewer parameters.",
+      "why": "One kernel is reused at every position (parameter sharing), and each output only looks at a small window (sparse connections). A dense layer needs a separate weight for every pixel — see the MLP preset. Changing the input size breaks the first dense layer unless a global pooling layer squeezes the map to 1 × 1 first (Final 2023 Q6f)."
+    },
+    "errors": {
+      "csv_header": "Need a header and at least two rows.",
+      "csv_feature": "Need at least one numeric feature column.",
+      "csv_row_len": "Row {{row}} has {{got}} values, expected {{want}}.",
+      "csv_nan": "Row {{row}} has a value that is not a number.",
+      "labels_len": "Actual has {{a}} labels, predicted has {{p}}.",
+      "labels_empty": "No labels yet.",
+      "point_line": "Line {{line}}: “{{text}}” is not a point.",
+      "points_min": "Need at least two points.",
+      "dims": "Every point and seed needs the same number of coordinates.",
+      "dims_max": "This page draws 1-D or 2-D data.",
+      "seeds_min": "Need at least two seeds (one per line).",
+      "perc_line": "Line {{line}}: write “x1 x2 T”.",
+      "perc_min": "Need at least two samples.",
+      "grid_empty": "{{what}}: nothing entered.",
+      "grid_rows": "{{what}}: every row needs the same number of values.",
+      "grid_nan": "{{what}}: one value is not a number.",
+      "kernel_big": "The kernel is larger than the padded image.",
+      "cnn_needs_3d": "Needs an h × w × c input (place it before Flatten).",
+      "cnn_kernel_big": "Kernel is larger than the (padded) input.",
+      "cnn_needs_flatten": "Dense expects a flat vector — add Flatten first."
+    }
   }
 }
