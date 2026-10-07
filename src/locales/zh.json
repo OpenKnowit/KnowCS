@@ -1639,6 +1639,10 @@
           "title": "Keras padding=\"same\"",
           "note": "Final 2024 Q7(a)：步长 2 使尺寸减半"
         },
+        "f22keras": {
+          "title": "Final 2022 B Q2：Keras 情绪识别 CNN",
+          "note": "27×27×3 → 12 种情绪，无填充，3×3 卷积核"
+        },
         "mlp": {
           "title": "直接作用于像素的 MLP",
           "note": "Final 2022 B Q1(f)(ii)：数一数并比较"
@@ -1702,7 +1706,18 @@
       "rules_title": "参数计算规则。",
       "rules": "卷积层：(k·k·C<1>in</1> + 1) × 卷积核数 —— 输入的深度要算，图像尺寸不算。池化、Flatten 和 Dropout 没有参数。全连接层：(输入数 + 1) × 单元数。+1 是偏置；只有试卷写明 “no bias” 时才去掉。",
       "why_title": "为什么 CNN 参数更少。",
-      "why": "同一个卷积核在每个位置重复使用（参数共享），每个输出只看一个小窗口（稀疏连接）。全连接层则要给每个像素一个独立权重 —— 看看 MLP 预设。改变输入尺寸会让第一个全连接层失效，除非先用全局池化把特征图压成 1 × 1（Final 2023 Q6f）。"
+      "why": "同一个卷积核在每个位置重复使用（参数共享），每个输出只看一个小窗口（稀疏连接）。全连接层则要给每个像素一个独立权重 —— 看看 MLP 预设。改变输入尺寸会让第一个全连接层失效，除非先用全局池化把特征图压成 1 × 1（Final 2023 Q6f）。",
+      "keras_title": "Keras 代码与 model.summary()",
+      "head": "输出层",
+      "head_classify": "分类",
+      "head_regress": "回归 0…1",
+      "head_classify_note": "最后一层 Dense：每类一个单元，softmax；损失 categorical_crossentropy",
+      "head_regress_note": "最后一层 Dense：units=1，sigmoid；损失 mean_squared_error（Final 2022 B Q2(b)）",
+      "keras_code": "这个网络的 Keras 代码",
+      "keras_error": "先修正上面的形状错误；Keras 也会拒绝这个模型。",
+      "keras_note": "Keras 只认 padding=\"valid\"（不填充）或 \"same\"；要显式填充 p 像素需先加 ZeroPadding2D。input_shape 只写在第一层，通道在后、不含批大小——summary() 里批大小显示为 None。",
+      "keras_traps": "关键字是 strides=，不是 stride=。MaxPooling2D 的 strides 默认等于 pool_size。Flatten、池化、Dropout 都是 0 个参数。Conv2D 参数：(k·k·C_in + 1)·filters。",
+      "keras_slip": "2022 年官方答案写成 input_shape=(32, 32, 1) 与 stride=(2,2)。图上是 27 × 27 × 3（27 → 9 需 strides 3，9 → 4 需 strides 2），而 Keras 的关键字是 strides=。请按图写代码。"
     },
     "errors": {
       "csv_header": "需要一行表头和至少两行数据。",

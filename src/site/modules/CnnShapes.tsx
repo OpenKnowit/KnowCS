@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { analyse, totalParams, type Layer, type Padding, type Shape } from '../../lib/cnnShapes'
+import { kerasCode, kerasSummary, type Head } from '../../lib/keras'
 import { outputSize } from '../../lib/conv2d'
 import { int } from '../format'
 import { Ans, Btn, Card, LabPage, Note, NumberField, Presets, Slider, Stat, TableWrap, Workspace } from '../ui'
@@ -22,6 +23,7 @@ const PRESETS: Preset[] = [
   { id: 'stem', input: [224, 224, 3], layers: [conv(64, 7, 2, 3), pool(3, 2, 1), conv(128, 3, 2, 0), conv(256, 3, 2, 1), conv(512, 3, 2, 1), { kind: 'globalpool', op: 'avg' }, dense(1000)] },
   { id: 'f23', input: [128, 128, 3], layers: [conv(32, 5, 1, 2), pool(2), conv(64, 5, 1, 2), pool(2), flatten, dense(128), dense(10)] },
   { id: 'same', input: [32, 32, 3], layers: [conv(32, 5, 1, 'same'), conv(64, 3, 1, 'same'), pool(2), conv(64, 3, 2, 'same'), conv(64, 3, 1, 'same'), pool(2), flatten, dense(128), dense(10)] },
+  { id: 'f22keras', input: [27, 27, 3], layers: [conv(32, 3, 3), conv(64, 3, 2), pool(2), flatten, dense(12)] },
   { id: 'mlp', input: [224, 224, 3], layers: [flatten, dense(1000)] },
 ]
 
@@ -160,12 +162,54 @@ function StrideStrip() {
   )
 }
 
+function KerasView({ input, layers, head, setHead, f22 }: { input: Shape; layers: Layer[]; head: Head; setHead: (h: Head) => void; f22: boolean }) {
+  const { t } = useTranslation()
+  const code = kerasCode(input, layers, head)
+  const summary = kerasSummary(input, layers, head)
+  if (!code || !summary) return <Note tone="bad">{t('lab.cnn.keras_error')}</Note>
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex overflow-hidden rounded-[10px] border border-slate-300" role="group" aria-label={t('lab.cnn.head')}>
+          {(['classify', 'regress'] as const).map((h, i) => (
+            <button key={h} type="button" aria-pressed={head === h} onClick={() => setHead(h)} className={`px-3 py-1.5 text-xs font-bold ${i ? 'border-l border-slate-200' : ''} ${head === h ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
+              {t(`lab.cnn.head_${h}`)}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-slate-500">{t(`lab.cnn.head_${head}_note`)}</span>
+      </div>
+      <div className="grid gap-4 2xl:grid-cols-2">
+        <pre className="overflow-x-auto rounded-xl bg-slate-900 p-4 text-[12px] leading-relaxed text-slate-100" aria-label={t('lab.cnn.keras_code')}>
+          {code.join('\n')}
+        </pre>
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="lab-table">
+            <tbody>
+              <tr><th className="left">Layer (type)</th><th className="left">Output Shape</th><th>Param #</th></tr>
+              {summary.rows.map((r) => (
+                <tr key={r.name}><td className="left">{r.name} ({r.cls})</td><td className="left">{r.shape}</td><Ans k={`k_${r.name}`} v={r.params} /></tr>
+              ))}
+              <tr><td className="left font-sans font-bold" colSpan={2}>Total params</td><Ans k="k_total" v={summary.total} /></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Note>{t('lab.cnn.keras_note')}</Note>
+        {f22 ? <Note tone="warn" title={t('lab.cnn.slip_title')}>{t('lab.cnn.keras_slip')}</Note> : <Note tone="warn" title={t('lab.common.exam_traps')}>{t('lab.cnn.keras_traps')}</Note>}
+      </div>
+    </div>
+  )
+}
+
 export default function CnnShapes() {
   const { t } = useTranslation()
   const [preset, setPreset] = useState<string | null>('stem')
   const [input, setInput] = useState<Shape>(PRESETS[2].input)
   const [layers, setLayers] = useState<Layer[]>(PRESETS[2].layers)
   const [addKind, setAddKind] = useState<Layer['kind']>('conv')
+  const [head, setHead] = useState<Head>('classify')
 
   const infos = analyse(input, layers)
   const total = totalParams(infos)
@@ -265,7 +309,11 @@ export default function CnnShapes() {
           )}
         </Card>
 
-        <Card step={3} title={t('lab.cnn.strip_title')} sub={t('lab.cnn.strip_sub')}>
+        <Card step={3} title={t('lab.cnn.keras_title')} sub="Final 2022 B Q2 · Final 2024 Q7(a)">
+          <KerasView input={input} layers={layers} head={head} setHead={setHead} f22={preset === 'f22keras'} />
+        </Card>
+
+        <Card step={4} title={t('lab.cnn.strip_title')} sub={t('lab.cnn.strip_sub')}>
           <StrideStrip />
         </Card>
 
