@@ -100,11 +100,11 @@ export default function Evaluation() {
                   </label>
                 ))}
               </div>
-              <p className={`mt-1.5 text-xs ${parsed.error ? 'text-rose-600' : 'text-slate-400'}`}>{parsed.error ? errorText(parsed.error, t) : t('lab.eval.labels_hint')}</p>
+              <p className={`mt-1.5 text-xs ${parsed.error ? 'text-rose-600' : 'text-slate-500'}`}>{parsed.error ? errorText(parsed.error, t) : t('lab.eval.labels_hint')}</p>
             </Card>
             <Card>
               <Seg label={t('lab.eval.rows_are')} value={rows} onChange={setRows} options={[{ v: 'actual', label: t('lab.eval.actual') }, { v: 'pred', label: t('lab.eval.predicted') }]} />
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-slate-500">
                 <Trans i18nKey="lab.eval.rows_hint" components={{ 1: <b />, 3: <b /> }} />
               </p>
             </Card>
@@ -183,7 +183,7 @@ export default function Evaluation() {
                   {`\nRecall    = TP / (TP + FN) = ${c.TP} / ${c.TP + c.FN} = `}<b className="text-blue-700">{fmt(c.recall, 3)}</b>
                   {`\nF1        = 2·TP / (2·TP + FP + FN) = ${2 * c.TP} / ${2 * c.TP + c.FP + c.FN} = `}<b className="text-rose-600">{fmt(c.f1, 3)}</b>
                 </div>
-                <p className="mt-2 text-[13px] text-slate-400">
+                <p className="mt-2 text-[13px] text-slate-500">
                   {t('lab.eval.pr_question', { c: classes[s] })}
                 </p>
               </Card>
@@ -232,11 +232,11 @@ export default function Evaluation() {
             <div className="grid gap-5 md:grid-cols-2">
               <Card title={t('lab.eval.numpy')} sub={t('lab.eval.numpy_sub')}>
                 <div className="formula">
-                  <span className="text-slate-400"># {t(rowsActual ? 'lab.eval.code_rows_actual' : 'lab.eval.code_rows_pred')}</span>
+                  <span className="text-slate-500"># {t(rowsActual ? 'lab.eval.code_rows_actual' : 'lab.eval.code_rows_pred')}</span>
                   {'\naccuracy  = cm.diagonal().sum() / cm.sum()\nprecision = cm.diagonal() / cm.sum(axis='}<b className="text-blue-700">{rowsActual ? 0 : 1}</b>
-                  {')  '}<span className="text-slate-400"># {t('lab.eval.code_div_pred')}</span>
+                  {')  '}<span className="text-slate-500"># {t('lab.eval.code_div_pred')}</span>
                   {'\nrecall    = cm.diagonal() / cm.sum(axis='}<b className="text-blue-700">{rowsActual ? 1 : 0}</b>
-                  {')  '}<span className="text-slate-400"># {t('lab.eval.code_div_act')}</span>
+                  {')  '}<span className="text-slate-500"># {t('lab.eval.code_div_act')}</span>
                   {'\nmacro_f1  = np.mean(2 * precision * recall / (precision + recall))'}
                 </div>
               </Card>

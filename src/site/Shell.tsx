@@ -61,7 +61,7 @@ const LanguageMenu = () => {
       >
         <Languages size={18} className="text-blue-600" aria-hidden />
         <span className="hidden sm:inline">{LANG_LABELS[currentLang]}</span>
-        <ChevronDown size={14} className={`text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+        <ChevronDown size={14} className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
       </button>
       <AnimatePresence>
         {open && (
@@ -139,7 +139,7 @@ export function Shell({ section, children }: { section: Section; children: React
       <div id="main-content" tabIndex={-1} className="focus:outline-none">
         {children}
       </div>
-      <footer className="print:hidden mx-auto mt-8 flex max-w-[1480px] flex-col items-center justify-between gap-4 border-t border-slate-200 px-4 py-8 text-center text-xs font-medium uppercase tracking-widest text-slate-400 sm:px-6 md:flex-row md:text-left">
+      <footer className="print:hidden mx-auto mt-8 flex max-w-[1480px] flex-col items-center justify-between gap-4 border-t border-slate-200 px-4 py-8 text-center text-xs font-medium uppercase tracking-widest text-slate-500 sm:px-6 md:flex-row md:text-left">
         <p>{t('app.footer.copyright')}</p>
         <div className="flex flex-wrap justify-center gap-6">
           <span className="flex items-center gap-2"><WifiOff size={14} aria-hidden /> {t('app.footer.local')}</span>

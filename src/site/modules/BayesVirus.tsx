@@ -199,7 +199,7 @@ export default function BayesVirus() {
             <Tree s={s} c={c} observedE={obsE} B={B} E={E} />
           </Card>
           <Card step={3} title={t('lab.bayes.answer_title')}>
-            <p className="text-[13px] text-slate-400">{t('lab.bayes.answer_q', { evid, B })}</p>
+            <p className="text-[13px] text-slate-500">{t('lab.bayes.answer_q', { evid, B })}</p>
             <div className="my-2.5 flex items-baseline gap-3">
               <span className={`font-mono text-[44px] font-black leading-none ${r.posterior >= 0.5 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmt(r.posterior * 100, 2)}%</span>
               <span className="font-mono text-slate-500">
@@ -222,11 +222,11 @@ export default function BayesVirus() {
         <Card step={4} title={t('lab.bayes.working_title')} sub={t('lab.common.quiz_sub')}>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="formula">
-              <span className="text-slate-400">{t('lab.bayes.total_prob')}</span>
+              <span className="text-slate-500">{t('lab.bayes.total_prob')}</span>
               {`\nP(${evid}) = P(${evid}|${B})·P(${B}) + P(${evid}|${not(B)})·P(${not(B)})\n       = ${fmt(r.likeB, 4)} × ${fmt(r.pB, 4)} + ${fmt(r.likeNotB, 4)} × ${fmt(r.pNotB, 4)}\n       = `}
               <b className="text-blue-700">{fmt(r.evidence, 5)}</b>
               {'\n\n'}
-              <span className="text-slate-400">{t('lab.bayes.bayes_rule')}</span>
+              <span className="text-slate-500">{t('lab.bayes.bayes_rule')}</span>
               {`\nP(${B}|${evid}) = P(${B})·P(${evid}|${B}) / P(${evid})\n         = ${fmt(r.pB, 4)} × ${fmt(r.likeB, 4)} / ${fmt(r.evidence, 5)}\n         = `}
               <b className="text-rose-600">{fmt(r.posterior, 4)}</b>
             </div>

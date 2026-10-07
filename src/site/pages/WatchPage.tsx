@@ -74,7 +74,7 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
 
   return (
     <main className="mx-auto max-w-[1280px] px-4 pb-10 pt-4 sm:px-8">
-      <nav className="text-[13px] text-slate-400" aria-label={t('site.ui.breadcrumb')}>
+      <nav className="text-[13px] text-slate-500" aria-label={t('site.ui.breadcrumb')}>
         <a href={watchUrl()} className="font-semibold text-slate-500 hover:text-blue-600">{t('app.nav.watch')}</a>
         {' / '}
         <span>{t('site.lecture_short', { n: info.lec })} · {t(`site.lectures.${info.lec}`)}</span>
@@ -92,7 +92,7 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
 
       <div className="mt-5">
         <Player episode={ep} onTime={setNow} seekRef={seek} />
-        <p className="mt-2 text-center text-xs text-slate-400">{t('watch.ui.keys')}</p>
+        <p className="mt-2 text-center text-xs text-slate-500">{t('watch.ui.keys')}</p>
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
@@ -146,7 +146,7 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
           )}
           {next && (
             <section>
-              <h2 className="mb-2 text-sm font-black uppercase tracking-wider text-slate-400">{t('watch.ui.up_next')}</h2>
+              <h2 className="mb-2 text-sm font-black uppercase tracking-wider text-slate-500">{t('watch.ui.up_next')}</h2>
               <EpisodeCard info={next} />
             </section>
           )}

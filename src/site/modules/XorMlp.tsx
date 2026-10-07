@@ -330,11 +330,11 @@ export default function XorMlp() {
           <Card step={4} title={t('lab.xor.step_card', { x: s.x.join(', '), t: s.t })} sub={t('lab.xor.step_sub')}>
             <div className="grid gap-4 xl:grid-cols-2">
               <div className="formula">
-                <span className="text-slate-400">{t('lab.xor.forward')}</span>
+                <span className="text-slate-500">{t('lab.xor.forward')}</span>
                 {`\nh₁ = σ(${fmt(net.w[0], 4)}·${s.x[0]} + ${fmt(net.w[1], 4)}·${s.x[1]} + ${fmt(net.theta[0], 4)}) = ${fmt(step.fwd.h[0], 6)}`}
                 {`\nh₂ = σ(${fmt(net.w[2], 4)}·${s.x[0]} + ${fmt(net.w[3], 4)}·${s.x[1]} + ${fmt(net.theta[1], 4)}) = ${fmt(step.fwd.h[1], 6)}`}
                 {`\nO  = σ(${fmt(net.w[4], 4)}·h₁ + ${fmt(net.w[5], 4)}·h₂ + ${fmt(net.theta[2], 4)}) = `}<b className="text-blue-700">{fmt(step.fwd.o, 6)}</b>
-                {'\n\n'}<span className="text-slate-400">{t('lab.xor.backward')}</span>
+                {'\n\n'}<span className="text-slate-500">{t('lab.xor.backward')}</span>
                 {`\nδk  = (O − T)·O(1 − O) = `}<b className="text-rose-600">{fmt(step.deltaK, 6)}</b>
                 {`\nδj1 = h₁(1 − h₁)·δk·w5 = ${fmt(step.deltaJ[0], 6)}`}
                 {`\nδj2 = h₂(1 − h₂)·δk·w6 = ${fmt(step.deltaJ[1], 6)}`}
@@ -360,7 +360,7 @@ export default function XorMlp() {
                 ))}
               </TableWrap>
             </div>
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-slate-500">
               <Trans i18nKey="lab.xor.hidden_delta_note" components={{ 1: <i /> }} />
             </p>
           </Card>
@@ -386,10 +386,10 @@ export default function XorMlp() {
             {pc && (
               <div className="formula mt-3">
                 {`${t('lab.xor.wb')} = ${pc.work}`}
-                {'\n'}<span className="text-slate-400">{t('lab.xor.wb_note')}</span>
+                {'\n'}<span className="text-slate-500">{t('lab.xor.wb_note')}</span>
               </div>
             )}
-            <p className="mt-2 text-xs text-slate-400">{t('lab.xor.try')}</p>
+            <p className="mt-2 text-xs text-slate-500">{t('lab.xor.try')}</p>
           </Card>
         </div>
 

@@ -73,7 +73,7 @@ export default function CrossValidation() {
           <div className="flex flex-wrap gap-2">
             {res.folds.map((f) => (
               <div key={f.fold} className="rounded-xl border border-slate-200 bg-slate-50 p-2">
-                <div className="mb-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">{t('lab.cv.fold', { k: f.fold + 1 })}</div>
+                <div className="mb-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">{t('lab.cv.fold', { k: f.fold + 1 })}</div>
                 <div className="flex flex-wrap gap-[3px]" style={{ maxWidth: Math.max(4, Math.ceil(Math.sqrt(f.members.length * 3))) * (cell + 3) }}>
                   {f.members.map((i) => (
                     <span key={i} title={`x${i} · ${t('lab.cv.class_x', { c: CLASS_NAMES[labels[i]] })}`} className="grid place-items-center rounded-[4px] text-[10px] font-bold text-white" style={{ width: cell, height: cell, background: PALETTE[labels[i]] }}>
@@ -121,7 +121,7 @@ export default function CrossValidation() {
               </div>
             ))}
           </div>
-          <p className="mt-2 text-xs text-slate-400">{t('lab.cv.legend')}</p>
+          <p className="mt-2 text-xs text-slate-500">{t('lab.cv.legend')}</p>
         </Card>
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">

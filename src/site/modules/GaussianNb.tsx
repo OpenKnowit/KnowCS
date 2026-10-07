@@ -171,7 +171,7 @@ export default function GaussianNb() {
                   }}
                   className="min-h-[170px] w-full resize-y rounded-[10px] border border-slate-300 p-2.5 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300"
                 />
-                <p className={`mt-1.5 text-xs ${model.error ? 'text-rose-600' : 'text-slate-400'}`}>{model.error ? errorText(model.error, t) : t('lab.gnb.summary', { c: model.classes.length, f: model.features.length })}</p>
+                <p className={`mt-1.5 text-xs ${model.error ? 'text-rose-600' : 'text-slate-500'}`}>{model.error ? errorText(model.error, t) : t('lab.gnb.summary', { c: model.classes.length, f: model.features.length })}</p>
                 <div className="mt-3">
                   <Seg label={t('lab.gnb.std')} value={ddof} onChange={setDdof} options={[{ v: 1, label: t('lab.gnb.std_sample') }, { v: 0, label: t('lab.gnb.std_pop') }]} />
                 </div>
