@@ -82,6 +82,7 @@ GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm 
 ## 目录要点
 
 - `src/lib/sitemap.ts` —— 唯一页面清单：模块（讲次 / 试卷）、笔记、拓展、URL、旧链接映射（`#/course/x` → `/x/`，`/lab/*.html` 跳转页）。`vite.config.js` 据此生成 HTML 入口。
+- `src/site/watch/` —— 讲解视频：`Player.tsx`（时间轴播放器）、`stage.tsx`（1600×900 舞台坐标、配色、`At`/`Tex`）、`episodes/*.tsx`（每集一组场景，`render(p)` 为场景进度的纯函数）。新增一集：计算放 `src/lib/` 配测试 → 写 episode → 在 `episodes/index.ts` 与 `sitemap.ts` 的 `EPISODES` 注册 → `watch.<id>.*` 文案（字幕键 `scenes.<scene>.c<k>`，数量与 `cues` 对齐）。
 - `src/site/` —— 全站共用入口 `main.tsx`（按 `<body data-page>` 懒加载页面）、`Shell.tsx`（顶栏 / 页脚 / 语言）、`ui.tsx`（PageBar、LabPage、Workspace、`<Ans>` 自测格等）、`pages/`（Home / Module / Notes / Extend）、`modules/`（10 个考点实验页）。
 - `src/modules/*.tsx` —— 8 个经典课程模块 + Package / Extend 视图（Perceptron / PyTorch 已写好、暂未上架）。动画一律用 `m.*`，不要用 `motion.*`。
 - `src/components/*.tsx` —— 共享组件（Latex / LineChart / SectionTitle / SeniorAdvice）。
