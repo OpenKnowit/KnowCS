@@ -15,6 +15,16 @@ declare module '*.md?html-hk' {
   export default note
 }
 
+/** 只要笔记的字符数（列表页用，不加载正文） */
+declare module '*.md?chars' {
+  const chars: number
+  export default chars
+}
+declare module '*.md?chars-hk' {
+  const chars: number
+  export default chars
+}
+
 /** 拓展页面的香港繁体版本（见 scripts/vite-plugins.mjs 的 rawHk） */
 declare module '*.html?raw-hk' {
   const html: string
