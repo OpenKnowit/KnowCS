@@ -24,7 +24,8 @@ export interface LayerInfo {
   /** how the spatial size was computed, e.g. "⌊(224 − 7 + 2·3) / 2⌋ + 1 = 112" */
   sizeWork: string | null
   paramWork: string | null
-  error: string | null
+  /** Error code, translated under lab.errors.cnn_<code>. */
+  error: 'needs_3d' | 'kernel_big' | 'needs_flatten' | null
   /** true when (n − k + 2p) is not divisible by the stride, so the last pixels are skipped */
   floored: boolean
 }
@@ -48,14 +49,14 @@ export function analyse(input: Shape, layers: Layer[]): LayerInfo[] {
     let info: LayerInfo
     if (layer.kind === 'conv' || layer.kind === 'pool') {
       if (cur.length !== 3) {
-        info = { ...base, output: cur, params: 0, error: 'Needs an h × w × c input (place it before Flatten).' }
+        info = { ...base, output: cur, params: 0, error: 'needs_3d' }
       } else {
         const [h, w, c] = cur
         const sh = spatial(h, layer.k, layer.stride, layer.pad)
         const sw = spatial(w, layer.k, layer.stride, layer.pad)
         const ch = layer.kind === 'conv' ? layer.filters : c
         if (sh.size < 1 || sw.size < 1) {
-          info = { ...base, output: [Math.max(0, sh.size), Math.max(0, sw.size), ch], params: 0, error: 'Kernel is larger than the (padded) input.' }
+          info = { ...base, output: [Math.max(0, sh.size), Math.max(0, sw.size), ch], params: 0, error: 'kernel_big' }
         } else if (layer.kind === 'conv') {
           const per = layer.k * layer.k * c + (layer.bias ? 1 : 0)
           info = {
@@ -71,13 +72,13 @@ export function analyse(input: Shape, layers: Layer[]): LayerInfo[] {
         }
       }
     } else if (layer.kind === 'globalpool') {
-      info = cur.length === 3 ? { ...base, output: [cur[2]], params: 0, sizeWork: `${cur[0]}×${cur[1]} → 1 per channel` } : { ...base, output: cur, params: 0, error: 'Needs an h × w × c input.' }
+      info = cur.length === 3 ? { ...base, output: [cur[2]], params: 0, sizeWork: `${cur[0]}×${cur[1]} → 1×1` } : { ...base, output: cur, params: 0, error: 'needs_3d' }
     } else if (layer.kind === 'flatten') {
       const n = cur.reduce((a, b) => a * b, 1)
       info = { ...base, output: [n], params: 0, sizeWork: `${cur.join(' × ')} = ${n.toLocaleString('en-US')}` }
     } else if (layer.kind === 'dense') {
       if (cur.length !== 1) {
-        info = { ...base, output: cur, params: 0, error: 'Dense expects a flat vector — add Flatten first.' }
+        info = { ...base, output: cur, params: 0, error: 'needs_flatten' }
       } else {
         const params = (cur[0] + (layer.bias ? 1 : 0)) * layer.units
         info = { ...base, output: [layer.units], params, paramWork: `(${cur[0].toLocaleString('en-US')}${layer.bias ? ' + 1' : ''}) · ${layer.units} = ${params.toLocaleString('en-US')}` }

@@ -1,6 +1,8 @@
 @import "tailwindcss";
-/* KnowCS Lab 有自己的样式表，不把它的类打进主站 */
-@source not "./lab";
+
+@theme {
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
 
 /* 公式不受外层 uppercase 影响：否则 α→Α、δ_k→Δ_K，数学含义被改变 */
 .katex { text-transform: none; }
@@ -31,4 +33,18 @@
   .note-prose hr { @apply my-6 border-slate-200; }
   .note-prose strong { @apply font-bold text-slate-800; }
   .note-prose img { @apply max-w-full h-auto rounded-xl border border-slate-200 shadow-sm my-4; }
+}
+
+/* 模块页的考试表格与公式块（原 KnowCS Lab 样式） */
+@layer components {
+  .lab-table { @apply w-full border-collapse text-[13px]; }
+  .lab-table th { @apply bg-slate-50 px-2.5 py-2 text-xs font-extrabold text-slate-500 border-b border-slate-200 whitespace-nowrap text-center; }
+  .lab-table td { @apply px-2.5 py-1.5 border-b border-slate-100 font-mono text-center whitespace-nowrap; }
+  .lab-table tr:last-child td { @apply border-b-0; }
+  .lab-table .left { @apply text-left; }
+  .lab-table tr.cur td { @apply bg-blue-50; }
+  .lab-table tr.dim td { @apply text-slate-400; }
+  .lab-table td.win { @apply bg-emerald-50 font-extrabold text-emerald-700; }
+  .lab-table td.changed { @apply text-rose-600 font-extrabold; }
+  .formula { @apply font-mono text-[13px] leading-7 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 overflow-x-auto whitespace-pre-wrap; }
 }

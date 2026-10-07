@@ -10,10 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "gen:zh-hk": "node scripts/gen-zh-hk.mjs",
-    "test": "vitest run",
-    "dev:lab": "vite -c vite.lab.config.js",
-    "build:lab": "tsc --noEmit && vite build -c vite.lab.config.js",
-    "preview:lab": "vite preview -c vite.lab.config.js --port 5176"
+    "test": "vitest run"
   },
   "dependencies": {
     "framer-motion": "^12.31.0",
@@ -48,7 +45,6 @@
     "typescript-eslint": "^8.60.0",
     "unified": "^11.0.5",
     "vite": "^7.2.4",
-    "vite-plugin-singlefile": "^2.3.0",
     "vitest": "^4.1.8"
   }
 }

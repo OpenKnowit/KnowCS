@@ -1,3 +1,5 @@
+import { LabError } from './labError'
+
 /** Gaussian Naive Bayes for numerical features (lecture 2 "Calculation for Continuous Variables"). */
 
 export const gaussianPdf = (x: number, mu: number, sigma: number): number =>
@@ -61,15 +63,15 @@ export function scoreGaussianNb(classes: GaussianClass[], x: number[]): ScoredCl
 /** Parse "label, f1, f2" CSV with a header row. Throws a readable message on bad input. */
 export function parseLabeledCsv(csv: string): { features: string[]; rows: LabeledRow[] } {
   const lines = csv.split('\n').map((l) => l.trim()).filter(Boolean)
-  if (lines.length < 3) throw new Error('Need a header and at least two rows.')
+  if (lines.length < 3) throw new LabError('csv_header', {}, 'Need a header and at least two rows.')
   const header = lines[0].split(',').map((s) => s.trim())
   const features = header.slice(1)
-  if (!features.length) throw new Error('Need at least one numeric feature column.')
+  if (!features.length) throw new LabError('csv_feature', {}, 'Need at least one numeric feature column.')
   const rows = lines.slice(1).map((line, i) => {
     const cells = line.split(',').map((s) => s.trim())
-    if (cells.length !== header.length) throw new Error(`Row ${i + 1} has ${cells.length} values, expected ${header.length}.`)
+    if (cells.length !== header.length) throw new LabError('csv_row_len', { row: i + 1, got: cells.length, want: header.length }, `Row ${i + 1} has ${cells.length} values, expected ${header.length}.`)
     const x = cells.slice(1).map(Number)
-    if (x.some((v) => !Number.isFinite(v))) throw new Error(`Row ${i + 1} has a value that is not a number.`)
+    if (x.some((v) => !Number.isFinite(v))) throw new LabError('csv_nan', { row: i + 1 }, `Row ${i + 1} has a value that is not a number.`)
     return { label: cells[0], x }
   })
   return { features, rows }

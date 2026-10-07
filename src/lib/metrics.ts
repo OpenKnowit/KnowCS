@@ -1,3 +1,5 @@
+import { LabError } from './labError'
+
 /** Classification metrics from a confusion matrix m[actual][predicted] (lecture 3 "Model Evaluation"). */
 
 export interface ConfusionMatrix {
@@ -10,8 +12,8 @@ const splitLabels = (s: string) => s.split(/[\s,]+/).map((t) => t.trim()).filter
 export function confusionFromLabels(actual: string, predicted: string): ConfusionMatrix {
   const a = splitLabels(actual)
   const p = splitLabels(predicted)
-  if (a.length !== p.length) throw new Error(`Actual has ${a.length} labels, predicted has ${p.length}.`)
-  if (!a.length) throw new Error('No labels yet.')
+  if (a.length !== p.length) throw new LabError('labels_len', { a: a.length, p: p.length }, `Actual has ${a.length} labels, predicted has ${p.length}.`)
+  if (!a.length) throw new LabError('labels_empty', {}, 'No labels yet.')
   const numeric = [...a, ...p].every((t) => !Number.isNaN(Number(t)))
   const classes = [...new Set([...a, ...p])].sort((x, y) => (numeric ? Number(x) - Number(y) : x.localeCompare(y)))
   const m = classes.map(() => classes.map(() => 0))

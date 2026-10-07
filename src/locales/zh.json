@@ -750,5 +750,861 @@
     "run_block": "在 NumPy 面板中运行",
     "plot_label": "多项式曲线",
     "plot_points": "数据点"
+  },
+  "site": {
+    "paper_mid": "{{year}} {{term}}期中",
+    "paper_final": "{{year}} 期末",
+    "term_Fall": "秋季",
+    "term_Spring": "春季",
+    "lecture_short": "L{{n}}",
+    "lecture_long": "第 {{n}} 讲",
+    "lectures": {
+      "1": "导论与 NumPy",
+      "2": "朴素贝叶斯",
+      "3": "K 近邻",
+      "4": "K-Means 聚类",
+      "5": "神经元与感知机",
+      "6": "多层感知机",
+      "7": "图像处理",
+      "8": "卷积神经网络",
+      "9": "PyTorch",
+      "10": "Minimax 与 Alpha-Beta",
+      "11": "人工智能伦理"
+    },
+    "ui": {
+      "breadcrumb": "当前位置",
+      "prev": "上一页",
+      "next": "下一页",
+      "quiz": "自测",
+      "quiz_hint": "隐藏考试表格里的答案，自己填写",
+      "asked_in": "考过这类题的试卷",
+      "answer_for": "{{label}} 的答案",
+      "not_quite": "不太对——检查一下计算过程"
+    },
+    "modules": {
+      "numpy": {
+        "title": "NumPy 索引与广播",
+        "blurb": "在浏览器里运行 NumPy，看清每个元素从哪里来。"
+      },
+      "bayes-basics": {
+        "title": "贝叶斯基础",
+        "blurb": "火与烟：用滑块理解先验、似然与后验。"
+      },
+      "bayes-virus": {
+        "title": "贝叶斯与基础比率",
+        "blurb": "为什么 99% 准确的检测常常是错的：一张图看 10,000 个人。"
+      },
+      "naive-bayes": {
+        "title": "朴素贝叶斯（分类特征）",
+        "blurb": "手算疾病 Z 表格，含拉普拉斯平滑与对数模式。"
+      },
+      "gaussian-nb": {
+        "title": "高斯朴素贝叶斯",
+        "blurb": "数值特征：每个类别一条钟形曲线，似然就是曲线高度。"
+      },
+      "knn": {
+        "title": "K 近邻",
+        "blurb": "点击分类、标准化特征，用误差曲线选 K。"
+      },
+      "evaluation": {
+        "title": "混淆矩阵与 F1",
+        "blurb": "按类别看 TP / FP / FN，以及精确率、召回率、macro-F1 和 MCC。"
+      },
+      "cross-validation": {
+        "title": "D 折交叉验证陷阱",
+        "blurb": "数据按类别排序又不打乱，准确率可能是 0%。看看每一折缺了哪些类别。"
+      },
+      "kmeans": {
+        "title": "K-Means 动画",
+        "blurb": "观察「分配 / 更新」循环、肘部曲线与 Z 分数标准化。"
+      },
+      "kmeans-table": {
+        "title": "手算 K-Means",
+        "blurb": "考试要的表格：距离、分配、新质心，直到不再变化。"
+      },
+      "perceptron": {
+        "title": "感知机学习表",
+        "blurb": "逐行更新 w 和 θ，看它们画出的决策线。"
+      },
+      "backprop": {
+        "title": "反向传播",
+        "blurb": "一个 sigmoid 神经元：带实时数值的链式法则。"
+      },
+      "xor-mlp": {
+        "title": "XOR 与反向传播数值演算",
+        "blurb": "一条直线为什么不行、隐藏层怎样弯曲空间，逐个算出 δ。"
+      },
+      "kernel": {
+        "title": "边缘检测卷积核",
+        "blurb": "在图像上试 Sobel、Laplacian 和自定义卷积核。"
+      },
+      "convolution": {
+        "title": "卷积、填充与翻转",
+        "blurb": "四种填充方式、卷积核翻转、步长与输出尺寸。"
+      },
+      "otsu": {
+        "title": "直方图、对比度与 Otsu",
+        "blurb": "点运算改变直方图；Otsu 方法自动找到阈值。"
+      },
+      "cnn-shapes": {
+        "title": "CNN 形状与参数",
+        "blurb": "叠加网络层，得到每层的输出形状和参数数量。"
+      },
+      "alphabeta": {
+        "title": "Minimax 与 Alpha-Beta",
+        "blurb": "带着 α / β 逐步搜索，看哪些分支被剪掉。"
+      }
+    },
+    "home": {
+      "tab_title": "COMP2211 交互式机器学习实验室",
+      "eyebrow": "HKUST COMP2211 · 探索人工智能",
+      "title_a": "每一讲，",
+      "title_b": "都有一页可以动手的演示。",
+      "lead": "选一讲，打开对应页面，拖动数字。每一页都给出考试要求的那张表格——还可以自己填写。",
+      "stat_pages": "{{n}} 个交互页面",
+      "stat_papers": "对照 {{n}} 份往年试卷",
+      "stat_notes": "学习笔记",
+      "find": "查找主题",
+      "find_placeholder": "例如：填充、F1、反向传播…",
+      "scope": "考试范围",
+      "scope_all": "全部",
+      "scope_mid": "期中",
+      "scope_final": "期末",
+      "scope_all_hint": "全部 11 讲。",
+      "scope_mid_hint": "期中考试覆盖第 1–6 讲。",
+      "scope_final_hint": "期末考试覆盖全部内容，侧重第 6–11 讲。",
+      "badge_mid": "期中 + 期末",
+      "badge_final": "仅期末",
+      "in_papers": "出现在 {{n}}/{{total}} 份试卷",
+      "seen": "已打开",
+      "empty_9": "往年试卷没有考过 PyTorch——请阅读 PyTorch 笔记。",
+      "empty_11": "伦理部分是选择题：抽认卡正在计划中。",
+      "empty": "即将推出。"
+    }
+  },
+  "lab": {
+    "common": {
+      "quiz_sub": "打开「自测」后自己填空",
+      "quantity": "量",
+      "value": "值",
+      "exam_pattern": "考试题型。",
+      "exam_traps": "考试陷阱。",
+      "example": "例子",
+      "dataset": "数据集",
+      "settings": "设置",
+      "class": "类别",
+      "prior": "先验",
+      "posterior": "后验",
+      "product": "乘积",
+      "prev": "← 上一步",
+      "next": "下一步 →",
+      "back": "← 后退",
+      "play": "播放",
+      "pause": "暂停",
+      "reset": "重置",
+      "cant_read": "无法读取输入。"
+    },
+    "bayes": {
+      "lead": "一个灵敏度 99% 的检测，在它说「阳性」时仍可能大多数时候是错的。原因在于基础比率：这种情况本身有多罕见。",
+      "scenario": "情景",
+      "probabilities": "概率",
+      "prior_label": "P({{B}})——基础比率",
+      "hit_label": "P({{E}} | {{B}})——命中率",
+      "fa_label": "P({{E}} | 非{{B}})——误报率",
+      "observed": "我们观察到",
+      "not": "非{{x}}",
+      "again_text": "<1>再测一次。</1>今天的后验就是明天的先验。连按两次，看看罕见情况如何变得很可能。",
+      "again_btn": "再测一次 → 后验变成先验",
+      "grid_title": "10,000 人，每人一个方格",
+      "grid_aria": "按组别着色的 10,000 人方格图",
+      "focus": "只显示「{{evid}}」的人",
+      "people": "人",
+      "tree_title": "自然频数树",
+      "answer_title": "答案",
+      "answer_q": "在所有「{{evid}}」的人中，真正「{{B}}」的有多少？",
+      "prior_was": "先验是 <1>{{p}}</1>。证据把几率乘以 <3>{{lr}}</3>（似然比 P({{evid}}|{{B}}) ÷ P({{evid}}|{{notB}})）。",
+      "base_rate_title": "基础比率效应。",
+      "base_rate_text": "来自庞大健康人群的 {{fp}} 个误报，淹没了 {{tp}} 个真正命中。",
+      "working_title": "考试的解题过程",
+      "total_prob": "全概率公式",
+      "bayes_rule": "贝叶斯公式",
+      "exam_text": "期中考试会给出三个数——先验、P(E|B) 和 P(E|非 B)——要求先用全概率公式算 P(E)，再用贝叶斯公式算 P(B|E)。注意变化：有些试卷问的是 P(B | <1>非</1> E)，这时要用 1 − P(E|B) 和 1 − P(E|非 B)。切换「我们观察到」试试看。",
+      "presets": {
+        "virus": {
+          "title": "病毒检测",
+          "note": "第 2 讲 · 0.1% 感染，准确率 99% / 95%",
+          "B": "感染病毒",
+          "E": "阳性"
+        },
+        "grade": {
+          "title": "考试题型：最高等级",
+          "note": "2022 秋季 Q3 题型（数字已改）",
+          "B": "A+",
+          "E": "期中 > 90"
+        },
+        "course": {
+          "title": "考试题型：「不好」的课程",
+          "note": "2022 春季 Q3 题型——问 P(B | 非 E)",
+          "B": "由该教授任教",
+          "E": "好课程"
+        },
+        "spam": {
+          "title": "垃圾邮件过滤",
+          "note": "常见的先验，不错的过滤器",
+          "B": "垃圾邮件",
+          "E": "被标记"
+        }
+      }
+    },
+    "gnb": {
+      "lead": "当特征是数字（体温、分数、脉搏）时，朴素贝叶斯不再计数，而是为每个类别拟合一条钟形曲线。似然就是这条曲线在测试值处的高度。",
+      "curve_aria": "每个类别的高斯曲线；点击可移动测试值",
+      "training": "训练数据",
+      "training_sub": "标签, 特征, 特征…",
+      "training_aria": "CSV 格式的训练数据",
+      "summary": "{{c}} 个类别 · {{f}} 个特征",
+      "std": "标准差",
+      "std_sample": "样本 (n − 1)",
+      "std_pop": "总体 (n)",
+      "test": "测试样本",
+      "test_sub": "拖动滑块，或点击图表",
+      "fit_title": "为每个类别拟合 μ 和 σ",
+      "given": "题目已给出",
+      "class_word": "类别",
+      "multiply": "相乘并比较",
+      "multiply_sub": "P(类别) × Π f(xᵢ | 类别)——P(E) 可以约去",
+      "predict_ratio": "预测为 <1>{{name}}</1>——它的乘积是另一类的 <3>{{ratio}}</3>。后验 = 乘积 ÷ 乘积之和；P(E) 对每个类别都一样，所以考试只需比较乘积。",
+      "predict": "预测为 <1>{{name}}</1>。后验 = 乘积 ÷ 乘积之和；P(E) 对每个类别都一样，所以考试只需比较乘积。",
+      "traps": "(1) 本课程使用<1>样本</1>标准差，除以 n − 1。(2) f(x) 是概率密度而不是概率——σ 很小时它可以大于 1。(3) 混合表格中，数值特征用高斯分布，分类特征仍然用计数（计数为 0 时做拉普拉斯平滑）。",
+      "naive_title": "为什么叫「朴素」？",
+      "naive_text": "每个特征有自己的曲线，曲线之间直接相乘。这假设在给定类别时各特征相互独立——2023 年期末考试就问过：两个特征高度相关时会出什么问题。",
+      "presets": {
+        "dengue": {
+          "title": "考试题型：登革热",
+          "note": "2024 期末 Q3 题型（数字已改）"
+        },
+        "lecture": {
+          "title": "第 2 讲：疾病 Z（连续特征）",
+          "note": "已给出 μ 和 σ；血压 = 66，体温 = 97"
+        },
+        "bands": {
+          "title": "三个类别：成绩等级",
+          "note": "两个数值特征，离散程度不同"
+        }
+      },
+      "names": {
+        "temperature": "体温",
+        "pulse": "脉搏",
+        "assignment": "作业",
+        "midterm": "期中",
+        "blood pressure": "血压",
+        "fever": "体温",
+        "Dengue": "登革热",
+        "No dengue": "非登革热",
+        "Yes": "是",
+        "No": "否",
+        "High": "高",
+        "Mid": "中",
+        "Low": "低"
+      }
+    },
+    "eval": {
+      "lead": "准确率掩盖了模型在哪个类别上出错。选一个类别，混淆矩阵就会拆成它的真阳性、假阴性、假阳性和真阴性。",
+      "labels": "标签",
+      "manual": "矩阵已手动修改",
+      "actual": "实际",
+      "predicted": "预测",
+      "labels_hint": "用逗号或空格分隔——也可以直接在矩阵格子里输入。",
+      "rows_are": "矩阵的行是",
+      "rows_hint": "2024 春季期中把<1>实际</1>放在行上；2023 秋季期中把<3>预测</3>放在行上。求和前先看清坐标轴标签。",
+      "nothing": "还没有可以计分的数据。",
+      "cm": "混淆矩阵",
+      "cm_sub": "点击类别名",
+      "cell_aria": "实际 {{a}}，预测 {{p}}",
+      "tp": "正确",
+      "fn": "漏报",
+      "fp": "误报",
+      "tn": "其余",
+      "one_picture": "一张图看类别「{{c}}」",
+      "tp_d": "判为 {{c}}，正确",
+      "fn_d": "实为 {{c}}，漏掉",
+      "fp_d": "判为 {{c}}，错误",
+      "pr_question": "精确率问：「我说是 {{c}} 时，对吗？」召回率问：「所有真正的 {{c}} 中，我找到了多少？」",
+      "per_class": "逐类别表格",
+      "precision": "精确率",
+      "recall": "召回率",
+      "summary": "汇总指标",
+      "accuracy": "准确率",
+      "accuracy_d": "对角线上 {{n}} / {{total}}",
+      "macro_d": "各类别 F1 的平均",
+      "weighted_d": "按样本数加权的 F1",
+      "micro_d": "= 准确率（每个样本一个标签）",
+      "mcc_d": "−1 … 0 随机 … 1",
+      "flattering": "准确率美化了这个模型。",
+      "gap": "它比 macro-F1 高 {{pts}} 个百分点，因为某个类别占了大多数。",
+      "mcc_random": "MCC = {{mcc}}，说明它接近随机猜测。",
+      "mcc_ok": "MCC = {{mcc}}，说明它仍然有参考价值。",
+      "agree": "这里准确率和 F1 一致，说明各类别比较均衡。",
+      "numpy": "用 NumPy 实现",
+      "numpy_sub": "2024 春季 Q3(e) 题型",
+      "code_rows_actual": "cm 的行 = 实际，列 = 预测",
+      "code_rows_pred": "cm 的行 = 预测，列 = 实际",
+      "code_div_pred": "÷ 预测总数",
+      "code_div_act": "÷ 实际总数",
+      "traps": "(1) 哪个轴是实际？精确率除以<1>预测</1>总数，召回率除以<3>实际</3>总数。(2) Macro-F1 是各类别 F1 的简单平均——不是对平均后的精确率和召回率再求 F1。(3) 在不均衡数据上，即使从未找到稀有类别，准确率也可能很高；MCC 和 F1 能揭示这一点。",
+      "presets": {
+        "three": {
+          "title": "考试题型：3 个类别",
+          "note": "2024 春季 Q3 题型（标签已改）"
+        },
+        "disease": {
+          "title": "考试题型：罕见疾病",
+          "note": "2022 期末 Q3(a) 题型：准确率与 F1"
+        },
+        "mcc": {
+          "title": "第 3 讲：MCC 例子",
+          "note": "TP 90 · FP 4 · TN 1 · FN 5"
+        },
+        "lazy": {
+          "title": "偷懒模型：永远说「否」",
+          "note": "准确率 95%，却什么也没找到"
+        }
+      }
+    },
+    "cv": {
+      "lead": "D 折交叉验证把数据切成 D 段连续的块。如果数据按类别排好序又从不打乱，有些训练集就会完全看不到某个类别——这个类别的所有测试样本都会判错。",
+      "classes": "类别数",
+      "per_class": "每类样本数",
+      "folds": "折数 D",
+      "before": "切分之前",
+      "keep_sorted": "保持排序",
+      "shuffle": "打乱",
+      "stratify": "分层",
+      "reshuffle": "重新打乱",
+      "assumption_title": "考试中的假设。",
+      "assumption": "测试样本的类别只要在训练折中出现过就判对，否则判错。用这一点就能解释 0% / 50% / 100% 的结果。",
+      "cut": "{{n}} 个样本切成 {{d}} 折",
+      "order_sorted": "按给定顺序 x₀, x₁, …",
+      "order_shuffled": "先打乱",
+      "order_stratified": "每个类别平均分到各折",
+      "order_short_sorted": "排序",
+      "order_short_shuffled": "打乱",
+      "order_short_stratified": "分层",
+      "fold": "第 {{k}} 折",
+      "class_x": "类别 {{c}}",
+      "rounds": "每一轮：一折做测试，其余做训练",
+      "test_fold": "测试折 {{k}}",
+      "tip_seen": "测试 · 训练中见过该类别 ✓",
+      "tip_unseen": "测试 · 训练中从未见过该类别 ✗",
+      "tip_train": "训练",
+      "legend": "亮色 = 测试折，浅色 = 训练。深色下划线表示该测试样本的类别从未在训练中出现。",
+      "exam_table": "考试表格",
+      "th_fold": "测试折",
+      "th_train": "训练中的类别",
+      "th_test": "测试中的类别",
+      "th_correct": "正确",
+      "th_acc": "准确率",
+      "mean": "平均准确率",
+      "unseen_rounds": "含未见类别的轮数",
+      "every_d": "每个 D 的平均准确率",
+      "click_bar": "D（点击柱子）",
+      "how_title": "怎么作答。",
+      "how": "对每个 D，写出每一折包含哪些类别，指出哪些训练集缺了整个类别，再把各折准确率取平均。然后给出改进方法：<1>切分前先打乱</1>，更好的是<3>分层抽样</3>，让每一折都保持各类别的比例。",
+      "loo_title": "为什么这里 D = 样本数总是可行。",
+      "loo": "留一法把同类别的其他样本都留在训练集中，所以只要每个类别至少有两个样本，考试中的假设就不会失败——2022 秋季试卷在讨论切分不均衡数据集时也提到了这一点。",
+      "presets": {
+        "four": {
+          "title": "4 类 × 20，已排序",
+          "note": "2024 春季 Q7 题型——D = 2、3、5"
+        },
+        "five": {
+          "title": "5 类，已排序",
+          "note": "2023 秋季 Q7 题型——D = 2、5、6"
+        },
+        "six": {
+          "title": "6 名病人，2 个类别",
+          "note": "2024 期末 Q3(b) 题型——每折 2 或 3 人"
+        }
+      }
+    },
+    "km": {
+      "lead": "正是期中考要你填的那张表：算每个点到每个质心的距离，选最近的，对每个簇求平均，重复直到没有点换簇。",
+      "presets": {
+        "medicine": {
+          "title": "第 4 讲：药物",
+          "note": "初始质心 A(1,1)、B(2,1) —— 课堂练习"
+        },
+        "line": {
+          "title": "考题风格：一维数据",
+          "note": "仿 2022 春 Q5（数字已改）"
+        },
+        "plane": {
+          "title": "考题风格：二维，迭代到收敛",
+          "note": "仿 2023 春 Q5 —— 平局归 C1"
+        },
+        "squared": {
+          "title": "考题风格：平方距离 + SSE",
+          "note": "仿 2023 秋 Q5"
+        },
+        "empty": {
+          "title": "空簇",
+          "note": "糟糕的初始质心可能一个点都分不到"
+        }
+      },
+      "plot_aria": "数据点、质心及其移动",
+      "data": "数据",
+      "data_sub": "名称 x [y]，每行一个",
+      "points": "数据点",
+      "seeds": "初始质心",
+      "distance": "距离",
+      "m_euclidean": "欧氏距离",
+      "m_squared": "平方欧氏距离",
+      "m_manhattan": "曼哈顿距离",
+      "rounds": "迭代轮次",
+      "round_of": "第 {{r}} / {{n}} 轮",
+      "run_end": "直接跑到底",
+      "moved": "本轮换簇点数",
+      "sse": "更新后的 SSE",
+      "round_title": "第 {{r}} 轮：算距离、分配、重新求均值",
+      "round_sub": "○ 本轮使用的质心  ◆ 新均值",
+      "dist_table": "距离表（{{m}}）",
+      "point": "点",
+      "to": "到 {{c}}",
+      "closest": "最近",
+      "new_c": "新 {{c}}",
+      "mean_of": "{{names}} 的均值",
+      "empty_keeps": "空簇 —— 保持 {{c}}",
+      "table_note": "高亮行表示与上一轮相比换了簇。距离相同时归入编号较小的质心。",
+      "converged_title": "已收敛。",
+      "not_done_title": "尚未结束。",
+      "converged": "第 {{r}} 轮中每个点都留在原簇，均值不会再变。评分标准要的就是这句话：“簇分配不再改变”（the cluster assignment remains the same）。",
+      "not_done": "点“下一轮”。只有完整一轮没有任何点换簇，K-Means 才会停止（本例共 {{n}} 轮）。",
+      "not_done_never": "点“下一轮”。只有完整一轮没有任何点换簇，K-Means 才会停止（本例共 {{n}} 轮，仍未收敛）。",
+      "empty_note": "有一个簇最终为空 —— 判断题常客（2024 春：“可能发生”为 True）。",
+      "traps": "用题目指定的距离 —— 2023 秋要求<1>平方</1>距离。只在试卷要求时四舍五入（通常保留 2 位小数）。除非另有说明，平局归质心 1。K-Means 一定收敛，但不一定得到最好的聚类：换个初始质心可能得到不同结果。",
+      "choose_k": "选 k 不属于算法本身。考试问的是肘部法：画出 SSE 随 k 的变化，选曲线不再急剧下降的位置 —— 而不是 SSE 最小的 k（那永远是 k = n）。"
+    },
+    "perc": {
+      "lead": "每次喂一行：先算 O，只有出错时才把 w 和 θ 移动 η(T − O)x。看决策线一步步跳动，直到每个点都在正确的一侧 —— 如果根本不存在这样的直线，就永远停不下来。",
+      "presets": {
+        "and": {
+          "title": "第 5 讲：逻辑与 AND",
+          "note": "w = (0.1, 0.5)，θ = −0.8，η = 0.2"
+        },
+        "or": {
+          "title": "第 5 讲练习：逻辑或 OR",
+          "note": "初始值与 AND 相同"
+        },
+        "course": {
+          "title": "考题风格：课程评分",
+          "note": "仿 2022 秋 Q6 —— 仅当 z > 0 时 f = 1"
+        },
+        "pm": {
+          "title": "考题风格：±1 输出",
+          "note": "仿 2022 春 Q6 —— z ≥ 0 时 f = 1，否则 −1"
+        },
+        "xor": {
+          "title": "XOR —— 永不收敛",
+          "note": "线性不可分（第 5 讲 “Problem”）"
+        }
+      },
+      "plot_aria": "训练点与当前决策线",
+      "rule": "f(z) = {{high}}（若 z {{op}} 0），否则 {{low}}",
+      "setup": "设置",
+      "rows_label": "训练数据：x1 x2 T",
+      "outputs": "输出值",
+      "at_zero": "z = 0 时输出",
+      "line_title": "决策线",
+      "line_sub": "蓝色一侧 → 输出高 · 虚线 = 本行之前",
+      "row_title": "第 {{row}} 行：第 {{epoch}} 轮，样本 {{sample}}",
+      "start": "开始",
+      "next_row": "下一行 →",
+      "finish_epoch": "跑完本轮",
+      "new_w": "新",
+      "correct": "分类正确 —— 不做任何更新。",
+      "start_text": "初始：w = {{w}}，θ = {{theta}}，η = {{eta}}。点击<1>下一行</1>。",
+      "converged_title": "已收敛。",
+      "converged": "第 {{n}} 轮没有任何更新，所有行都分类正确。数据线性可分。",
+      "no_conv_title": "{{n}} 轮后仍未收敛。",
+      "no_conv": "权重一直在变。如果没有任何直线能把两类分开（如 XOR），感知机规则永远不会停止。",
+      "epoch_note": "只有<1>完整一轮</1>都没有更新才算收敛 —— 考试回答“1 轮内未收敛”时，需要的正是这个理由。",
+      "table_title": "考试表格",
+      "ep": "轮",
+      "activation_title": "先看清激活函数。",
+      "activation": "各试卷并不统一：第 5 讲和 2022 春在 z ≥ 0 时输出高，2022 秋仅在 z > 0 时输出高；输出也可能是 0/1 或 −1/+1。用 −1/+1 输出时，一次错误给出 T − O = ±2，步长翻倍。恰好落在 z = 0 上的行，最容易失分。",
+      "separable_title": "线性可分吗？",
+      "separable": "感知机收敛定理：只要存在分隔直线，这条规则会在有限次更新内找到一条。如果不存在（XOR，或 2022 秋“两项评分都为 2 或 3 才成功”），就需要隐藏层 —— 见下一页。"
+    },
+    "xor": {
+      "lead": "单个神经元只能画一条直线，而 XOR 需要两条。隐藏层画出两条线、把平面“压缩”变形，在新的 (h₁, h₂) 空间里一条线就够了。反向传播用一个个 δ 找到这些权重。",
+      "presets": {
+        "lecture": {
+          "title": "第 6 讲例题",
+          "note": "w = −0.65, 0.64, 1.11, 0.84, 0.86, −1.38 · θ = 0 · η = 0.5"
+        },
+        "hand": {
+          "title": "手选权重（阶跃）",
+          "note": "仿 2023 春 Q7(c) / 2025 春 Q7 —— OR 与 NAND → AND"
+        },
+        "zeros": {
+          "title": "权重全为零",
+          "note": "Final 2022 Q3(d)：为什么零初始化会失败"
+        }
+      },
+      "input_aria": "网络在输入平面上的输出",
+      "hidden_aria": "样本在隐藏单元空间中的位置",
+      "net_aria": "带当前数值的 2-2-1 网络",
+      "start_from": "起点",
+      "random": "随机权重",
+      "network": "网络",
+      "activation": "激活函数",
+      "binary_step": "二值阶跃",
+      "train": "训练",
+      "eta": "学习率 η",
+      "apply": "对 ({{x}}) 执行一次更新",
+      "plus_epoch": "+1 轮",
+      "status": "第 {{epoch}} 轮 · 下一个样本 {{sample}} / 4 · 损失 {{loss}}",
+      "step_title": "阶跃函数无法训练。",
+      "step_note": "它的梯度几乎处处为 0，反向传播无从下手（Final 2024 Q4c）。解决办法：用陡峭的 sigmoid σ(cx) 近似阶跃，它仍有梯度。",
+      "net_title": "输入 ({{x}})，目标 {{t}}",
+      "net_sub": "边宽 = |权重| · 蓝 +，红 −",
+      "input_title": "输入空间",
+      "input_sub": "虚线 = 隐藏单元",
+      "hidden_title": "隐藏空间",
+      "hidden_sub": "一条线即可分开",
+      "solved_title": "XOR 已解决。",
+      "unsolved_title": "尚未解决。",
+      "solved": "四个点都落在正确一侧。看隐藏空间图：隐藏层把 (0,1) 和 (1,0) 移到了同一条直线的一侧 —— 这正是 2023 春提示（“让点在第一层之后线性可分”）要你构造的东西。",
+      "unsolved": "仍有点被分错。继续训练，或手动调整权重，直到隐藏空间图能被一条直线分开。",
+      "symmetric": "两个隐藏单元权重完全相同，所以它们总算出相同的值、收到相同的 δ —— 永远无法变得不同。这就是全零初始化失败的原因。",
+      "step_card": "对 ({{x}})、T = {{t}} 做一步反向传播",
+      "step_sub": "考试公式 · 打开「自测」",
+      "forward": "前向",
+      "backward": "反向",
+      "input_of": "该权重的输入",
+      "before": "更新前",
+      "grad_term": "梯度项",
+      "after": "更新后",
+      "hidden_delta_note": "隐藏层 δ 使用本步更新<1>之前</1>的 w5、w6，与课件一致。用课件起点，第 1 轮得到 δk = 0.107022，新 w5 = 0.833245。",
+      "loss_title": "训练中的损失",
+      "loss_sub": "4 个样本的 ½(T − O)² 平均值",
+      "loss_aria": "损失曲线",
+      "epoch_n": "第 {{n}} 轮",
+      "overshoot": "η 太大会越过最低点来回震荡，而不是稳定下来。",
+      "count_title": "数参数",
+      "count_sub": "2022 春 Q7(c)，Final 2024 Q4(a)",
+      "layers_label": "每层神经元数（输入, 隐藏…, 输出）",
+      "wb": "权重 + 偏置",
+      "wb_note": "每个非输入神经元：每个输入一个权重，外加一个偏置",
+      "try": "试试 3, 4, 2（答案 26）或 3, 2, 1（8 个权重 + 3 个偏置 = 11）。",
+      "traps": "本课程写作 δk = (O − T)·O(1 − O) 并<1>减去</1>：w ← w − ηδO。有些书写 (T − O) 并加上 —— 结果相同，但请沿用试卷的约定。若激活函数是<2>线性</2>的，叠多少层都没用：整个网络会坍缩成一个神经元（2022 春 Q7b）。",
+      "output_title": "输出层怎么选。",
+      "output_note": "二分类：1 个 sigmoid 单元。多分类：n 个单元上的 softmax。多标签：n 个 sigmoid 单元（Final 2022）。分类器输出层永远不用 ReLU：它的值域无上界，没有自然的阈值。"
+    },
+    "conv": {
+      "lead": "把卷积核在填充后的图像上滑动，逐格相乘再求和。然后回答考试必问的三件事：边界处填充怎么做、卷积核要不要翻转、输出有多大。",
+      "presets": {
+        "lecture7": {
+          "title": "第 7 讲：边缘卷积核",
+          "note": "3×5 图像，[−1 0 1] 卷积核，无填充"
+        },
+        "lecture8": {
+          "title": "第 8 讲练习：翻转卷积核",
+          "note": "5×5，零填充 1 —— 第一行 12 18 3 21 0"
+        },
+        "stride": {
+          "title": "考题风格：步长 2，填充 1",
+          "note": "仿 Final 2022 B Q1(a) —— 翻转与不翻转"
+        },
+        "reflect": {
+          "title": "考题风格：反射填充后求平均",
+          "note": "仿 Final 2022 A Q4(b) / Final 2024 Q5(c)"
+        },
+        "big": {
+          "title": "7×7，步长 3",
+          "note": "第 8 讲：“放不下”"
+        }
+      },
+      "gallery": {
+        "average": {
+          "name": "均值",
+          "effect": "平滑 / 模糊"
+        },
+        "sharpen": {
+          "name": "锐化",
+          "effect": "突出中心、压低邻居"
+        },
+        "prewitt_x": {
+          "name": "Prewitt x",
+          "effect": "竖直边缘（左右变化）"
+        },
+        "sobel_x": {
+          "name": "Sobel x",
+          "effect": "竖直边缘，中间行权重为 2"
+        },
+        "sobel_y": {
+          "name": "Sobel y",
+          "effect": "水平边缘"
+        },
+        "identity": {
+          "name": "恒等",
+          "effect": "什么都不做"
+        }
+      },
+      "modes": {
+        "zero": "零填充",
+        "replicate": "复制",
+        "reflect": "反射",
+        "mirror": "镜像"
+      },
+      "inputs": "图像与卷积核",
+      "inputs_sub": "数字或分数，如 1/9",
+      "image": "图像",
+      "kernel": "卷积核",
+      "padding": "填充 p",
+      "pad_mode": "填充方式",
+      "stride": "步长 s",
+      "flip": "翻转 180°（卷积）",
+      "raw": "按原样（相关）",
+      "slide_title": "滑动窗口",
+      "slide_sub": "点击任意输出格，或播放",
+      "padded_label": "填充后的输入（{{h}}×{{w}}）—— 斜线 = 填充",
+      "padded": "填充后的输入",
+      "copied_from": "复制自 ({{at}})",
+      "zero_padding": "零填充",
+      "kernel_flipped": "翻转后的卷积核",
+      "kernel_raw": "原样的卷积核",
+      "written": "原写法：{{k}}",
+      "output_label": "输出（{{h}}×{{w}}）",
+      "output": "输出",
+      "play_all": "逐个位置播放",
+      "size_title": "输出尺寸",
+      "size_sub": "第 8 讲公式",
+      "height": "高",
+      "width": "宽",
+      "fits": "窗口恰好落在最后一列和最后一行上。",
+      "nofit_title": "无法整除。",
+      "nofit_one": "(n − k + 2p) 不能被步长整除，所以最后一个像素永远覆盖不到。考试取下整 —— 课件把 7×7 图像、3×3 卷积核、步长 3 称为“放不下”（does not fit）。",
+      "nofit_many": "(n − k + 2p) 不能被步长整除，所以最后几个像素永远覆盖不到。考试取下整 —— 课件把 7×7 图像、3×3 卷积核、步长 3 称为“放不下”（does not fit）。",
+      "table_title": "输出表格",
+      "rounded": "Final 2022 把平均值四舍五入为整数 —— 以试卷要求为准。",
+      "modes_title": "本图像的四种填充方式",
+      "modes_sub": "填充 2，便于看清规律",
+      "modes_note": "Final 2022 和 Final 2024 把“重复边缘”的方式称为 “reflection padding”。如果试卷说法含糊，写明你用的是哪一种。",
+      "range_title": "该卷积核在 8 位图像上的取值范围",
+      "pos_sum": "正权重之和",
+      "neg_sum": "负权重之和",
+      "back_to": "映射回 0…255",
+      "inside": "已在 0…255 之内",
+      "gallery_title": "认出这个卷积核",
+      "gallery_sub": "Final 2024 Q5(d) —— 点击载入",
+      "flip_title": "翻不翻转？",
+      "flip_note": "第 7 讲公式 O(x,y) = Σ K(m,n)·I(x−m, y−n) 是真正的卷积，会把卷积核旋转 180°；第 8 讲练习说“别忘了翻转”。Final 2022 两种答案都给分（不翻转 73，翻转 27）。对称卷积核翻不翻结果都一样。",
+      "local_title": "局部，而非全局。",
+      "local_note": "3×3 卷积核只看得到 3×3 邻域，所以没有任何卷积核能把 64×64 图像翻转过来 —— 一个像素的新值可能要来自 {{n}} 像素之外（Final 2024 Q5e）。"
+    },
+    "otsu": {
+      "lead": "点运算只根据像素自身的值改变它，所以直接看直方图就能读出效果。Otsu 方法自动选阈值：在 T 处一分为二，两边各求均值，把 T 移到两均值的中点，重复。",
+      "presets": {
+        "photo": {
+          "title": "低对比度场景",
+          "note": "所有像素挤在 95…165 之间"
+        },
+        "coins": {
+          "title": "桌上的硬币",
+          "note": "两个清晰的峰 —— Otsu 最擅长"
+        },
+        "grid4": {
+          "title": "考题风格：4×4 网格",
+          "note": "仿 Final 2022 A Q4(b)(iii) —— 从均值开始"
+        },
+        "grid3": {
+          "title": "考题风格：3×3，T₀ = 100",
+          "note": "仿 Final 2024 Q5(b)"
+        }
+      },
+      "hist_aria": "灰度直方图",
+      "image": "图像",
+      "operation": "操作",
+      "ops": {
+        "original": "原图",
+        "stretch": "拉伸",
+        "flip": "翻转",
+        "threshold": "阈值",
+        "otsu": "Otsu"
+      },
+      "t_label": "阈值 T（像素 > T → 255）",
+      "iteration": "第 {{i}} / {{n}} 次迭代",
+      "before": "处理前",
+      "original_aria": "原始图像",
+      "after_none": "处理后（无变化）",
+      "after_otsu": "处理后：Otsu 阈值 T = {{T}}",
+      "after": "处理后：{{op}}",
+      "out_aria": "处理后的图像",
+      "iters_title": "Otsu 迭代",
+      "px": "{{n}} 像素",
+      "t0_fixed": "题目给定 T₀ = {{T}}。",
+      "t0_mean": "T₀ 取平均灰度 {{T}}。",
+      "stop_one": "T 不再变化时停止 —— 本例迭代 {{count}} 次，得到 <1>T = {{T}}</1>。",
+      "stop_other": "T 不再变化时停止 —— 本例迭代 {{count}} 次，得到 <1>T = {{T}}</1>。",
+      "why_title": "为什么用 Otsu？",
+      "why": "它根据直方图自动选出 T，所以两个人对同一张图做阈值处理会得到相同结果（Final 2024 Q5b）。",
+      "match_title": "把每张图和它的直方图配对",
+      "match_sub": "仿 Final 2024 Q5(a)",
+      "transformed": "处理后的图像 {{l}}",
+      "goes_with": "({{l}}) 对应",
+      "histogram": "直方图 {{l}}",
+      "match": {
+        "stretch": {
+          "name": "对比度拉伸",
+          "why": "形状不变，铺满 0…255"
+        },
+        "threshold": {
+          "name": "二值阈值",
+          "why": "只有两根柱：0 和 255"
+        },
+        "flip": {
+          "name": "水平翻转",
+          "why": "直方图完全相同 —— 像素只是换了位置"
+        }
+      },
+      "check": "检查",
+      "kind_title": "点运算、局部还是全局？",
+      "type": "类型",
+      "why_col": "原因",
+      "kinds": {
+        "point": {
+          "op": "对比度拉伸、阈值处理",
+          "type": "点运算",
+          "why": "新值只取决于旧值"
+        },
+        "local": {
+          "op": "卷积（模糊、边缘）",
+          "type": "局部",
+          "why": "需要邻域"
+        },
+        "flip": {
+          "op": "翻转、旋转、平移",
+          "type": "非点运算",
+          "why": "值来自另一个位置"
+        },
+        "global": {
+          "op": "用 Otsu 选 T",
+          "type": "全局",
+          "why": "用到整个直方图"
+        }
+      },
+      "traps": "写明等于 T 的像素归哪一边（本页归 R1：≤ T）。阈值处理只输出两个值，所以直方图只有两根柱。翻转不改变直方图 —— 2024 期末正是要你据此认出它。"
+    },
+    "cnn": {
+      "lead": "每份期末卷都有这张表：每一层的输出形状和参数个数。随意搭建网络，看每个数字的计算过程，再和直接作用在像素上的 MLP 比一比。",
+      "presets": {
+        "aio": {
+          "title": "第 8 讲：综合例题",
+          "note": "32×32×3，十个 5×5 卷积核，步长 1，填充 2"
+        },
+        "mnist": {
+          "title": "第 8 讲：MNIST model.summary()",
+          "note": "Conv 32 → Conv 64 → Pool → Dense 128 → 10"
+        },
+        "stem": {
+          "title": "考题风格：深层主干 + 分类器",
+          "note": "仿 Final 2022 B Q1(c)–(f)"
+        },
+        "f23": {
+          "title": "考题风格：CONV-5 / POOL-2 / FC",
+          "note": "仿 Final 2023 Q6(c)，128×128 输入"
+        },
+        "same": {
+          "title": "Keras padding=\"same\"",
+          "note": "Final 2024 Q7(a)：步长 2 使尺寸减半"
+        },
+        "mlp": {
+          "title": "直接作用于像素的 MLP",
+          "note": "Final 2022 B Q1(f)(ii)：数一数并比较"
+        }
+      },
+      "kinds": {
+        "conv": "Conv2D 卷积",
+        "pool": "池化",
+        "globalpool": "全局池化",
+        "flatten": "Flatten 展平",
+        "dense": "Dense 全连接",
+        "dropout": "Dropout"
+      },
+      "f": {
+        "padding": "填充",
+        "filters": "卷积核数",
+        "kernel": "核大小",
+        "stride": "步长",
+        "size": "大小",
+        "units": "单元数",
+        "height": "高",
+        "width": "宽",
+        "channels": "通道"
+      },
+      "input_name": "输入",
+      "volumes_aria": "每层之后的输出体积",
+      "strip": {
+        "n": "输入 n",
+        "k": "核大小 k",
+        "p": "填充 p",
+        "s": "步长 s"
+      },
+      "strip_aria": "窗口在一行上的位置",
+      "not_div": "{{a}} 不能被 {{s}} 整除：红色格子永远覆盖不到",
+      "input_title": "输入（高 × 宽 × 通道）",
+      "layers": "网络层",
+      "move_up": "上移",
+      "move_down": "下移",
+      "remove": "删除",
+      "add": "添加层",
+      "volumes_title": "每一层之后的数据体",
+      "volumes_sub": "高度 ∝ log(尺寸)，厚度 ∝ log(通道数)",
+      "table_title": "形状与参数表",
+      "th": {
+        "layer": "层",
+        "input": "输入",
+        "output": "输出",
+        "params": "参数",
+        "working": "计算过程"
+      },
+      "dropout_work": "没有参数，形状不变",
+      "floored": "已取下整",
+      "total": "参数总数",
+      "mlp": "直接作用于像素的 MLP",
+      "ratio": "倍数",
+      "ratio_d": "MLP ÷ 本网络",
+      "slip_title": "找出官方答案里的笔误。",
+      "slip": "2022 年评分标准把第 4 层写成 13 × 13，但 ⌊(27 − 3 + 2·1) / 2⌋ + 1 = 14。忘了填充才会得到 13。第 5 层无论哪种都是 7 × 7，参数个数也不受影响。",
+      "strip_title": "输出尺寸从哪里来？",
+      "strip_sub": "图像的一行",
+      "rules_title": "参数计算规则。",
+      "rules": "卷积层：(k·k·C<1>in</1> + 1) × 卷积核数 —— 输入的深度要算，图像尺寸不算。池化、Flatten 和 Dropout 没有参数。全连接层：(输入数 + 1) × 单元数。+1 是偏置；只有试卷写明 “no bias” 时才去掉。",
+      "why_title": "为什么 CNN 参数更少。",
+      "why": "同一个卷积核在每个位置重复使用（参数共享），每个输出只看一个小窗口（稀疏连接）。全连接层则要给每个像素一个独立权重 —— 看看 MLP 预设。改变输入尺寸会让第一个全连接层失效，除非先用全局池化把特征图压成 1 × 1（Final 2023 Q6f）。"
+    },
+    "errors": {
+      "csv_header": "需要一行表头和至少两行数据。",
+      "csv_feature": "至少需要一列数值特征。",
+      "csv_row_len": "第 {{row}} 行有 {{got}} 个值，应为 {{want}} 个。",
+      "csv_nan": "第 {{row}} 行有一个值不是数字。",
+      "labels_len": "真实标签有 {{a}} 个，预测标签有 {{p}} 个。",
+      "labels_empty": "还没有标签。",
+      "point_line": "第 {{line}} 行：“{{text}}” 不是一个点。",
+      "points_min": "至少需要两个点。",
+      "dims": "所有点和初始质心的坐标个数必须相同。",
+      "dims_max": "本页只能画一维或二维数据。",
+      "seeds_min": "至少需要两个初始质心（每行一个）。",
+      "perc_line": "第 {{line}} 行：请写成 “x1 x2 T”。",
+      "perc_min": "至少需要两个样本。",
+      "grid_empty": "{{what}}：还没有输入。",
+      "grid_rows": "{{what}}：每一行必须有相同个数的值。",
+      "grid_nan": "{{what}}：有一个值不是数字。",
+      "kernel_big": "卷积核比填充后的图像还大。",
+      "cnn_needs_3d": "需要 高 × 宽 × 通道 的输入（放在 Flatten 之前）。",
+      "cnn_kernel_big": "卷积核比（填充后的）输入还大。",
+      "cnn_needs_flatten": "Dense 需要一维向量 —— 先加 Flatten。"
+    }
   }
 }

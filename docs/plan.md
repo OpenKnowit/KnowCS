@@ -12,12 +12,12 @@
 
 ## 2. 现状（Done）
 
-- ✅ 单页骨架：React 19 + Vite 7 + Tailwind 4，单文件打包。
+- ✅ 多页静态站（2026-10-08 起，原为单文件 SPA）：React 19 + Vite 7 + Tailwind 4，每个模块一个 URL，首页为按讲次的课程地图。
 - ✅ **全量 TypeScript（TSX）**：核心代码已从 JSX 迁移到严格 TSX，`tsc --noEmit` 纳入 `build` 与 `typecheck`。
 - ✅ **模块化结构**：`App.tsx` 瘦身为 ~209 行外壳（路由 + 布局）；六大模块独立于 `src/modules/`，通用组件在 `src/components/`，教学数据集中于 `src/data/constants.ts`，类型在 `src/types.ts`。
 - ✅ 三语 i18n（English / 简体 / 繁體），自动检测浏览器语言并记住选择。
-- ✅ Hash 路由（可分享模块 / 笔记链接）、移动端适配、基础无障碍。
-- ✅ 单文件产物 1.99MB（2026-10 优化，原 4.55MB）。
+- ✅ 真实 URL（可分享模块 / 笔记链接，旧 Hash 链接自动跳转）、移动端适配、基础无障碍。
+- ✅ 10 个考点实验页（三语，带「自测」填表），覆盖历年试卷反复出现的手算题型。
 - ✅ 六大可视化模块（见下方覆盖表）。
 - ✅ CI 执行构建校验；生产部署改为 `ssh pastpaper` + OpenResty，目标域名 `knowcs.online`，不再自动发布 PinMe。
 - ✅ 文档体系：design / log / plan 三件套 + 根目录 `CLAUDE.md` 索引。
@@ -31,13 +31,13 @@
 | 讲义 / Lab | 主题 | 对应模块 | 状态 |
 |------------|------|----------|------|
 | L1 / Lab1 | NumPy & 图像基础（array/切片/broadcast/灰度） | NumpyModule | ✅ 已覆盖 |
-| L2 / Lab2 | 朴素贝叶斯 | BayesBasics + NaiveBayes | 🟡 缺数值特征（Gaussian）似然 |
+| L2 / Lab2 | 朴素贝叶斯 | BayesBasics + NaiveBayes + Bayes & base rate + Gaussian NB | ✅ 已覆盖（含 Gaussian 似然） |
 | L3 / Lab3 | KNN | KnnModule | ✅ 已覆盖 |
 | **L4 / Lab4** | **K-Means 聚类** | KMeansModule | ✅ 已上线（2026-06-07） |
-| L5 / Lab5 | 人工神经元 / 感知机 | BackpropModule（仅 MLP 侧） | 🟡 缺单神经元（错误驱动更新） |
+| L5 / Lab5 | 人工神经元 / 感知机 | Perceptron learning table | ✅ 已覆盖（2026-10） |
 | L6 / Lab6 | 多层感知机 / 反向传播 | BackpropModule | ✅ 已覆盖（2026-10 重写为可训练的数值版） |
 | L7 / Lab7 | 图像处理 / 卷积 / **数据增强** | KernelModule（仅卷积） | 🟡 缺数据增强 |
-| **L8 / Lab8** | **卷积神经网络（池化/特征图）** | KernelModule（部分） | 🟡 部分 |
+| **L8 / Lab8** | **卷积神经网络（池化/特征图）** | Convolution + CNN shapes | ✅ 已覆盖（形状 / 参数 / 填充） |
 | **L9 / Lab9** | **PyTorch（张量/自动求导）** | — | ❌ 缺口（偏工具） |
 | **L10 / Lab10** | **Minimax + Alpha-Beta 剪枝** | AlphaBetaModule | ✅ 已上线（2026-06-07） |
 | L11 / Lab11 | 复习 / 收尾 | —（非可视化） | n/a |

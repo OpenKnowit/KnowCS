@@ -8,9 +8,13 @@ GitHub Actions only validates the project. PinMe deployment has been removed.
 
 ## Publish a new build
 
-Run `npm run lint`, `npm test`, `npm run typecheck`, `npm run build` and `npm run build:lab` first.
-Upload `dist/index.html` and the `dist-lab/lab/` directory (served at `/lab/`) into a new timestamped
-directory under `/opt/1panel/www/sites/knowcs/releases/`. Compare local and remote SHA-256.
+Run `npm run lint`, `npm test`, `npm run typecheck` and `npm run build` first.
+The build is multi-page: `dist/` holds `index.html`, one `<module>/index.html` per page,
+`notes/`, `extend/`, redirect stubs at `lab/*.html` (old prototype links) and hashed `assets/`.
+Upload the whole `dist/` contents into a new timestamped directory under
+`/opt/1panel/www/sites/knowcs/releases/` (e.g. `tar` locally, `scp`, extract). Compare local and
+remote SHA-256 of every file (`find . -type f | sort | xargs shasum -a 256`).
+Nginx serves `/<module>/` from `<module>/index.html` via `try_files $uri $uri/`; no config change is needed.
 Create a temporary symlink targeting that release, then atomically replace
 `/opt/1panel/www/sites/knowcs/current` using `sudo mv -Tf`.
 Do not remove prior releases. Static updates do not require an OpenResty reload.
@@ -25,6 +29,6 @@ Back up the virtual host before configuration changes; always run `nginx -t` bef
 
 ## Verify and roll back
 
-Check HTTPS 200, HTTP-to-HTTPS redirect, gzip, browser console, and the served HTML
-SHA-256. Confirm existing sites still respond.
+Check HTTPS 200 (home, a module page, `/notes/numpy/`), HTTP-to-HTTPS redirect, gzip, browser console,
+the served HTML SHA-256 and that `/lab/home-a.html` redirects. Confirm existing sites still respond.
 To roll back content, atomically repoint `current` to the retained prior release.
