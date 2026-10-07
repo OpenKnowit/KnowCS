@@ -37,7 +37,7 @@
 | **L4 / Lab4** | **K-Means 聚类** | KMeansModule | ✅ 已上线（2026-06-07） |
 | L5 / Lab5 | 人工神经元 / 感知机 | Perceptron learning table | ✅ 已覆盖（2026-10） |
 | L6 / Lab6 | 多层感知机 / 反向传播 | BackpropModule | ✅ 已覆盖（2026-10 重写为可训练的数值版） |
-| L7 / Lab7 | 图像处理 / 卷积 / **数据增强** | KernelModule（仅卷积） | 🟡 缺数据增强 |
+| L7 / Lab7 | 图像处理 / 卷积 / 仿射变换 / 数据增强 | Kernel + Convolution + Otsu + Affine | ✅ 已覆盖（2026-10-08 补仿射与数据增强） |
 | **L8 / Lab8** | **卷积神经网络（池化/特征图）** | Convolution + CNN shapes | ✅ 已覆盖（形状 / 参数 / 填充） |
 | **L9 / Lab9** | **PyTorch（张量/自动求导）** | — | ❌ 缺口（偏工具） |
 | **L10 / Lab10** | **Minimax + Alpha-Beta 剪枝** | AlphaBetaModule | ✅ 已上线（2026-06-07） |
