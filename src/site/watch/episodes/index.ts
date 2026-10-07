@@ -1,4 +1,5 @@
 import type { Episode } from '../Player'
+import { affine } from './affine'
 import { alphabeta } from './alphabeta'
 import { autograd } from './autograd'
 import { backpropEp } from './backprop'
@@ -17,4 +18,4 @@ import { perceptron } from './perceptron'
 import { xor } from './xor'
 
 /** Every episode, loaded together — used by tests. Pages load one chunk per episode through useEpisode. */
-export const EPISODE_CODE: Record<string, Episode> = { xor, bayes, backprop: backpropEp, cnn, kmeans, alphabeta, knn, perceptron, evaluate, broadcast, gaussian, dilated, imagenp, otsu, ethics, autograd }
+export const EPISODE_CODE: Record<string, Episode> = { affine, xor, bayes, backprop: backpropEp, cnn, kmeans, alphabeta, knn, perceptron, evaluate, broadcast, gaussian, dilated, imagenp, otsu, ethics, autograd }

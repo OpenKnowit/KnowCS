@@ -12,7 +12,7 @@ KnowCS is an interactive study site for HKUST **COMP2211 (Exploring Artificial I
 |---|---|---|
 | Course map | `/` | Lectures 1–11 with their practice pages, explainers and exam badges. |
 | Practice pages | `/<topic>/` | 19 hands-on pages (NumPy, Bayes, KNN, evaluation, K-Means, perceptron, backprop, convolution, Otsu, affine transforms, CNN shapes, alpha-beta …). Most fill in the exact table an exam asks for, with a “Quiz me” mode. |
-| Explainers | `/watch/` | 16 animated, 3Blue1Brown-style explainers that run in the browser: chapters, captions, “pause and ponder” stops, a transcript and an exam corner with a past-paper question. |
+| Explainers | `/watch/` | 17 animated, 3Blue1Brown-style explainers that run in the browser: chapters, captions, “pause and ponder” stops, a transcript and an exam corner with a past-paper question. |
 | Concept check | `/drill/` | 46 original true/false statements in the style of the finals’ Problem 1, with explanations. |
 | Formula sheet | `/formulas/` | Every formula the exams use, with the trap to avoid; prints to three A4 pages. |
 | Exam map | `/papers/` | Which topics each of nine past papers asked. |

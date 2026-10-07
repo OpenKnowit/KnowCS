@@ -62,6 +62,7 @@ export const EPISODES: EpisodeInfo[] = [
   { id: 'backprop', lec: 6, modules: ['xor-mlp', 'backprop'], exams: ['F22', 'F23', 'F24'], thumb: 62_000 },
   { id: 'imagenp', lec: 7, modules: ['convolution', 'numpy', 'kernel'], exams: ['F24'], thumb: 52_000 },
   { id: 'otsu', lec: 7, modules: ['otsu', 'convolution'], exams: ['F22', 'F24'], thumb: 58_000 },
+  { id: 'affine', lec: 7, modules: ['affine'], exams: ['F22', 'F24'], thumb: 81_000 },
   { id: 'cnn', lec: 8, modules: ['convolution', 'cnn-shapes', 'kernel'], exams: ['F22', 'F23', 'F24'], thumb: 112_000 },
   { id: 'dilated', lec: 8, modules: ['convolution', 'cnn-shapes'], exams: ['F24'], thumb: 50_000 },
   { id: 'autograd', lec: 9, modules: [], exams: ['F22'], thumb: 70_000 },
