@@ -3409,5 +3409,16 @@
         "note": "Pruning never changes the root value."
       }
     }
+  },
+  "papers": {
+    "title": "Exam map",
+    "eyebrow": "Nine past papers at a glance",
+    "lead": "Which topics each midterm and final has asked, topic by topic. Click a topic to practise it, or ▶ to watch its explainer.",
+    "topic": "Topic",
+    "count": "Papers",
+    "per_paper": "Topics per paper",
+    "watch": "explainer",
+    "asked": "asked in {{paper}}",
+    "note": "Amber = midterm, red = final. Every final also has true/false questions (see Concept check) and a short ethics question (see the ethics explainer)."
   }
 }
