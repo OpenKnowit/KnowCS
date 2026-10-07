@@ -3285,5 +3285,129 @@
         "why": "As incoming data changes, accuracy can change — monitoring and maintenance is one of the three areas of AI ethics."
       }
     }
+  },
+  "formulas": {
+    "title": "Formula sheet",
+    "eyebrow": "One page, every formula",
+    "lead": "Every formula the midterms and finals use, in lecture order, with the trap to watch for. Print it, or save it as a PDF.",
+    "print": "Print / save as PDF",
+    "items": {
+      "broadcast": {
+        "name": "Broadcasting rule",
+        "note": "Compare shapes from the right; a length-1 axis stretches. Add axes with None."
+      },
+      "pairwise": {
+        "name": "Pairwise distances, expanded",
+        "note": "Lets you build all distances from norms and one matrix product — no (n, m, d) array."
+      },
+      "bayes": {
+        "name": "Bayes’ rule",
+        "note": "With a rare condition, the posterior is small even for an accurate test."
+      },
+      "total": {
+        "name": "Total probability",
+        "note": "The denominator: add every way the evidence can happen."
+      },
+      "naive": {
+        "name": "Naive Bayes decision",
+        "note": "Drop P(E) when you only need the winning class."
+      },
+      "laplace": {
+        "name": "α-Laplace smoothing",
+        "note": "m is the number of values of this feature, not the number of features."
+      },
+      "gauss": {
+        "name": "Gaussian likelihood",
+        "note": "Use each class’s own μ and σ. The value can exceed 1."
+      },
+      "std": {
+        "name": "Sample standard deviation",
+        "note": "Recent papers print the n − 1 version."
+      },
+      "euclid": {
+        "name": "Euclidean distance",
+        "note": "Use the distance the question names (some ask for squared or Manhattan)."
+      },
+      "zscore": {
+        "name": "Standardization",
+        "note": "Use the training mean and standard deviation for the test point too."
+      },
+      "accuracy": {
+        "name": "Accuracy",
+        "note": "Misleading on imbalanced data."
+      },
+      "precision": {
+        "name": "Precision and recall",
+        "note": "Precision divides by a predicted column, recall by an actual row."
+      },
+      "f1": {
+        "name": "F1 score",
+        "note": "Harmonic mean: small if either P or R is small."
+      },
+      "sse": {
+        "name": "K-Means objective (SSE)",
+        "note": "Never increases between rounds; lowest at k = n, so choose k by the elbow."
+      },
+      "centroid": {
+        "name": "Centroid update",
+        "note": "An empty cluster keeps its old centroid."
+      },
+      "neuron": {
+        "name": "Neuron output",
+        "note": "Check whether the step fires at z ≥ 0 or z > 0, and whether outputs are 0/1 or ±1."
+      },
+      "perceptron": {
+        "name": "Perceptron learning rule",
+        "note": "Only mistakes change anything; the bias’s input is 1."
+      },
+      "sigmoid": {
+        "name": "Sigmoid and its derivative",
+        "note": "The O(1 − O) factor in every delta."
+      },
+      "deltak": {
+        "name": "Output delta",
+        "note": "The course writes (O − T) and subtracts in the update."
+      },
+      "deltaj": {
+        "name": "Hidden delta",
+        "note": "Use the weights from before this step’s update."
+      },
+      "update": {
+        "name": "Weight update",
+        "note": "A zero input means a zero update for that weight."
+      },
+      "dense": {
+        "name": "Dense layer parameters",
+        "note": "+1 for the bias of every output unit."
+      },
+      "stretch": {
+        "name": "Contrast stretching",
+        "note": "Same histogram shape, spread over 0…255."
+      },
+      "otsu": {
+        "name": "Otsu’s threshold (lecture 7)",
+        "note": "If the paper says one iteration, stop after one."
+      },
+      "range": {
+        "name": "Range of a kernel on 8-bit images",
+        "note": "Use it to rescale a filtered image back to 0…255."
+      },
+      "outsize": {
+        "name": "Convolution / pooling output size",
+        "note": "Floor when it does not divide evenly; “same” padding gives ⌈N/S⌉."
+      },
+      "convparams": {
+        "name": "Convolution parameters",
+        "note": "Independent of the image size; pooling has none."
+      },
+      "dilated": {
+        "name": "Dilated kernel size",
+        "note": "Use K_eff in the output-size formula; still K·K weights."
+      },
+      "alphabeta": {
+        "name": "Alpha-beta bounds",
+        "note": "Pruning never changes the root value."
+      }
+    }
   }
 }
