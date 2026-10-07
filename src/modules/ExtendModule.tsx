@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { m } from 'framer-motion'
 import { ArrowLeft, Sparkles, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +15,18 @@ export const ExtendModule = ({ openId, onOpen }: ExtendModuleProps) => {
   const { t, i18n } = useTranslation()
   const lang = normalizeLang(i18n.resolvedLanguage)
   const openEntry = EXTENSIONS.find((e) => e.id === openId)
+  // the page's HTML loads on demand, per language
+  const [doc, setDoc] = useState<{ key: string; html: string } | null>(null)
+  const docKey = openEntry ? `${openEntry.id}:${lang}` : ''
+  useEffect(() => {
+    if (!openEntry) return
+    let live = true
+    void openEntry.load[lang]().then((mod) => live && setDoc({ key: `${openEntry.id}:${lang}`, html: mod.default }))
+    return () => {
+      live = false
+    }
+  }, [openEntry, lang])
+  const html = doc && doc.key === docKey ? doc.html : null
 
   if (openEntry) {
     return (
@@ -27,14 +40,18 @@ export const ExtendModule = ({ openId, onOpen }: ExtendModuleProps) => {
           </button>
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${openEntry.tagClass}`}>{openEntry.tag}</span>
         </div>
+        {html === null ? (
+          <div className="w-full flex-1 min-h-[75vh] animate-pulse rounded-2xl bg-[#0d1117]" aria-busy="true" />
+        ) : (
         <iframe
           key={lang}
-          srcDoc={openEntry.html[lang]}
+          srcDoc={html}
           title={t(openEntry.titleKey)}
           sandbox="allow-scripts"
           loading="lazy"
           className="w-full flex-1 min-h-[75vh] rounded-2xl border border-slate-200 shadow-inner bg-[#0d1117]"
         />
+        )}
       </m.div>
     )
   }
