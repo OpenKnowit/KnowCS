@@ -7,6 +7,11 @@
 
 ## 进展时间线
 
+### 2026-10-08 — 第 20 个练习页：PyTorch（L9），CNN 页加 PyTorch 代码
+- **feat**：新增 `/pytorch/`：张量 shape / dtype / device（含 0 维、from_numpy 保持 float64）；`@` 与 `*`（讲义 ones(4,4) 例子，自测）；NumPy 桥接共享内存（add_ / out= 同步，x = x + 1 与 clone 断开）；z = w·x + b + BCE 计算图逐步反向、backward 两次梯度翻倍、zero_grad / step / no_grad；训练循环五行排序并解释每种错误。`src/lib/torchSim.ts` + 13 个测试。概念自测新增 pt1–pt4（第 9 讲）。讲解视频 autograd 现链接到 PyTorch 页与 CNN 形状页。
+- **feat**：CNN 形状页代码卡片增加 PyTorch 切换：按第 9 讲写法生成 nn.Module（in_channels、展平后 `nn.Linear(64 * 14 * 14, 128)`、通道在前的形状注释、CrossEntropyLoss 不加 softmax），Keras 'same' 映射为 padding = k // 2。`src/lib/torchCode.ts` + 5 个测试；Keras summary 与 Final 2024 评分标准数值一致。
+- **fix**：CNN 形状页删除按钮与 floored 标签对比度。
+
 ### 2026-10-08 — CNN 形状页：Keras 代码与 model.summary()
 - **feat**：CNN 形状页新增第 3 步：由当前层栈生成 Keras `Sequential` 代码（显式填充自动变为 `ZeroPadding2D`）与 Keras 风格 `model.summary()`（自动层名 conv2d / conv2d_1…、`(None, …)` 形状、Param # 支持「自测」）；「分类 / 回归 0…1」切换输出层与损失（Final 2022 B Q2(b)）。新增 Final 2022 B Q2 预设（27×27×3 → 12 类），指出官方答案 `input_shape=(32, 32, 1)`、`stride=` 两处笔误。`src/lib/keras.ts` + 6 个测试（含 Final 2024 Q7(a) 全表）。
 

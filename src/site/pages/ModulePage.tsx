@@ -22,6 +22,7 @@ const LAB: Partial<Record<ModuleId, LazyExoticComponent<ComponentType>>> = {
   otsu: lazy(() => import('../modules/Otsu')),
   affine: lazy(() => import('../modules/Affine')),
   'cnn-shapes': lazy(() => import('../modules/CnnShapes')),
+  pytorch: lazy(() => import('../modules/PyTorch')),
 }
 
 // The original modules: their component plus the exam tip that used to sit in the sidebar.

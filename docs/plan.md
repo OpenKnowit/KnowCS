@@ -39,7 +39,7 @@
 | L6 / Lab6 | 多层感知机 / 反向传播 | BackpropModule | ✅ 已覆盖（2026-10 重写为可训练的数值版） |
 | L7 / Lab7 | 图像处理 / 卷积 / 仿射变换 / 数据增强 | Kernel + Convolution + Otsu + Affine | ✅ 已覆盖（2026-10-08 补仿射与数据增强） |
 | **L8 / Lab8** | **卷积神经网络（池化/特征图）** | Convolution + CNN shapes | ✅ 已覆盖（形状 / 参数 / 填充） |
-| **L9 / Lab9** | **PyTorch（张量/自动求导）** | — | ❌ 缺口（偏工具） |
+| L9 / Lab9 | PyTorch（张量/自动求导/训练循环） | PyTorch 练习页 + CNN 形状页的 PyTorch 代码 | ✅ 已覆盖（2026-10-08） |
 | **L10 / Lab10** | **Minimax + Alpha-Beta 剪枝** | AlphaBetaModule | ✅ 已上线（2026-06-07） |
 | L11 / Lab11 | 复习 / 收尾 | —（非可视化） | n/a |
 
