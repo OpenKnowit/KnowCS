@@ -1,7 +1,7 @@
 // NumPy API 目录：右侧可视化面板的分类与示例代码。说明文案在 locales 的 numpy_api.api.<id>。
 // match：示例运行后，第一个 api 名在列表里的调用会被选中展示（找不到就展示最后一次调用）。
 
-export type ApiCat = 'create' | 'shape' | 'index' | 'math' | 'reduce' | 'sort' | 'linalg' | 'random'
+export type ApiCat = 'create' | 'shape' | 'index' | 'math' | 'reduce' | 'sort' | 'linalg' | 'poly' | 'random'
 
 export interface ApiEntry {
   id: string
@@ -11,7 +11,7 @@ export interface ApiEntry {
   code: string
 }
 
-export const API_CATS: ApiCat[] = ['create', 'shape', 'index', 'math', 'reduce', 'sort', 'linalg', 'random']
+export const API_CATS: ApiCat[] = ['create', 'shape', 'index', 'math', 'reduce', 'sort', 'linalg', 'poly', 'random']
 
 const H = 'import numpy as np\n'
 
@@ -82,11 +82,23 @@ export const NUMPY_APIS: ApiEntry[] = [
   { id: 'inv', cat: 'linalg', label: 'np.linalg.inv', match: ['np.linalg.inv'], code: `${H}A = np.array([[4.0, 7.0], [2.0, 6.0]])\nAinv = np.linalg.inv(A)\nA @ Ainv   # ≈ identity` },
   { id: 'det', cat: 'linalg', label: 'np.linalg.det', match: ['np.linalg.det'], code: `${H}A = np.array([[3, 1], [2, 4]])\nnp.linalg.det(A)` },
 
+  // ---- numpy.polynomial (the note's section 3)
+  { id: 'poly_note', cat: 'poly', label: 'the note’s example', match: ['op:*'], code: `from numpy.polynomial import Polynomial\n\np = Polynomial([1, 2, 3])   # coefficients low → high: 1 + 2x + 3x²\nq = Polynomial([0, 1])      # q(x) = x (the note leaves q undefined)\np(2)          # evaluate → 17.0\np.roots()     # roots (may be complex)\np.deriv()     # derivative → 2 + 6x\np.integ()     # integral → x + x² + x³\np * q         # multiply with plain operators` },
+  { id: 'poly_eval', cat: 'poly', label: 'Polynomial(…)(x)', match: ['Polynomial.__call__'], code: `${H}from numpy.polynomial import Polynomial\np = Polynomial([1, -3, 2])   # 1 - 3x + 2x²\np(np.array([-1, 0, 0.5, 1, 2]))` },
+  { id: 'poly_deriv', cat: 'poly', label: '.deriv() / .integ()', match: ['Polynomial.deriv'], code: `from numpy.polynomial import Polynomial\np = Polynomial([0, -3, 0, 1])   # x³ - 3x\np.deriv()   # 3x² - 3: zero where p turns around` },
+  { id: 'poly_roots', cat: 'poly', label: '.roots()', match: ['Polynomial.roots'], code: `from numpy.polynomial import Polynomial\np = Polynomial([-6, 11, -6, 1])   # (x - 1)(x - 2)(x - 3)\np.roots()` },
+  { id: 'poly_fit', cat: 'poly', label: 'Polynomial.fit', match: ['Polynomial.fit'], code: `${H}from numpy.polynomial import Polynomial\nx = np.linspace(0, 4, 9)\nnoise = np.array([0.3, -0.2, 0.1, 0.25, -0.3, 0.05, -0.1, 0.2, -0.15])\ny = 0.5 * x ** 2 - 2 * x + 3 + noise\nfit = Polynomial.fit(x, y, deg=2)\nfit.convert()   # back to plain coefficients ≈ 3 - 2x + 0.5x²` },
+  { id: 'polyfit', cat: 'poly', label: 'np.polyfit (legacy)', match: ['np.polyfit'], code: `${H}x = np.array([0, 1, 2, 3, 4])\ny = np.array([1.1, 2.9, 5.2, 7.1, 8.8])\nnp.polyfit(x, y, 1)   # legacy: HIGH → low, so [slope, intercept]` },
+
   // ---- random
   { id: 'rand', cat: 'random', label: 'np.random.rand', match: ['np.random.rand'], code: `${H}np.random.seed(0)\nnp.random.rand(2, 3)   # uniform in [0, 1)` },
   { id: 'randint', cat: 'random', label: 'np.random.randint', match: ['np.random.randint'], code: `${H}np.random.seed(1)\nnp.random.randint(0, 10, size=(2, 4))` },
   { id: 'randn', cat: 'random', label: 'np.random.randn', match: ['np.random.randn'], code: `${H}np.random.seed(2)\nnp.random.randn(5)   # standard normal` },
 ]
+
+/** Code blocks in the note → a runnable version in the panel (matched by their content). */
+export const blockEntry = (code: string): string | null =>
+  code.includes('Polynomial.fit') ? 'poly_fit' : code.includes('Polynomial(') ? 'poly_note' : null
 
 /** Inline `code` in the NumPy note → which group of the panel to open. Namespaces outside the sandbox map to null. */
 export const NOTE_LINKS: Record<string, ApiCat | null> = {
@@ -103,8 +115,15 @@ export const NOTE_LINKS: Record<string, ApiCat | null> = {
   'random.Generator': 'random',
   'numpy.fft': null,
   'np.fft': null,
-  'numpy.polynomial': null,
-  'np.polynomial': null,
+  'numpy.polynomial': 'poly',
+  'np.polynomial': 'poly',
+  polynomial: 'poly',
+  Polynomial: 'poly',
+  'np.polyfit()': 'poly',
+  'Chebyshev.fit()': null,
+  Chebyshev: null,
+  'np.poly1d': null,
+  poly1d: null,
   'np.ma': null,
   'numpy.ma': null,
   'np.strings': null,

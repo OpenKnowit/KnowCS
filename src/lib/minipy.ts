@@ -8,6 +8,8 @@ import {
   reduceDType,
 } from './ndarray'
 import type { AxisNote, BinOp, DType, IndexItem, IndexPlan, ReduceKind } from './ndarray'
+import { DEFAULT_IV, complexRepr, convert, deriv, integ, lstsq, mapParams, polyRepr, polyStr, polyadd, polymul, polypow, polysub, polyval, roots, trim } from './poly'
+import type { Interval } from './poly'
 import {
   SandboxRandom, concatenate, cumsum, det, expandDims, flip, hstack, inv, norm, outer, repeat, roundHalfEven, sortAlong,
   squeeze, stack, swapaxes, tile, trace, unique, vstack, commonDType,
@@ -129,6 +131,7 @@ export type Stmt =
   | { k: 'assign'; targets: Node[]; x: Node; line: number }
   | { k: 'aug'; op: string; target: Node; x: Node; line: number; s: number; e: number }
   | { k: 'import'; alias: string; line: number }
+  | { k: 'from'; mod: string; names: { name: string; alias: string }[]; line: number }
   | { k: 'pass'; line: number }
 
 const UNSUPPORTED = new Set(['for', 'while', 'if', 'def', 'class', 'with', 'try', 'return', 'lambda', 'del', 'global', 'yield', 'elif', 'else', 'except', 'finally'])
@@ -187,7 +190,21 @@ class Parser {
       return { k: 'import', alias, line: tk.line }
     }
     if (this.isName('from')) {
-      throw new PyError('NotImplementedError', "use 'import numpy as np' in this sandbox", tk.line)
+      this.next()
+      let mod = this.next().v
+      while (this.isOp('.')) { this.next(); mod += '.' + this.next().v }
+      if (mod !== 'numpy' && mod !== 'numpy.polynomial') throw new PyError('ModuleNotFoundError', `No module named '${mod}' (this sandbox has numpy and numpy.polynomial)`, tk.line)
+      if (!this.isName('import')) throw this.unexpected()
+      this.next()
+      const names: { name: string; alias: string }[] = []
+      do {
+        if (this.isOp(',')) this.next()
+        const name = this.next().v
+        let alias = name
+        if (this.isName('as')) { this.next(); alias = this.next().v }
+        names.push({ name, alias })
+      } while (this.isOp(','))
+      return { k: 'from', mod, names, line: tk.line }
     }
     const first = this.testList()
     if (this.cur.t === 'op' && /^(\*\*|\/\/|[-+*/%&|^@])=$/.test(this.cur.v)) {
@@ -436,7 +453,7 @@ export const parse = (src: string): Stmt[] => new Parser(tokenize(src)).program(
 type Fn = (args: Value[], kw: Record<string, Value>) => Value
 
 /** 可视化用的 API 分类：决定「输出元素来自哪些输入元素」的计算方式 */
-export type ApiKind = 'create' | 'move' | 'elementwise' | 'reduce' | 'scan' | 'matmul' | 'sort' | 'unique' | 'linalg' | 'random' | 'info'
+export type ApiKind = 'create' | 'move' | 'elementwise' | 'reduce' | 'scan' | 'matmul' | 'sort' | 'unique' | 'linalg' | 'random' | 'info' | 'poly'
 
 interface ApiMeta {
   /** 'np.sum' / 'ndarray.sum' / 'np.linalg.inv' … */
@@ -460,7 +477,9 @@ export type Value =
   | { k: 'ellipsis' }
   | { k: 'array'; a: NDArray }
   | { k: 'fn'; name: string; call: Fn; api?: ApiMeta; self?: NDArray; rebind?: (self: NDArray) => Fn }
-  | { k: 'type'; name: string; call: Fn; dtype?: DType }
+  | { k: 'type'; name: string; call: Fn; dtype?: DType; api?: ApiMeta }
+  | { k: 'poly'; coef: number[]; domain: Interval; window: Interval }
+  | { k: 'carray'; re: number[]; im: number[] }
   | { k: 'module'; name: string; attrs: Record<string, Value> }
   | { k: 'dtype'; d: DType }
 
@@ -478,6 +497,8 @@ const typeName = (v: Value): string => {
     case 'fn': return 'builtin_function_or_method'
     case 'type': return 'type'
     case 'dtype': return 'numpy.dtype'
+    case 'poly': return 'Polynomial'
+    case 'carray': return 'numpy.ndarray'
     default: return v.k
   }
 }
@@ -508,6 +529,8 @@ export const repr = (v: Value): string => {
     case 'type': return `<class '${v.name}'>`
     case 'module': return `<module '${v.name}'>`
     case 'dtype': return `dtype('${v.d}')`
+    case 'poly': return polyRepr(v.coef, v.domain, v.window)
+    case 'carray': return complexRepr(v.re, v.im)
   }
 }
 
@@ -515,6 +538,7 @@ export const str = (v: Value): string => {
   if (v.k === 'str') return v.v
   if (v.k === 'array') return arrayStr(v.a)
   if (v.k === 'dtype') return v.d
+  if (v.k === 'poly') return polyStr(v.coef)
   return repr(v)
 }
 
@@ -625,6 +649,14 @@ export interface CallTrace {
   resultText: string
   /** kind = 'move'：结果每个元素拷贝自 [第几个操作数, 其扁平下标] */
   source?: [number, number][]
+  /** kind = 'poly'：要画的曲线（普通 x 的系数，低次在前）、数据点与标记点 */
+  plot?: PolyPlot
+}
+
+export interface PolyPlot {
+  curves: { label: string; coef: number[] }[]
+  points?: { x: number[]; y: number[] }
+  marks?: { x: number; y: number }[]
 }
 
 export interface VarInfo {
@@ -661,6 +693,8 @@ class Interp {
   /** >0 while re-running a call on id arrays to recover element provenance */
   replaying = 0
   rng = new SandboxRandom()
+  /** 多项式调用把要画的曲线放在这里，由 pushCall 取走 */
+  pendingPlot: PolyPlot | null = null
   builtins: Record<string, Value>
   np: Value
 
@@ -966,6 +1000,8 @@ class Interp {
   }
 
   pushCall(api: string, kind: ApiKind, code: string, ops: { label: string; v: Value }[], res: Value, axis: number | null, source?: [number, number][]) {
+    const plot = this.pendingPlot ?? undefined
+    this.pendingPlot = null
     this.calls.push({
       id: this.calls.length,
       line: this.line,
@@ -977,6 +1013,7 @@ class Interp {
       result: this.resultSnap(res),
       resultText: repr(res),
       source,
+      plot,
     })
   }
 
@@ -1004,11 +1041,12 @@ class Interp {
     }
   }
 
-  tracedCall(f: Value & { k: 'fn' }, n: Node & { k: 'call' }, args: Value[], kw: Record<string, Value>): Value {
+  tracedCall(f: Value & { k: 'fn' | 'type' }, n: Node & { k: 'call' }, args: Value[], kw: Record<string, Value>): Value {
     const meta = f.api!
-    const selfNode = f.self && n.fn.k === 'attr' ? n.fn.obj : null
+    const self = f.k === 'fn' ? f.self : undefined
+    const selfNode = self && n.fn.k === 'attr' ? n.fn.obj : null
     const nodes = selfNode ? [selfNode, ...n.args] : n.args
-    const vals = f.self ? [arr(f.self), ...args] : args
+    const vals = self ? [arr(self), ...args] : args
     const ops = this.collectOperands(nodes, vals, meta.kind === 'elementwise')
     // 先拍快照：调用本身可能改动输入（如原地操作）
     const opSnaps = ops.map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
@@ -1021,7 +1059,7 @@ class Interp {
     let source: [number, number][] | undefined
     if (meta.kind === 'move') {
       source = this.replayMove(ops, (subst) => {
-        const call = f.self && f.rebind ? f.rebind((subst(arr(f.self)) as { a: NDArray }).a) : f.call
+        const call = f.k === 'fn' && f.self && f.rebind ? f.rebind((subst(arr(f.self)) as { a: NDArray }).a) : f.call
         const skw: Record<string, Value> = {}
         for (const k in kw) skw[k] = subst(kw[k])
         return call(args.map(subst), skw)
@@ -1090,6 +1128,15 @@ class Interp {
       case 'bin': {
         const l = this.eval(n.l)
         const r = this.eval(n.r)
+        if (l.k === 'poly' || r.k === 'poly') {
+          const res = this.polyArith(n.op, l, r)
+          if (!this.replaying && !this.quiet) {
+            const curves = [[n.l, l], [n.r, r]].flatMap(([node, v]) => ((v as Value).k === 'poly' ? [this.curve(this.text(node as Node), v as Value & { k: 'poly' })] : []))
+            this.pendingPlot = { curves: [...curves, this.curve(this.text(n), res)] }
+            this.pushCall(`op:${n.op}`, 'poly', this.text(n), [], res, null)
+          }
+          return res
+        }
         const res = this.binop(n.op, l, r)
         if ((l.k === 'array' || r.k === 'array') && !this.replaying && !this.quiet) {
           const ops = this.collectOperands([n.l, n.r], [l, r], n.op !== '@').map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
@@ -1112,8 +1159,9 @@ class Interp {
         const args = n.args.map((x) => this.eval(x))
         const kw: Record<string, Value> = {}
         for (const { name, v } of n.kw) kw[name] = this.eval(v)
+        if (f.k === 'poly') return this.callPoly(f, n, args)
         if (f.k !== 'fn' && f.k !== 'type') throw this.err('TypeError', `'${typeName(f)}' object is not callable`)
-        if (f.k === 'fn' && f.api && !this.replaying && !this.quiet) return this.tracedCall(f, n, args, kw)
+        if (f.api && !this.replaying && !this.quiet) return this.tracedCall(f, n, args, kw)
         return f.call(args, kw)
       }
       case 'sub': return this.getItem(n, this.eval(n.obj), this.eval(n.idx))
@@ -1162,6 +1210,16 @@ class Interp {
       switch (st.k) {
         case 'pass': break
         case 'import': this.env.set(st.alias, this.np); break
+        case 'from': {
+          const np = this.np as Value & { k: 'module' }
+          const mod = st.mod === 'numpy' ? np : (np.attrs.polynomial as Value & { k: 'module' })
+          for (const { name, alias } of st.names) {
+            const v = mod.attrs[name]
+            if (!v) throw this.err('ImportError', `cannot import name '${name}' from '${st.mod}' (not available in this sandbox)`)
+            this.env.set(alias, v)
+          }
+          break
+        }
         case 'expr': {
           const v = this.eval(st.x)
           if (i === stmts.length - 1 && v.k !== 'none') out = repr(v)
@@ -1280,6 +1338,115 @@ class Interp {
     return v
   }
 
+  // ---------- numpy.polynomial ----------
+
+  makePoly(coef: number[], domain: Interval = DEFAULT_IV, window: Interval = DEFAULT_IV): Value & { k: 'poly' } {
+    return { k: 'poly', coef: trim(coef), domain, window }
+  }
+
+  /** 画图用：换算成普通 x 的系数 */
+  curve(label: string, p: Value): { label: string; coef: number[] } {
+    const q = p as Value & { k: 'poly' }
+    return { label, coef: convert(q.coef, q.domain, q.window) }
+  }
+
+  coefList(v: Value | undefined, name: string): number[] {
+    if (!v) throw this.err('TypeError', `${name}() missing required argument 'coef'`)
+    if (isNum(v)) return [numOf(v)]
+    return toArray(v, 'float64').values()
+  }
+
+  /** p(x)：x 可以是数或数组 */
+  callPoly(p: Value & { k: 'poly' }, n: Node & { k: 'call' }, args: Value[]): Value {
+    const x = args[0]
+    if (!x) throw this.err('TypeError', "__call__() missing 1 required positional argument: 'arg'")
+    const { off, scl } = mapParams(p.domain, p.window)
+    const ev = (t: number) => polyval(p.coef, off + scl * t)
+    let res: Value
+    let marks: { x: number; y: number }[]
+    if (isNum(x)) {
+      res = float(ev(numOf(x)))
+      marks = [{ x: numOf(x), y: numOf(res) }]
+    } else {
+      const xa = toArray(x, 'float64')
+      const ys = xa.values().map(ev)
+      res = arr(NDArray.create(ys, xa.shape, 'float64'))
+      marks = xa.values().map((t, i) => ({ x: t, y: ys[i] }))
+    }
+    if (!this.replaying && !this.quiet) {
+      this.pendingPlot = { curves: [this.curve(n.fn.k === 'name' ? n.fn.id : this.text(n.fn), p)], marks }
+      this.pushCall('Polynomial.__call__', 'poly', this.text(n), [], res, null)
+    }
+    return res
+  }
+
+  polyArith(op: string, l: Value, r: Value): Value {
+    const asPoly = (v: Value): Value & { k: 'poly' } => {
+      if (v.k === 'poly') return v
+      if (isNum(v)) return this.makePoly([numOf(v)])
+      throw this.err('TypeError', `unsupported operand type(s) for ${op}: '${typeName(l)}' and '${typeName(r)}'`)
+    }
+    if (op === '**') {
+      if (l.k !== 'poly' || (r.k !== 'int' && r.k !== 'bool') || numOf(r) < 0) throw this.err('ValueError', 'Power must be a non-negative integer.')
+      return this.makePoly(polypow(l.coef, numOf(r)), l.domain, l.window)
+    }
+    const a = asPoly(l)
+    const b = asPoly(r)
+    const base = l.k === 'poly' ? l : a
+    if (l.k === 'poly' && r.k === 'poly' && (a.domain.join() !== b.domain.join() || a.window.join() !== b.window.join())) throw this.err('TypeError', 'Domains differ')
+    const f = op === '+' ? polyadd : op === '-' ? polysub : op === '*' ? polymul : null
+    if (!f) throw this.err('TypeError', `unsupported operand type(s) for ${op}: '${typeName(l)}' and '${typeName(r)}'`)
+    return this.makePoly(f(a.coef, b.coef), base.domain, base.window)
+  }
+
+  polyAttr(p: Value & { k: 'poly' }, name: string): Value {
+    const { scl } = mapParams(p.domain, p.window)
+    const label = 'p'
+    const method = (call: Fn): Value => ({ k: 'fn', name, call, api: { name: `Polynomial.${name}`, kind: 'poly' } })
+    switch (name) {
+      case 'coef': return arr(NDArray.create(p.coef, [p.coef.length], 'float64'))
+      case 'domain': return arr(NDArray.create(p.domain, [2], 'float64'))
+      case 'window': return arr(NDArray.create(p.window, [2], 'float64'))
+      case 'degree': return { k: 'fn', name, call: () => int(p.coef.length - 1) }
+      case 'deriv': return method((args, kw) => {
+        const res = this.makePoly(deriv(p.coef, this.kwInt(kw, args, 0, 'm') ?? 1, scl), p.domain, p.window)
+        this.pendingPlot = { curves: [this.curve(label, p), this.curve("p'", res)] }
+        return res
+      })
+      case 'integ': return method((args, kw) => {
+        const k = kw.k ?? args[1]
+        const res = this.makePoly(integ(p.coef, this.kwInt(kw, args, 0, 'm') ?? 1, k ? numOf(k) : 0, 1 / scl), p.domain, p.window)
+        this.pendingPlot = { curves: [this.curve(label, p), this.curve('∫p', res)] }
+        return res
+      })
+      case 'roots': return method(() => {
+        const r = roots(convert(p.coef, p.domain, p.window))
+        this.pendingPlot = { curves: [this.curve(label, p)], marks: r.real ? r.re.map((x) => ({ x, y: 0 })) : [] }
+        return r.real ? arr(NDArray.create(r.re, [r.re.length], 'float64')) : { k: 'carray', re: r.re, im: r.im }
+      })
+      case 'convert': return method(() => {
+        const res = this.makePoly(convert(p.coef, p.domain, p.window))
+        this.pendingPlot = { curves: [this.curve(label, res)] }
+        return res
+      })
+    }
+    throw this.err('AttributeError', `'Polynomial' object has no attribute '${name}'`)
+  }
+
+  /** Polynomial.fit(x, y, deg)：在 window 变量上做最小二乘 */
+  polyFit(args: Value[], kw: Record<string, Value>): Value {
+    const x = toArray(args[0] ?? NONE, 'float64').values()
+    const y = toArray(args[1] ?? NONE, 'float64').values()
+    const deg = this.toInt(kw.deg ?? args[2])
+    if (x.length !== y.length) throw this.err('TypeError', 'expected x and y to have same length')
+    if (x.length <= deg) throw this.err('ValueError', `need at least ${deg + 1} points to fit degree ${deg}`)
+    const domain: Interval = [Math.min(...x), Math.max(...x)]
+    const { off, scl } = mapParams(domain, DEFAULT_IV)
+    const res = this.makePoly(lstsq(x.map((t) => off + scl * t), y, deg), domain, DEFAULT_IV)
+    this.pendingPlot = { curves: [this.curve('fit', res)], points: { x, y } }
+    return res
+  }
+
   getAttr(obj: Value, name: string): Value {
     const fn = (call: Fn): Value => ({ k: 'fn', name, call })
     if (obj.k === 'module') {
@@ -1306,6 +1473,10 @@ class Interp {
       return fn((args) => { obj.items.push(args[0]); return NONE })
     }
     if (obj.k === 'dtype' && name === 'name') return { k: 'str', v: obj.d }
+    if (obj.k === 'poly') return this.polyAttr(obj, name)
+    if (obj.k === 'type' && obj.name === 'Polynomial' && name === 'fit') {
+      return { k: 'fn', name: 'fit', call: (args, kw) => this.polyFit(args, kw), api: { name: 'Polynomial.fit', kind: 'poly' } }
+    }
     throw this.err('AttributeError', `'${typeName(obj)}' object has no attribute '${name}'`)
   }
 
@@ -1530,6 +1701,44 @@ class Interp {
       }, 'linalg'),
       linalg,
       random,
+      polynomial: {
+        k: 'module',
+        name: 'numpy.polynomial',
+        attrs: {
+          Polynomial: {
+            k: 'type',
+            name: 'Polynomial',
+            api: { name: 'Polynomial', kind: 'poly' },
+            call: (args, kw) => {
+              const dom = kw.domain ?? args[1]
+              const domain: Interval = dom && dom.k !== 'none' ? (toArray(dom, 'float64').values() as Interval) : DEFAULT_IV
+              const res = this.makePoly(this.coefList(args[0], 'Polynomial'), domain, DEFAULT_IV)
+              this.pendingPlot = { curves: [this.curve('p', res)] }
+              return res
+            },
+          },
+        },
+      },
+      polyfit: fn('polyfit', (args, kw) => {
+        const x = toArray(args[0], 'float64').values()
+        const y = toArray(args[1], 'float64').values()
+        const deg = this.toInt(kw.deg ?? args[2])
+        if (x.length <= deg) throw this.err('ValueError', `need at least ${deg + 1} points to fit degree ${deg}`)
+        const low = lstsq(x, y, deg)
+        this.pendingPlot = { curves: [{ label: 'polyfit', coef: low }], points: { x, y } }
+        return arr(NDArray.create([...low].reverse(), [low.length], 'float64'))
+      }, 'poly'),
+      polyval: fn('polyval', (args) => {
+        const pa = toArray(args[0] ?? NONE)
+        const x = args[1] ?? NONE
+        const xa = toArray(x)
+        const low = [...pa.values()].reverse()
+        const ys = xa.values().map((t) => polyval(low, t))
+        this.pendingPlot = { curves: [{ label: 'p', coef: low }], marks: xa.values().map((t, i) => ({ x: t, y: ys[i] })) }
+        // integer result only when both the coefficients and x are integers (numpy's type promotion)
+        const dtype: DType = pa.dtype === 'float64' || xa.dtype === 'float64' ? 'float64' : 'int64'
+        return isNum(x) ? fromScalar(ys[0], dtype) : arr(NDArray.create(ys, xa.shape, dtype))
+      }, 'poly'),
       // ---- reductions, scans, sorting
       sum: reducer('sum'), mean: reducer('mean'), max: reducer('max'), min: reducer('min'),
       argmax: reducer('argmax'), argmin: reducer('argmin'), any: reducer('any'), all: reducer('all'),

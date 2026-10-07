@@ -637,7 +637,8 @@
       "reduce": "Reduce",
       "sort": "Sort",
       "linalg": "Linear algebra",
-      "random": "Random"
+      "random": "Random",
+      "poly": "Polynomial"
     },
     "kind": {
       "create": "creates",
@@ -650,7 +651,8 @@
       "unique": "unique",
       "linalg": "linear algebra",
       "random": "random",
-      "info": "returns info"
+      "info": "returns info",
+      "poly": "polynomial"
     },
     "rule": {
       "create": "Builds a new array from scratch — there is no input array to trace.",
@@ -670,7 +672,17 @@
       "argsort": "argsort returns positions, not values: each number says where the k-th smallest value sits in the input.",
       "unique": "Each distinct value once, sorted. Hover one to see every place it occurs.",
       "trace": "Adds up the main diagonal.",
-      "linalg": "Every result cell depends on the whole matrix — there is no cell-by-cell shortcut."
+      "linalg": "Every result cell depends on the whole matrix — there is no cell-by-cell shortcut.",
+      "poly_create": "A polynomial is just its coefficients, lowest degree first: [1, 2, 3] means 1 + 2x + 3x².",
+      "poly_eval": "Calling p(x) plugs x into the polynomial; the red dots are the values it returned.",
+      "poly_deriv": "The derivative (solid) is zero exactly where the original curve (dashed) turns around.",
+      "poly_integ": "The integral (solid) grows where the original (dashed) is positive and shrinks where it is negative.",
+      "poly_roots": "Roots are where the curve crosses zero. If it never crosses, the roots are complex and nothing can be marked.",
+      "poly_convert": "Fitted polynomials live on a shifted, scaled x; convert() rewrites them with ordinary x coefficients.",
+      "poly_fit": "Least squares: the curve that makes the total squared vertical gap to the points as small as possible.",
+      "poly_arith": "Polynomials combine with + − * ** like numbers; the solid curve is the result.",
+      "polyfit": "Legacy API: same least-squares fit, but the coefficients come back highest degree first.",
+      "polyval": "Legacy API: evaluates coefficients given highest degree first."
     },
     "api": {
       "array": "Turns a (nested) Python list into an array; the nesting depth becomes the number of axes.",
@@ -727,7 +739,16 @@
       "det": "Determinant of a square matrix; 0 means it has no inverse.",
       "rand": "Uniform random numbers in [0, 1) with the given shape.",
       "randint": "Random integers from low (included) to high (excluded).",
-      "randn": "Samples from the standard normal distribution (mean 0, std 1)."
-    }
+      "randn": "Samples from the standard normal distribution (mean 0, std 1).",
+      "poly_note": "The code block from this note, made runnable (q is defined here). Step through the calls to see each result.",
+      "poly_eval": "Evaluate a polynomial at one value or a whole array at once.",
+      "poly_deriv": "Differentiate (deriv) or integrate (integ) and get a new Polynomial back.",
+      "poly_roots": "All roots of the polynomial, sorted; complex ones are returned as complex numbers.",
+      "poly_fit": "Fit a polynomial of a chosen degree to noisy data, then convert() to read the coefficients.",
+      "polyfit": "The old np.polyfit: coefficients highest degree first — for degree 1 that is [slope, intercept]."
+    },
+    "run_block": "Run in the NumPy panel",
+    "plot_label": "Polynomial curves",
+    "plot_points": "data points"
   }
 }

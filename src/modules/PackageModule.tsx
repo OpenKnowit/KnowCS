@@ -4,7 +4,7 @@ import { m } from 'framer-motion'
 import { ArrowLeft, FileText, MousePointerClick, Package } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { NOTES } from '../data/notes'
-import { NOTE_LINKS } from '../data/numpyApis'
+import { NOTE_LINKS, blockEntry } from '../data/numpyApis'
 import type { ApiCat } from '../data/numpyApis'
 import { normalizeLang } from '../lib/lang'
 import { NumpyApiPanel } from './NumpyApiPanel'
@@ -23,7 +23,7 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
   const withPanel = openNote?.id === 'numpy'
   const panelRef = useRef<HTMLDivElement>(null)
   // 笔记里点了哪个名字：决定 NumPy 面板打开哪一组（key 递增让面板按新入口重置）
-  const [focus, setFocus] = useState<{ cat: ApiCat | null; missing: string | null; n: number }>({ cat: null, missing: null, n: 0 })
+  const [focus, setFocus] = useState<{ cat: ApiCat | null; entry: string | null; missing: string | null; n: number }>({ cat: null, entry: null, missing: null, n: 0 })
 
   // 打开笔记时回到页面顶部，避免停留在卡片网格的滚动位置
   useEffect(() => {
@@ -36,25 +36,36 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
     const html = openNote.body[lang].html
     if (!withPanel) return html
     const title = t('numpy_api.link_hint').replace(/"/g, '&quot;')
+    const run = t('numpy_api.run_block')
     // 行内 code 没有属性；代码块里的是 <code class="language-…">，不会被匹配
-    return html.replace(/<code>([^<]+)<\/code>/g, (whole, name: string) =>
-      name in NOTE_LINKS ? `<code class="np-link" role="button" tabindex="0" title="${title}">${name}</code>` : whole,
-    )
+    return html
+      .replace(/<code>([^<]+)<\/code>/g, (whole, name: string) =>
+        name in NOTE_LINKS ? `<code class="np-link" role="button" tabindex="0" title="${title}">${name}</code>` : whole,
+      )
+      .replace(/<pre>[\s\S]*?<\/pre>/g, (block) => {
+        const id = blockEntry(block)
+        return id ? `<div class="np-block">${block}<button type="button" class="np-run" data-entry="${id}">▶ ${run}</button></div>` : block
+      })
   }, [openNote, lang, withPanel, t])
 
   const followLink = (target: EventTarget) => {
+    const runBtn = (target as HTMLElement).closest?.('button.np-run') as HTMLElement | null
     const el = (target as HTMLElement).closest?.('code.np-link')
-    if (!el) return
-    const name = el.textContent?.trim() ?? ''
-    const cat = NOTE_LINKS[name] ?? null
-    setFocus((f) => ({ cat, missing: cat ? null : name, n: f.n + 1 }))
+    if (runBtn) {
+      setFocus((f) => ({ cat: null, entry: runBtn.dataset.entry ?? null, missing: null, n: f.n + 1 }))
+    } else if (el) {
+      const name = el.textContent?.trim() ?? ''
+      const cat = NOTE_LINKS[name] ?? null
+      setFocus((f) => ({ cat, entry: null, missing: cat ? null : name, n: f.n + 1 }))
+    } else return
     // 窄屏时面板在正文下方：滚过去
     if (window.matchMedia('(max-width: 1279px)').matches) panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
   const onArticleClick = (e: MouseEvent) => followLink(e.target)
   const onArticleKey = (e: KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      if ((e.target as HTMLElement).closest?.('code.np-link')) e.preventDefault()
+    // only the marked <code> names need keyboard handling; the run buttons are real <button>s
+    if ((e.key === 'Enter' || e.key === ' ') && (e.target as HTMLElement).closest?.('code.np-link')) {
+      e.preventDefault()
       followLink(e.target)
     }
   }
@@ -80,7 +91,7 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
               <article key={lang} lang={lang} className="note-prose" onClick={onArticleClick} onKeyDown={onArticleKey} dangerouslySetInnerHTML={{ __html: noteHtml }} />
             </div>
             <div ref={panelRef} className="scroll-mt-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pb-2">
-              <NumpyApiPanel key={focus.n} initialCat={focus.cat} missing={focus.missing} />
+              <NumpyApiPanel key={focus.n} initialCat={focus.cat} initialEntry={focus.entry} missing={focus.missing} />
             </div>
           </div>
         ) : (

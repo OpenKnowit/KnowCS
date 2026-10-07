@@ -154,6 +154,7 @@ KnowCS/
   - **调用追踪**：`minipy` 为每次 NumPy 函数 / 数组方法 / 运算符 / 比较 / `.T` / 下标读取记录一条 `CallTrace`（源码、API 名、类别、操作数快照、axis、结果）。搬运类调用（reshape、stack、tile、flip、索引…）在「元素编号数组」上重放一次，直接得到每个结果元素的来源。
   - **溯源**（`lib/npTrace.ts`）：按类别算出结果每个元素依赖的输入元素——逐元素（含广播）、沿轴规约（最值 / argmax 标出被选中的元素）、累加、矩阵乘（第 i 行 × 第 j 列）、排序、去重、trace / inv / det。悬停结果格子高亮来源，悬停输入格子高亮受影响的结果。
   - **新增 API**（`lib/ndops.ts` + `minipy`）：concatenate / stack / vstack / hstack / tile / repeat / flip / swapaxes / expand_dims / squeeze、sort / argsort / unique、cumsum、prod / std / var / count_nonzero、round（银行家舍入）/ clip / maximum / minimum / square / floor / ceil / sign / sin / cos / add… / logical_*、outer / trace、`np.linalg.inv/det/norm`、`np.random.seed/rand/randn/randint`（自带种子生成器，数值与 NumPy 不同）、*_like / identity。`npapi.test.ts` 以 NumPy 2.2.6 的真实输出为黄金值（70 例）；已知差异：0 维结果显示为 `12` 而非 `np.int64(12)`，det 为精确值。
+  - **多项式**（`lib/poly.ts`）：支持 `from numpy.polynomial import Polynomial`，Polynomial 的求值 / deriv / integ / roots（复根按 numpy 格式输出）/ + − * ** / fit / convert，以及旧版 `np.polyfit` / `np.polyval`。这类调用不画网格，而是画曲线图（数据点、求值点、实根标记）。笔记里的两个代码块带「在 NumPy 面板中运行」按钮，打开补全后可运行的版本。
   - 打开 NumPy 笔记时整页放宽到 1440px（`App.tsx` 的 `wide`），≥1280px 时面板吸顶并可独立滚动，窄屏放在正文下方。
 
 ### 6.2 BackpropModule — 反向传播（单输出 sigmoid 神经元）

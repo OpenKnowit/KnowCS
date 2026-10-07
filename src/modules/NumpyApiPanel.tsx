@@ -7,7 +7,9 @@ import type { ApiCat, ApiEntry } from '../data/numpyApis'
 import { prod, shapeStr, unravel } from '../lib/ndarray'
 import type { DType } from '../lib/ndarray'
 import { runPython } from '../lib/minipy'
-import type { CallTrace, GridSnapshot } from '../lib/minipy'
+import type { CallTrace, GridSnapshot, PolyPlot } from '../lib/minipy'
+import { polyStr, polyval } from '../lib/poly'
+import { niceTicks } from '../lib/chart'
 import { dependents, explainCall } from '../lib/npTrace'
 import type { Cell, Explain } from '../lib/npTrace'
 
@@ -95,6 +97,73 @@ const NdGrid = ({ title, snap, look, tint, onHover }: GridProps) => {
   )
 }
 
+const CURVE_COLORS = ['#2563eb', '#e11d48', '#059669', '#d97706']
+
+/** 多项式曲线图：曲线 + 数据点（拟合）+ 标记点（求值 / 实根） */
+const PolyChart = ({ plot }: { plot: PolyPlot }) => {
+  const { t } = useTranslation()
+  const W = 520, H = 250, L = 38, R = 12, T = 12, B = 26
+  const xsKnown = [...(plot.points?.x ?? []), ...(plot.marks ?? []).map((m) => m.x)]
+  let [x0, x1] = xsKnown.length ? [Math.min(...xsKnown), Math.max(...xsKnown)] : [-2.5, 2.5]
+  if (x1 - x0 < 1e-9) [x0, x1] = [x0 - 2, x1 + 2]
+  const padX = (x1 - x0) * 0.15
+  x0 -= padX
+  x1 += padX
+  const samples = 160
+  const ys: number[] = [...(plot.points?.y ?? []), ...(plot.marks ?? []).map((m) => m.y)]
+  const paths = plot.curves.map((c) => Array.from({ length: samples + 1 }, (_, i) => {
+    const x = x0 + ((x1 - x0) * i) / samples
+    const y = polyval(c.coef, x)
+    ys.push(y)
+    return [x, y] as const
+  }))
+  let y0 = Math.min(0, ...ys)
+  let y1 = Math.max(0, ...ys)
+  if (y1 - y0 < 1e-9) [y0, y1] = [y0 - 1, y1 + 1]
+  const padY = (y1 - y0) * 0.08
+  y0 -= padY
+  y1 += padY
+  const X = (x: number) => L + ((x - x0) / (x1 - x0)) * (W - L - R)
+  const Y = (y: number) => T + (1 - (y - y0) / (y1 - y0)) * (H - T - B)
+  const round = (c: number[]) => c.map((v) => Math.round(v * 1000) / 1000)
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t('numpy_api.plot_label')}>
+        {niceTicks(y0, y1, 5).map((v) => (
+          <g key={`y${v}`}>
+            <line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="#f1f5f9" />
+            <text x={L - 5} y={Y(v) + 4} textAnchor="end" className="fill-slate-400 text-[10px]">{+v.toFixed(3)}</text>
+          </g>
+        ))}
+        {niceTicks(x0, x1, 6).map((v) => (
+          <text key={`x${v}`} x={X(v)} y={H - 8} textAnchor="middle" className="fill-slate-400 text-[10px]">{+v.toFixed(3)}</text>
+        ))}
+        {y0 < 0 && y1 > 0 && <line x1={L} x2={W - R} y1={Y(0)} y2={Y(0)} stroke="#94a3b8" />}
+        {x0 < 0 && x1 > 0 && <line x1={X(0)} x2={X(0)} y1={T} y2={H - B} stroke="#cbd5e1" />}
+        {paths.map((pts, k) => (
+          <polyline key={k} fill="none" stroke={CURVE_COLORS[k % CURVE_COLORS.length]} strokeWidth={k === paths.length - 1 ? 2.6 : 1.8} strokeDasharray={k === paths.length - 1 || paths.length === 1 ? undefined : '5 4'} points={pts.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(' ')} />
+        ))}
+        {plot.points?.x.map((x, i) => <circle key={`p${i}`} cx={X(x)} cy={Y(plot.points!.y[i])} r={4} fill="#fff" stroke="#0f172a" strokeWidth={1.5} />)}
+        {plot.marks?.map((m, i) => (
+          <g key={`m${i}`}>
+            <circle cx={X(m.x)} cy={Y(m.y)} r={5} fill="#e11d48" stroke="#fff" strokeWidth={2} />
+            {plot.marks!.length <= 5 && <text x={X(m.x) + 7} y={Y(m.y) - 7} className="fill-rose-700 font-mono text-[10px] font-bold">({+m.x.toFixed(3)}, {+m.y.toFixed(3)})</text>}
+          </g>
+        ))}
+      </svg>
+      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
+        {plot.curves.map((c, k) => (
+          <span key={k} className="inline-flex items-center gap-1.5 font-mono">
+            <i className="inline-block h-0.5 w-4" style={{ background: CURVE_COLORS[k % CURVE_COLORS.length] }} />
+            {c.label} = {polyStr(round(c.coef))}
+          </span>
+        ))}
+        {plot.points && <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full border-2 border-slate-900" />{t('numpy_api.plot_points')}</span>}
+      </div>
+    </div>
+  )
+}
+
 type Hover = { side: 'out'; flat: number } | { side: 'in'; k: number; flat: number } | null
 
 /** 针对一种调用，给出一句「结果怎么来的」规则说明 */
@@ -123,6 +192,13 @@ const useRule = (call: CallTrace, ex: Explain): string => {
     case 'sort': return op === 'argsort' ? t('numpy_api.rule.argsort') : ex.axis === null ? t('numpy_api.rule.sort_flat') : t('numpy_api.rule.sort', { axis: ex.axis })
     case 'unique': return t('numpy_api.rule.unique')
     case 'linalg': return op === 'trace' ? t('numpy_api.rule.trace') : t('numpy_api.rule.linalg')
+    case 'poly': {
+      if (call.api === 'np.polyfit') return t('numpy_api.rule.polyfit')
+      if (call.api === 'np.polyval') return t('numpy_api.rule.polyval')
+      if (call.api.startsWith('op:')) return t('numpy_api.rule.poly_arith')
+      const m = call.api === 'Polynomial' ? 'create' : op === '__call__' ? 'eval' : op
+      return t(`numpy_api.rule.poly_${m}`, { defaultValue: t('numpy_api.rule.poly_create') })
+    }
   }
 }
 
@@ -160,6 +236,12 @@ const CallView = ({ call }: { call: CallTrace }) => {
       </div>
       <p className="text-sm leading-relaxed text-slate-600">{rule}</p>
 
+      {call.plot ? (
+        <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
+          <PolyChart plot={call.plot} />
+          <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-white px-2 py-1.5 font-mono text-[11px] text-slate-700">{call.resultText}</pre>
+        </div>
+      ) : (
       <div className="flex flex-wrap items-start gap-x-4 gap-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
         {call.operands.map((op, k) => (
           <NdGrid
@@ -186,6 +268,7 @@ const CallView = ({ call }: { call: CallTrace }) => {
           <pre className="whitespace-pre-wrap font-mono text-xs text-slate-700">{call.resultText}</pre>
         )}
       </div>
+      )}
 
       {traced && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
@@ -204,16 +287,19 @@ const shortApi = (api: string): string => (api === 'index' ? 'a[…]' : api.star
 interface PanelProps {
   /** Group to open first (from a link in the note) */
   initialCat?: ApiCat | null
+  /** Example to open first (from a code block in the note) */
+  initialEntry?: string | null
   /** Shown when the note linked to a namespace outside the sandbox */
   missing?: string | null
 }
 
-export const NumpyApiPanel = ({ initialCat, missing }: PanelProps) => {
+export const NumpyApiPanel = ({ initialCat, initialEntry, missing }: PanelProps) => {
   const { t } = useTranslation()
-  const [cat, setCat] = useState<ApiCat>(initialCat ?? 'reduce')
+  const start = NUMPY_APIS.find((e) => e.id === initialEntry)
+  const [cat, setCat] = useState<ApiCat>(start?.cat ?? initialCat ?? 'reduce')
   const [query, setQuery] = useState('')
   const firstOf = (c: ApiCat) => NUMPY_APIS.find((e) => e.cat === c)!
-  const [entry, setEntry] = useState<ApiEntry>(() => firstOf(initialCat ?? 'reduce'))
+  const [entry, setEntry] = useState<ApiEntry>(() => start ?? firstOf(initialCat ?? 'reduce'))
   const [code, setCode] = useState(entry.code)
   const [ran, setRan] = useState(entry.code)
   const [picked, setPicked] = useState<{ code: string; id: number } | null>(null)
