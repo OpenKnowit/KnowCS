@@ -146,6 +146,7 @@ export type PageSpec =
   | { kind: 'drill'; path: string }
   | { kind: 'formulas'; path: string }
   | { kind: 'papers'; path: string }
+  | { kind: 'notfound'; path: string }
   | { kind: 'watch-item'; path: string; id: string }
   | { kind: 'redirect'; path: string; to: string }
 
@@ -157,6 +158,7 @@ export const PAGES: PageSpec[] = [
   { kind: 'drill', path: 'drill/index.html' },
   { kind: 'formulas', path: 'formulas/index.html' },
   { kind: 'papers', path: 'papers/index.html' },
+  { kind: 'notfound', path: '404.html' },
   ...EPISODES.map((e): PageSpec => ({ kind: 'watch-item', path: `watch/${e.id}/index.html`, id: e.id })),
   { kind: 'notes', path: 'notes/index.html' },
   ...NOTE_IDS.map((id): PageSpec => ({ kind: 'note', path: `notes/${id}/index.html`, id })),
