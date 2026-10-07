@@ -2621,6 +2621,99 @@
         "q": "X_train has shape (4, 2) and X_test has shape (2, 2). Write one line of NumPy that returns the (2, 4) matrix of Euclidean distances, and give the shape after each step.",
         "a": "np.sqrt(((X_test[:, None, :] - X_train[None, :, :]) ** 2).sum(axis=-1)). Shapes: (2, 1, 2) − (1, 4, 2) → (2, 4, 2); squaring keeps (2, 4, 2); sum(axis=-1) → (2, 4); sqrt keeps (2, 4)."
       }
+    },
+    "gaussian": {
+      "kicker": "Lecture 2 · Naive Bayes",
+      "title": "Naive Bayes for continuous features",
+      "sub": "You cannot count how often “blood pressure = 66” happened. Fit a bell curve per class instead, read its height, and multiply as before.",
+      "label": {
+        "continuous": "An illustration: nine Z = Yes blood pressures with μ = 73, σ ≈ 6.2",
+        "count_zero": "Nobody had exactly 66, so counting gives P(66 | Yes) = 0 — useless for continuous values.",
+        "per_class": "One curve per class and per feature, using that class’s mean and standard deviation.",
+        "bp": "blood pressure",
+        "fever": "fever",
+        "read_height": "The likelihood is the height of each class’s curve at the observed value.",
+        "fever_far": "97 sits in the tail of the Yes curve but closer to the No curve’s peak.",
+        "mix": "Gaussian likelihoods for BP and fever, counted likelihoods for diabetes and vomit — one product per class:",
+        "normalised": "normalised:",
+        "no_wins": "Z = No wins, even though blood pressure alone pointed slightly towards Yes.",
+        "density": "A density can be larger than 1 — it is not a probability. That is fine: we only compare classes.",
+        "sigma_trap": "Which standard deviation?",
+        "temps": "temperatures",
+        "which_sigma": "COMP2211 papers define σ with n − 1 (2024 Spring midterm, Final 2024). Use the formula the paper prints."
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "Lecture 2 ends by asking: what if blood pressure and fever are numbers, not categories? Three papers have asked exactly that."
+        },
+        "problem": {
+          "title": "Counting breaks",
+          "c1": "With categories we counted. But blood pressure is a number.",
+          "c2": "A new patient has blood pressure 66. In data like this, nobody has exactly 66.",
+          "c3": "Counting would give zero — and one zero wipes out the whole naive Bayes product."
+        },
+        "bell": {
+          "title": "Fit a bell curve",
+          "c1": "Instead, assume the values in each class follow a Gaussian.",
+          "c2": "Its shape is fixed by two numbers from the training data: the mean μ…",
+          "c3": "…and the standard deviation σ.",
+          "c4": "We fit one such curve for every class and every continuous feature."
+        },
+        "bp": {
+          "title": "Blood pressure = 66",
+          "c1": "Lecture 2’s numbers: for Z = Yes, μ = 73 and σ = 6.2; for Z = No, μ = 75 and σ = 7.9.",
+          "c2": "Draw a line at 66 and read where it meets each curve.",
+          "c3": "Those heights — 0.0340 for Yes, 0.0264 for No — replace the counted probabilities."
+        },
+        "fever": {
+          "title": "Fever = 97",
+          "c1": "Fever: Yes is N(79, 10.2), No is N(86, 9.7).",
+          "c2": "At 97 the No curve is much higher: 0.0216 against 0.0082.",
+          "c3": "So fever pulls strongly towards No."
+        },
+        "combine": {
+          "title": "Multiply as before",
+          "c1": "Now the usual naive Bayes product, mixing curve heights for numbers and counts for categories.",
+          "c2": "Prior, two Gaussian likelihoods, two counted likelihoods — for each class.",
+          "c3": "Normalise: about 17% Yes and 83% No.",
+          "c4": "The class with the larger product wins: No."
+        },
+        "density": {
+          "title": "Not a probability",
+          "c1": "One more thing. Make σ small and watch the peak.",
+          "c2": "The curve’s height climbs above 1. A density is not a probability; only the area under it is.",
+          "c3": "That does not matter for naive Bayes: we only compare products between classes.",
+          "ponder": "If one class has a much smaller σ, does that automatically make its likelihoods larger?"
+        },
+        "sigma": {
+          "title": "Which σ?",
+          "c1": "Computing σ yourself? Check the divisor.",
+          "c2": "With n − 1 these three temperatures give 0.656; dividing by n gives 0.535.",
+          "c3": "COMP2211 papers print the n − 1 formula. Use it, and show the working."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then try the Gaussian naive Bayes page with your own data."
+        }
+      },
+      "recap": {
+        "1": "For a continuous feature, replace counting with the Gaussian density f(x) of each class.",
+        "2": "Each class needs its own μ and σ per feature; the likelihood is the curve height at the observed value.",
+        "3": "Multiply with the prior and any counted likelihoods; compare classes — densities may exceed 1."
+      },
+      "exam": {
+        "points": {
+          "1": "Write the Gaussian formula with the numbers substituted before giving the value — the substitution earns marks.",
+          "2": "Compute μ and σ separately for each class, never over all the data.",
+          "3": "Use the σ formula the paper gives; recent papers use the sample standard deviation (÷ n − 1).",
+          "4": "Mixed features are fine: Gaussian for numeric features, counts (with smoothing) for categorical ones."
+        },
+        "source": "Lecture 2 · continuous-feature questions in the 2023 Fall and 2024 Spring midterms and Final 2024",
+        "q": "For Z = Yes, blood pressure has μ = 73 and σ = 6.2. Compute the likelihood of blood pressure 66.",
+        "a": "f(66) = 1 / (√(2π) · 6.2) · exp(−(66 − 73)² / (2 · 6.2²)) = 0.06434 · exp(−0.6374) ≈ 0.0340."
+      }
     }
   }
 }
