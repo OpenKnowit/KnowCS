@@ -2270,6 +2270,87 @@
         "q": "For the tree MAX( MIN( MAX(6,7), MAX(8,9) ), MIN( MAX(1,2), MAX(0,4) ) ), run alpha-beta left to right. Which leaves are never evaluated, and what is the root value?",
         "a": "D = 7 so B’s β = 7. At E the first leaf 8 gives α = 8 ≥ β = 7: the leaf 9 is pruned. B = 7, root α = 7. At C, F = 2 gives β = 2 ≤ α = 7: the whole subtree MAX(0,4) is pruned. Root value 7; leaves 9, 0 and 4 are never evaluated."
       }
+    },
+    "knn": {
+      "kicker": "Lecture 3 · K nearest neighbours",
+      "title": "K nearest neighbours, and why units matter",
+      "sub": "Classify a new customer by asking the closest ones. Then watch standardization turn an ellipse into a circle — and change who counts as “closest”.",
+      "label": {
+        "medium": "T-shirt M",
+        "large": "T-shirt L",
+        "height": "height (cm)",
+        "weight": "weight (kg)",
+        "new_customer": "A new customer: 161 cm, 61 kg. Which size?",
+        "no_training": "KNN has no training step. It just keeps the data and compares.",
+        "predict": "prediction:",
+        "raw_units": "Distances in cm and kg",
+        "z_units": "Distances in standard deviations",
+        "fifth_changed": "The 5th-nearest neighbour changes: (160, 64) is replaced by (165, 61).",
+        "still_m": "Here the vote is still 4 M : 1 L, but in general standardizing can change the answer.",
+        "k1": "k = 1 follows every single point: a jagged boundary that memorises noise (overfitting).",
+        "choose_k": "Choose k with validation data — and an odd k for two classes, so votes cannot tie.",
+        "k15": "k = 15 asks almost everyone: the majority size (L) takes the whole plane — even the M customers are now predicted L (underfitting)."
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "KNN shows up in seven of the nine papers: compute distances, pick the k closest, vote — and standardize first."
+        },
+        "data": {
+          "title": "The data",
+          "c1": "Lecture 3: eighteen customers, their height, weight and T-shirt size.",
+          "c2": "A new customer arrives: 161 cm, 61 kg. We have to guess the size.",
+          "c3": "KNN does not build a model in advance. It only needs the data and a distance."
+        },
+        "distance": {
+          "title": "Measure every distance",
+          "c1": "Measure the straight-line distance from the new customer to every stored customer.",
+          "c2": "Sort them. The closest is (160, 60), only 1.41 away."
+        },
+        "vote": {
+          "title": "Take a vote",
+          "c1": "With k = 1 we copy the single closest customer: M.",
+          "c2": "With k = 3, three neighbours vote. With k = 5, the lecture’s choice, the vote is 4 M against 1 L.",
+          "c3": "Here every k says M. The neighbourhood is mostly medium.",
+          "c4": "The yellow ring is the radius that just reaches the k-th neighbour.",
+          "ponder": "With two classes, why do people prefer an odd k?"
+        },
+        "scale": {
+          "title": "Standardize first",
+          "c1": "Height is in centimetres and weight in kilograms. Which one matters more in the distance depends only on the units.",
+          "c2": "The fix is to measure each feature in standard deviations: subtract the mean, divide by the standard deviation.",
+          "c3": "Watch the plane stretch: height spreads 4.33 cm per unit, weight 2.63 kg per unit.",
+          "c4": "In the new units the neighbourhood is a circle again — and the fifth neighbour is a different customer.",
+          "c5": "Exams give you the mean and standard deviation. Standardize the test point with the training statistics too."
+        },
+        "boundary": {
+          "title": "What k does to the boundary",
+          "c1": "Colour every point of the plane by its prediction. With k = 1 the boundary follows every single customer.",
+          "c2": "With k = 15 it smooths out so much that the majority class takes over: less sensitive to one odd point, but blind to real structure.",
+          "c3": "Small k overfits, large k underfits. Pick k with validation data."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then move the test point yourself on the KNN page, with standardization on and off."
+        }
+      },
+      "recap": {
+        "1": "Compute the distance to every training point, take the k closest, majority vote.",
+        "2": "Standardize each feature with (x − mean) / std of the training data before measuring distance.",
+        "3": "Small k overfits, large k underfits; use an odd k for two classes."
+      },
+      "exam": {
+        "points": {
+          "1": "Write the full distance table, sorted, and mark the k nearest before you vote.",
+          "2": "Standardize with the training mean and standard deviation — and apply the same numbers to the test point.",
+          "3": "KNN has no training phase but prediction is expensive: every query compares against every stored point.",
+          "4": "Odd k avoids ties with two classes; say how you break a tie if k is even."
+        },
+        "source": "Lecture 3 T-shirt example · KNN appears in the 2022–2025 midterms and Final 2022",
+        "q": "Training means: height 164, weight 62.33; standard deviations 4.33 and 2.63. Standardize the test customer (161 cm, 61 kg).",
+        "a": "z_height = (161 − 164) / 4.33 ≈ −0.69; z_weight = (61 − 62.33) / 2.63 ≈ −0.51. Use these, with the training points standardized the same way, to compute distances."
+      }
     }
   }
 }

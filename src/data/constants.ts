@@ -1,4 +1,4 @@
-import type { AbNode, BayesData, CheatGroup, KernelPresetName, KnnPoint, PerceptronPoint, Vec2 } from '../types'
+import type { AbNode, BayesData, CheatGroup, KernelPresetName, KnnPoint, KnnStats, PerceptronPoint, Vec2 } from '../types'
 
 // --- Constants & Helper Data ---
 export const KERNEL_PRESETS: Record<KernelPresetName, number[][]> = {
@@ -71,6 +71,9 @@ export const KNN_RAW_DATA: KnnPoint[] = [
   { h: 168, w: 62, s: 'L' }, { h: 168, w: 63, s: 'L' }, { h: 168, w: 66, s: 'L' },
   { h: 170, w: 63, s: 'L' }, { h: 170, w: 64, s: 'L' }, { h: 170, w: 68, s: 'L' },
 ]
+
+/** Mean / std (lecture 3) and plot range of KNN_RAW_DATA. */
+export const KNN_STATS: KnnStats = { meanH: 164, meanW: 62.33, stdH: 4.33, stdW: 2.63, minH: 155, maxH: 175, minW: 55, maxW: 70 }
 
 // --- 感知机：线性可分的二维数据（label = ±1） ---
 export const PERCEPTRON_DATA: PerceptronPoint[] = [
