@@ -2448,6 +2448,94 @@
         "q": "w = (0.1, 0.5), θ = −0.8, η = 0.2, f(z) = 1 if z ≥ 0 else 0. Process the AND sample (0, 1) with T = 0. What are O and the new weights?",
         "a": "z = 0.1·0 + 0.5·1 − 0.8 = −0.3 < 0, so O = 0 = T. No error: w stays (0.1, 0.5) and θ stays −0.8."
       }
+    },
+    "evaluate": {
+      "kicker": "Lecture 3 · Model evaluation",
+      "title": "Is the model actually good?",
+      "sub": "Why 95% accuracy can mean a useless model, how the confusion matrix splits right and wrong, and how unshuffled cross-validation can score 0%.",
+      "label": {
+        "lazy_model": "100 patients, 5 of them sick. A model that always answers “healthy”:",
+        "accuracy": "accuracy",
+        "sick_found": "sick patients found",
+        "predicted": "predicted",
+        "yes": "yes",
+        "no": "no",
+        "actual_yes": "actually yes",
+        "actual_no": "actually no",
+        "patients": "{{n}} patients, sorted by what they really have (rows) and what the model said (columns).",
+        "diag": "The diagonal is right; the other two cells are the two kinds of mistake.",
+        "precision_q": "Of everyone the model flagged, how many really were sick?",
+        "recall_q": "Of everyone who really was sick, how many did the model find?",
+        "harmonic": "the harmonic mean of precision P and recall R",
+        "f1_punish": "If either P or R is small, F1 is small. The ordinary average would hide it.",
+        "cv_setup": "80 samples, 4 classes × 20, kept sorted by class. 2-fold cross-validation:",
+        "sorted": "sorted, not shuffled",
+        "unseen": "Each test fold contains only classes the training fold has never seen: every prediction is wrong.",
+        "shuffled": "shuffled first",
+        "stratified": "stratified (each fold gets every class)"
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "A number like “95% accurate” sounds good. Lecture 3 and several papers ask you to look behind it."
+        },
+        "lazy": {
+          "title": "The 95% model",
+          "c1": "A hundred patients; five are sick.",
+          "c2": "A model that simply says “healthy” to everyone is right 95 times out of 100.",
+          "c3": "And it found none of the sick patients. Accuracy alone can hide that.",
+          "ponder": "What single number would expose this model immediately?"
+        },
+        "matrix": {
+          "title": "The confusion matrix",
+          "c1": "Lecture 3’s disease example: 126 patients, 20 of them sick.",
+          "c2": "Sort every patient into a cell: what they really have, against what the model said.",
+          "c3": "True positives and true negatives on the diagonal; false negatives and false positives off it.",
+          "c4": "Accuracy is the diagonal over everything: 81%. Still looks fine."
+        },
+        "pr": {
+          "title": "Precision and recall",
+          "c1": "Now look at one class at a time — here, “sick”.",
+          "c2": "Precision reads down the predicted-yes column: of the 8 flagged patients, only 2 are sick. 25%.",
+          "c3": "Recall reads across the actual-yes row: of the 20 sick patients, the model found 2. 10%.",
+          "c4": "Precision asks “can I trust a yes?”, recall asks “did I miss anyone?”."
+        },
+        "f1": {
+          "title": "F1",
+          "c1": "F1 combines them with the harmonic mean.",
+          "c2": "Precision 1 with recall 0.02 averages to about one half, but F1 is about 0.04.",
+          "c3": "So a high F1 needs both numbers to be high. For our model F1 is 0.14 — it exposes what 81% accuracy hid."
+        },
+        "cv": {
+          "title": "The cross-validation trap",
+          "c1": "D-fold cross-validation cuts the data into D parts; each part is the test set once.",
+          "c2": "But if the data are sorted by class and never shuffled, the first test fold holds classes 0 and 1 — and training sees only 2 and 3.",
+          "c3": "Swap the folds: the same thing happens. Every test sample is a class the model never saw: 0% accuracy.",
+          "c4": "Shuffle first and every fold contains every class.",
+          "c5": "Stratified folds guarantee it: each class is dealt evenly into every fold."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then build your own confusion matrix and folds on the practice pages."
+        }
+      },
+      "recap": {
+        "1": "Accuracy hides imbalance: always look at the confusion matrix.",
+        "2": "Precision = TP / (TP + FP), recall = TP / (TP + FN), F1 = 2PR / (P + R).",
+        "3": "Shuffle (or stratify) before D-fold cross-validation, or whole classes go missing from training."
+      },
+      "exam": {
+        "points": {
+          "1": "Label the matrix axes before computing: rows actual, columns predicted (or the other way — papers differ).",
+          "2": "Precision divides by a column (everything predicted positive); recall divides by a row (everything actually positive).",
+          "3": "For multi-class F1 compute per class first, then macro (plain mean) or weighted (by support).",
+          "4": "The unshuffled-folds question assumes a sample is correct only if its class appears in training — state that assumption."
+        },
+        "source": "Pattern of 2023 Fall Q7, 2024 Spring Q7 and Final 2024 Q3(b)",
+        "q": "80 samples, 4 classes with 20 each, sorted by class and not shuffled, are split into 2 folds for cross-validation. If a sample is classified correctly only when its class appears in the training fold, what is the mean accuracy? How do you fix it?",
+        "a": "Fold 1 holds classes 0 and 1, fold 2 holds classes 2 and 3. Each test fold’s classes are absent from its training fold, so both folds score 0%: mean 0%. Shuffle the data (or stratify the folds) before splitting; then every fold sees every class."
+      }
     }
   }
 }
