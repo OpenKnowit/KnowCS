@@ -108,14 +108,14 @@ const NAV: { section: Section; href: string; key: string }[] = [
 export function Shell({ section, children }: { section: Section; children: ReactNode }) {
   const { t } = useTranslation()
   return (
-    <div className="min-h-screen bg-[#f1f5f9] text-slate-900">
+    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 print:bg-white">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:font-bold focus:text-white"
       >
         {t('app.a11y.skip')}
       </a>
-      <header className="mx-auto flex max-w-[1480px] flex-wrap items-center gap-3 px-4 pb-2 pt-4 sm:px-6">
+      <header className="mx-auto flex max-w-[1480px] flex-wrap items-center gap-3 px-4 pb-2 pt-4 sm:px-6 print:hidden">
         <a href="/" className="flex min-w-0 items-center gap-2.5 font-black tracking-tight text-slate-900">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-black text-white shadow-md shadow-blue-500/30" aria-hidden>K</span>
           <span className="truncate text-lg">{t('app.title')}</span>
@@ -139,7 +139,7 @@ export function Shell({ section, children }: { section: Section; children: React
       <div id="main-content" tabIndex={-1} className="focus:outline-none">
         {children}
       </div>
-      <footer className="mx-auto mt-8 flex max-w-[1480px] flex-col items-center justify-between gap-4 border-t border-slate-200 px-4 py-8 text-center text-xs font-medium uppercase tracking-widest text-slate-400 sm:px-6 md:flex-row md:text-left">
+      <footer className="print:hidden mx-auto mt-8 flex max-w-[1480px] flex-col items-center justify-between gap-4 border-t border-slate-200 px-4 py-8 text-center text-xs font-medium uppercase tracking-widest text-slate-400 sm:px-6 md:flex-row md:text-left">
         <p>{t('app.footer.copyright')}</p>
         <div className="flex flex-wrap justify-center gap-6">
           <span className="flex items-center gap-2"><WifiOff size={14} aria-hidden /> {t('app.footer.local')}</span>

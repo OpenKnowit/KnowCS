@@ -97,6 +97,7 @@ export const PAPERS: Paper[] = [
 export const moduleUrl = (id: string): string => `/${id}/`
 export const noteUrl = (id?: string): string => (id ? `/notes/${id}/` : '/notes/')
 export const drillUrl = (): string => '/drill/'
+export const formulasUrl = (): string => '/formulas/'
 export const watchUrl = (id?: string): string => (id ? `/watch/${id}/` : '/watch/')
 export const extendUrl = (id?: string): string => (id ? `/extend/${id}/` : '/extend/')
 
@@ -141,6 +142,7 @@ export type PageSpec =
   | { kind: 'extend-item'; path: string; id: string }
   | { kind: 'watch'; path: string }
   | { kind: 'drill'; path: string }
+  | { kind: 'formulas'; path: string }
   | { kind: 'watch-item'; path: string; id: string }
   | { kind: 'redirect'; path: string; to: string }
 
@@ -150,6 +152,7 @@ export const PAGES: PageSpec[] = [
   ...MODULES.map((m): PageSpec => ({ kind: 'module', path: `${m.id}/index.html`, id: m.id })),
   { kind: 'watch', path: 'watch/index.html' },
   { kind: 'drill', path: 'drill/index.html' },
+  { kind: 'formulas', path: 'formulas/index.html' },
   ...EPISODES.map((e): PageSpec => ({ kind: 'watch-item', path: `watch/${e.id}/index.html`, id: e.id })),
   { kind: 'notes', path: 'notes/index.html' },
   ...NOTE_IDS.map((id): PageSpec => ({ kind: 'note', path: `notes/${id}/index.html`, id })),

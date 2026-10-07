@@ -34,6 +34,8 @@ function pageMeta(page) {
       return pick(`watch.${page.id}.title`, `watch.${page.id}.sub`)
     case "drill":
       return pick("drill.title", "drill.lead")
+    case "formulas":
+      return pick("formulas.title", "formulas.lead")
     case "notes":
       return pick("app.section.package.title", "app.section.package.subtitle")
     case "note":
