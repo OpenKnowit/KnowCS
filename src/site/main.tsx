@@ -30,6 +30,11 @@ const section: Section =
 const content =
   page === 'module' ? <ModulePage id={id} /> : page === 'drill' ? <DrillPage /> : page === 'formulas' ? <FormulasPage /> : page === 'papers' ? <PapersPage /> : page === 'notfound' ? <NotFoundPage /> : page === 'watch' || page === 'watch-item' ? <WatchPage id={id || null} /> : page === 'notes' || page === 'note' ? <NotesPage id={id || null} /> : page === 'extend' || page === 'extend-item' ? <ExtendPage id={id || null} /> : <HomePage />
 
+// cache-first for hashed assets, offline fallback for pages (production only; see src/sw/sw.js)
+if (!moved && import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => {}))
+}
+
 if (!moved) {
   // render once the current language's strings have loaded
   void i18nReady.then(() => {
