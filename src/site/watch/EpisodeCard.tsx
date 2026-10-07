@@ -1,0 +1,34 @@
+/* eslint-disable react-refresh/only-export-components -- card plus its duration helper */
+import { PlayCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { fmtClock, timeline } from '../../lib/explainer'
+import { watchUrl } from '../../lib/sitemap'
+import type { EpisodeInfo } from '../../lib/sitemap'
+import { Frame } from './Player'
+import type { Episode } from './Player'
+import { EPISODE_CODE } from './episodes'
+
+export const lengthOf = (e: Episode) => timeline(e.scenes).total
+
+export function EpisodeCard({ info, big = false }: { info: EpisodeInfo; big?: boolean }) {
+  const { t } = useTranslation()
+  const ep = EPISODE_CODE[info.id]
+  return (
+    <a href={watchUrl(info.id)} className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100">
+      <div className="relative">
+        <Frame episode={ep} t={info.thumb} />
+        <span className="absolute inset-0 grid place-items-center bg-slate-900/0 transition group-hover:bg-slate-900/25">
+          <PlayCircle className="h-14 w-14 text-white opacity-0 drop-shadow-lg transition group-hover:opacity-100" />
+        </span>
+        <span className="absolute bottom-2 right-2 rounded-md bg-black/70 px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">{fmtClock(lengthOf(ep))}</span>
+      </div>
+      <div className="p-4">
+        <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+          {t('site.lecture_short', { n: info.lec })} · {t(`site.lectures.${info.lec}`)}
+        </div>
+        <b className={`mt-1 block font-extrabold text-slate-900 group-hover:text-blue-700 ${big ? 'text-xl' : 'text-[15px]'}`}>{t(`watch.${info.id}.title`)}</b>
+        <p className="mt-1 text-[13px] leading-snug text-slate-500">{t(`watch.${info.id}.sub`)}</p>
+      </div>
+    </a>
+  )
+}
