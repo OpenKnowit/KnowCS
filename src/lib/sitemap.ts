@@ -63,6 +63,7 @@ export const EPISODES: EpisodeInfo[] = [
   { id: 'otsu', lec: 7, modules: ['otsu', 'convolution'], exams: ['F22', 'F24'], thumb: 58_000 },
   { id: 'cnn', lec: 8, modules: ['convolution', 'cnn-shapes', 'kernel'], exams: ['F22', 'F23', 'F24'], thumb: 112_000 },
   { id: 'dilated', lec: 8, modules: ['convolution', 'cnn-shapes'], exams: ['F24'], thumb: 50_000 },
+  { id: 'autograd', lec: 9, modules: [], exams: ['F22'], thumb: 70_000 },
   { id: 'alphabeta', lec: 10, modules: ['alphabeta'], exams: ['F22', 'F23', 'F24'], thumb: 52_000 },
   { id: 'ethics', lec: 11, modules: [], exams: ['F23', 'F24'], thumb: 40_000 },
 ]

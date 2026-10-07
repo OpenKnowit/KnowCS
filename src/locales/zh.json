@@ -3097,6 +3097,85 @@
         "q": "组织应从哪些方面确保其投入使用的 AI 模型合乎伦理？",
         "a": "数据伦理（知情同意、隐私、无偏且有代表性的数据）；AI 模型公平（公平的决策与推荐）；AI 模型监控与维护（留意模型漂移，让模型持续按预期工作）。"
       }
+    },
+    "autograd": {
+      "kicker": "第 9 讲 · 用 PyTorch 做深度学习",
+      "title": "PyTorch：张量与自动求导",
+      "sub": "张量就是会记住自己是怎么算出来的 NumPy 数组。沿着第 9 讲的例子走过计算图，调用 loss.backward()，看看 w.grad 从哪里来。",
+      "label": {
+        "input": "输入",
+        "tensor": "张量是 n 维数组，就像 NumPy 数组 —— 多了设备和梯度追踪。",
+        "cpu_ok": "GPU 让训练更快，但 PyTorch 在 CPU 上也能训练和运行 —— 经典判断题陷阱。",
+        "recorded": "对 requires_grad=True 的张量做的每一步运算都会记录进图里。",
+        "forward": "前向传播：数字从 x、w、b 流向损失。",
+        "rows_same": "w_ij 的梯度 = z_j 处的梯度 × w_ij 所乘的输入 x_i。",
+        "same_as_backprop": "这正是第 6 讲的反向传播 —— PyTorch 只是替你应用了链式法则。",
+        "inference": "训练完成后只需要前向传播。",
+        "why_no_grad": "torch.no_grad() 停止记录计算图：推理更省内存、更快。"
+      },
+      "scenes": {
+        "title": {
+          "title": "引言",
+          "c1": "第 9 讲从手写 NumPy 网络转向 PyTorch。核心思想是：张量会记住自己是怎么算出来的。"
+        },
+        "tensor": {
+          "title": "张量",
+          "c1": "张量是 n 维数组，和 NumPy 数组很像。",
+          "c2": "它还有 dtype、设备（CPU 或 GPU）以及 requires_grad 标志。",
+          "c3": "GPU 能加速训练，但不是必需的：PyTorch 在 CPU 上也能训练。与 NumPy 互相转换只需一次调用。"
+        },
+        "graph": {
+          "title": "计算图",
+          "c1": "第 9 讲的例子：全 1 的输入、全 0 的目标，以及两个需要梯度的参数 w 和 b。",
+          "c2": "每行代码都在图里加一个节点：矩阵乘法、加法，然后是损失。",
+          "c3": "PyTorch 在代码运行时记录这张图，不需要事先声明。"
+        },
+        "forward": {
+          "title": "前向传播",
+          "c1": "运行代码，数字沿着图向前流动。",
+          "c2": "z = x·w + b 得到三个 logits。",
+          "c3": "损失用二元交叉熵比较 σ(z) 与目标，并对三个输出取平均。"
+        },
+        "backward": {
+          "title": "loss.backward()",
+          "c1": "现在调用 loss.backward()。梯度沿着同一张图往回流。",
+          "c2": "在 z 处，每个梯度是 (σ(z_j) − y_j)/3。",
+          "c3": "它们到达需要梯度的叶子节点：w.grad 和 b.grad。看 w.grad —— 每一行都一样。",
+          "ponder": "为什么 w.grad 的每一行都完全相同 —— 正如课件印出的结果？"
+        },
+        "rows": {
+          "title": "为什么各行相同",
+          "c1": "由链式法则，w_ij 的梯度等于 z_j 处的梯度乘以 x_i。",
+          "c2": "输入 x 全是 1，所以 w.grad 的每一行都等于 b.grad。",
+          "c3": "并没有新东西：这就是第 6 讲的反向传播，只是自动完成了。"
+        },
+        "nograd": {
+          "title": "关闭追踪",
+          "c1": "模型训练好后，只需要前向传播。",
+          "c2": "在 with torch.no_grad() 里，结果的 requires_grad = False。",
+          "c3": "不记录计算图，推理时更省内存和时间。"
+        },
+        "recap": {
+          "title": "小结",
+          "c1": "带进考场的三件事。"
+        }
+      },
+      "recap": {
+        "1": "张量是 n 维数组，带 dtype、设备（CPU 或 GPU）以及可选的梯度追踪。",
+        "2": "requires_grad=True 会记录计算图；loss.backward() 按链式法则填好 .grad。",
+        "3": "推理时用 torch.no_grad()；GPU 更快但不是必需。"
+      },
+      "exam": {
+        "points": {
+          "1": "“深度学习不能在 CPU 上运行”是错的 —— GPU 更快，但不是必需。",
+          "2": "梯度累积在 requires_grad=True 的叶子张量的 .grad 里。",
+          "3": "autograd 就是反向传播：某个权重的梯度 = 下游梯度 × 它的输入。",
+          "4": "推理时用 torch.no_grad()（或评估模式），避免记录计算图。"
+        },
+        "source": "第 9 讲例题 · 2022 期末判断题考过 CPU",
+        "q": "第 9 讲例子中 x = torch.ones(5)。调用 loss.backward() 后，为什么 w.grad 的五行完全相同？",
+        "a": "∂loss/∂w_ij = ∂loss/∂z_j · x_i。每个 x_i 都是 1，所以第 i 行对所有 i 都等于 ∂loss/∂z = b.grad。"
+      }
     }
   },
   "drill": {

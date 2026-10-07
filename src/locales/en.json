@@ -3097,6 +3097,85 @@
         "q": "From what areas should organisations ensure the AI models they have in production function ethically?",
         "a": "Data ethics (consent, privacy, unbiased and representative data); AI model fairness (fair decisions and recommendations); AI model monitoring and maintenance (watch for model drift and keep the model working as intended)."
       }
+    },
+    "autograd": {
+      "kicker": "Lecture 9 · Deep learning with PyTorch",
+      "title": "PyTorch: tensors and autograd",
+      "sub": "A tensor is a NumPy array that remembers how it was made. Follow lecture 9’s example through the computational graph, call loss.backward(), and see where w.grad comes from.",
+      "label": {
+        "input": "input",
+        "tensor": "A tensor is an n-dimensional array, like a NumPy array — with a device and gradient tracking.",
+        "cpu_ok": "GPUs make training faster, but PyTorch trains and runs on the CPU too — a classic true/false trap.",
+        "recorded": "Every operation on a tensor with requires_grad=True is recorded in the graph.",
+        "forward": "Forward pass: numbers flow from x, w and b to the loss.",
+        "rows_same": "The gradient for w_ij is the gradient at z_j times the input x_i that w_ij multiplied.",
+        "same_as_backprop": "This is exactly lecture 6’s backpropagation — PyTorch just applies the chain rule for you.",
+        "inference": "After training you only need the forward pass.",
+        "why_no_grad": "torch.no_grad() stops recording the graph: less memory and faster inference."
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "Lecture 9 moves from hand-written NumPy networks to PyTorch. The key idea is that tensors remember how they were computed."
+        },
+        "tensor": {
+          "title": "Tensors",
+          "c1": "A tensor is an n-dimensional array, much like a NumPy array.",
+          "c2": "It also has a dtype, a device — CPU or GPU — and a requires_grad flag.",
+          "c3": "A GPU speeds up training, but it is not required: PyTorch also trains on the CPU. Converting to and from NumPy is one call."
+        },
+        "graph": {
+          "title": "The computational graph",
+          "c1": "Lecture 9’s example: an input of ones, a target of zeros, and two parameters w and b that require gradients.",
+          "c2": "Each line of code adds a node to a graph: a matrix product, an addition, then the loss.",
+          "c3": "PyTorch records this graph as the code runs; nothing has to be declared in advance."
+        },
+        "forward": {
+          "title": "Forward pass",
+          "c1": "Run the code and the numbers flow forward through the graph.",
+          "c2": "z = x·w + b gives three logits.",
+          "c3": "The loss compares σ(z) with the targets using binary cross-entropy, averaged over the three outputs."
+        },
+        "backward": {
+          "title": "loss.backward()",
+          "c1": "Now call loss.backward(). Gradients flow backwards through the same graph.",
+          "c2": "At z each gradient is (σ(z_j) − y_j)/3.",
+          "c3": "They arrive at the leaves that require gradients: w.grad and b.grad. Look at w.grad — every row is the same.",
+          "ponder": "Why does every row of w.grad come out identical — exactly as in the lecture’s printed output?"
+        },
+        "rows": {
+          "title": "Why the rows match",
+          "c1": "By the chain rule, the gradient for w_ij is the gradient at z_j times x_i.",
+          "c2": "The input x is all ones, so every row of w.grad equals b.grad.",
+          "c3": "Nothing new: this is the backpropagation of lecture 6, done automatically."
+        },
+        "nograd": {
+          "title": "Turning tracking off",
+          "c1": "Once the model is trained you only need forward passes.",
+          "c2": "Inside with torch.no_grad(), results have requires_grad = False.",
+          "c3": "No graph is recorded, which saves memory and time at inference."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam."
+        }
+      },
+      "recap": {
+        "1": "A tensor is an n-d array with a dtype, a device (CPU or GPU) and optional gradient tracking.",
+        "2": "requires_grad=True records a graph; loss.backward() fills .grad by the chain rule.",
+        "3": "Use torch.no_grad() for inference; GPUs are faster but not required."
+      },
+      "exam": {
+        "points": {
+          "1": "“Deep learning cannot run on a CPU” is false — GPUs are faster, not necessary.",
+          "2": "Gradients are accumulated in .grad of leaf tensors with requires_grad=True.",
+          "3": "autograd is backpropagation: the gradient of a weight is the downstream gradient times its input.",
+          "4": "torch.no_grad() (or a model in evaluation) avoids recording the graph during inference."
+        },
+        "source": "Lecture 9 example · the 2022 final’s true/false section asked about CPUs",
+        "q": "In lecture 9’s example x = torch.ones(5). After loss.backward(), why are all five rows of w.grad identical?",
+        "a": "∂loss/∂w_ij = ∂loss/∂z_j · x_i. Every x_i is 1, so row i equals ∂loss/∂z = b.grad for every i."
+      }
     }
   },
   "drill": {
