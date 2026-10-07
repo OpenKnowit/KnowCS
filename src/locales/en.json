@@ -2351,6 +2351,103 @@
         "q": "Training means: height 164, weight 62.33; standard deviations 4.33 and 2.63. Standardize the test customer (161 cm, 61 kg).",
         "a": "z_height = (161 − 164) / 4.33 ≈ −0.69; z_weight = (61 − 62.33) / 2.63 ≈ −0.51. Use these, with the training points standardized the same way, to compute distances."
       }
+    },
+    "perceptron": {
+      "kicker": "Lecture 5 · Artificial neurons",
+      "title": "The perceptron learning rule",
+      "sub": "One neuron is one straight line. Watch the learning rule nudge that line one mistake at a time — and see why it never settles on XOR.",
+      "label": {
+        "step": "The step activation outputs 1 on one side of a line and 0 on the other.",
+        "line": "All points with z = 0 form a straight line: the decision boundary.",
+        "normal": "The weight vector w points straight across the line, towards the side that outputs 1.",
+        "theta_shift": "Turning w turns the line; changing θ slides it without turning.",
+        "case_ok": "Correct: the error is 0, so nothing changes.",
+        "case_up": "Should have fired: add η·x to w. The line turns towards including x.",
+        "case_down": "Fired wrongly: subtract η·x. The line turns away from x.",
+        "only_mistakes": "Only mistakes move the line. A whole epoch without a mistake means it has converged.",
+        "and_setup": "AND · w = (0.1, 0.5), θ = −0.8, η = 0.2",
+        "cols": "ep │ x  T │ z → O │ new w, θ",
+        "updated": "Mistake (T − O = {{d}}): w and θ move.",
+        "correct": "Correct: no change.",
+        "converged": "Epoch {{n}}: no mistakes — converged.",
+        "xor": "XOR: four points no line can split",
+        "epoch_errors": "epoch {{e}}: {{n}} mistakes",
+        "never": "The weights cycle for ever. No straight line exists, so the rule never stops.",
+        "traps": "Exam traps"
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "Four midterms ask you to fill in a perceptron table by hand. Here is the picture behind every row of it."
+        },
+        "neuron": {
+          "title": "One artificial neuron",
+          "c1": "Inputs come in, each multiplied by a weight. The neuron adds them up, plus a bias θ.",
+          "c2": "Then a step function: output 1 if the sum is at least 0, otherwise 0.",
+          "c3": "So the whole neuron is a yes/no decision about which side of a line a point is on."
+        },
+        "geometry": {
+          "title": "Weights draw a line",
+          "c1": "Set z to zero and you get a line: w₁x₁ + w₂x₂ + θ = 0.",
+          "c2": "The weight vector points across the line, towards the side that outputs 1. Turn w and the line turns with it.",
+          "c3": "θ slides the line back and forth without turning it."
+        },
+        "rule": {
+          "title": "The learning rule",
+          "c1": "The perceptron learns from one sample at a time: Δw = η(T − O)x, Δθ = η(T − O).",
+          "c2": "If the output is right, T − O = 0 and nothing moves.",
+          "c3": "If it should have fired but did not, x is added to w: the line swings towards including that point.",
+          "c4": "If it fired but should not have, x is subtracted: the line swings away.",
+          "c5": "Only mistakes move the line.",
+          "ponder": "If a sample sits at x = (0, 0), which part of the neuron can the rule still change?"
+        },
+        "run": {
+          "title": "Learning AND, row by row",
+          "c1": "Lecture 5’s example: learn AND, starting from w = (0.1, 0.5), θ = −0.8, η = 0.2.",
+          "c2": "Each row: compute z, compare O with T, and update only when they differ. The dashed line is where the boundary was before the update.",
+          "c3": "Watch the shaded side shrink until only (1, 1) is inside it.",
+          "c4": "One full epoch with no mistakes: the perceptron has converged."
+        },
+        "xor": {
+          "title": "XOR never settles",
+          "c1": "Now XOR. No straight line separates its classes.",
+          "c2": "Every epoch still has mistakes, and every mistake drags the line somewhere else.",
+          "c3": "The perceptron convergence theorem only promises to stop when a separating line exists. For XOR you need a hidden layer."
+        },
+        "traps": {
+          "title": "Exam traps",
+          "c1": "Three details decide whether your table gets full marks.",
+          "c2": "First: is the step “z ≥ 0” or “z > 0”? Papers differ, and rows that land exactly on z = 0 flip.",
+          "c3": "Second: with outputs ±1 a mistake gives T − O = ±2, so every update doubles.",
+          "c4": "Third: converged means a whole epoch without an update — not one correct row."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then fill in the perceptron table yourself, with Quiz mode on."
+        }
+      },
+      "trap": {
+        "1": "Check the activation: lecture 5 fires when z ≥ 0, 2022 Fall only when z > 0.",
+        "2": "With ±1 outputs, T − O = ±2 — the step is twice as big as with 0/1 outputs.",
+        "3": "Stop only after a complete epoch with no update."
+      },
+      "recap": {
+        "1": "A perceptron is one line: w₁x₁ + w₂x₂ + θ = 0, with w pointing to the side that outputs 1.",
+        "2": "Update only on mistakes: Δw = η(T − O)x, Δθ = η(T − O).",
+        "3": "It converges exactly when the data are linearly separable; XOR never converges."
+      },
+      "exam": {
+        "points": {
+          "1": "Write every row: x, T, z, O, then Δw and the new w and θ — even when nothing changes.",
+          "2": "Read the activation definition carefully (≥ or >, 0/1 or ±1) before the first row.",
+          "3": "The bias θ is updated like a weight whose input is always 1.",
+          "4": "Answer “has it converged?” with the epoch rule: a whole pass with no update."
+        },
+        "source": "Lecture 5 AND example · tables in the 2022 Fall, 2022 Spring, 2023 Fall and 2023 Spring midterms",
+        "q": "w = (0.1, 0.5), θ = −0.8, η = 0.2, f(z) = 1 if z ≥ 0 else 0. Process the AND sample (0, 1) with T = 0. What are O and the new weights?",
+        "a": "z = 0.1·0 + 0.5·1 − 0.8 = −0.3 < 0, so O = 0 = T. No error: w stays (0.1, 0.5) and θ stays −0.8."
+      }
     }
   }
 }
