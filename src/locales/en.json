@@ -2863,6 +2863,88 @@
         "q": "Write apply_circle_mask(img, center_x, center_y) for a 512×512 image and radius 100 (boundary included) without loops.",
         "a": "indices = np.arange(512); x_dist = indices − center_x; y_dist = indices − center_y; dist = np.sqrt(x_dist ** 2 + y_dist[:, None] ** 2); img_masked = img * (dist <= 100)."
       }
+    },
+    "otsu": {
+      "kicker": "Lecture 7 · Image processing",
+      "title": "Histograms and Otsu’s threshold",
+      "sub": "Pour an image into its histogram, watch point operations reshape it, and let Otsu’s method find the threshold by itself — with Final 2024’s numbers.",
+      "label": {
+        "image": "{{n}} pixels",
+        "sort_by_grey": "A histogram forgets where pixels are and keeps only how bright they are.",
+        "grey_level": "grey level",
+        "same_shape": "Contrast stretching keeps the shape and spreads it over 0…255.",
+        "binary": "Thresholding keeps two values: 0 below T, 255 above.",
+        "which_T": "Too low or too high and the coins merge with the table. Which T is right?",
+        "iteration": "iteration {{k}} / {{n}}",
+        "stable": "One more round gives T = {{T}} again: stable.",
+        "flip_same": "A flip moves pixels but changes no value: the histogram is identical.",
+        "point_vs": "That is how Final 2024 Q5(a) expects you to recognise the flipped image."
+      },
+      "scenes": {
+        "title": {
+          "title": "Introduction",
+          "c1": "Image processing questions in the finals keep coming back to one picture: the grey-level histogram."
+        },
+        "hist": {
+          "title": "From image to histogram",
+          "c1": "Here is a small picture of coins on a table, 1,728 pixels.",
+          "c2": "Now let every pixel fall into the column for its brightness.",
+          "c3": "Two humps: the darker table and the brighter coins. Where the pixels were is gone; only how bright they are remains."
+        },
+        "stretch": {
+          "title": "Point operations",
+          "c1": "A point operation changes each pixel using only its own value — so you can see its effect on the histogram directly.",
+          "c2": "Here the image is squeezed into grey levels 90 to 160. Contrast stretching maps the darkest to 0 and the brightest to 255.",
+          "c3": "The histogram keeps its shape and spreads out."
+        },
+        "threshold": {
+          "title": "Thresholding",
+          "c1": "Thresholding turns every pixel into black or white: 255 if it is brighter than T, 0 otherwise.",
+          "c2": "Slide T and watch the coins appear and disappear.",
+          "c3": "The right T is somewhere between the two humps. Can we find it automatically?",
+          "ponder": "If you had to choose T from the histogram alone, where would you put it — and why?"
+        },
+        "otsu": {
+          "title": "Otsu’s method",
+          "c1": "Lecture 7’s Otsu method: start with T at the mean brightness.",
+          "c2": "Split the pixels at T and average each side: μ1 for the dark side, μ2 for the bright side.",
+          "c3": "Move T to the midpoint of the two means, then split again. Repeat until T stops moving.",
+          "c4": "The final T falls between the humps, and the coins come out cleanly."
+        },
+        "table": {
+          "title": "Final 2024 Q5(b)",
+          "c1": "The exam version: this 3×3 image with T₀ = 100 and one iteration.",
+          "c2": "Pixels ≤ 100 average to 21, pixels above to 128, so the new T is 74.5 — and the bottom row becomes 255.",
+          "c3": "The advantage the marking scheme wants: T is chosen automatically, so the result is reproducible."
+        },
+        "flip": {
+          "title": "Which transformation was it?",
+          "c1": "Another favourite: match images to their histograms.",
+          "c2": "Flipping the image moves pixels around without changing any value. The histogram stays exactly the same.",
+          "c3": "Stretching spreads it, thresholding leaves two bars, a flip changes nothing."
+        },
+        "recap": {
+          "title": "Recap",
+          "c1": "Three things to take into the exam.",
+          "c2": "Then try the histogram and Otsu page with your own images."
+        }
+      },
+      "recap": {
+        "1": "A histogram counts pixels per grey level; it ignores position.",
+        "2": "Point operations act on each pixel’s value alone: stretching spreads the histogram, thresholding leaves two bars, a flip leaves it unchanged.",
+        "3": "Otsu: T₀ = mean (or given), T ← (μ1 + μ2)/2, repeat until stable."
+      },
+      "exam": {
+        "points": {
+          "1": "Write μ1, μ2 and the new T for each iteration, and say which side a pixel equal to T goes to.",
+          "2": "If the paper says “one iteration”, stop after one — do not run to convergence.",
+          "3": "Advantages of Otsu: automatic and reproducible — two people get the same T.",
+          "4": "Matching histograms: two bars → thresholding; same shape spread out → stretching; identical → flip."
+        },
+        "source": "Final 2024 (Spring) · Problem 5(b)",
+        "q": "The 3×3 image [2 4 8 / 16 32 64 / 128 128 128] is thresholded with Otsu’s method from T = 100, one iteration. What is the new threshold and the resulting image?",
+        "a": "Pixels ≤ 100: 2, 4, 8, 16, 32, 64 → μ1 = 21. Pixels > 100: 128 × 3 → μ2 = 128. New T = (21 + 128)/2 = 74.5. Result: the first two rows become 0 and the bottom row 255."
+      }
     }
   }
 }
