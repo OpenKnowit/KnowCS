@@ -20,6 +20,7 @@ const LAB: Partial<Record<ModuleId, LazyExoticComponent<ComponentType>>> = {
   'xor-mlp': lazy(() => import('../modules/XorMlp')),
   convolution: lazy(() => import('../modules/Convolution')),
   otsu: lazy(() => import('../modules/Otsu')),
+  affine: lazy(() => import('../modules/Affine')),
   'cnn-shapes': lazy(() => import('../modules/CnnShapes')),
 }
 

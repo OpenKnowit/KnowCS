@@ -848,6 +848,10 @@
         "title": "Histogram, contrast & Otsu",
         "blurb": "Point operations reshape the histogram; Otsu finds the threshold."
       },
+      "affine": {
+        "title": "Affine transforms & augmentation",
+        "blurb": "A 2 × 3 matrix moves every pixel: translate, flip, rotate — and which flips are safe augmentations."
+      },
       "cnn-shapes": {
         "title": "CNN shapes & parameters",
         "blurb": "Stack layers and get every output shape and parameter count."
@@ -1501,6 +1505,116 @@
         }
       },
       "traps": "Write which side of T a pixel equal to T goes to (here R1: ≤ T). Thresholding outputs only two values, so its histogram has two bars. A flip leaves the histogram untouched — that is how the 2024 final expected you to spot it."
+    },
+    "affine": {
+      "lead": "Every geometric transform in lecture 7 is one 2 × 3 matrix M: [x′, y′] = M · [x, y, 1]. Pick a transform, click any output pixel to see where its value came from, and check which properties survive.",
+      "transform": "Transform",
+      "kinds": {
+        "translate": {
+          "title": "Translation",
+          "note": "x′ = x + tx, y′ = y + ty"
+        },
+        "reflectX": {
+          "title": "Reflect along the x-axis",
+          "note": "y′ = −y + (rows − 1): upside down"
+        },
+        "reflectY": {
+          "title": "Reflect along the y-axis",
+          "note": "x′ = −x + (cols − 1): left–right mirror"
+        },
+        "rotate": {
+          "title": "Rotation about the centre",
+          "note": "about (cols // 2, rows // 2), as in the lecture code"
+        },
+        "scale": {
+          "title": "Scaling about the centre",
+          "note": "also affine; s > 1 zooms in"
+        },
+        "shear": {
+          "title": "Shear",
+          "note": "x′ = x + k·y: squares become parallelograms"
+        }
+      },
+      "rotate_dir": "The y-axis points down, so a positive θ turns the picture counter-clockwise on screen — the same as cv2.getRotationMatrix2D.",
+      "matrix": "Transformation matrix",
+      "dsize": "dsize is (cols, rows) — width first — while img.shape is (rows, cols). Swapping them is a classic bug.",
+      "pixels_title": "Where does each pixel go?",
+      "pixels_sub": "Click a pixel on the right",
+      "before": "Input img",
+      "after": "Output of warpAffine",
+      "pixel": "Output pixel ({{x}}, {{y}})",
+      "came_from": "Output pixel <1>({{x}}, {{y}})</1> takes its value from input pixel <3>({{sx}}, {{sy}})</3> = {{v}}. warpAffine walks the output and looks each pixel up through M⁻¹; the forward map alongside sends that input pixel to its new place.",
+      "outside": "Output pixel <1>({{x}}, {{y}})</1> maps back to a point outside the input, so warpAffine fills it with borderValue = 0 (hatched).",
+      "legend": "x is the column and y is the row, with (0, 0) at the top-left. Hatched cells came from outside the image. The red dot marks the rotation / scaling centre. Non-integer results are rounded to the nearest pixel (cv2.INTER_NEAREST).",
+      "corners_title": "Where do the corners go?",
+      "corners_note": "Plug each corner into x′ = a₀₀x + a₀₁y + b₀₀ and y′ = a₁₀x + a₁₁y + b₁₀. For a reflection, a corner must land on another corner — the − 1 in rows − 1 is what makes that happen.",
+      "keeps_title": "What survives?",
+      "property": "Property",
+      "kept": "Kept?",
+      "props": {
+        "parallel": "Straight & parallel lines, midpoints",
+        "distances": "Distances",
+        "angles": "Angles",
+        "handed": "Handedness (not mirrored)"
+      },
+      "keeps_note": "Every affine map keeps lines straight and parallel and keeps midpoints. Distances and angles are kept only by some of them (translation, rotation, reflection), so “an affine transformation may preserve distances and angles” is TRUE.",
+      "lattice_aria": "Grid lines and a right triangle before (grey) and after (blue) the linear part of M",
+      "local_title": "Point, local or global?",
+      "reach": "Farthest source",
+      "reach_px": "{{n}} px",
+      "by3": "One 3 × 3 convolution?",
+      "yes": "possible",
+      "no": "impossible",
+      "by3_yes": "Every output pixel copies the same neighbour at most one pixel away, so a 3 × 3 kernel with a single 1 in the right place does it.",
+      "by3_no": "A 3 × 3 kernel only sees the pixel and its 8 neighbours, the same way everywhere. This transform needs values from far away, or from a different offset at each position — so no kernel can do it. For a 64 × 64 flip the farthest source is 63 pixels away.",
+      "not_point": "An affine transformation is not a point operation: the output at (x, y) comes from a different position. Final 2022 Q1(f) (“Otsu and affine transformations are point-based”) is FALSE for that reason. A flip does keep the histogram, though, because no value changes.",
+      "aug_title": "Augmentation: does the label survive?",
+      "aug_pick": "Augmentation",
+      "augs": {
+        "hflip": {
+          "name": "Horizontal flip",
+          "cat": "a cat facing right is still a cat.",
+          "digit": "a mirrored 2 or 7 is not a digit any more."
+        },
+        "vflip": {
+          "name": "Vertical flip",
+          "cat": "upside-down cats hardly ever appear in real photos, so it wastes capacity.",
+          "digit": "an upside-down digit is not one the model will see."
+        },
+        "rot180": {
+          "name": "Rotate 180°",
+          "cat": "unrealistic for photos.",
+          "digit": "a 6 turns into a 9 — the label is now wrong."
+        },
+        "rot15": {
+          "name": "Rotate ±15°",
+          "cat": "a slightly tilted camera.",
+          "digit": "slanted handwriting is still the same digit."
+        },
+        "shift": {
+          "name": "Translate",
+          "cat": "the cat is just somewhere else in the frame.",
+          "digit": "an off-centre digit is the same digit."
+        },
+        "zoom": {
+          "name": "Zoom / crop",
+          "cat": "closer or farther away.",
+          "digit": "fine, as long as no stroke is cut off."
+        },
+        "bright": {
+          "name": "Brightness",
+          "cat": "different lighting.",
+          "digit": "darker ink or paper — same digit."
+        }
+      },
+      "cat_orig": "Original cat",
+      "cat_aug": "Cat after {{aug}}",
+      "digit_aug": "Digit {{d}} after {{aug}}",
+      "cat_task": "Cats vs dogs",
+      "digit_task": "Handwritten digits",
+      "keeps_label": "label kept",
+      "breaks_label": "label broken",
+      "aug_exam": "Final 2022 asks for an augmentation that helps cats vs dogs but not handwritten digits. Answer: a horizontal flip (reflection) — a mirrored cat is still a cat, a mirrored digit is not. The marking scheme gives points for rotations and reflections and 0 for image-processing methods such as brightness, which help both tasks equally."
     },
     "cnn": {
       "lead": "Every final exam has this table: the output shape and parameter count of each layer. Build any stack, see every number with its working, and compare it with an MLP on raw pixels.",
@@ -3324,6 +3438,22 @@
         "q": "A suitable 3×3 kernel can flip a 64×64 image horizontally by convolution.",
         "why": "A 3×3 kernel only sees a 3×3 neighbourhood, but flipping needs values from up to 63 pixels away."
       },
+      "im5": {
+        "q": "Affine transformations are point-based image operations.",
+        "why": "The output at (x, y) takes its value from a different position, so it is not a point operation (Final 2022 Q1(f) is false)."
+      },
+      "im6": {
+        "q": "An affine transformation may preserve distances and angles.",
+        "why": "Translations, rotations and reflections keep both; scaling and shear do not. “May” makes it true (Final 2024 Q1(f))."
+      },
+      "im7": {
+        "q": "Horizontal flipping is a useful augmentation for handwritten digit classification.",
+        "why": "A mirrored 2 or 7 is not a valid digit. It is useful for cats vs dogs, which is the Final 2022 answer."
+      },
+      "im8": {
+        "q": "With M = [[1, 0, 0], [0, −1, rows − 1]], warpAffine turns the image upside down.",
+        "why": "That is the lecture’s reflection along the x-axis: y′ = −y + (rows − 1), so rows swap and columns stay."
+      },
       "cn1": {
         "q": "The number of weights in a convolutional layer depends on the input image’s height and width.",
         "why": "It depends on the kernel size, the input depth and the number of filters: (k·k·C_in + 1) × filters."
@@ -3467,6 +3597,18 @@
       "otsu": {
         "name": "Otsu’s threshold (lecture 7)",
         "note": "If the paper says one iteration, stop after one."
+      },
+      "affine": {
+        "name": "Affine transformation (lecture 7)",
+        "note": "cv2.warpAffine(img, M, (cols, rows)) — width first in dsize."
+      },
+      "reflect": {
+        "name": "Reflections",
+        "note": "Reflecting along the x-axis flips the rows (upside down); along the y-axis flips the columns."
+      },
+      "rotate": {
+        "name": "Rotation about (x₀, y₀)",
+        "note": "The lecture rotates about (cols // 2, rows // 2). Angles go in radians for math.cos, degrees for getRotationMatrix2D."
       },
       "range": {
         "name": "Range of a kernel on 8-bit images",

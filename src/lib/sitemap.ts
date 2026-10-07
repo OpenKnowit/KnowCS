@@ -2,7 +2,7 @@
 
 export type ModuleId =
   | 'numpy' | 'bayes-basics' | 'naive-bayes' | 'bayes-virus' | 'gaussian-nb' | 'knn' | 'evaluation' | 'cross-validation'
-  | 'kmeans' | 'kmeans-table' | 'perceptron' | 'backprop' | 'xor-mlp' | 'kernel' | 'convolution' | 'otsu' | 'cnn-shapes' | 'alphabeta'
+  | 'kmeans' | 'kmeans-table' | 'perceptron' | 'backprop' | 'xor-mlp' | 'kernel' | 'convolution' | 'otsu' | 'affine' | 'cnn-shapes' | 'alphabeta'
 
 export interface ModuleInfo {
   id: ModuleId
@@ -34,6 +34,7 @@ export const MODULES: ModuleInfo[] = [
   { id: 'kernel', lec: 7, kind: 'classic', legacy: 'kernel', exams: [] },
   { id: 'convolution', lec: 7, kind: 'lab', exams: ['F22', 'F23', 'F24'] },
   { id: 'otsu', lec: 7, kind: 'lab', exams: ['F22', 'F24'] },
+  { id: 'affine', lec: 7, kind: 'lab', exams: ['F22', 'F24'] },
   { id: 'cnn-shapes', lec: 8, kind: 'lab', exams: ['F22', 'F23', 'F24'] },
   { id: 'alphabeta', lec: 10, kind: 'classic', legacy: 'alphabeta', exams: ['F22', 'F23', 'F24'] },
 ]
@@ -132,7 +133,10 @@ export const LAB_REDIRECTS: Record<string, string> = {
   'home-a': '/',
   'home-b': '/',
   'home-c': '/',
-  ...Object.fromEntries(MODULES.filter((m) => m.kind === 'lab').map((m) => [m.id, moduleUrl(m.id)])),
+  // the ten /lab/ prototypes that existed before the merge; later lab pages never had a prototype URL
+  ...Object.fromEntries(
+    (['bayes-virus', 'gaussian-nb', 'evaluation', 'cross-validation', 'kmeans-table', 'perceptron', 'xor-mlp', 'convolution', 'otsu', 'cnn-shapes'] as const).map((id) => [id, moduleUrl(id)]),
+  ),
 }
 
 export type PageSpec =
