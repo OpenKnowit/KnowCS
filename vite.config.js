@@ -61,7 +61,7 @@ function pageHtml(page) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#2563eb" />
     <link rel="icon" type="image/svg+xml" href="${FAVICON}" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />`
   if (page.kind === "redirect") {
     return `<!doctype html>
@@ -124,7 +124,7 @@ copyFileSync(resolve("src/sw/sw.js"), resolve(ROOT, "public/sw.js"))
 writeFileSync(resolve(ROOT, "public/icon.svg"), decodeURIComponent(FAVICON.replace("data:image/svg+xml,", "")))
 for (const f of ["icon-192.png", "icon-512.png", "apple-touch-icon.png"]) copyFileSync(resolve("src/assets/icons", f), resolve(ROOT, "public", f))
 writeFileSync(
-  resolve(ROOT, "public/manifest.webmanifest"),
+  resolve(ROOT, "public/manifest.json"),
   JSON.stringify({
     name: "KnowCS · COMP2211 Interactive ML Lab",
     short_name: "KnowCS",
@@ -149,7 +149,7 @@ function offlineManifest() {
     generateBundle(_, bundle) {
       const files = Object.values(bundle).filter((f) => f.fileName.startsWith("assets/"))
       const size = (f) => (f.type === "chunk" ? Buffer.byteLength(f.code) : typeof f.source === "string" ? Buffer.byteLength(f.source) : f.source.length)
-      const assets = [...files.map((f) => `/${f.fileName}`).sort(), "/icon.svg", "/icon-192.png", "/apple-touch-icon.png", "/manifest.webmanifest"]
+      const assets = [...files.map((f) => `/${f.fileName}`).sort(), "/icon.svg", "/icon-192.png", "/apple-touch-icon.png", "/manifest.json"]
       const pages = PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound").map((p) => `/${p.path.replace(/index\.html$/, "")}`)
       const version = createHash("sha256").update(assets.join()).digest("hex").slice(0, 12)
       const bytes = files.reduce((n, f) => n + size(f), 0)
