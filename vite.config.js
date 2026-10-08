@@ -1,5 +1,6 @@
 // KnowCS: a multi-page site. Every page in src/lib/sitemap.ts gets its own HTML file, generated into site/
 // (gitignored) when the config loads; all pages share one entry script that renders the right page.
+import { createHash } from "node:crypto"
 import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { defineConfig } from "vite"
@@ -134,9 +135,26 @@ writeFileSync(
 )
 writeFileSync(resolve(ROOT, "public/robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`)
 
+/** offline.json: every page and hashed asset of this build, for "save for offline" (see src/sw/sw.js). */
+function offlineManifest() {
+  return {
+    name: "knowcs:offline-manifest",
+    apply: "build",
+    generateBundle(_, bundle) {
+      const files = Object.values(bundle).filter((f) => f.fileName.startsWith("assets/"))
+      const size = (f) => (f.type === "chunk" ? Buffer.byteLength(f.code) : typeof f.source === "string" ? Buffer.byteLength(f.source) : f.source.length)
+      const assets = [...files.map((f) => `/${f.fileName}`).sort(), "/icon.svg", "/manifest.webmanifest"]
+      const pages = PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound").map((p) => `/${p.path.replace(/index\.html$/, "")}`)
+      const version = createHash("sha256").update(assets.join()).digest("hex").slice(0, 12)
+      const bytes = files.reduce((n, f) => n + size(f), 0)
+      this.emitFile({ type: "asset", fileName: "offline.json", source: JSON.stringify({ version, bytes, pages, assets }) })
+    },
+  }
+}
+
 export default defineConfig({
   root: ROOT,
-  plugins: [katexFontSlim(), markdownHtml(), rawHk(), localeSplit(), react()],
+  plugins: [katexFontSlim(), markdownHtml(), rawHk(), localeSplit(), offlineManifest(), react()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
