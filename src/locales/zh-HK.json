@@ -3741,6 +3741,10 @@
         "name": "K-Means 目標函數（SSE）",
         "note": "輪與輪之間從不增加；k = n 時最小，所以用肘部法選 k。"
       },
+      "assign": {
+        "name": "K-means 分配步驟",
+        "note": "每個點歸入最近的質心；然後每個質心移到其所屬點的均值。重複直到不再變化。"
+      },
       "centroid": {
         "name": "中心更新",
         "note": "空簇保持原來的中心。"
@@ -3808,6 +3812,14 @@
       "dilated": {
         "name": "空洞卷積核尺寸",
         "note": "在輸出尺寸公式裏用 K_eff；權重仍是 K·K 個。"
+      },
+      "bcegrad": {
+        "name": "loss.backward() 填入的梯度（BCE with logits）",
+        "note": "多次 backward() 的梯度會累加，所以每個訓練步都以 optimizer.zero_grad() 開始。"
+      },
+      "flatten": {
+        "name": "PyTorch：展平後的第一個 Linear",
+        "note": "用最後一個池化層之後的 C × H × W，通道在前：64 × 14 × 14 展平為 12,544 個輸入——寫作 64 * 14 * 14。"
       },
       "alphabeta": {
         "name": "α-β 界",

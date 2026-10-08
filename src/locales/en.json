@@ -3741,6 +3741,10 @@
         "name": "K-Means objective (SSE)",
         "note": "Never increases between rounds; lowest at k = n, so choose k by the elbow."
       },
+      "assign": {
+        "name": "K-means assignment step",
+        "note": "Each point joins its nearest centroid; then every centroid moves to the mean of its points. Repeat until nothing changes."
+      },
       "centroid": {
         "name": "Centroid update",
         "note": "An empty cluster keeps its old centroid."
@@ -3808,6 +3812,14 @@
       "dilated": {
         "name": "Dilated kernel size",
         "note": "Use K_eff in the output-size formula; still K·K weights."
+      },
+      "bcegrad": {
+        "name": "What loss.backward() fills in (BCE with logits)",
+        "note": "Gradients add up across backward() calls, so each training step starts with optimizer.zero_grad()."
+      },
+      "flatten": {
+        "name": "PyTorch: the first Linear after flattening",
+        "note": "Use the C × H × W left after the last pooling layer, channels first: 64 × 14 × 14 flattens to 12,544 inputs — write it as 64 * 14 * 14."
       },
       "alphabeta": {
         "name": "Alpha-beta bounds",

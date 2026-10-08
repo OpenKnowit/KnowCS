@@ -7,6 +7,9 @@
 
 ## 进展时间线
 
+### 2026-10-08 — 公式表补第 4、9 讲
+- **feat**：公式表新增 K-means 分配步骤（第 4 讲）、BCE 的梯度即 loss.backward() 填入的 w.grad、展平后第一个 nn.Linear 的输入大小（第 9 讲，此前第 9 讲没有公式）。检查 390 / 1280 宽度、中英文下没有公式溢出卡片。
+
 ### 2026-10-08 — 不动画的页面不再加载 Framer Motion
 - **perf**：`LazyMotion` / `MotionConfig` 从入口移到 `src/components/Motion.tsx`，只包住用 `m.*` 的部分（经典模块、资料包、拓展页）。首页、实验页、讲解视频、自测、公式表不再下载 Framer Motion；入口 chunk gzip 95KB → 88KB（剩下基本是 react-dom 与 i18next）。浏览器检查：动画页面会加载动画引擎、没有元素停在 opacity 0。
 

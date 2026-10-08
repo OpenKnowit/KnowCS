@@ -27,6 +27,7 @@ export const FORMULAS: Formula[] = [
   { id: 'precision', lec: 3, tex: '\\text{precision} = \\dfrac{TP}{TP + FP} \\qquad \\text{recall} = \\dfrac{TP}{TP + FN}', link: W('evaluate') },
   { id: 'f1', lec: 3, tex: 'F_1 = \\dfrac{2\\,P\\,R}{P + R}', link: W('evaluate') },
   { id: 'sse', lec: 4, tex: '\\text{SSE} = \\sum_k \\sum_{x \\in S_k} \\lVert x - c_k \\rVert^2', link: W('kmeans') },
+  { id: 'assign', lec: 4, tex: '\\text{cluster}(x) = \\arg\\min_k \\lVert x - c_k \\rVert^2', link: M('kmeans-table') },
   { id: 'centroid', lec: 4, tex: 'c_k \\leftarrow \\dfrac{1}{|S_k|}\\sum_{x \\in S_k} x', link: M('kmeans-table') },
   { id: 'neuron', lec: 5, tex: 'O = f\\Big(\\sum_i w_i x_i + \\theta\\Big)', link: W('perceptron') },
   { id: 'perceptron', lec: 5, tex: '\\Delta w_i = \\eta\\,(T - O)\\,x_i \\qquad \\Delta\\theta = \\eta\\,(T - O)', link: M('perceptron') },
@@ -44,5 +45,7 @@ export const FORMULAS: Formula[] = [
   { id: 'outsize', lec: 8, tex: '\\left\\lfloor \\dfrac{N - K + 2P}{S} \\right\\rfloor + 1 \\qquad \\text{same: } \\left\\lceil \\dfrac{N}{S} \\right\\rceil', link: W('cnn') },
   { id: 'convparams', lec: 8, tex: '\\#\\text{params} = (K \\cdot K \\cdot C_{\\text{in}} + 1) \\times F', link: M('cnn-shapes') },
   { id: 'dilated', lec: 8, tex: 'K_{\\text{eff}} = d\\,(K - 1) + 1', link: W('dilated') },
+  { id: 'bcegrad', lec: 9, tex: '\\dfrac{\\partial L}{\\partial z} = \\sigma(z) - y, \\qquad \\texttt{w.grad} = (\\sigma(z) - y)\\,x', link: M('pytorch') },
+  { id: 'flatten', lec: 9, tex: '\\texttt{nn.Linear}(C \\cdot H \\cdot W,\\ n_{\\text{out}})', link: M('cnn-shapes') },
   { id: 'alphabeta', lec: 10, tex: '\\begin{gathered}\\text{MAX: } \\alpha \\leftarrow \\max(\\alpha, v) \\qquad \\text{MIN: } \\beta \\leftarrow \\min(\\beta, v) \\\\ \\alpha \\ge \\beta \\Rightarrow \\text{cut the remaining children}\\end{gathered}', link: W('alphabeta') },
 ]
