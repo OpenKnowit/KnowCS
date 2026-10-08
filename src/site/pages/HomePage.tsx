@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { EPISODES, LECTURES, MODULES, PAPERS, drillUrl, formulasUrl, lectureScope, papersUrl, moduleUrl, noteUrl, watchUrl } from '../../lib/sitemap'
-import { DRILL } from '../../data/drill'
+import { EPISODES, LECTURES, MODULES, PAPERS, lectureScope, papersUrl, moduleUrl, noteUrl, watchUrl } from '../../lib/sitemap'
 import type { ModuleInfo } from '../../lib/sitemap'
 import { readVisited } from '../ui'
 
@@ -64,8 +63,6 @@ export default function HomePage() {
               <span className="rounded-full bg-white px-3 py-1.5 text-slate-700 shadow-sm">{t('site.home.stat_pages', { n: MODULES.length })}</span>
               <a href={papersUrl()} className="rounded-full bg-white px-3 py-1.5 text-amber-700 shadow-sm hover:bg-amber-50">{t('site.home.stat_papers', { n: PAPERS.length })} →</a>
               <a href={noteUrl()} className="rounded-full bg-white px-3 py-1.5 text-blue-700 shadow-sm hover:bg-blue-50">{t('site.home.stat_notes')} →</a>
-              <a href={drillUrl()} className="rounded-full bg-white px-3 py-1.5 text-emerald-700 shadow-sm hover:bg-emerald-50">{t('site.home.drill_link', { n: DRILL.length })} →</a>
-              <a href={formulasUrl()} className="rounded-full bg-white px-3 py-1.5 text-violet-700 shadow-sm hover:bg-violet-50">{t('formulas.title')} →</a>
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -121,14 +118,14 @@ export default function HomePage() {
                 </div>
               </div>
               {mods.length || eps.length ? (
-                <div className="grid gap-3">
+                <div className="grid content-start gap-3">
                   {mods.length > 0 && (
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       {mods.map((m) => <ModuleCard key={m.id} m={m} seen={!!visited[m.id]} />)}
                     </div>
                   )}
                   {eps.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-start gap-2">
                       {eps.map((e) => (
                         <a key={e.id} href={watchUrl(e.id)} className="inline-flex items-center gap-2 rounded-full bg-slate-900 py-1 pl-1 pr-3.5 text-[13px] font-bold text-white hover:bg-blue-700">
                           <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-[10px] text-slate-900" aria-hidden>▶</span>

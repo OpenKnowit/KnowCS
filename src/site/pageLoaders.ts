@@ -43,6 +43,7 @@ export const CLASSIC_LOADERS: Partial<Record<ModuleId, () => Promise<{ default: 
 
 export const PAGE_LOADERS = {
   home: memo(() => import('./pages/HomePage')),
+  playground: memo(() => import('./pages/PlaygroundPage')),
   module: memo(() => import('./pages/ModulePage')),
   classic: memo(() => import('./pages/ClassicPage')),
   notes: memo(withPacks(i18n, ['numpy_api'], () => import('./pages/NotesPage'))),

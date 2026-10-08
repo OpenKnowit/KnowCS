@@ -31,19 +31,17 @@ export default function ClassicPage({ id }: { id: ModuleId }) {
       <PageBar id={id} />
       <main className="mx-auto max-w-[1480px] px-4 pb-10 pt-6 sm:px-6">
         <ModuleHero id={id} />
-        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
-          <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/40 sm:p-8">
-            <Motion>
-              <Component />
-            </Motion>
-          </div>
-          <aside className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-lg shadow-blue-200 xl:sticky xl:top-16">
-            <div className="mb-3 flex items-center gap-2">
-              <Info size={16} aria-hidden />
-              <span className="text-xs font-bold uppercase tracking-wider">{t('app.sidebar.exam_tip.title')}</span>
-            </div>
+        <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/40 sm:p-8">
+          {/* the exam tip lives inside the module card, so the interactive part gets the full width */}
+          <aside className="mb-6 flex flex-col gap-1.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-white shadow-md shadow-blue-200 sm:flex-row sm:items-center sm:gap-3">
+            <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
+              <Info size={16} aria-hidden /> {t('app.sidebar.exam_tip.title')}
+            </span>
             <p className="text-[13px] font-medium leading-relaxed opacity-95">{tip}</p>
           </aside>
+          <Motion>
+            <Component />
+          </Motion>
         </div>
       </main>
     </>

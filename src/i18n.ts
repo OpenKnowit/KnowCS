@@ -44,6 +44,8 @@ export const i18nReady = i18n
       convertDetectedLanguage: normalizeLang,
     },
     debug: import.meta.env.DEV,
+    // no promotional console message for visitors
+    showSupportNotice: false,
     interpolation: {
       escapeValue: false, // not needed for react as it escapes by default
     },
