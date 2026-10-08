@@ -612,7 +612,9 @@
       "sort": "排序",
       "linalg": "线性代数",
       "random": "随机",
-      "poly": "多项式"
+      "poly": "多项式",
+      "stats": "计数与统计",
+      "ml": "课程常用写法"
     },
     "kind": {
       "create": "创建",
@@ -626,7 +628,8 @@
       "linalg": "线性代数",
       "random": "随机",
       "info": "返回信息",
-      "poly": "多项式"
+      "poly": "多项式",
+      "group": "分组"
     },
     "rule": {
       "create": "从零创建一个新数组，没有可追溯的输入数组。",
@@ -656,7 +659,15 @@
       "poly_fit": "最小二乘：选出让曲线到各数据点竖直距离的平方和最小的那条曲线。",
       "poly_arith": "多项式可以像数字一样用 + − * ** 运算；实线是运算结果。",
       "polyfit": "旧版 API：同样是最小二乘拟合，但系数从最高次开始排列。",
-      "polyval": "旧版 API：按最高次在前的系数求值。"
+      "polyval": "旧版 API：按最高次在前的系数求值。",
+      "group": "结果的每一格由一组输入元素算出。悬停查看是哪一组。",
+      "group_bincount": "result[k] 统计等于 k 的元素个数（或把它们的权重相加）。悬停某个计数，查看它数了哪些元素。",
+      "group_histogram": "每个计数是落在该区间里的值的个数；最后一个区间包含右端点。悬停查看对应的值。",
+      "group_meshgrid": "X 把 x 复制到每一行（Y 把 y 复制到每一列），于是 X[i, j]、Y[i, j] 遍历所有 (x, y) 组合。这里显示 X。",
+      "group_diff": "每一格等于沿该轴的下一个值减去当前值，所以结果比输入少一个。",
+      "group_pad": "输入被复制到中间；新加的边框格不来自任何输入。",
+      "group_isin": "值出现在测试值中的位置为 True。悬停查看匹配到的是哪个。",
+      "group_conv2d": "每个输出格等于输入中一个 K×K 窗口与卷积核逐元素相乘再求和（加上偏置）。悬停输出格可看到它的窗口；每往后一格，窗口滑动一步。"
     },
     "api": {
       "array": "把（嵌套的）Python 列表变成数组；嵌套几层就有几个轴。",
@@ -719,7 +730,25 @@
       "poly_deriv": "求导（deriv）或积分（integ），得到一个新的 Polynomial。",
       "poly_roots": "多项式的所有根，已排序；复根以复数形式返回。",
       "poly_fit": "用指定次数的多项式拟合带噪声的数据，再用 convert() 读出系数。",
-      "polyfit": "旧版 np.polyfit：系数从最高次开始——1 次时就是 [斜率, 截距]。"
+      "polyfit": "旧版 np.polyfit：系数从最高次开始——1 次时就是 [斜率, 截距]。",
+      "meshgrid": "输入两条一维坐标轴，输出两个二维网格：合起来列出每个 (x, y) 点，画决策边界时就是这样给平面上色的。",
+      "pad": "在四周加一圈 0（或 constant_values）。填充 P = 1 能让 3×3 卷积的输出与输入同样大小。",
+      "isin": "逐元素判断是否属于给定的一组值。",
+      "diff": "相邻元素之差：快速看出损失曲线是否还在下降。",
+      "isnan": "找出缺失值。NaN 与任何值都不相等（包括它自己），所以 x == np.nan 永远不成立。",
+      "tanh": "tanh 激活函数，把任意输入压到 (-1, 1)；np.log2、np.log10 用法相同。",
+      "bincount": "统计每个非负整数出现的次数：各类样本数，或 KNN 近邻的投票。",
+      "bincount_w": "带权重时，每出现一次加上它的权重而不是 1。按 1 / 距离加权，越近的邻居票越重。",
+      "histogram": "把取值范围等分成若干区间，统计每个区间里的值个数，这是 Otsu 阈值法的第一步。",
+      "median": "中位数（即 np.percentile(x, 50)），不像平均值那样被单个离群值拉偏。",
+      "average": "加权平均：Σ w·x / Σ w。不给权重时就是普通平均。",
+      "kmeans_assign": "K-Means 的分配步骤：每个点与每个质心广播相减、算距离，再沿质心轴取 argmin。",
+      "knn_vote": "四行写完 KNN：算到查询点的距离，用 argsort 取最近的 k 个，再用 bincount().argmax() 取最多的标签。",
+      "softmax": "逐行 softmax。keepdims=True 保留被规约的轴，(2, 3) 减 (2, 1) 才能广播；先减去最大值以免溢出。",
+      "zscore": "标准化：每一列变成均值 0、标准差 1，这样 KNN 的距离不会被某个特征主导。",
+      "onehot": "用标签去索引单位矩阵，得到 one-hot 行，也就是 categorical cross-entropy 的目标。",
+      "confusion": "不用循环的混淆矩阵：true * k + pred 给每对 (真实, 预测) 一个编号，再用 bincount 计数。",
+      "perceptron": "一次算出所有样本的感知机预测：对 X @ w + b 取阶跃函数。"
     },
     "run_block": "在 NumPy 面板中运行",
     "plot_label": "多项式曲线",
@@ -3954,7 +3983,8 @@
       "softmax_ce": "这些值看起来已经是概率（每行和为 1）。CrossEntropyLoss 内部会自己做 log_softmax，所以应该传入原始 logits；这也是第 9 讲的模型直接返回 fc2(x)、不加 softmax 的原因。",
       "mse_shape": "预测 {{a}} 和目标 {{b}} 的形状不同，损失函数会把它们广播成一个矩阵，结果是错的。请先把两者变成相同形状（例如 y.view(-1, 1) 或 pred.squeeze(1)）。",
       "nonleaf_grad": "非叶子张量的 .grad 是 None：PyTorch 只保留叶子张量的梯度（如需保留，先调用 .retain_grad()）。",
-      "T_nd": "对二维以上的张量用 .T 会把所有维度倒过来；只想交换两个维度时，请用 transpose(a, b) 或 permute。"
+      "T_nd": "对二维以上的张量用 .T 会把所有维度倒过来；只想交换两个维度时，请用 transpose(a, b) 或 permute。",
+      "pandas_sample": "沙盒使用自己的随机数生成器，即使 random_state 相同，sample() 抽到的行也与真实 pandas 不同。抽取的数量和方法相同。"
     },
     "matplotlib": {
       "title": "matplotlib 实验台",
@@ -3979,7 +4009,13 @@
         "boundary": "感知机在 w·x + b > 0 时输出 1，因此决策边界是直线 w·x + b = 0，即 x₂ = −(w₁x₁ + b) / w₂。直线两侧的点被分到不同类别。",
         "history": "训练后先画 history.history。训练损失一直下降，但验证损失一旦回升，模型就开始过拟合了。点线标出提前停止（early stopping）会保留的那个 epoch。",
         "confusion": "用 imshow 画混淆矩阵，再用 plt.text 把每个计数写进格子。行是真实类别，列是预测类别：精确率沿一列看，召回率沿一行看。",
-        "choose_k": "每个 K 的验证准确率柱状图：用交叉验证为 KNN 选 K 的做法（第 3 讲）。"
+        "choose_k": "每个 K 的验证准确率柱状图：用交叉验证为 KNN 选 K 的做法（第 3 讲）。",
+        "knn_regions": "把平面上每个点涂成 KNN 会给它的类别：对网格上的点分类，把结果 reshape 回网格，contourf 填出各个区域。颜色变化的地方就是决策边界。",
+        "errorbar": "每个 k 的交叉验证平均准确率，误差棒是一个标准差。选平均最高的；两个接近时，选波动更小的。",
+        "boxplot": "箱子覆盖中间一半的数据（Q1 到 Q3），橙线是中位数；须线延伸到 1.5 倍四分位距以内最远的点，之外的圆圈是离群值。",
+        "pie": "各类样本数的饼图。猫占 62 %，一直猜「猫」就能有 62 % 的准确率，所以还要看精确率和召回率。",
+        "annotate": "annotate 把文字写在 xytext，并画一个箭头指向点 xy。这里标出验证损失最低的那一轮，也就是早停会停下的地方。",
+        "step": "plt.step 画会跳变的函数。where='post' 表示每个值保持到下一个 x：感知机的硬阈值与平滑的 sigmoid 对比。"
       }
     },
     "keras": {
@@ -4003,7 +4039,9 @@
         "confusion": "predict → argmax → tf.math.confusion_matrix(y, prediction_results)（与第 6 讲相同），再用 seaborn.heatmap 画出来。行是真实类别，列是预测类别。",
         "sparse_vs_cat": "最常见的 Keras 报错。categorical_crossentropy 拿 one-hot 行向量和输出比较，所以整数标签会导致形状不匹配。要么改用 sparse_categorical_crossentropy，要么先 to_categorical(y)。",
         "no_flatten": "没有 Flatten 时，Dense 只作用于最后一个轴，输出是 (None, 28, 28, 10)，只有 20 个参数，而不是每张图一个预测。summary 让这个错误一目了然。",
-        "no_channel": "Conv2D 要求输入为 (batch, 高, 宽, 通道)。形状为 (N, 28, 28) 的灰度数组需要先 reshape(-1, 28, 28, 1)，第 8 讲在搭建模型前也对 x_train 这样做了。"
+        "no_channel": "Conv2D 要求输入为 (batch, 高, 宽, 通道)。形状为 (N, 28, 28) 的灰度数组需要先 reshape(-1, 28, 28, 1)，第 8 讲在搭建模型前也对 x_train 这样做了。",
+        "same_stride": "padding='same' 保持尺寸（输出 = ceil(N / S)）；不加（'valid'）时输出为 floor((N − K) / S) + 1。从 model.summary() 读出形状，并核对参数个数：(K·K·C_in + 1)·C_out。",
+        "onehot": "to_categorical 把整数标签变成 one-hot 行。配合 categorical_crossentropy 使用；用 sparse_categorical_crossentropy 时保留整数标签。"
       }
     },
     "tensorflow": {
@@ -4048,7 +4086,15 @@
       "arith": "算术运算逐元素进行。Series 按名字与 DataFrame 的列对齐，所以 df - df.mean() 让每列减去自己的均值。",
       "compare": "比较运算得到布尔 Series，可以直接当作掩码使用。",
       "assign": "新的一列对每一行同时计算出来。",
-      "map": "map 通过字典或函数替换每个值，例如把文字标签变成数字。"
+      "map": "map 通过字典或函数替换每个值，例如把文字标签变成数字。",
+      "isin": "在列表中的值为 True；把它当作掩码就能保留这些行。",
+      "nlargest": "该列数值最大的几行，从大到小。",
+      "nsmallest": "该列数值最小的几行，从小到大。",
+      "duplicated": "高亮的行与前面某行（在比较的列上）完全相同。",
+      "drop_duplicates": "高亮的重复行被删除；每行保留第一次出现的那一份。",
+      "sample": "不放回地随机抽取行；高亮的是被抽中的行。",
+      "pivot_table": "按 index 列分组（颜色区分），每组的值聚合成一行。",
+      "cut": "每个数值被放进包含它的区间；结果是有序的类别。"
     },
     "pandas": {
       "title": "pandas 实验台",
@@ -4073,7 +4119,15 @@
         "standardize": "z = (x − 均值) / 标准差 让所有特征处于同一尺度，第 3 讲建议在 KNN 前这样做。df.mean() 和 df.std() 按列计算，并自动与各列对齐。",
         "centroids": "一行写出 K-Means 的更新步骤：按簇分组，求 x 和 y 的均值，每组的均值就是新的质心。",
         "confusion": "crosstab(真实, 预测) 就是混淆矩阵。精确率用真正例除以「预测为 1」那一列，召回率除以「实际为 1」那一行。",
-        "groupby": "groupby('k')['accuracy'].mean() 对每个 K 的各折取平均，idxmax() 选出均值最高的 K：两行写完交叉验证。"
+        "groupby": "groupby('k')['accuracy'].mean() 对每个 K 的各折取平均，idxmax() 选出均值最高的 K：两行写完交叉验证。",
+        "isin": "isin 保留值属于某个列表的行：比用 | 连接多个 == 判断更简洁。",
+        "nlargest": "nlargest(n, 列) 直接给出该列最大的 n 行，并且已经排好序：相当于一步完成 sort_values(ascending=False).head(n)。",
+        "duplicates": "duplicated() 标出与前面某行完全相同的行；drop_duplicates() 把它们删掉（subset= 只比较部分列）。重复的行会在训练中悄悄加倍权重。",
+        "apply_rows": "axis=1 时函数每次拿到一行，row.height 读取这一行的身高。能用整列向量运算就优先用；apply 适合难以向量化的逐行逻辑。",
+        "cut": "pd.cut 按区间把数值变成类别：年龄 0–30、30–50、50–100。类别型朴素贝叶斯需要这一步，而且类别保持顺序（young < middle < old）。",
+        "gaussian_nb": "高斯朴素贝叶斯为每个类别、每个特征拟合一条正态曲线。agg(['mean', 'std']) 在一张表里给出每个类别的两个参数（pandas 的 std 是样本标准差，ddof=1）。",
+        "pivot": "pivot_table 按 index 分组并对值求平均：这里就是 K-Means 的更新步骤，每个簇得到一个新质心。",
+        "sample_split": "sample(frac=0.75) 随机抽取 75 % 的行作训练集，drop(train.index) 把剩下的留作测试集。沙盒抽到的行与真实 pandas 不同，但划分方法一样。"
       }
     },
     "pytorch": {
@@ -4105,7 +4159,10 @@
         "train_xor": "第 9 讲训练循环的五个步骤：zero_grad → 前向 → 损失 → backward → step。一个小 MLP 学会了单个感知机学不会的 XOR。",
         "zero_grad_bug": "不调用 zero_grad() 时，每一步的梯度都会加到之前所有梯度上：步长越来越大，损失不再平稳下降，甚至会发散。",
         "train_eval": "train() 模式下 dropout 随机把单元置零，其余乘以 1 / (1 − p)，所以每次调用结果都不同。eval() 关闭 dropout，评估前一定要调用。",
-        "dataloader": "DataLoader 把数据集切成 batch：len(loader) = ⌈10 / 4⌉ = 3，每次迭代得到一个 batch 的 (inputs, labels)，与第 9 讲 train_model 的写法一致。"
+        "dataloader": "DataLoader 把数据集切成 batch：len(loader) = ⌈10 / 4⌉ = 3，每次迭代得到一个 batch 的 (inputs, labels)，与第 9 讲 train_model 的写法一致。",
+        "cat_stack": "torch.cat 沿已有的轴拼接；torch.stack 在新轴上叠放，两个 (2, 3) 的张量变成 (2, 2, 3)。把多张图片组成一个批次用的就是 stack。",
+        "conv_edge": "F.conv2d 就是第 7 讲的卷积，只是采用 PyTorch 的 (批次, 通道, H, W) 布局。手动设定的 Sobel 卷积核在暗区与亮区交界处响应最强；不加填充时输出为 (H − 3 + 1) × (W − 3 + 1)。",
+        "softmax_acc": "softmax 把每行 logits 变成概率，argmax(dim=1) 取预测类别，(pred == y).float().mean() 就是准确率。直接对 logits 取 argmax 结果相同，因为 softmax 不改变大小顺序。"
       }
     }
   }

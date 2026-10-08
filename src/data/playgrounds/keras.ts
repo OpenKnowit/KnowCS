@@ -196,6 +196,27 @@ print(x_train.shape)
 # fix: x_train = x_train.reshape(-1, 28, 28, 1)
 model = Sequential([Input(shape=x_train.shape[1:]), Conv2D(8, (3, 3), activation='relu')])`,
   },
+  {
+    id: 'same_stride', cat: 'build', label: "padding='same', strides=2", focus: ['flow'],
+    code: `${H}model = Sequential([
+    Input(shape=(28, 28, 1)),
+    Conv2D(16, 3, padding='same'),             # same: 28 -> 28
+    Conv2D(32, 3, strides=2, padding='same'),  # same + stride 2: ceil(28 / 2) = 14
+    Conv2D(32, 3, strides=2),                  # valid: floor((14 - 3) / 2) + 1 = 6
+    Flatten(),
+    Dense(10, activation='softmax'),
+])
+model.summary()`,
+  },
+  {
+    id: 'onehot', cat: 'train', label: "to_categorical",
+    code: `${H}from keras.utils import to_categorical
+
+y = np.array([0, 2, 1, 2])
+Y = to_categorical(y, num_classes=3)
+print(Y)            # one row per label: the target for categorical_crossentropy
+print(Y.shape)`,
+  },
 ]
 
 export const KERAS_PLAYGROUND: PlayConfig = {

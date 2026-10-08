@@ -186,7 +186,7 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
                   title={c.code}
                   aria-pressed={on}
                   onClick={() => setPicked({ code: ran, id: c.id })}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-2 py-1.5 font-mono text-[11px] transition ${on ? 'border-sky-600 bg-sky-600 text-white shadow-md' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'}`}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-2 py-1.5 font-mono text-[11px] transition ${on ? 'border-sky-700 bg-sky-700 text-white shadow-md' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'}`}
                 >
                   <Grid3x3 size={13} className={on ? 'text-white' : 'text-sky-600'} aria-hidden />
                   <span className={`rounded px-1 text-[10px] ${on ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>L{c.line}</span>

@@ -17,6 +17,15 @@ export type Artist =
   | { kind: 'hline' | 'vline'; at: number; color: string; dash: string | null; width: number; label: string | null }
   | { kind: 'text'; x: number; y: number; text: string; color: string; size: number; ha: 'left' | 'center' | 'right'; va: 'top' | 'center' | 'bottom' }
   | { kind: 'fill'; x: number[]; y1: number[]; y2: number[]; color: string; alpha: number; label: string | null }
+  /** contourf: one colour per grid point (row 0 = the first y), stretched over the grid's extent */
+  | { kind: 'mesh'; nx: number; ny: number; extent: [number, number, number, number]; colors: string[]; values: number[]; alpha: number }
+  /** pie: wedges counter-clockwise from startangle (degrees), labels at 1.1 r, autopct text at 0.6 r */
+  | { kind: 'pie'; fracs: number[]; colors: string[]; labels: string[] | null; pct: string[] | null; start: number; explode: number[] }
+  /** errorbar: [below, above] error per point */
+  | { kind: 'errbar'; x: number[]; y: number[]; xerr: [number[], number[]] | null; yerr: [number[], number[]] | null; color: string; cap: number }
+  /** boxplot: quartiles, whiskers at the furthest points within 1.5 IQR, fliers beyond */
+  | { kind: 'box'; boxes: { pos: number; q1: number; med: number; q3: number; lo: number; hi: number; fliers: number[] }[]; width: number; vert: boolean }
+  | { kind: 'arrow'; x1: number; y1: number; x2: number; y2: number; color: string }
 
 export interface AxesSpec {
   /** grid position: row, column, and how many rows / columns the grid has */

@@ -198,6 +198,7 @@ const useRule = (call: CallTrace, ex: Explain): string => {
     case 'sort': return op === 'argsort' ? t('numpy_api.rule.argsort') : ex.axis === null ? t('numpy_api.rule.sort_flat') : t('numpy_api.rule.sort', { axis: ex.axis })
     case 'unique': return t('numpy_api.rule.unique')
     case 'linalg': return op === 'trace' ? t('numpy_api.rule.trace') : t('numpy_api.rule.linalg')
+    case 'group': return t(`numpy_api.rule.group_${op}`, { defaultValue: t('numpy_api.rule.group') })
     case 'poly': {
       if (call.api === 'np.polyfit') return t('numpy_api.rule.polyfit')
       if (call.api === 'np.polyval') return t('numpy_api.rule.polyval')

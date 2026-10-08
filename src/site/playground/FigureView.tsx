@@ -7,6 +7,7 @@ import type { Artist, AxesSpec, FigureSpec } from '../../lib/pyEvents'
 // --- 把沙盒里的 matplotlib 图（FigureSpec）画成 SVG：子图网格、刻度、图例、色条；选中一步时其余图元变淡 ---
 
 const PX = 100 // pixels per inch, matplotlib's default dpi
+const CYCLE_ORANGE = '#ff7f0e' // boxplot medians are C1
 const M = { l: 46, r: 14, t: 26, b: 36 }
 
 type Range = [number, number]
@@ -23,6 +24,7 @@ function limits(ax: AxesSpec): { x: Range; y: Range } {
   const ys: number[] = []
   let stickyY0 = false
   let image: Artist | null = null
+  let mesh: Artist | null = null
   for (const a of ax.artists) {
     switch (a.kind) {
       case 'line': case 'scatter': xs.push(...a.x); ys.push(...a.y); break
@@ -39,6 +41,21 @@ function limits(ax: AxesSpec): { x: Range; y: Range } {
       case 'hline': ys.push(a.at); break
       case 'vline': xs.push(a.at); break
       case 'text': xs.push(a.x); ys.push(a.y); break
+      case 'arrow': xs.push(a.x1, a.x2); ys.push(a.y1, a.y2); break
+      case 'errbar':
+        a.x.forEach((x, i) => {
+          xs.push(x - (a.xerr?.[0][i] ?? 0), x + (a.xerr?.[1][i] ?? 0))
+          ys.push(a.y[i] - (a.yerr?.[0][i] ?? 0), a.y[i] + (a.yerr?.[1][i] ?? 0))
+        })
+        break
+      case 'box':
+        for (const b of a.boxes) {
+          const along = [b.lo, b.hi, ...b.fliers]
+          const across = [b.pos - 0.5, b.pos + 0.5]
+          if (a.vert) { xs.push(...across); ys.push(...along) } else { ys.push(...across); xs.push(...along) }
+        }
+        break
+      case 'mesh': mesh = a; break
     }
   }
   const pad = (v: number[], sticky0: boolean): Range => {
@@ -57,7 +74,44 @@ function limits(ax: AxesSpec): { x: Range; y: Range } {
     x = xs.length ? [Math.min(x0, x[0]), Math.max(x1, x[1])] : [x0, x1]
     y = ys.length ? [Math.min(y1, y[0]), Math.max(y0, y[1])] : [y1, y0]
   }
+  // contourf fills its grid exactly: no margins on that side
+  if (mesh && mesh.kind === 'mesh') {
+    const [x0, x1, y0, y1] = mesh.extent
+    x = xs.length ? [Math.min(x0, x[0]), Math.max(x1, x[1])] : [Math.min(x0, x1), Math.max(x0, x1)]
+    y = ys.length ? [Math.min(y0, y[0]), Math.max(y1, y[1])] : [Math.min(y0, y1), Math.max(y0, y1)]
+  }
   return { x: ax.xlim ?? x, y: ax.ylim ?? y }
+}
+
+/** contourf's colours as a data URL, rows flipped when y points up so the first row lands at the bottom */
+function useMeshUrl(a: Artist & { kind: 'mesh' }, flip: boolean): string | null {
+  return useMemo(() => {
+    if (typeof document === 'undefined') return null
+    const c = document.createElement('canvas')
+    c.width = a.nx
+    c.height = a.ny
+    const ctx = c.getContext('2d')
+    if (!ctx) return null
+    const img = ctx.createImageData(a.nx, a.ny)
+    a.colors.forEach((hex, i) => {
+      const r = Math.floor(i / a.nx)
+      const k = ((flip ? a.ny - 1 - r : r) * a.nx + (i % a.nx)) * 4
+      if (hex === 'transparent') return
+      img.data[k] = parseInt(hex.slice(1, 3), 16)
+      img.data[k + 1] = parseInt(hex.slice(3, 5), 16)
+      img.data[k + 2] = parseInt(hex.slice(5, 7), 16)
+      img.data[k + 3] = 255
+    })
+    ctx.putImageData(img, 0, 0)
+    return c.toDataURL()
+  }, [a, flip])
+}
+
+const MeshArtist = ({ a, X, Y }: { a: Artist & { kind: 'mesh' }; X: (x: number) => number; Y: (y: number) => number }) => {
+  const [x0, x1, y0, y1] = a.extent
+  const url = useMeshUrl(a, Y(y1) < Y(y0))
+  if (!url) return null
+  return <image href={url} x={Math.min(X(x0), X(x1))} y={Math.min(Y(y0), Y(y1))} width={Math.abs(X(x1) - X(x0))} height={Math.abs(Y(y1) - Y(y0))} preserveAspectRatio="none" opacity={a.alpha} />
 }
 
 /** an image's pixels as a data URL (one canvas pixel per array element; the SVG scales it without smoothing) */
@@ -199,6 +253,95 @@ const AxesView = ({ ax, box, focus, onPixel, clip }: AxesProps) => {
           const o = op(i)
           switch (a.kind) {
             case 'image': return <g key={i} opacity={o}><ImageArtist a={a} X={X} Y={Y} onPixel={onPixel} labels={!ax.artists.some((x) => x.kind === 'text')} /></g>
+            case 'mesh': return <g key={i} opacity={o}><MeshArtist a={a} X={X} Y={Y} /></g>
+            case 'arrow': {
+              const ang = Math.atan2(Y(a.y2) - Y(a.y1), X(a.x2) - X(a.x1))
+              const hx = X(a.x2)
+              const hy = Y(a.y2)
+              return (
+                <g key={i} opacity={o} stroke={a.color} fill={a.color}>
+                  <line x1={X(a.x1)} y1={Y(a.y1)} x2={hx - 7 * Math.cos(ang)} y2={hy - 7 * Math.sin(ang)} strokeWidth={1.4} />
+                  <polygon points={`${hx},${hy} ${hx - 9 * Math.cos(ang - 0.4)},${hy - 9 * Math.sin(ang - 0.4)} ${hx - 9 * Math.cos(ang + 0.4)},${hy - 9 * Math.sin(ang + 0.4)}`} stroke="none" />
+                </g>
+              )
+            }
+            case 'errbar':
+              return (
+                <g key={i} opacity={o} stroke={a.color} strokeWidth={1.4}>
+                  {a.x.map((x, k) => (
+                    <g key={k}>
+                      {a.yerr && <line x1={X(x)} x2={X(x)} y1={Y(a.y[k] - a.yerr[0][k])} y2={Y(a.y[k] + a.yerr[1][k])} />}
+                      {a.yerr && a.cap > 0 && [a.y[k] - a.yerr[0][k], a.y[k] + a.yerr[1][k]].map((yy, c) => <line key={c} x1={X(x) - a.cap} x2={X(x) + a.cap} y1={Y(yy)} y2={Y(yy)} />)}
+                      {a.xerr && <line y1={Y(a.y[k])} y2={Y(a.y[k])} x1={X(x - a.xerr[0][k])} x2={X(x + a.xerr[1][k])} />}
+                      {a.xerr && a.cap > 0 && [x - a.xerr[0][k], x + a.xerr[1][k]].map((xx, c) => <line key={c} y1={Y(a.y[k]) - a.cap} y2={Y(a.y[k]) + a.cap} x1={X(xx)} x2={X(xx)} />)}
+                    </g>
+                  ))}
+                </g>
+              )
+            case 'box': {
+              // draw in (along, across) and swap for horizontal boxes
+              const P = (along: number, across: number): [number, number] => (a.vert ? [X(across), Y(along)] : [X(along), Y(across)])
+              const seg = (al0: number, ac0: number, al1: number, ac1: number, key: string, stroke = '#000', w = 1.2) => {
+                const [p0, q0] = P(al0, ac0)
+                const [p1, q1] = P(al1, ac1)
+                return <line key={key} x1={p0} y1={q0} x2={p1} y2={q1} stroke={stroke} strokeWidth={w} />
+              }
+              return (
+                <g key={i} opacity={o}>
+                  {a.boxes.map((b, k) => {
+                    const hw = a.width / 2
+                    const [bx0, by0] = P(b.q1, b.pos - hw)
+                    const [bx1, by1] = P(b.q3, b.pos + hw)
+                    return (
+                      <g key={k}>
+                        <rect x={Math.min(bx0, bx1)} y={Math.min(by0, by1)} width={Math.abs(bx1 - bx0)} height={Math.abs(by1 - by0)} fill="none" stroke="#000" strokeWidth={1.2} />
+                        {seg(b.med, b.pos - hw, b.med, b.pos + hw, 'm', CYCLE_ORANGE, 1.6)}
+                        {seg(b.q1, b.pos, b.lo, b.pos, 'wl')}
+                        {seg(b.q3, b.pos, b.hi, b.pos, 'wh')}
+                        {seg(b.lo, b.pos - hw / 2, b.lo, b.pos + hw / 2, 'cl')}
+                        {seg(b.hi, b.pos - hw / 2, b.hi, b.pos + hw / 2, 'ch')}
+                        {b.fliers.map((f, j) => {
+                          const [fx, fy] = P(f, b.pos)
+                          return <circle key={j} cx={fx} cy={fy} r={3.2} fill="none" stroke="#000" />
+                        })}
+                      </g>
+                    )
+                  })}
+                </g>
+              )
+            }
+            case 'pie': {
+              const cx = X(0)
+              const cy = Y(0)
+              const R = Math.abs(X(1) - X(0))
+              let theta = a.start
+              return (
+                <g key={i} opacity={o}>
+                  {a.fracs.map((f, k) => {
+                    const t0 = theta
+                    const t1 = theta + f * 360
+                    theta = t1
+                    const mid = ((t0 + t1) / 2) * (Math.PI / 180)
+                    const off = a.explode[k] ?? 0
+                    const ox = cx + off * R * Math.cos(mid)
+                    const oy = cy - off * R * Math.sin(mid)
+                    const pt = (deg: number, r: number) => [ox + r * Math.cos((deg * Math.PI) / 180), oy - r * Math.sin((deg * Math.PI) / 180)]
+                    const [ax0, ay0] = pt(t0, R)
+                    const [ax1, ay1] = pt(t1, R)
+                    const d = f >= 0.9999 ? `M${ox - R},${oy} a${R},${R} 0 1 0 ${2 * R},0 a${R},${R} 0 1 0 ${-2 * R},0` : `M${ox},${oy} L${ax0},${ay0} A${R},${R} 0 ${t1 - t0 > 180 ? 1 : 0} 0 ${ax1},${ay1} Z`
+                    const [lx, ly] = pt((t0 + t1) / 2, R * 1.1)
+                    const [px, py] = pt((t0 + t1) / 2, R * 0.6)
+                    return (
+                      <g key={k}>
+                        <path d={d} fill={a.colors[k % a.colors.length]} />
+                        {a.labels?.[k] && <text x={lx} y={ly + 4} fontSize={11} fill="#0f172a" textAnchor={Math.cos(mid) >= 0 ? 'start' : 'end'}>{a.labels[k]}</text>}
+                        {a.pct?.[k] && <text x={px} y={py + 4} fontSize={10.5} fill="#0f172a" textAnchor="middle">{a.pct[k]}</text>}
+                      </g>
+                    )
+                  })}
+                </g>
+              )
+            }
             case 'line':
               return (
                 <g key={i} opacity={o * a.alpha}>
