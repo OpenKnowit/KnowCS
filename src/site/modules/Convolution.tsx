@@ -51,22 +51,44 @@ const MODES: { v: PadMode; demo: string }[] = [
   { v: 'mirror', demo: 'c b | a b c | b a' },
 ]
 
-function Grid({ cells, cellClass, onPick, label }: { cells: { text: string; cls?: string; title?: string }[][]; cellClass?: string; onPick?: (r: number, c: number) => void; label: string }) {
+function Grid({ cells, cellClass, onPick, sel, label }: { cells: { text: string; cls?: string; title?: string }[][]; cellClass?: string; onPick?: (r: number, c: number) => void; sel?: [number, number]; label: string }) {
+  const rows = cells.length
+  const cols = cells[0]?.length ?? 1
   return (
-    <div className="inline-grid gap-[3px] font-mono text-[13px]" style={{ gridTemplateColumns: `repeat(${cells[0]?.length ?? 1}, minmax(34px, auto))` }} role="grid" aria-label={label}>
+    <div className="inline-grid gap-[3px] font-mono text-[13px]" style={{ gridTemplateColumns: `repeat(${cols}, minmax(34px, auto))` }} role="group" aria-label={label}>
       {cells.map((row, r) =>
-        row.map((c, j) => (
-          <button
-            key={`${r}-${j}`}
-            type="button"
-            title={c.title}
-            onClick={onPick ? () => onPick(r, j) : undefined}
-            tabIndex={onPick ? 0 : -1}
-            className={`grid h-[34px] place-items-center rounded-md border px-1 transition ${cellClass ?? ''} ${c.cls ?? 'border-slate-200 bg-slate-50'} ${onPick ? 'cursor-pointer hover:border-blue-400' : 'cursor-default'}`}
-          >
-            {c.text}
-          </button>
-        )),
+        row.map((c, j) => {
+          const current = !!sel && sel[0] === r && sel[1] === j
+          return (
+            <button
+              key={`${r}-${j}`}
+              type="button"
+              title={c.title}
+              data-cell={`${r},${j}`}
+              aria-label={`${label} (${r}, ${j}): ${c.text}`}
+              aria-pressed={onPick ? current : undefined}
+              onClick={onPick ? () => onPick(r, j) : undefined}
+              // pickable grids are one tab stop; arrow keys move the selection (roving tabindex)
+              tabIndex={onPick ? (current || (!sel && r === 0 && j === 0) ? 0 : -1) : -1}
+              onKeyDown={
+                onPick
+                  ? (e) => {
+                      const d = ({ ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] } as Record<string, [number, number]>)[e.key]
+                      if (!d) return
+                      e.preventDefault()
+                      const nr = Math.min(rows - 1, Math.max(0, r + d[0]))
+                      const nc = Math.min(cols - 1, Math.max(0, j + d[1]))
+                      onPick(nr, nc)
+                      e.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-cell="${nr},${nc}"]`)?.focus()
+                    }
+                  : undefined
+              }
+              className={`grid h-[34px] place-items-center rounded-md border px-1 transition ${cellClass ?? ''} ${c.cls ?? 'border-slate-200 bg-slate-50'} ${onPick ? 'cursor-pointer hover:border-blue-400' : 'cursor-default'}`}
+            >
+              {c.text}
+            </button>
+          )
+        }),
       )}
     </div>
   )
@@ -201,7 +223,7 @@ export default function Convolution() {
             </div>
             <div>
               <div className="mb-1.5 text-xs font-bold text-slate-500">{t('lab.conv.output_label', { h: oh, w: ow })}</div>
-              <Grid label={t('lab.conv.output')} onPick={(i, j) => { setSel([i, j]); setPlaying(false) }} cells={res.out.map((row, i) => row.map((v, j) => ({ text: kstr(v), cls: i === r && j === c ? 'border-blue-600 bg-blue-600 text-white' : 'border-indigo-200 bg-indigo-50' })))} />
+              <Grid label={t('lab.conv.output')} sel={[r, c]} onPick={(i, j) => { setSel([i, j]); setPlaying(false) }} cells={res.out.map((row, i) => row.map((v, j) => ({ text: kstr(v), cls: i === r && j === c ? 'border-blue-600 bg-blue-600 text-white' : 'border-indigo-200 bg-indigo-50' })))} />
             </div>
           </div>
           <div className="formula mt-4">
