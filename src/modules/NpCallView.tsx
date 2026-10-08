@@ -26,6 +26,14 @@ const cellText = (v: number, dtype: DType): string => {
 
 type Look = 'none' | 'hover' | 'source' | 'pick' | 'dependent'
 
+/** a light heat-map tint for an idle cell: blue for positive, rose for negative, stronger for larger |v| (text stays dark) */
+const heat = (v: number, dtype: DType, maxAbs: number): string | undefined => {
+  if (dtype === 'bool') return v ? 'rgb(209 250 229)' : undefined
+  if (!Number.isFinite(v) || maxAbs === 0 || v === 0) return undefined
+  const a = 0.06 + 0.26 * Math.min(1, Math.abs(v) / maxAbs)
+  return v > 0 ? `rgba(59, 130, 246, ${a.toFixed(3)})` : `rgba(244, 63, 94, ${a.toFixed(3)})`
+}
+
 const LOOK: Record<Look, string> = {
   none: 'bg-white border-slate-200 text-slate-700',
   hover: 'bg-blue-600 border-blue-600 text-white',
@@ -51,6 +59,7 @@ export const NdGrid = ({ title, snap, look, tint, onHover }: GridProps) => {
   const cols = n >= 1 ? shape[n - 1] : 1
   const lead = shape.slice(0, Math.max(0, n - 2))
   const per = rows * cols
+  const maxAbs = snap.values.length <= MAX_DRAW ? snap.values.reduce((m, v) => (Number.isFinite(v) ? Math.max(m, Math.abs(v)) : m), 0) : 0
   const blocks = n <= 2 ? [{ label: null as string | null, base: 0 }] : Array.from({ length: prod(lead) }, (_, b) => ({ label: `[${unravel(b, lead).join(', ')}, :, :]`, base: b * per }))
   return (
     <div className="min-w-0">
@@ -78,7 +87,8 @@ export const NdGrid = ({ title, snap, look, tint, onHover }: GridProps) => {
                       onMouseEnter={() => onHover(flat)}
                       onFocus={() => onHover(flat)}
                       onClick={() => onHover(flat)}
-                      className={`h-9 rounded border px-1 font-mono text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${LOOK[l]} ${l === 'none' ? tint?.(flat) ?? '' : ''}`}
+                      className={`h-9 rounded-md border px-1 font-mono text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${LOOK[l]} ${l === 'none' ? tint?.(flat) ?? '' : ''}`}
+                      style={l === 'none' && !tint?.(flat) ? { backgroundColor: heat(snap.values[flat], snap.dtype, maxAbs) } : undefined}
                     >
                       {cellText(snap.values[flat], snap.dtype)}
                     </button>

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Info, Maximize2, Minimize2, Play, RotateCcw, Search, Sparkles, TerminalSquare } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { KeyboardEvent } from 'react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Info, Maximize2, Minimize2, Play, RotateCcw, Search, Sparkles, TerminalSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import type { CallTrace } from '../../lib/minipy'
@@ -8,6 +9,8 @@ import type { Display, PyEvent } from '../../lib/pyEvents'
 import type { PlayConfig, PlayEntry } from '../../data/playgrounds/types'
 import { CodeEditor } from './CodeEditor'
 import { StepView, TableView } from './views'
+import { KIND } from './kinds'
+import type { StepKind } from './kinds'
 import { FigureView } from './FigureView'
 import { useFullScreen } from './useFullScreen'
 
@@ -22,6 +25,8 @@ const shorten = (code: string, n = 26) => {
   const one = code.replace(/\s+/g, ' ').trim()
   return one.length > n ? `${one.slice(0, n - 1)}…` : one
 }
+
+const stepKind = (s: Step): StepKind => (s.kind === 'call' ? 'call' : s.ev.type === 'note' ? 'call' : s.ev.type)
 
 const stepLabel = (s: Step): string => {
   if (s.kind === 'call') return s.call.api.startsWith('op:') ? s.call.code : s.call.api.replace(/^ndarray\./, '.')
@@ -214,22 +219,66 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
     </details>
   )
 
+  const stripRef = useRef<HTMLDivElement>(null)
+  const selIndex = steps.findIndex((s) => s.seq === selectedSeq)
+  const go = (k: number) => {
+    const s = steps[Math.max(0, Math.min(steps.length - 1, k))]
+    if (!s) return
+    setPicked({ code: ran, seq: s.seq })
+    // keep the chosen chip in view without scrolling the page
+    requestAnimationFrame(() => {
+      const strip = stripRef.current
+      const chip = strip?.querySelector<HTMLElement>(`[data-seq="${s.seq}"]`)
+      if (strip && chip) strip.scrollTo({ left: chip.offsetLeft - strip.clientWidth / 2 + chip.clientWidth / 2, behavior: 'smooth' })
+    })
+  }
+  const onStripKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const k = e.key === 'ArrowRight' ? selIndex + 1 : e.key === 'ArrowLeft' ? selIndex - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? steps.length - 1 : null
+    if (k === null) return
+    e.preventDefault()
+    go(k)
+    requestAnimationFrame(() => stripRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus())
+  }
+
   const stepsView = (
     <div className="space-y-3">
       {steps.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1" aria-label={t('playground.ui.steps')}>
-          <span className="mr-1 text-[11px] font-bold text-slate-400">{t('playground.ui.steps')}</span>
-          {steps.map((s) => (
-            <button
-              key={s.seq}
-              title={s.kind === 'call' ? s.call.code : s.ev.code}
-              aria-pressed={s.seq === selectedSeq}
-              onClick={() => setPicked({ code: ran, seq: s.seq })}
-              className={`max-w-[16rem] truncate rounded-md border px-1.5 py-0.5 font-mono text-[11px] ${s.seq === selectedSeq ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-500 hover:border-slate-400'}`}
-            >
-              L{stepLine(s)} {stepLabel(s)}
-            </button>
-          ))}
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-2">
+          <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              {t('playground.ui.steps')} <span className="font-mono normal-case tracking-normal text-slate-600">{selIndex + 1} / {steps.length}</span>
+            </span>
+            <span className="flex gap-1">
+              <button type="button" onClick={() => go(selIndex - 1)} disabled={selIndex <= 0} aria-label={t('playground.ui.prev')} className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-slate-400 disabled:opacity-40">
+                <ChevronLeft size={15} aria-hidden />
+              </button>
+              <button type="button" onClick={() => go(selIndex + 1)} disabled={selIndex >= steps.length - 1} aria-label={t('playground.ui.next')} className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-slate-400 disabled:opacity-40">
+                <ChevronRight size={15} aria-hidden />
+              </button>
+            </span>
+          </div>
+          <div ref={stripRef} className="relative flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label={t('playground.ui.steps')} onKeyDown={onStripKey}>
+            {steps.map((s, k) => {
+              const K = KIND[stepKind(s)]
+              const on = s.seq === selectedSeq
+              return (
+                <button
+                  key={s.seq}
+                  data-seq={s.seq}
+                  type="button"
+                  title={s.kind === 'call' ? s.call.code : s.ev.code}
+                  aria-pressed={on}
+                  tabIndex={on || (selIndex < 0 && k === 0) ? 0 : -1}
+                  onClick={() => go(k)}
+                  className={`group flex max-w-[15rem] shrink-0 items-center gap-1.5 rounded-xl border px-2 py-1.5 text-left font-mono text-[11px] transition ${on ? `${K.on} text-white shadow-md` : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'}`}
+                >
+                  <K.icon size={13} className={on ? 'text-white' : K.icon_} aria-hidden />
+                  <span className={`rounded px-1 text-[10px] ${on ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>L{stepLine(s)}</span>
+                  <span className="truncate">{stepLabel(s)}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
       {notes.map((n) => {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, Maximize2, Minimize2, Search, Sparkles } from 'lucide-react'
+import { AlertTriangle, Grid3x3, Maximize2, Minimize2, Search, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { API_CATS, NUMPY_APIS } from '../data/numpyApis'
 import type { ApiCat, ApiEntry } from '../data/numpyApis'
@@ -172,19 +172,29 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
   const right = (
     <>
       {calls.length > 1 && (
-        <div className="flex flex-wrap items-center gap-1" aria-label={t('numpy_api.steps')}>
-          <span className="mr-1 text-[11px] font-bold text-slate-400">{t('numpy_api.steps')}</span>
-          {calls.map((c) => (
-            <button
-              key={c.id}
-              title={c.code}
-              aria-pressed={c.id === selectedId}
-              onClick={() => setPicked({ code: ran, id: c.id })}
-              className={`rounded-md border px-1.5 py-0.5 font-mono text-[11px] ${c.id === selectedId ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-500 hover:border-slate-400'}`}
-            >
-              L{c.line} {shortApi(c.api)}
-            </button>
-          ))}
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-2">
+          <div className="mb-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {t('numpy_api.steps')} <span className="font-mono normal-case tracking-normal text-slate-600">{calls.findIndex((c) => c.id === selectedId) + 1} / {calls.length}</span>
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label={t('numpy_api.steps')}>
+            {calls.map((c) => {
+              const on = c.id === selectedId
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  title={c.code}
+                  aria-pressed={on}
+                  onClick={() => setPicked({ code: ran, id: c.id })}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-2 py-1.5 font-mono text-[11px] transition ${on ? 'border-sky-600 bg-sky-600 text-white shadow-md' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'}`}
+                >
+                  <Grid3x3 size={13} className={on ? 'text-white' : 'text-sky-600'} aria-hidden />
+                  <span className={`rounded px-1 text-[10px] ${on ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>L{c.line}</span>
+                  {shortApi(c.api)}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
