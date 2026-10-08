@@ -18,28 +18,26 @@ const write = (v: string) => {
   }
 }
 
+/** This build's version and size, written into every page by vite.config.js (so no request is needed). */
+function buildInfo(): { version: string; mb: number | null } {
+  const [version = '', bytes = ''] = (typeof document === 'undefined' ? '' : document.querySelector<HTMLMetaElement>('meta[name="knowcs-offline"]')?.content ?? '').split(' ')
+  return { version, mb: bytes ? Math.max(1, Math.round(Number(bytes) / 1e6)) : null }
+}
+
 type State = { kind: 'idle' } | { kind: 'saving'; done: number; total: number } | { kind: 'saved' } | { kind: 'stale' } | { kind: 'failed' }
 
 /** Footer button: ask the service worker to keep every page and explainer on this device. */
 export function OfflineButton() {
   const { t } = useTranslation()
   const supported = import.meta.env.PROD && typeof navigator !== 'undefined' && 'serviceWorker' in navigator
-  const [state, setState] = useState<State>(() => (read() ? { kind: 'saved' } : { kind: 'idle' }))
-  const [mb, setMb] = useState<number | null>(null)
+  const [{ version, mb }] = useState(buildInfo)
+  const [state, setState] = useState<State>(() => {
+    const saved = read()
+    return !saved ? { kind: 'idle' } : version && saved !== version ? { kind: 'stale' } : { kind: 'saved' }
+  })
 
   useEffect(() => {
     if (!supported) return
-    let live = true
-    // the build's size, and whether a saved copy is from an older deploy
-    fetch('/offline.json', { cache: 'no-store' })
-      .then((r) => r.json() as Promise<{ version: string; bytes: number }>)
-      .then((m) => {
-        if (!live) return
-        setMb(Math.max(1, Math.round(m.bytes / 1e6)))
-        const saved = read()
-        if (saved && saved !== m.version) setState({ kind: 'stale' })
-      })
-      .catch(() => {})
     const onMessage = (e: MessageEvent<{ type: string; done?: number; total?: number; version?: string | null; failed?: number }>) => {
       if (e.data?.type === 'offline-progress') setState({ kind: 'saving', done: e.data.done ?? 0, total: e.data.total ?? 0 })
       if (e.data?.type === 'offline-done') {
@@ -50,10 +48,7 @@ export function OfflineButton() {
       }
     }
     navigator.serviceWorker.addEventListener('message', onMessage)
-    return () => {
-      live = false
-      navigator.serviceWorker.removeEventListener('message', onMessage)
-    }
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage)
   }, [supported])
 
   if (!supported) return null

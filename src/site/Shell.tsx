@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
-import { Check, ChevronDown, Languages, Sigma, WifiOff } from 'lucide-react'
+import { Check, ChevronDown, Languages } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { normalizeLang, SUPPORTED_LANGS } from '../lib/lang'
 import type { LangCode } from '../lib/lang'
@@ -91,6 +91,29 @@ const LanguageMenu = () => {
   )
 }
 
+/** The site icon (same drawing as the favicon and app icons in vite.config.js). */
+const SiteLogo = () => (
+  <svg viewBox="0 0 64 64" className="h-9 w-9 shrink-0 drop-shadow-md" aria-hidden>
+    <defs>
+      <linearGradient id="knowcs-logo" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#3b82f6" />
+        <stop offset="1" stopColor="#4f46e5" />
+      </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="14" fill="url(#knowcs-logo)" />
+    <g stroke="#fff" strokeWidth="2.8" opacity="0.8">
+      {[[16, 20, 32, 14], [16, 20, 32, 32], [16, 20, 32, 50], [16, 44, 32, 14], [16, 44, 32, 32], [16, 44, 32, 50], [32, 14, 48, 32], [32, 32, 48, 32], [32, 50, 48, 32]].map(([x1, y1, x2, y2], i) => (
+        <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} />
+      ))}
+    </g>
+    <g fill="#fff">
+      {[[16, 20], [16, 44], [32, 14], [32, 32], [32, 50], [48, 32]].map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="6" />
+      ))}
+    </g>
+  </svg>
+)
+
 const NAV: { section: Section; href: string; key: string }[] = [
   { section: 'course', href: '/', key: 'app.nav.course' },
   { section: 'watch', href: '/watch/', key: 'app.nav.watch' },
@@ -112,9 +135,9 @@ export function Shell({ section, children }: { section: Section; children: React
       </a>
       <header className="mx-auto flex max-w-[1480px] flex-wrap items-center gap-3 px-4 pb-2 pt-4 sm:px-6 print:hidden">
         <a href="/" className="flex min-w-0 items-center gap-2.5 font-black tracking-tight text-slate-900">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-black text-white shadow-md shadow-blue-500/30" aria-hidden>K</span>
+          <SiteLogo />
           <span className="truncate text-lg">{t('app.title')}</span>
-          <span className="hidden rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-600 md:inline">v{__APP_VERSION__}</span>
+          <span className="hidden rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-600 md:inline">Beta</span>
         </a>
         <span className="flex-1" />
         <nav aria-label={t('app.a11y.mode_nav')} className="order-last flex w-full items-center justify-between rounded-full border border-slate-200 bg-white p-1 shadow-sm sm:order-none sm:w-auto sm:justify-start">
@@ -134,13 +157,8 @@ export function Shell({ section, children }: { section: Section; children: React
       <div id="main-content" tabIndex={-1} className="focus:outline-none">
         {children}
       </div>
-      <footer className="print:hidden mx-auto mt-8 flex max-w-[1480px] flex-col items-center justify-between gap-4 border-t border-slate-200 px-4 py-8 text-center text-xs font-medium uppercase tracking-widest text-slate-500 sm:px-6 md:flex-row md:text-left">
-        <p>{t('app.footer.copyright')}</p>
-        <div className="flex flex-wrap items-center justify-center gap-6">
-          <OfflineButton />
-          <span className="flex items-center gap-2"><WifiOff size={14} aria-hidden /> {t('app.footer.local')}</span>
-          <span className="flex items-center gap-2"><Sigma size={14} aria-hidden /> {t('app.footer.math')}</span>
-        </div>
+      <footer className="print:hidden mx-auto mt-8 flex max-w-[1480px] justify-center border-t border-slate-200 px-4 py-6 text-xs sm:px-6">
+        <OfflineButton />
       </footer>
     </div>
   )

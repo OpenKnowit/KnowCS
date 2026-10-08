@@ -444,9 +444,6 @@
       }
     },
     "footer": {
-      "copyright": "© 2026 KnowIt COMP2211 ML Learning Lab. Education through interaction.",
-      "local": "Runs 100% in your browser",
-      "math": "Math typeset by KaTeX",
       "offline_save": "Save for offline",
       "offline_mb": "about {{mb}} MB",
       "offline_hint": "Keeps every page, explainer and note on this device (about {{mb}} MB), so the site works without a connection.",
