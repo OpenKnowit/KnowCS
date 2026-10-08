@@ -11,7 +11,8 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('knowcs-') && k !== ASSETS && k !== PAGES).map((k) => caches.delete(k))))
+      // knowcs-pyodide:* belongs to the real-Python worker (src/lib/pyodide/worker.ts), which manages its own versions
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('knowcs-') && !k.startsWith('knowcs-pyodide:') && k !== ASSETS && k !== PAGES).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   )
 })

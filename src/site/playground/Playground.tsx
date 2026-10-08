@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
-import { AlertTriangle, ChevronLeft, ChevronRight, Info, Maximize2, Minimize2, Play, RotateCcw, Search, Sparkles, TerminalSquare } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Info, Maximize2, Minimize2, Play, RotateCcw, Search, Sparkles, Square, TerminalSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import type { CallTrace } from '../../lib/minipy'
@@ -13,8 +13,10 @@ import { KIND } from './kinds'
 import type { StepKind } from './kinds'
 import { FigureView } from './FigureView'
 import { useFullScreen } from './useFullScreen'
-import { RealPython } from './RealPython'
 import { REAL_PYTHON_LIBS } from '../../lib/pyodide/config'
+import { EngineSwitch } from './EngineSwitch'
+import { RealConsole, RealFigures } from './RealOutput'
+import { realErrorLine, useEngineChoice, useRealRun, useWarmEngine } from './useEngine'
 
 // --- 各库实验台：示例目录 + 可编辑代码 + 逐步可视化（调用 / 图 / 模型形状 / 计算图 …）+ 全屏 ---
 
@@ -34,6 +36,8 @@ const stepLabel = (s: Step): string => {
   if (s.kind === 'call') return s.call.api.startsWith('op:') ? s.call.code : s.call.api.replace(/^ndarray\./, '.')
   return shorten(s.ev.code || s.ev.type)
 }
+
+const LIB_NAME: Record<string, string> = { matplotlib: 'matplotlib', pandas: 'pandas', pytorch: 'PyTorch', keras: 'Keras', tensorflow: 'TensorFlow' }
 
 interface Props {
   config: PlayConfig
@@ -65,7 +69,14 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
     return () => clearTimeout(id)
   }, [code, ran, config.debounce])
 
-  const result = useMemo(() => runIn(config, ran), [config, ran])
+  // the engine: minipy traces every step; real Python (Pyodide, only where the library has a browser build) runs it as is
+  const realOk = REAL_PYTHON_LIBS.has(config.id)
+  const [engine, setEngine] = useEngineChoice()
+  const realOn = realOk && engine === 'real'
+  useWarmEngine(realOk)
+  const real = useRealRun(ran, realOn)
+  const result = useMemo(() => runIn(config, realOn ? '' : ran), [config, ran, realOn])
+  const runNow = () => (code !== ran ? setRan(code) : realOn && real.rerun())
 
   const steps = useMemo<Step[]>(() => {
     const out: Step[] = [
@@ -170,7 +181,9 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
   )
 
   const editor = (
-    <div className={full ? 'flex min-h-0 flex-1 flex-col' : ''}>
+    <div className={full ? 'flex min-h-0 flex-1 flex-col gap-3' : 'space-y-3'}>
+      <EngineSwitch engine={engine} onChange={setEngine} available={realOk} lib={LIB_NAME[config.id] ?? config.id} />
+      <div className={full ? 'flex min-h-0 flex-1 flex-col' : ''}>
       <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-bold text-slate-400">
         <span>{t('playground.ui.editor')}</span>
         <span className="flex items-center gap-2">
@@ -179,17 +192,26 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
               <RotateCcw size={11} aria-hidden /> {t('playground.ui.reset')}
             </button>
           )}
-          <button type="button" onClick={() => setRan(code)} className="flex items-center gap-1 rounded-md bg-sky-700 px-2 py-0.5 text-white hover:bg-sky-600">
-            <Play size={11} aria-hidden /> {t('playground.ui.run')}
-          </button>
+          {real.busy ? (
+            <button type="button" onClick={real.stop} className="flex items-center gap-1 rounded-md bg-rose-700 px-2 py-0.5 text-white hover:bg-rose-600">
+              <Square size={10} aria-hidden /> {t('playground.ui.real.stop')}
+            </button>
+          ) : (
+            <button type="button" onClick={runNow} className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-white ${realOn ? 'bg-amber-700 hover:bg-amber-800' : 'bg-sky-700 hover:bg-sky-600'}`}>
+              <Play size={11} aria-hidden /> {t('playground.ui.run')}
+            </button>
+          )}
         </span>
       </div>
-      <CodeEditor value={code} onChange={setCode} onRun={() => setRan(code)} errorLine={result.error?.line} label={t('playground.ui.editor')} tall={full} />
+      <CodeEditor value={code} onChange={setCode} onRun={runNow} errorLine={realOn ? realErrorLine(real.run) : result.error?.line} label={t('playground.ui.editor')} tall={full} />
       <p className="mt-1 hidden text-[11px] text-slate-500 sm:block">{t('playground.ui.shortcut')}</p>
+      </div>
     </div>
   )
 
-  const output = (
+  const output = realOn ? (
+    <RealConsole run={real.run} />
+  ) : (
     <div aria-live="polite" className="rounded-xl border border-slate-200 bg-slate-50 p-3">
       <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
         <TerminalSquare size={13} aria-hidden /> {t('playground.ui.output')}
@@ -210,12 +232,11 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
     </div>
   )
 
-  // the same code with real CPython and the real library, on request (not for PyTorch / Keras / TensorFlow: no Pyodide build)
-  const real = REAL_PYTHON_LIBS.has(config.id) && <RealPython code={code} />
-
   // the final figures repeat the selected figure step, so they start folded when such a step is shown
   const figureStep = selected?.kind === 'event' && selected.ev.type === 'figure'
-  const displays = result.displays.length > 0 && (
+  const displays = realOn ? (
+    <RealFigures run={real.run} />
+  ) : result.displays.length > 0 && (
     <details key={`${ran}:${figureStep}`} open={!figureStep || full} className="group space-y-3">
       <summary className="cursor-pointer text-[11px] font-bold text-slate-400 hover:text-slate-600">{t('playground.ui.figures', { count: result.displays.length })}</summary>
       <div className="mt-3 space-y-3">
@@ -245,7 +266,7 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
     requestAnimationFrame(() => stripRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus())
   }
 
-  const stepsView = (
+  const stepsView = realOn ? null : (
     <div className="space-y-3">
       {steps.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-2">
@@ -311,11 +332,11 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
           <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto lg:pr-1">
             {catalog}
             {editor}
-            {output}
-            {real}
+            {!realOn && output}
           </div>
           <div className="min-h-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 lg:overflow-y-auto">
             {stepsView}
+            {realOn && output}
             {displays}
           </div>
         </div>
@@ -332,15 +353,16 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
           <div className="min-w-0 space-y-4">
             {catalog}
             {editor}
-            {output}
-            {real}
+            {!realOn && output}
           </div>
+          {/* real Python has no steps: its output sits beside the editor, above its figures */}
           <div className="min-w-0 space-y-4 lg:border-l lg:border-slate-100 lg:pl-5">
             {stepsView}
+            {realOn && output}
             {displays}
           </div>
         </div>
-        <p className="mt-4 text-[11px] leading-relaxed text-slate-500">{t(`${ns}.sandbox_note`)}</p>
+        {!realOn && <p className="mt-4 text-[11px] leading-relaxed text-slate-500">{t(`${ns}.sandbox_note`)}</p>}
       </section>
     )
   }
@@ -352,9 +374,8 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
       {editor}
       {stepsView}
       {output}
-      {real}
       {displays}
-      <p className="text-[11px] leading-relaxed text-slate-400">{t(`${ns}.sandbox_note`)}</p>
+      {!realOn && <p className="text-[11px] leading-relaxed text-slate-400">{t(`${ns}.sandbox_note`)}</p>}
     </aside>
   )
 }

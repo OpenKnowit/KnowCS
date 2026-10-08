@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, Grid3x3, Maximize2, Minimize2, Search, Sparkles } from 'lucide-react'
+import { AlertTriangle, Grid3x3, Maximize2, Minimize2, Search, Sparkles, Square } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { API_CATS, NUMPY_APIS } from '../data/numpyApis'
 import type { ApiCat, ApiEntry } from '../data/numpyApis'
 import { runPython } from '../lib/minipy'
 import { CallView } from './NpCallView'
 import { useFullScreen } from '../site/playground/useFullScreen'
-import { RealPython } from '../site/playground/RealPython'
+import { EngineSwitch } from '../site/playground/EngineSwitch'
+import { RealConsole, RealFigures } from '../site/playground/RealOutput'
+import { useEngineChoice, useRealRun, useWarmEngine } from '../site/playground/useEngine'
 
 // --- NumPy API 可视化面板：在浏览器里运行示例（lib/minipy），并标出结果每个元素来自哪些输入元素 ---
 
@@ -43,7 +45,13 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
     return () => clearTimeout(id)
   }, [code, ran])
 
-  const result = useMemo(() => runPython(ran), [ran])
+  // the engine: minipy (every call traced) or real NumPy (Pyodide in a worker)
+  const [engine, setEngine] = useEngineChoice()
+  const realOn = engine === 'real'
+  useWarmEngine(true)
+  const real = useRealRun(ran, realOn)
+  const result = useMemo(() => runPython(realOn ? '' : ran), [ran, realOn])
+  const runNow = () => (code !== ran ? setRan(code) : realOn && real.rerun())
   const calls = result.calls
   const autoId = (calls.find((c) => entry.match.includes(c.api)) ?? calls[calls.length - 1])?.id
   const selectedId = picked && picked.code === ran ? picked.id : autoId
@@ -63,7 +71,7 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault()
-      setRan(code)
+      runNow()
     }
     if (e.key === 'Escape') {
       e.stopPropagation()
@@ -151,10 +159,18 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
         <b className="font-mono">{entry.label}</b> — {t(`numpy_api.api.${entry.id}`)}
       </p>
 
+      <EngineSwitch engine={engine} onChange={setEngine} available lib="NumPy" />
+
       <div className={full ? 'flex min-h-0 flex-1 flex-col' : ''}>
-        <div className="mb-1 flex items-center justify-between text-[11px] font-bold text-slate-400">
+        <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-bold text-slate-400">
           <span>{t('numpy_api.editor')}</span>
-          <span>{t('numpy_api.shortcut')}</span>
+          {real.busy ? (
+            <button type="button" onClick={real.stop} className="flex items-center gap-1 rounded-md bg-rose-700 px-2 py-0.5 text-white hover:bg-rose-600">
+              <Square size={10} aria-hidden /> {t('playground.ui.real.stop')}
+            </button>
+          ) : (
+            <span>{t('numpy_api.shortcut')}</span>
+          )}
         </div>
         <textarea
           value={code}
@@ -170,7 +186,9 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
     </>
   )
 
-  const right = (
+  const right = realOn ? (
+    <RealFigures run={real.run} />
+  ) : (
     <>
       {calls.length > 1 && (
         <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-2">
@@ -203,7 +221,9 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
     </>
   )
 
-  const output = (
+  const output = realOn ? (
+    <RealConsole run={real.run} />
+  ) : (
     <>
 
       {(result.error || result.out || result.stdout) && (
@@ -219,7 +239,6 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
           )}
         </div>
       )}
-      <RealPython code={code} />
     </>
   )
 
@@ -230,9 +249,12 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
         <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 sm:p-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:overflow-hidden">
           <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto lg:pr-1">
             {left}
-            {output}
+            {!realOn && output}
           </div>
-          <div className="min-h-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 lg:overflow-y-auto">{right}</div>
+          <div className="min-h-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 lg:overflow-y-auto">
+            {realOn && output}
+            {right}
+          </div>
         </div>
       </div>,
       document.body,
@@ -246,11 +268,14 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
         <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           <div className="min-w-0 space-y-4">
             {left}
-            {output}
+            {!realOn && output}
           </div>
-          <div className="min-w-0 space-y-4 lg:border-l lg:border-slate-100 lg:pl-5">{right}</div>
+          <div className="min-w-0 space-y-4 lg:border-l lg:border-slate-100 lg:pl-5">
+            {realOn && output}
+            {right}
+          </div>
         </div>
-        <p className="mt-4 text-[11px] leading-relaxed text-slate-500">{t('numpy_api.sandbox_note')}</p>
+        {!realOn && <p className="mt-4 text-[11px] leading-relaxed text-slate-500">{t('numpy_api.sandbox_note')}</p>}
       </section>
     )
   }
@@ -261,7 +286,7 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
       {left}
       {right}
       {output}
-      <p className="text-[11px] leading-relaxed text-slate-400">{t('numpy_api.sandbox_note')}</p>
+      {!realOn && <p className="text-[11px] leading-relaxed text-slate-400">{t('numpy_api.sandbox_note')}</p>}
     </aside>
   )
 }

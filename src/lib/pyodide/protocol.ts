@@ -23,10 +23,13 @@ export interface RealResult {
 
 export type RealPhase = { phase: 'runtime' } | { phase: 'packages'; names: string[] } | { phase: 'running' }
 
-export type ToWorker = { id: number; base: string; code: string }
+/** run code, or (type 'boot') only download and start Python so a later run is instant */
+export type ToWorker = { id: number; base: string; type: 'run'; code: string } | { id: number; base: string; type: 'boot' }
 
 export type FromWorker =
   | { id: number; type: 'status'; status: RealPhase }
   | { id: number; type: 'done'; result: RealResult }
   /** Python or its packages could not be downloaded */
   | { id: number; type: 'failed'; message: string }
+  /** the runtime itself: started (ready) or could not be downloaded (failed) */
+  | { type: 'engine'; state: 'ready' | 'failed'; message?: string }

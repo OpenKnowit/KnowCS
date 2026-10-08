@@ -7,6 +7,12 @@
 
 ## 进展时间线
 
+### 2026-10-08 — 实验台引擎切换：逐步演示（minipy）/ 真实 Python（Pyodide）（按用户要求）
+- **feat**：NumPy、matplotlib、pandas 实验台的编辑器上方新增「运行引擎」单选：逐步演示（minipy，默认）或真实 Python（Pyodide，Web Worker）。选真实 Python 后，代码改动后自动在真实库中运行，输出（含版本与耗时）和 matplotlib 图显示在右栏，逐步可视化暂停；选择记在 `knowcs-py-engine`，全站共享。PyTorch、Keras、TensorFlow 中该选项置灰并说明没有浏览器版本。
+- **feat**：打开实验台约 1.2 秒后在后台下载并启动 Python 运行时（省流量模式下不预载）；各包仍按导入按需下载。worker 把从 Pyodide 地址取到的文件（wasm、标准库、lock、各 wheel）存入 Cache Storage（`knowcs-pyodide:<base>`，换版本时清掉旧缓存），再次打开约 1.3 秒就绪。站点 Service Worker 激活时不再删除该缓存。
+- **feat**：同一时间只运行一段代码，新的请求替换排队中的旧请求；单次运行超过 15 秒自动停止（提示是否死循环），worker 随即从缓存重启；运行中可手动停止。
+- **change**：替换上一版的「用真实 Python 运行」卡片。浏览器检查：预载、缓存条目、自动运行、超时与重启、刷新后从缓存启动、matplotlib 出图、PyTorch 置灰，无控制台错误；390 宽无横向滚动，对比度通过。
+
 ### 2026-10-08 — 实验台加「用真实 Python 运行」（Pyodide，按用户要求）
 - **feat**：NumPy、matplotlib、pandas 实验台（实验场页与笔记旁）在输出下方新增「用真实 Python 运行」卡片：点按钮后才在 Web Worker 里加载 Pyodide 314.0.7（CPython 3.14.2），用 `loadPackagesFromImports` 只下载代码导入的包（NumPy 2.4.6、pandas 3.0.2、matplotlib 3.10.8、scikit-learn 1.8.0、SciPy、OpenCV），seaborn 不在内置包里，导入时用 micropip 安装。每次运行用新的命名空间；显示 print、stderr、最后一个表达式的 repr、Python 3.14 的 traceback 和 matplotlib 图（PNG）；可随时停止（直接终止 worker）。minipy 仍是默认引擎，逐步可视化不变；PyTorch、Keras、TensorFlow 没有 Pyodide 版本，不显示该卡片。
 - **config**：资源地址默认 `https://cdn.jsdelivr.net/pyodide/v314.0.7/full/`，构建时可用 `VITE_PYODIDE_BASE` 改为自托管或 COS + CDN（jsDelivr 在内地不稳定，目前未自托管）。首屏不加载任何 Pyodide 资源；首次运行约 7 MB（仅 Python）到 37 MB（含 scikit-learn），浏览器缓存后再次运行约 60 ms。下载失败时提示所用域名。
