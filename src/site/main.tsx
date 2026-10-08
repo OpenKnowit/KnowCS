@@ -2,8 +2,8 @@ import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { LazyMotion, MotionConfig } from 'framer-motion'
 import '../index.css'
-import i18n, { i18nReady } from '../i18n'
-import { withPacks } from '../i18nPacks'
+import { i18nReady } from '../i18n'
+import { PAGE_LOADERS, preloadPage } from './pageLoaders'
 import { legacyTarget } from '../lib/sitemap'
 import { Shell } from './Shell'
 import type { Section } from './Shell'
@@ -18,15 +18,15 @@ if (moved) window.location.replace(moved)
 // animation features load on demand, after first paint (m.* components render statically until then)
 const loadMotionFeatures = () => import('framer-motion').then((r) => r.domAnimation)
 
-const HomePage = lazy(() => import('./pages/HomePage'))
-const ModulePage = lazy(() => import('./pages/ModulePage'))
-const NotesPage = lazy(withPacks(i18n, ['numpy_api'], () => import('./pages/NotesPage')))
-const ExtendPage = lazy(() => import('./pages/ExtendPage'))
-const WatchPage = lazy(() => import('./pages/WatchPage'))
-const DrillPage = lazy(withPacks(i18n, ['drill'], () => import('./pages/DrillPage')))
-const FormulasPage = lazy(withPacks(i18n, ['formulas.items'], () => import('./pages/FormulasPage')))
-const PapersPage = lazy(() => import('./pages/PapersPage'))
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const HomePage = lazy(PAGE_LOADERS.home)
+const ModulePage = lazy(PAGE_LOADERS.module)
+const NotesPage = lazy(PAGE_LOADERS.notes)
+const ExtendPage = lazy(PAGE_LOADERS.extend)
+const WatchPage = lazy(PAGE_LOADERS.watch)
+const DrillPage = lazy(PAGE_LOADERS.drill)
+const FormulasPage = lazy(PAGE_LOADERS.formulas)
+const PapersPage = lazy(PAGE_LOADERS.papers)
+const NotFoundPage = lazy(PAGE_LOADERS.notfound)
 
 const section: Section =
   page === 'notes' || page === 'note' ? 'notes' : page === 'extend' || page === 'extend-item' ? 'extend' : page === 'watch' || page === 'watch-item' ? 'watch' : page === 'drill' || page === 'formulas' ? 'drill' : 'course'
@@ -40,6 +40,8 @@ if (!moved && import.meta.env.PROD && 'serviceWorker' in navigator) {
 }
 
 if (!moved) {
+  // start this page's code and strings now, in parallel with the core strings
+  preloadPage(page, id)
   // render once the current language's strings have loaded
   void i18nReady.then(() => {
     createRoot(document.getElementById('root')!).render(
