@@ -4,6 +4,7 @@ import { Check, ChevronDown, Languages, Sigma, WifiOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { normalizeLang, SUPPORTED_LANGS } from '../lib/lang'
 import type { LangCode } from '../lib/lang'
+import { OfflineButton } from './OfflineButton'
 
 const LANG_LABELS: Record<LangCode, string> = {
   en: 'English',
@@ -135,7 +136,8 @@ export function Shell({ section, children }: { section: Section; children: React
       </div>
       <footer className="print:hidden mx-auto mt-8 flex max-w-[1480px] flex-col items-center justify-between gap-4 border-t border-slate-200 px-4 py-8 text-center text-xs font-medium uppercase tracking-widest text-slate-500 sm:px-6 md:flex-row md:text-left">
         <p>{t('app.footer.copyright')}</p>
-        <div className="flex flex-wrap justify-center gap-6">
+        <div className="flex flex-wrap items-center justify-center gap-6">
+          <OfflineButton />
           <span className="flex items-center gap-2"><WifiOff size={14} aria-hidden /> {t('app.footer.local')}</span>
           <span className="flex items-center gap-2"><Sigma size={14} aria-hidden /> {t('app.footer.math')}</span>
         </div>

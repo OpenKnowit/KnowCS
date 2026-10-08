@@ -446,7 +446,15 @@
     "footer": {
       "copyright": "© 2026 KnowIt COMP2211 ML Learning Lab. Education through interaction.",
       "local": "完全在瀏覽器本地執行",
-      "math": "公式由 KaTeX 排版"
+      "math": "公式由 KaTeX 排版",
+      "offline_save": "離線保存",
+      "offline_mb": "約 {{mb}} MB",
+      "offline_hint": "把所有頁面、講解影片和筆記保存在本機（約 {{mb}} MB），沒有網絡也能使用。",
+      "offline_starting": "準備中…",
+      "offline_saving": "正在保存 {{done}} / {{total}}",
+      "offline_saved": "已離線保存",
+      "offline_update": "更新離線副本",
+      "offline_retry": "未能全部保存——請重試"
     },
     "nav": {
       "course": "課程",
