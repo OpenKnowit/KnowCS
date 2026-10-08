@@ -26,9 +26,12 @@ dist-ssr
 *.sln
 *.sw?
 
-
 # Local scratch (DNS snapshots, browser test profiles) — never committed
 work/
 
 # Generated HTML entries for the multi-page build (see vite.config.js)
 /site/
+
+# Manim render output
+manim/media/
+manim/__pycache__/
