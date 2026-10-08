@@ -552,7 +552,8 @@
       "pytorch": "PyTorch API 統計與學習路線",
       "tensorflow": "TensorFlow API 數量與模塊結構",
       "keras": "Keras 核心 API 學習筆記",
-      "kevin": "COMP2211 課程筆記"
+      "kevin": "COMP2211 課程筆記",
+      "matplotlib": "COMP2211 中的 Matplotlib"
     }
   },
   "extend": {
@@ -3881,5 +3882,87 @@
   "notfound": {
     "title": "頁面不存在",
     "lead": "這個地址不存在（或已不再使用）。2026 年 10 月起本站改為每個主題一個頁面 —— 從下面開始吧："
+  },
+  "playground": {
+    "ui": {
+      "full": "全螢幕",
+      "exit_full": "退出全螢幕",
+      "search": "搜索示例…",
+      "groups": "示例分組",
+      "no_match": "沒有匹配的示例。",
+      "editor": "程式碼（邊輸入邊執行）",
+      "shortcut": "Tab 縮進 · Ctrl/⌘+Enter 執行 · Esc 離開編輯框",
+      "reset": "還原",
+      "run": "執行",
+      "output": "輸出",
+      "line": "第 {{n}} 行",
+      "no_output": "暫無輸出：print() 的內容和最後一行的值會顯示在這裏。",
+      "figures_one": "圖",
+      "figures_other": "圖（{{count}} 張）",
+      "steps": "步驟",
+      "nothing": "程式碼裏的每一次調用都會列在這裏，點開即可查看。",
+      "try_block": "試一試",
+      "try_hint": "在實驗台中打開這段程式碼",
+      "open_panel": "打開實驗台",
+      "loading": "實驗台加載中…",
+      "from_note": "來自筆記的程式碼。可以隨意修改，或在上方選一個示例。"
+    },
+    "view": {
+      "figure_label": "包含 {{n}} 個子圖的圖",
+      "figure_step": "這一步調用之後的圖：本次調用新增的部分高亮，其餘變淡。",
+      "pixel": "img[{{row}}, {{col}}] = {{value}} → ({{value}} − {{vmin}}) / ({{vmax}} − {{vmin}}) = {{t}}，在 '{{cmap}}' 上取色 → {{color}}",
+      "pixel_rgb": "img[{{row}}, {{col}}] → {{color}}",
+      "pixel_hint": "把滑鼠移到像素上，看它的數值如何變成顏色。",
+      "result": "結果",
+      "series_shape": "Series · {{n}} 行",
+      "frame_shape": "DataFrame · {{r}} 行 × {{c}} 列",
+      "rows_cut": "僅顯示前 {{n}} 行",
+      "flow_torch": "這次前向傳播中每一層的輸入與輸出形狀（PyTorch 通道在前：batch、通道、高、寬），以及該層的參數個數。",
+      "flow_keras": "圖形化的 model.summary()：每層的輸出形狀（Keras 通道在後：batch、高、寬、通道；None 表示 batch）和參數個數。",
+      "layer": "層",
+      "in_out": "輸入 → 輸出形狀",
+      "params": "參數",
+      "total_params": "參數總數",
+      "trainable": "可訓練參數",
+      "graph": "autograd 記錄下的計算圖。backward() 從 loss 沿圖走回葉子節點，把 ∂loss/∂x 存進每個葉子的 .grad。滑鼠移到節點上可看它由哪些節點算出。",
+      "graph_label": "自動求導計算圖",
+      "value": "值",
+      "no_grad_kept": "不保留梯度（非葉子）",
+      "leaf": "requires_grad=True 的葉子張量（會填入 .grad）",
+      "root": "調用 backward() 的張量",
+      "history": "{{n}} 個 epoch 中每個 epoch 結束時的損失與指標，即 history.history 的內容。",
+      "history_label": "訓練曲線",
+      "best_epoch": "驗證損失最低：第 {{n}} 個 epoch"
+    },
+    "note": {
+      "default_cmap": "沒有指定 cmap：二維陣列會用預設色圖 'viridis' 上色，而不是灰度。第 7 講每次都會寫 cmap='gray'。",
+      "auto_range": "沒有指定 vmin / vmax：matplotlib 會把這張圖自身的範圍 [{{min}}, {{max}}] 拉伸到整條色圖上，所以就算圖片很暗，最暗的像素也會變成黑、最亮的變成白。寫上 vmin=0, vmax=1（或 255）才能保留真實亮度。"
+    },
+    "matplotlib": {
+      "title": "matplotlib 實驗台",
+      "subtitle": "{{n}} 個出自課件的畫圖示例。改動程式碼，圖會隨輸入即時重畫。",
+      "sandbox_note": "在瀏覽器中執行，基於一個精簡重寫的 pyplot（plot、scatter、bar、hist、imshow、subplots、文字、圖例、色條）。並非所有參數都支持；但關鍵的預設行為（tab10 配色、viridis、imshow 自動拉伸範圍）與 matplotlib 一致。",
+      "cat": {
+        "basics": "基礎",
+        "images": "圖像",
+        "ml": "機器學習圖"
+      },
+      "e": {
+        "anatomy": "Figure 是整張畫布，Axes 是畫布裏的一個子圖。plt.subplots() 同時返回兩者，之後在 ax 上調用方法（set_title、set_xlabel、legend）。plt.* 函數做的是同一件事，只是作用在「當前」Axes 上。",
+        "subplot": "plt.subplot(行數, 列數, 序號) 選中網格中的一格。序號從 1 開始，先從左到右、再從上到下，所以 subplot(2, 2, 3) 是左下角那格。",
+        "fmt": "plot 的第三個參數是格式字符串：顏色字母 + 標記 + 線型。'ro--' 表示紅色圓點、虛線相連；只寫標記不寫線型時，只畫點不連線。",
+        "imshow_gray": "第 7 講顯示灰度圖時都會寫 cmap='gray', vmin=0, vmax=1，於是 0 是黑、1 是白。把滑鼠移到像素上，看數值怎樣變成顏色。",
+        "vmin_vmax": "不寫 vmin / vmax 時，imshow 會把圖片自己的最小值映射成黑、最大值映射成白，暗圖因此看起來很亮；不寫 cmap 時連灰色都不是。只有第三張圖顯示的是真實亮度。",
+        "rgb": "彩色圖的形狀是 (H, W, 3)，每個通道是一張二維陣列。img[:, :, 0] 是紅色通道，用灰度畫出來：紅色越多的地方越亮。",
+        "grid": "plt.subplots(2, 3) 返回一個 2 × 3 的 Axes 陣列，axes.flat 按行逐個遍歷。批量顯示圖片（例如第 6 講的 MNIST 網格）通常就是這樣寫的。",
+        "sobel": "3 × 3 卷積核在圖上滑動。valid 卷積每邊得到 8 − 3 + 1 = 6 個輸出。Sobel-x 卷積核對豎直邊緣有反應：方塊左邊緣為正，右邊緣為負。",
+        "otsu": "Otsu 法逐個嘗試閾值 t，保留類間方差 w₀·w₁·(μ₀ − μ₁)² 最大的那個。直方圖説明了原因：最佳 t 正好落在兩個峯之間的空隙裏。",
+        "kmeans": "c=labels 通過色圖按所屬簇給每個點上色，第二次 scatter 標出質心。這是 K-Means（第 4 講）的一次分配步驟。",
+        "boundary": "感知機在 w·x + b > 0 時輸出 1，因此決策邊界是直線 w·x + b = 0，即 x₂ = −(w₁x₁ + b) / w₂。直線兩側的點被分到不同類別。",
+        "history": "訓練後先畫 history.history。訓練損失一直下降，但驗證損失一旦回升，模型就開始過擬合了。點線標出提前停止（early stopping）會保留的那個 epoch。",
+        "confusion": "用 imshow 畫混淆矩陣，再用 plt.text 把每個計數寫進格子。行是真實類別，列是預測類別：精確率沿一列看，召回率沿一行看。",
+        "choose_k": "每個 K 的驗證準確率柱狀圖：用交叉驗證為 KNN 選 K 的做法（第 3 講）。"
+      }
+    }
   }
 }

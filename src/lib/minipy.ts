@@ -1269,6 +1269,8 @@ export interface Operand {
 /** 一次 API 调用 / 运算符 / 下标读取的记录，供 API 可视化面板使用 */
 export interface CallTrace {
   id: number
+  /** order among calls and library events */
+  seq: number
   line: number
   code: string
   /** 'np.sum'、'ndarray.reshape'、'op:+'、'ndarray.T'、'index' … */
@@ -1366,6 +1368,7 @@ class Interp implements Host {
   lineRuns = new Map<number, number>()
   callText = ''
   steps = 0
+  seqN = 0
   depth = 0
   deadline: number
 
@@ -1417,12 +1420,12 @@ class Interp implements Host {
 
   emit(ev: PyEventInput) {
     if (this.events.length + this.calls.length + this.traces.length >= MAX_RECORDS) return
-    this.events.push({ ...ev, id: this.events.length, line: this.line, code: ev.code ?? this.callText } as PyEvent)
+    this.events.push({ ...ev, id: this.events.length, seq: this.seqN++, line: this.line, code: ev.code ?? this.callText } as PyEvent)
   }
 
   traceCall(api: string, kind: ApiKind, operands: Operand[], result: GridSnapshot | null, resultText: string, axis: number | null = null) {
     if (!this.tracing) return
-    this.calls.push({ id: this.calls.length, line: this.line, code: this.callText, api, kind, operands, axis, result, resultText })
+    this.calls.push({ id: this.calls.length, seq: this.seqN++, line: this.line, code: this.callText, api, kind, operands, axis, result, resultText })
   }
 
   print(s: string) {
@@ -1818,6 +1821,7 @@ class Interp implements Host {
     this.pendingPlot = null
     this.calls.push({
       id: this.calls.length,
+      seq: this.seqN++,
       line: this.line,
       code,
       api,
@@ -3181,6 +3185,10 @@ class Interp implements Host {
       }),
       type: fn('type', (args) => (args[0].k === 'inst' ? args[0].cls : { k: 'type', name: typeName(args[0]), call: () => NONE })),
       str: { k: 'type', name: 'str', call: (args) => str_(args.length ? this.str(args[0]) : '') },
+      repr: fn('repr', (args) => str_(repr(args[0]))),
+      format: fn('format', (args) => str_(formatSpec(args[0], args[1]?.k === 'str' ? args[1].v : ''))),
+      chr: fn('chr', (args) => str_(String.fromCharCode(this.toInt(args[0])))),
+      ord: fn('ord', (args) => int((args[0] as { v: string }).v.charCodeAt(0))),
       dict: { k: 'type', name: 'dict', call: (args, kw) => {
         const d = new PyDict()
         if (args[0]) for (const p of this.iterate(args[0])) {

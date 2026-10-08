@@ -71,7 +71,7 @@ export const EPISODES: EpisodeInfo[] = [
   { id: 'ethics', lec: 11, modules: [], exams: ['F23', 'F24'], thumb: 40_000 },
 ]
 
-export const NOTE_IDS = ['numpy', 'pandas', 'pytorch', 'tensorflow', 'keras', 'kevin'] as const
+export const NOTE_IDS = ['numpy', 'matplotlib', 'pandas', 'pytorch', 'tensorflow', 'keras', 'kevin'] as const
 export const EXTEND_IDS = ['attention'] as const
 
 export const LECTURES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const

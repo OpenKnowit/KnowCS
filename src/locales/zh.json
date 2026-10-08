@@ -552,7 +552,8 @@
       "pytorch": "PyTorch API 统计与学习路线",
       "tensorflow": "TensorFlow API 数量与模块结构",
       "keras": "Keras 核心 API 学习笔记",
-      "kevin": "COMP2211 课程笔记"
+      "kevin": "COMP2211 课程笔记",
+      "matplotlib": "COMP2211 中的 Matplotlib"
     }
   },
   "extend": {
@@ -3881,5 +3882,87 @@
   "notfound": {
     "title": "页面不存在",
     "lead": "这个地址不存在（或已不再使用）。2026 年 10 月起本站改为每个主题一个页面 —— 从下面开始吧："
+  },
+  "playground": {
+    "ui": {
+      "full": "全屏",
+      "exit_full": "退出全屏",
+      "search": "搜索示例…",
+      "groups": "示例分组",
+      "no_match": "没有匹配的示例。",
+      "editor": "代码（边输入边运行）",
+      "shortcut": "Tab 缩进 · Ctrl/⌘+Enter 运行 · Esc 离开编辑框",
+      "reset": "还原",
+      "run": "运行",
+      "output": "输出",
+      "line": "第 {{n}} 行",
+      "no_output": "暂无输出：print() 的内容和最后一行的值会显示在这里。",
+      "figures_one": "图",
+      "figures_other": "图（{{count}} 张）",
+      "steps": "步骤",
+      "nothing": "代码里的每一次调用都会列在这里，点开即可查看。",
+      "try_block": "试一试",
+      "try_hint": "在实验台中打开这段代码",
+      "open_panel": "打开实验台",
+      "loading": "实验台加载中…",
+      "from_note": "来自笔记的代码。可以随意修改，或在上方选一个示例。"
+    },
+    "view": {
+      "figure_label": "包含 {{n}} 个子图的图",
+      "figure_step": "这一步调用之后的图：本次调用新增的部分高亮，其余变淡。",
+      "pixel": "img[{{row}}, {{col}}] = {{value}} → ({{value}} − {{vmin}}) / ({{vmax}} − {{vmin}}) = {{t}}，在 '{{cmap}}' 上取色 → {{color}}",
+      "pixel_rgb": "img[{{row}}, {{col}}] → {{color}}",
+      "pixel_hint": "把鼠标移到像素上，看它的数值如何变成颜色。",
+      "result": "结果",
+      "series_shape": "Series · {{n}} 行",
+      "frame_shape": "DataFrame · {{r}} 行 × {{c}} 列",
+      "rows_cut": "仅显示前 {{n}} 行",
+      "flow_torch": "这次前向传播中每一层的输入与输出形状（PyTorch 通道在前：batch、通道、高、宽），以及该层的参数个数。",
+      "flow_keras": "图形化的 model.summary()：每层的输出形状（Keras 通道在后：batch、高、宽、通道；None 表示 batch）和参数个数。",
+      "layer": "层",
+      "in_out": "输入 → 输出形状",
+      "params": "参数",
+      "total_params": "参数总数",
+      "trainable": "可训练参数",
+      "graph": "autograd 记录下的计算图。backward() 从 loss 沿图走回叶子节点，把 ∂loss/∂x 存进每个叶子的 .grad。鼠标移到节点上可看它由哪些节点算出。",
+      "graph_label": "自动求导计算图",
+      "value": "值",
+      "no_grad_kept": "不保留梯度（非叶子）",
+      "leaf": "requires_grad=True 的叶子张量（会填入 .grad）",
+      "root": "调用 backward() 的张量",
+      "history": "{{n}} 个 epoch 中每个 epoch 结束时的损失与指标，即 history.history 的内容。",
+      "history_label": "训练曲线",
+      "best_epoch": "验证损失最低：第 {{n}} 个 epoch"
+    },
+    "note": {
+      "default_cmap": "没有指定 cmap：二维数组会用默认色图 'viridis' 上色，而不是灰度。第 7 讲每次都会写 cmap='gray'。",
+      "auto_range": "没有指定 vmin / vmax：matplotlib 会把这张图自身的范围 [{{min}}, {{max}}] 拉伸到整条色图上，所以就算图片很暗，最暗的像素也会变成黑、最亮的变成白。写上 vmin=0, vmax=1（或 255）才能保留真实亮度。"
+    },
+    "matplotlib": {
+      "title": "matplotlib 实验台",
+      "subtitle": "{{n}} 个出自课件的画图示例。改动代码，图会随输入即时重画。",
+      "sandbox_note": "在浏览器中运行，基于一个精简重写的 pyplot（plot、scatter、bar、hist、imshow、subplots、文字、图例、色条）。并非所有参数都支持；但关键的默认行为（tab10 配色、viridis、imshow 自动拉伸范围）与 matplotlib 一致。",
+      "cat": {
+        "basics": "基础",
+        "images": "图像",
+        "ml": "机器学习图"
+      },
+      "e": {
+        "anatomy": "Figure 是整张画布，Axes 是画布里的一个子图。plt.subplots() 同时返回两者，之后在 ax 上调用方法（set_title、set_xlabel、legend）。plt.* 函数做的是同一件事，只是作用在「当前」Axes 上。",
+        "subplot": "plt.subplot(行数, 列数, 序号) 选中网格中的一格。序号从 1 开始，先从左到右、再从上到下，所以 subplot(2, 2, 3) 是左下角那格。",
+        "fmt": "plot 的第三个参数是格式字符串：颜色字母 + 标记 + 线型。'ro--' 表示红色圆点、虚线相连；只写标记不写线型时，只画点不连线。",
+        "imshow_gray": "第 7 讲显示灰度图时都会写 cmap='gray', vmin=0, vmax=1，于是 0 是黑、1 是白。把鼠标移到像素上，看数值怎样变成颜色。",
+        "vmin_vmax": "不写 vmin / vmax 时，imshow 会把图片自己的最小值映射成黑、最大值映射成白，暗图因此看起来很亮；不写 cmap 时连灰色都不是。只有第三张图显示的是真实亮度。",
+        "rgb": "彩色图的形状是 (H, W, 3)，每个通道是一张二维数组。img[:, :, 0] 是红色通道，用灰度画出来：红色越多的地方越亮。",
+        "grid": "plt.subplots(2, 3) 返回一个 2 × 3 的 Axes 数组，axes.flat 按行逐个遍历。批量显示图片（例如第 6 讲的 MNIST 网格）通常就是这样写的。",
+        "sobel": "3 × 3 卷积核在图上滑动。valid 卷积每边得到 8 − 3 + 1 = 6 个输出。Sobel-x 卷积核对竖直边缘有反应：方块左边缘为正，右边缘为负。",
+        "otsu": "Otsu 法逐个尝试阈值 t，保留类间方差 w₀·w₁·(μ₀ − μ₁)² 最大的那个。直方图说明了原因：最佳 t 正好落在两个峰之间的空隙里。",
+        "kmeans": "c=labels 通过色图按所属簇给每个点上色，第二次 scatter 标出质心。这是 K-Means（第 4 讲）的一次分配步骤。",
+        "boundary": "感知机在 w·x + b > 0 时输出 1，因此决策边界是直线 w·x + b = 0，即 x₂ = −(w₁x₁ + b) / w₂。直线两侧的点被分到不同类别。",
+        "history": "训练后先画 history.history。训练损失一直下降，但验证损失一旦回升，模型就开始过拟合了。点线标出提前停止（early stopping）会保留的那个 epoch。",
+        "confusion": "用 imshow 画混淆矩阵，再用 plt.text 把每个计数写进格子。行是真实类别，列是预测类别：精确率沿一列看，召回率沿一行看。",
+        "choose_k": "每个 K 的验证准确率柱状图：用交叉验证为 KNN 选 K 的做法（第 3 讲）。"
+      }
+    }
   }
 }
