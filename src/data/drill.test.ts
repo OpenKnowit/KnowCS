@@ -33,6 +33,10 @@ describe('concept-check drill', () => {
     const conv = analyse([32, 32, 3], [{ kind: 'conv', filters: 10, k: 5, stride: 1, pad: 2, bias: true }])
     const conv64 = analyse([64, 64, 3], [{ kind: 'conv', filters: 10, k: 5, stride: 1, pad: 2, bias: true }])
     expect(by('cn1')).toBe(conv[0].params !== conv64[0].params)
+    // Final 2024 Q1(g): 36×36×8 outputs, each a 3×3×3 dot product
+    const c8 = analyse([32, 32, 3], [{ kind: 'conv', filters: 8, k: 3, stride: 1, pad: 3, bias: true }])[0]
+    expect(c8.output).toEqual([36, 36, 8])
+    expect(by('cn6')).toBe(8 * 3 * 3 * 36 * 36 === c8.output[0] * c8.output[1] * c8.output[2] * 3 * 3 * 3)
     expect(by('cn4')).toBe(dilatedConv([[0]], [[1, 0, 0], [0, 1, 0], [0, 0, 1]], 2).effective === 5)
     expect(by('by5')).toBe(gaussianPdf(0, 0, 0.1) > 1)
     expect(by('ev1')).toBe(classificationMetrics([[0, 5], [0, 95]]).accuracy === 0.95 && classificationMetrics([[0, 5], [0, 95]]).perClass[0].recall === 0)
