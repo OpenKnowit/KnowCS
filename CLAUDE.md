@@ -94,6 +94,7 @@ GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm 
 - `src/i18n.ts` + `src/locales/` —— 国际化初始化与三语文案。`<Trans>` 一律用 `components={{1: …}}` 显式映射，文案里不要写 Markdown。
 - `scripts/vite-plugins.mjs` —— 构建期插件（KaTeX 字体瘦身、`*.md?html` 预渲染）。
 - `dist/`、`site/` —— 构建产物与生成的 HTML 入口，不入库。
+- `manim/` —— Manim Community 讲解视频源码（5 个高频考点，`render.sh` 渲染，产物 `manim/media/` 不入库），**不参与站点构建**；站内讲解视频是 `src/site/watch/` 的时间轴动画。
 - `src/ref/` —— 历史参考版本（.jsx），**不参与构建、已在 lint/tsc 忽略**。
 - 实验页文案在 `lab.<page>.*`；解析错误抛 `LabError`（`src/lib/labError.ts`），文案在 `lab.errors.*`。
 - `docs/` —— 设计 / 日志 / 计划三份文档（见上）。
