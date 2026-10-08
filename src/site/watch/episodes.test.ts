@@ -29,3 +29,16 @@ describe('explainer episodes', () => {
       }
     })
 })
+
+describe('episode string packs', () => {
+  it('lists every non-watch key an episode file uses in EXTRA_PACKS', async () => {
+    const { EXTRA_PACKS } = await import('./useEpisode')
+    const files = import.meta.glob<string>('./episodes/*.tsx', { query: '?raw', import: 'default', eager: true })
+    expect(Object.keys(files).length).toBeGreaterThan(15)
+    for (const [path, src] of Object.entries(files)) {
+      const id = path.replace('./episodes/', '').replace('.tsx', '')
+      const borrowed = [...new Set([...src.matchAll(/t\(['`](lab\.[a-z]+)\./g)].map((m) => m[1]))]
+      expect(borrowed.filter((p) => !(EXTRA_PACKS[id] ?? []).includes(p)), path).toEqual([])
+    }
+  })
+})

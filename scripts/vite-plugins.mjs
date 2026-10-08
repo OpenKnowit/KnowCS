@@ -132,15 +132,54 @@ export function rawHk() {
 }
 
 // ---------------------------------------------------------------------------
-// 4) 文案拆分：讲解视频的字幕 / 标签 / 小结 / 考点角只在播放该集时需要（约占文案一半）。
-//    `locales/<lng>.json?core`      → 全部文案，但 watch.<集> 只保留 kicker / title / sub
-//    `locales/<lng>.json?ep=<集>`   → { watch: { <集>: 其余键 } }
-//    `virtual:episode-strings`      → { <集>: { <lng>: () => import(...?ep=<集>) } }，每集每语言一个 chunk
-//    load 返回 JSON 文本，交给 Vite 自带的 JSON 插件转为模块。
+// 4) 文案拆包：只在某一页用到的文案（讲解视频字幕、各实验页、NumPy、自测、公式表）不放进每页都加载的主文案。
+//    `locales/<lng>.json?core`        → 主文案：去掉所有包；watch.<集> 只保留 kicker / title / sub
+//    `locales/<lng>.json?pack=<路径>`  → 只含该路径的对象，如 { lab: { otsu: … } }
+//    `virtual:locale-packs`           → { <路径>: { <lng>: () => import(...) } }，每包每语言一个 chunk
+//    包清单由 en.json 推出（packNames）；load 返回 JSON 文本，交给 Vite 自带的 JSON 插件转为模块。
 // ---------------------------------------------------------------------------
 const EP_CORE = ['kicker', 'title', 'sub']
+const LAB_SHARED = ['common', 'errors']
+// one page each (the classic modules, NumPy, drill, formula sheet); perceptron / pytorch belong to retired modules
+const FIXED_PACKS = ['numpy_module', 'numpy_api', 'drill', 'formulas.items', 'bayes', 'knn', 'alphabeta', 'backprop_module', 'kmeans', 'kernel_module', 'perceptron', 'pytorch']
+
+export function packNames(strings) {
+  return [
+    ...Object.keys(strings.watch ?? {}).filter((k) => k !== 'ui').map((k) => `watch.${k}`),
+    ...Object.keys(strings.lab ?? {}).filter((k) => !LAB_SHARED.includes(k)).map((k) => `lab.${k}`),
+    ...FIXED_PACKS,
+  ]
+}
+
+const getPath = (o, path) => (path ? path.split('.').reduce((v, k) => (v == null ? v : v[k]), o) : o)
+function setPath(o, path, value) {
+  const keys = path.split('.')
+  let cur = o
+  keys.slice(0, -1).forEach((k) => (cur = cur[k] ??= {}))
+  cur[keys.at(-1)] = value
+  return o
+}
+const pick = (o, fields, keep) => Object.fromEntries(Object.entries(o ?? {}).filter(([k]) => fields.includes(k) === keep))
+
+export function corePart(strings) {
+  const out = structuredClone(strings)
+  for (const name of packNames(strings)) {
+    const keys = name.split('.')
+    const parent = getPath(out, keys.slice(0, -1).join('.'))
+    if (!parent) continue
+    if (keys[0] === 'watch') parent[keys[1]] = pick(parent[keys[1]], EP_CORE, true)
+    else delete parent[keys.at(-1)]
+  }
+  return out
+}
+
+export function packPart(strings, name) {
+  const value = getPath(strings, name)
+  return setPath({}, name, name.startsWith('watch.') ? pick(value, EP_CORE, false) : value)
+}
+
 export function localeSplit() {
-  const VIRTUAL = 'virtual:episode-strings'
+  const VIRTUAL = 'virtual:locale-packs'
   const RESOLVED = '\0' + VIRTUAL
   // the Vite root is site/, so locate the locales from this file instead
   const localesDir = join(dirname(fileURLToPath(import.meta.url)), '../src/locales')
@@ -154,27 +193,17 @@ export function localeSplit() {
       if (id === RESOLVED) {
         const file = join(localesDir, 'en.json')
         this.addWatchFile(file)
-        const eps = Object.keys(JSON.parse(readFileSync(file, 'utf8')).watch).filter((k) => k !== 'ui')
         const lngs = ['en', 'zh', 'zh-HK']
-        const body = eps
-          .map((ep) => `  ${JSON.stringify(ep)}: { ${lngs.map((l) => `${JSON.stringify(l)}: () => import(${JSON.stringify(`${join(localesDir, l)}.json?ep=${ep}`)})`).join(', ')} },`)
+        const body = packNames(JSON.parse(readFileSync(file, 'utf8')))
+          .map((p) => `  ${JSON.stringify(p)}: { ${lngs.map((l) => `${JSON.stringify(l)}: () => import(${JSON.stringify(`${join(localesDir, l)}.json?pack=${p}`)})`).join(', ')} },`)
           .join('\n')
         return `export default {\n${body}\n}\n`
       }
       const [file, query] = id.split('?')
-      if (!file.endsWith('.json') || !query || !(query === 'core' || query.startsWith('ep='))) return null
+      if (!file.endsWith('.json') || !query || !(query === 'core' || query.startsWith('pack='))) return null
       this.addWatchFile(file)
       const all = JSON.parse(readFileSync(file, 'utf8'))
-      const watch = all.watch ?? {}
-      if (query === 'core') {
-        const slim = Object.fromEntries(
-          Object.entries(watch).map(([k, v]) => [k, k === 'ui' ? v : Object.fromEntries(EP_CORE.filter((f) => f in v).map((f) => [f, v[f]]))]),
-        )
-        return JSON.stringify({ ...all, watch: slim })
-      }
-      const ep = query.slice(3)
-      const rest = Object.fromEntries(Object.entries(watch[ep] ?? {}).filter(([f]) => !EP_CORE.includes(f)))
-      return JSON.stringify({ watch: { [ep]: rest } })
+      return JSON.stringify(query === 'core' ? corePart(all) : packPart(all, query.slice(5)))
     },
   }
 }

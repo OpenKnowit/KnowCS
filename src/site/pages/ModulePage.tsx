@@ -5,58 +5,61 @@ import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../../components/Latex'
 import type { ModuleId } from '../../lib/sitemap'
 import { ModuleHero, PageBar } from '../ui'
+import i18n from '../../i18n'
+import { withPacks } from '../../i18nPacks'
 
 const named = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K): LazyExoticComponent<ComponentType> =>
   lazy(() => load().then((m) => ({ default: m[name] })))
 
 // Pages added with the lab redesign render their own LabPage (page bar, hero, quiz mode).
+const lab = (pack: string, load: () => Promise<{ default: ComponentType }>) => lazy(withPacks(i18n, [`lab.${pack}`], load))
 const LAB: Partial<Record<ModuleId, LazyExoticComponent<ComponentType>>> = {
-  'bayes-virus': lazy(() => import('../modules/BayesVirus')),
-  'gaussian-nb': lazy(() => import('../modules/GaussianNb')),
-  evaluation: lazy(() => import('../modules/Evaluation')),
-  'cross-validation': lazy(() => import('../modules/CrossValidation')),
-  'kmeans-table': lazy(() => import('../modules/KMeansTable')),
-  perceptron: lazy(() => import('../modules/Perceptron')),
-  'xor-mlp': lazy(() => import('../modules/XorMlp')),
-  convolution: lazy(() => import('../modules/Convolution')),
-  otsu: lazy(() => import('../modules/Otsu')),
-  affine: lazy(() => import('../modules/Affine')),
-  'cnn-shapes': lazy(() => import('../modules/CnnShapes')),
-  pytorch: lazy(() => import('../modules/PyTorch')),
+  'bayes-virus': lab('bayes', () => import('../modules/BayesVirus')),
+  'gaussian-nb': lab('gnb', () => import('../modules/GaussianNb')),
+  evaluation: lab('eval', () => import('../modules/Evaluation')),
+  'cross-validation': lab('cv', () => import('../modules/CrossValidation')),
+  'kmeans-table': lab('km', () => import('../modules/KMeansTable')),
+  perceptron: lab('perc', () => import('../modules/Perceptron')),
+  'xor-mlp': lab('xor', () => import('../modules/XorMlp')),
+  convolution: lab('conv', () => import('../modules/Convolution')),
+  otsu: lab('otsu', () => import('../modules/Otsu')),
+  affine: lab('affine', () => import('../modules/Affine')),
+  'cnn-shapes': lab('cnn', () => import('../modules/CnnShapes')),
+  pytorch: lab('pytorch', () => import('../modules/PyTorch')),
 }
 
 // The original modules: their component plus the exam tip that used to sit in the sidebar.
 const CLASSIC: Partial<Record<ModuleId, { Component: LazyExoticComponent<ComponentType>; tip: ReactNode; wide?: boolean }>> = {
   numpy: {
-    Component: named(() => import('../../modules/NumpyModule'), 'NumpyModule'),
+    Component: named(withPacks(i18n, ['numpy_module', 'numpy_api'], () => import('../../modules/NumpyModule')), 'NumpyModule'),
     tip: <Trans i18nKey="app.sidebar.exam_tip.content_numpy" components={{ 1: <Latex formula="\text{Broadcasting}" />, 3: <Latex formula="\mathbf{A} \cdot \mathbf{B}" />, 5: <Latex formula="\mathbf{A} \odot \mathbf{B}" /> }} />,
   },
   'bayes-basics': {
-    Component: named(() => import('../../modules/BayesBasicsModule'), 'BayesBasicsModule'),
+    Component: named(withPacks(i18n, ['bayes'], () => import('../../modules/BayesBasicsModule')), 'BayesBasicsModule'),
     tip: <Trans i18nKey="app.sidebar.exam_tip.content_bayesBasics" components={{ 1: <Latex formula="P(B|E) \propto P(B) \cdot P(E|B)" /> }} />,
   },
   'naive-bayes': {
-    Component: named(() => import('../../modules/NaiveBayesModule'), 'NaiveBayesModule'),
+    Component: named(withPacks(i18n, ['bayes'], () => import('../../modules/NaiveBayesModule')), 'NaiveBayesModule'),
     tip: <Trans i18nKey="app.sidebar.exam_tip.content_naiveBayes" components={{ 1: <Latex formula="\alpha" />, 3: <Latex formula="\log" /> }} />,
   },
   knn: {
-    Component: named(() => import('../../modules/KnnModule'), 'KnnModule'),
+    Component: named(withPacks(i18n, ['knn'], () => import('../../modules/KnnModule')), 'KnnModule'),
     tip: <Trans i18nKey="app.sidebar.exam_tip.content_knn" components={{ 1: <Latex formula="K" /> }} />,
   },
   kmeans: {
-    Component: named(() => import('../../modules/KMeansModule'), 'KMeansModule'),
+    Component: named(withPacks(i18n, ['kmeans'], () => import('../../modules/KMeansModule')), 'KMeansModule'),
     tip: <Trans i18nKey="app.sidebar.exam_tip.content_kmeans" components={{ 1: <Latex formula="\text{WCSS}" />, 3: <Latex formula="K" /> }} />,
   },
   backprop: {
-    Component: named(() => import('../../modules/BackpropModule'), 'BackpropModule'),
+    Component: named(withPacks(i18n, ['backprop_module'], () => import('../../modules/BackpropModule')), 'BackpropModule'),
     tip: <Trans i18nKey="app.sidebar.exam_tip.content_backprop" components={{ 1: <Latex formula="\delta_k" />, 3: <Latex formula="\Delta w = \eta \cdot \delta \cdot O" /> }} />,
   },
   kernel: {
-    Component: named(() => import('../../modules/KernelModule'), 'KernelModule'),
+    Component: named(withPacks(i18n, ['kernel_module'], () => import('../../modules/KernelModule')), 'KernelModule'),
     tip: <Trans i18nKey="app.sidebar.exam_tip.content_kernel" components={{ 1: <Latex formula="N - K + 1" /> }} />,
   },
   alphabeta: {
-    Component: named(() => import('../../modules/AlphaBetaModule'), 'AlphaBetaModule'),
+    Component: named(withPacks(i18n, ['alphabeta'], () => import('../../modules/AlphaBetaModule')), 'AlphaBetaModule'),
     tip: <Trans i18nKey="app.sidebar.exam_tip.content_alphabeta" components={{ 1: <Latex formula="\beta \leq \alpha" />, 3: <strong className="font-bold" /> }} />,
   },
 }

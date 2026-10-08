@@ -31,14 +31,14 @@ declare module '*.html?raw-hk' {
   export default html
 }
 
-/** 文案主体：讲解视频只保留标题类字段（见 scripts/vite-plugins.mjs 的 localeSplit） */
+/** 主文案：不含各页文案包（见 scripts/vite-plugins.mjs 的 localeSplit） */
 declare module '*.json?core' {
   const strings: Record<string, unknown>
   export default strings
 }
 
-/** 每集讲解视频的其余文案，按集 × 语言懒加载 */
-declare module 'virtual:episode-strings' {
+/** 只在某一页用到的文案包，按包 × 语言懒加载 */
+declare module 'virtual:locale-packs' {
   const loaders: Record<string, Record<string, () => Promise<{ default: Record<string, unknown> }>>>
   export default loaders
 }
