@@ -19,7 +19,7 @@ export default function PapersPage() {
       <p className="mt-2 max-w-3xl text-[16px] text-slate-600">{t('papers.lead')}</p>
 
       <div className="mt-6 overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[860px] border-collapse text-sm">
+        <table className="w-full min-w-[760px] border-collapse text-sm sm:min-w-[860px]">
           <thead>
             <tr className="border-b border-slate-200 text-left">
               <th className="sticky left-0 z-10 bg-white px-4 py-3 text-xs font-black uppercase tracking-wider text-slate-500">{t('papers.topic')}</th>
@@ -44,10 +44,10 @@ export default function PapersPage() {
                   const ep = EPISODES.find((e) => e.modules.includes(m.id))
                   return (
                     <tr key={m.id} className="border-t border-slate-100 hover:bg-blue-50/40">
-                      <td className="sticky left-0 z-10 bg-white px-4 py-2.5">
+                      <td className="sticky left-0 z-10 w-[150px] bg-white px-3 py-2.5 text-[13px] shadow-[4px_0_6px_-4px_rgba(15,23,42,0.15)] sm:w-auto sm:px-4 sm:text-sm">
                         <a href={moduleUrl(m.id)} className="font-bold text-slate-900 hover:text-blue-700">{t(`site.modules.${m.id}.title`)}</a>
                         {ep && (
-                          <a href={watchUrl(ep.id)} className="ml-2 whitespace-nowrap text-xs font-bold text-blue-600 hover:underline" title={t(`watch.${ep.id}.title`)}>
+                          <a href={watchUrl(ep.id)} className="block whitespace-nowrap text-xs font-bold text-blue-600 hover:underline sm:ml-2 sm:inline" title={t(`watch.${ep.id}.title`)}>
                             ▶ {t('papers.watch')}
                           </a>
                         )}
