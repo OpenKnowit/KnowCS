@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { bridge, graph, lectureTensor, loopError, matmul, mul, replay, sizeStr, transpose } from './torchSim'
 
+// Checked on 2026-10-08 against PyTorch 2.14.1: dtypes and sizes, @ vs *, the NumPy bridge, w.grad -1 then -2 after
+// a second backward(), and requires_grad False under no_grad all match.
+
 describe('tensor attributes', () => {
   it('prints sizes like PyTorch', () => {
     expect(sizeStr([3])).toBe('torch.Size([3])')
