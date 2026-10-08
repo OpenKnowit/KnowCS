@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { KeyboardEvent, MouseEvent } from 'react'
+import type { ComponentType, KeyboardEvent, MouseEvent } from 'react'
 import { m } from 'framer-motion'
 import { ArrowLeft, FileText, MousePointerClick, Package } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +8,11 @@ import { NOTE_LINKS, blockEntry } from '../data/numpyApis'
 import type { ApiCat } from '../data/numpyApis'
 import { normalizeLang } from '../lib/lang'
 import { NumpyApiPanel } from './NumpyApiPanel'
+import { PLAYGROUND_LOADERS, loadPlaygroundView } from '../site/playground/loaders'
+import { decorateBlocks, pythonBlocks, runnableBlocks, withPrelude } from '../site/playground/noteBlocks'
+import type { PlayConfig } from '../data/playgrounds/types'
+
+type PlaygroundComp = ComponentType<{ config: PlayConfig; initialCode?: string | null }>
 
 /** Placeholder while a note's HTML chunk downloads. */
 const NoteSkeleton = () => (
@@ -30,7 +35,24 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
   const lang = normalizeLang(i18n.resolvedLanguage)
   const openNote = NOTES.find((n) => n.id === openId)
   const withPanel = openNote?.id === 'numpy'
+  const playLoader = openNote ? PLAYGROUND_LOADERS[openNote.id] : undefined
   const panelRef = useRef<HTMLDivElement>(null)
+  // 其他库的笔记：右侧是该库的实验台（配置与组件懒加载）
+  const [play, setPlay] = useState<{ id: string; config: PlayConfig; View: PlaygroundComp } | null>(null)
+  useEffect(() => {
+    if (!openNote || !playLoader) return
+    let live = true
+    void Promise.all([loadPlaygroundView(), playLoader()]).then(([m, config]) => {
+      if (live) setPlay({ id: openNote.id, config, View: m.default as PlaygroundComp })
+    })
+    return () => {
+      live = false
+    }
+  }, [openNote, playLoader])
+  const playReady = play && play.id === openNote?.id ? play : null
+  // 笔记代码块中能在实验台运行的那些；点「试一试」把代码送进实验台（n 递增让实验台按新代码重置）
+  const [runnable, setRunnable] = useState<{ key: string; ok: boolean[] } | null>(null)
+  const [tryCode, setTryCode] = useState<{ code: string | null; n: number }>({ code: null, n: 0 })
   // 笔记里点了哪个名字：决定 NumPy 面板打开哪一组（key 递增让面板按新入口重置）
   const [focus, setFocus] = useState<{ cat: ApiCat | null; entry: string | null; missing: string | null; n: number }>({ cat: null, entry: null, missing: null, n: 0 })
 
@@ -46,6 +68,15 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
     }
   }, [openNote, lang])
   const bodyHtml = body && body.key === bodyKey ? body.html : null
+  const blocks = useMemo(() => (playLoader && bodyHtml ? pythonBlocks(bodyHtml) : []), [playLoader, bodyHtml])
+  useEffect(() => {
+    if (!playReady || !blocks.length) return
+    let live = true
+    void runnableBlocks(playReady.config, blocks, () => live).then((ok) => live && setRunnable({ key: bodyKey, ok }))
+    return () => {
+      live = false
+    }
+  }, [playReady, blocks, bodyKey])
 
   // 打开笔记时回到页面顶部，避免停留在卡片网格的滚动位置
   useEffect(() => {
@@ -56,6 +87,7 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
   const noteHtml = useMemo(() => {
     if (!openNote || bodyHtml === null) return ''
     const html = bodyHtml
+    if (playLoader) return runnable && runnable.key === bodyKey ? decorateBlocks(html, runnable.ok, t('playground.ui.try_block'), t('playground.ui.try_hint')) : html
     if (!withPanel) return html
     const title = t('numpy_api.link_hint').replace(/"/g, '&quot;')
     const run = t('numpy_api.run_block')
@@ -68,12 +100,15 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
         const id = blockEntry(block)
         return id ? `<div class="np-block">${block}<button type="button" class="np-run" data-entry="${id}">▶ ${run}</button></div>` : block
       })
-  }, [openNote, bodyHtml, withPanel, t])
+  }, [openNote, bodyHtml, withPanel, playLoader, runnable, bodyKey, t])
 
   const followLink = (target: EventTarget) => {
     const runBtn = (target as HTMLElement).closest?.('button.np-run') as HTMLElement | null
     const el = (target as HTMLElement).closest?.('code.np-link')
-    if (runBtn) {
+    if (runBtn && runBtn.dataset.block !== undefined && playReady) {
+      const code = blocks[Number(runBtn.dataset.block)]
+      setTryCode((f) => ({ code: withPrelude(playReady.config, code), n: f.n + 1 }))
+    } else if (runBtn) {
       setFocus((f) => ({ cat: null, entry: runBtn.dataset.entry ?? null, missing: null, n: f.n + 1 }))
     } else if (el) {
       const name = el.textContent?.trim() ?? ''
@@ -104,7 +139,24 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
           </button>
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${openNote.tagClass}`}>{openNote.tag}</span>
         </div>
-        {withPanel ? (
+        {playLoader ? (
+          <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,600px)]">
+            <div className="min-w-0">
+              {noteHtml ? (
+                <article key={lang} lang={lang} className="note-prose" onClick={onArticleClick} dangerouslySetInnerHTML={{ __html: noteHtml }} />
+              ) : (
+                <NoteSkeleton />
+              )}
+            </div>
+            <div ref={panelRef} className="scroll-mt-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:pb-2">
+              {playReady ? (
+                <playReady.View key={tryCode.n} config={playReady.config} initialCode={tryCode.code} />
+              ) : (
+                <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 text-sm text-slate-400" aria-busy="true">{t('playground.ui.loading', { defaultValue: '…' })}</div>
+              )}
+            </div>
+          </div>
+        ) : withPanel ? (
           <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,560px)]">
             <div className="min-w-0 space-y-4">
               <p className="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900">

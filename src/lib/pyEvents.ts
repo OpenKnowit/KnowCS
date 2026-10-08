@@ -101,7 +101,7 @@ export type PyEventData =
   | { type: 'note'; tone: 'info' | 'warn'; key: string; params: Record<string, string | number> }
 
 export type PyEventInput = PyEventData & { code?: string }
-export type PyEvent = PyEventData & { id: number; line: number; code: string }
+export type PyEvent = PyEventData & { id: number; seq: number; line: number; code: string }
 
 export type Display =
   | { type: 'figure'; fig: FigureSpec }

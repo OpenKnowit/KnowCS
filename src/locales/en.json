@@ -552,7 +552,8 @@
       "pytorch": "PyTorch API Stats & Learning Path",
       "tensorflow": "TensorFlow API Counts & Module Structure",
       "keras": "Keras Core API Study Notes",
-      "kevin": "COMP2211 Course Notes"
+      "kevin": "COMP2211 Course Notes",
+      "matplotlib": "Matplotlib for COMP2211"
     }
   },
   "extend": {
@@ -3881,5 +3882,87 @@
   "notfound": {
     "title": "Page not found",
     "lead": "This address does not exist (any more). The site moved to one page per topic in October 2026 — start from one of these:"
+  },
+  "playground": {
+    "ui": {
+      "full": "Full screen",
+      "exit_full": "Exit full screen",
+      "search": "Search examples…",
+      "groups": "Example groups",
+      "no_match": "No example matches.",
+      "editor": "Code — runs as you type",
+      "shortcut": "Tab indents · Ctrl/⌘+Enter runs · Esc leaves the editor",
+      "reset": "Reset",
+      "run": "Run",
+      "output": "Output",
+      "line": "line {{n}}",
+      "no_output": "No output yet — print() and the value of the last line appear here.",
+      "figures_one": "Figure",
+      "figures_other": "Figures ({{count}})",
+      "steps": "Steps",
+      "nothing": "Every call your code makes shows up here as a step you can open.",
+      "try_block": "Try it",
+      "try_hint": "Opens this code in the playground",
+      "open_panel": "Open the playground",
+      "loading": "Loading the playground…",
+      "from_note": "Code from the note. Edit it freely, or pick an example above."
+    },
+    "view": {
+      "figure_label": "Figure with {{n}} axes",
+      "figure_step": "The figure right after this call: what the call added is highlighted, the rest is faded.",
+      "pixel": "img[{{row}}, {{col}}] = {{value}} → ({{value}} − {{vmin}}) / ({{vmax}} − {{vmin}}) = {{t}} along '{{cmap}}' → {{color}}",
+      "pixel_rgb": "img[{{row}}, {{col}}] → {{color}}",
+      "pixel_hint": "Hover a pixel to see how its value becomes a colour.",
+      "result": "result",
+      "series_shape": "Series · {{n}} rows",
+      "frame_shape": "DataFrame · {{r}} rows × {{c}} columns",
+      "rows_cut": "first {{n}} rows shown",
+      "flow_torch": "Each layer's input and output shape for this forward pass (PyTorch is channels-first: batch, channels, height, width), with its parameter count.",
+      "flow_keras": "model.summary() as a picture: the output shape of each layer (Keras is channels-last: batch, height, width, channels; None is the batch) and its parameter count.",
+      "layer": "Layer",
+      "in_out": "Input → output shape",
+      "params": "Params",
+      "total_params": "Total parameters",
+      "trainable": "Trainable",
+      "graph": "The computation graph autograd recorded. backward() walks it from the loss back to the leaves and stores ∂loss/∂x in each leaf's .grad. Hover a node to see where it came from.",
+      "graph_label": "Autograd computation graph",
+      "value": "value",
+      "no_grad_kept": "grad not kept (not a leaf)",
+      "leaf": "leaf tensor with requires_grad=True (its .grad is filled)",
+      "root": "the tensor backward() was called on",
+      "history": "Loss and metrics after each of the {{n}} epochs, as stored in history.history.",
+      "history_label": "Training curves",
+      "best_epoch": "lowest validation loss at epoch {{n}}"
+    },
+    "note": {
+      "default_cmap": "No cmap given: a 2-D array is drawn with the default colormap 'viridis', not in grey. Lecture 7 always passes cmap='gray'.",
+      "auto_range": "No vmin / vmax: matplotlib stretches this image's own range [{{min}}, {{max}}] over the whole colormap, so the darkest pixel turns black and the brightest white even if the image is dark. Pass vmin=0, vmax=1 (or 255) to keep the true brightness."
+    },
+    "matplotlib": {
+      "title": "matplotlib playground",
+      "subtitle": "{{n}} plots from the lectures. Edit the code and the figure redraws as you type.",
+      "sandbox_note": "Runs in your browser on a small re-implementation of pyplot (plot, scatter, bar, hist, imshow, subplots, text, legends, colour bars). Not every option exists; the defaults that matter — tab10 colours, viridis, imshow's automatic range — follow matplotlib.",
+      "cat": {
+        "basics": "Basics",
+        "images": "Images",
+        "ml": "ML plots"
+      },
+      "e": {
+        "anatomy": "A Figure is the whole canvas; an Axes is one plot inside it. plt.subplots() returns both, then you call methods on ax (set_title, set_xlabel, legend). The plt.* functions do the same thing on the current Axes.",
+        "subplot": "plt.subplot(rows, cols, index) picks one cell of a grid. The index counts from 1, left to right and then top to bottom, so subplot(2, 2, 3) is the bottom-left cell.",
+        "fmt": "plot's third argument is a format string: colour letter + marker + line style. 'ro--' means red circles joined by a dashed line; a marker without a line style draws markers only.",
+        "imshow_gray": "Lecture 7 shows every grayscale image with cmap='gray', vmin=0, vmax=1, so 0 is black and 1 is white. Hover a pixel to see its value turn into a colour.",
+        "vmin_vmax": "Without vmin / vmax, imshow maps the image's own minimum to black and maximum to white, so a dark image looks bright. Without cmap it isn't even grey. Only the third panel shows the true brightness.",
+        "rgb": "A colour image is (H, W, 3): one 2-D array per channel. img[:, :, 0] is the red channel, drawn in grey: bright where there is a lot of red.",
+        "grid": "plt.subplots(2, 3) returns a 2 × 3 array of Axes, and axes.flat walks it row by row. This is the usual way to show a batch of images, like the MNIST grid in lecture 6.",
+        "sobel": "A 3 × 3 kernel slides over the image. A valid convolution gives 8 − 3 + 1 = 6 outputs per side. The Sobel-x kernel reacts to vertical edges: positive on the square's left edge, negative on its right edge.",
+        "otsu": "Otsu's method tries every threshold t and keeps the one with the largest between-class variance w₀·w₁·(μ₀ − μ₁)². The histogram shows why it works: the best t lands in the gap between the two peaks.",
+        "kmeans": "c=labels colours each point by its cluster through a colormap, and a second scatter marks the centroids. This is one assignment step of K-Means (lecture 4).",
+        "boundary": "A perceptron predicts 1 when w·x + b > 0, so its decision boundary is the line w·x + b = 0, i.e. x₂ = −(w₁x₁ + b) / w₂. Points on different sides get different classes.",
+        "history": "Plotting history.history is the first check after training. Training loss keeps falling, but once validation loss turns up the model is overfitting. The dotted line marks the epoch that early stopping would keep.",
+        "confusion": "imshow draws the confusion matrix and plt.text writes each count in its cell. Rows are the true classes and columns the predictions, so precision reads down a column and recall along a row.",
+        "choose_k": "A bar chart of validation accuracy for each K: the cross-validation way of choosing K for KNN (lecture 3)."
+      }
+    }
   }
 }
