@@ -1,6 +1,5 @@
 import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
-import { LazyMotion, MotionConfig } from 'framer-motion'
 import '../index.css'
 import { i18nReady } from '../i18n'
 import { PAGE_LOADERS, preloadPage } from './pageLoaders'
@@ -15,8 +14,6 @@ const { page = 'home', id = '' } = document.body.dataset
 const moved = page === 'home' ? legacyTarget(window.location.hash) : null
 if (moved) window.location.replace(moved)
 
-// animation features load on demand, after first paint (m.* components render statically until then)
-const loadMotionFeatures = () => import('framer-motion').then((r) => r.domAnimation)
 
 const HomePage = lazy(PAGE_LOADERS.home)
 const ModulePage = lazy(PAGE_LOADERS.module)
@@ -46,13 +43,9 @@ if (!moved) {
   void i18nReady.then(() => {
     createRoot(document.getElementById('root')!).render(
       <StrictMode>
-        <LazyMotion features={loadMotionFeatures} strict>
-          <MotionConfig reducedMotion="user">
-            <Shell section={section}>
-              <Suspense fallback={<div className="min-h-[60vh]" aria-busy="true" />}>{content}</Suspense>
-            </Shell>
-          </MotionConfig>
-        </LazyMotion>
+        <Shell section={section}>
+          <Suspense fallback={<div className="min-h-[60vh]" aria-busy="true" />}>{content}</Suspense>
+        </Shell>
       </StrictMode>,
     )
   })
