@@ -36,10 +36,21 @@ export const shapeStr = (shape: readonly number[]): string =>
 const shapeTight = (shape: readonly number[]): string =>
   shape.length === 1 ? `(${shape[0]},)` : `(${shape.join(',')})`
 
+let sizeLimit = MAX_SIZE
+
+/** the limit for the current run (the deep-learning sandboxes allow larger arrays); returns the previous one */
+export const setSizeLimit = (n: number): number => {
+  const old = sizeLimit
+  sizeLimit = n
+  return old
+}
+
+export const sizeLimitNow = (): number => sizeLimit
+
 export const checkSize = (shape: readonly number[]): void => {
   const n = prod(shape)
-  if (n > MAX_SIZE) {
-    throw new PyError('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${MAX_SIZE}`)
+  if (n > sizeLimit) {
+    throw new PyError('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${sizeLimit}`)
   }
 }
 
