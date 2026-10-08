@@ -3,6 +3,7 @@ import { lazy } from 'react'
 import { Info } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../../components/Latex'
+import { Motion } from '../../components/Motion'
 import type { ModuleId } from '../../lib/sitemap'
 import { CLASSIC_LOADERS } from '../pageLoaders'
 import { ModuleHero, PageBar } from '../ui'
@@ -32,7 +33,9 @@ export default function ClassicPage({ id }: { id: ModuleId }) {
         <ModuleHero id={id} />
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/40 sm:p-8">
-            <Component />
+            <Motion>
+              <Component />
+            </Motion>
           </div>
           <aside className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-lg shadow-blue-200 xl:sticky xl:top-16">
             <div className="mb-3 flex items-center gap-2">

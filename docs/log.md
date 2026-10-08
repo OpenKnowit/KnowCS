@@ -7,6 +7,9 @@
 
 ## 进展时间线
 
+### 2026-10-08 — 不动画的页面不再加载 Framer Motion
+- **perf**：`LazyMotion` / `MotionConfig` 从入口移到 `src/components/Motion.tsx`，只包住用 `m.*` 的部分（经典模块、资料包、拓展页）。首页、实验页、讲解视频、自测、公式表不再下载 Framer Motion；入口 chunk gzip 95KB → 88KB（剩下基本是 react-dom 与 i18next）。浏览器检查：动画页面会加载动画引擎、没有元素停在 opacity 0。
+
 ### 2026-10-08 — 加载瀑布：页面代码与文案并行下载；实验页不再加载 KaTeX
 - **perf**：`src/site/pageLoaders.ts` 集中所有懒加载页面 / 模块（带缓存的 promise），`main.tsx` 在等待主文案的同时就开始下载本页代码与文案包；经典模块的考试提示（用到 KaTeX）拆到 `ClassicPage.tsx`，12 个实验页不再下载 76KB（gzip）的 KaTeX。文案包先下载、待 i18n 初始化后再合并（i18next 对主文案做浅合并，提前合并的包会被覆盖）。模拟 300ms / 200KB/s 网络：仿射页首屏 3.1s → 2.3s，下载量 276KB → 192KB。
 
