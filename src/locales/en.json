@@ -3513,6 +3513,10 @@
         "q": "A Gaussian likelihood f(x) used in naive Bayes can be greater than 1.",
         "why": "It is a density, not a probability. With a small σ the peak 1/(√(2π)σ) exceeds 1 — e.g. σ = 0.1 gives about 3.99."
       },
+      "by6": {
+        "q": "If a categorical feature takes a value never seen in training (say, the colour blue), naive Bayes cannot make a prediction.",
+        "why": "With Laplace smoothing the unseen value still gets a small non-zero likelihood, so the classifier still predicts (Final 2024 Q1(b) is false)."
+      },
       "kn1": {
         "q": "KNN has no real training phase, but predicting gets slower as the training set grows.",
         "why": "KNN stores the data. Each prediction measures the distance to every stored point, so the cost grows with the data."
@@ -3529,6 +3533,10 @@
         "q": "k = 1 usually gives a smoother decision boundary than k = 15.",
         "why": "The opposite: k = 1 follows every point (jagged, overfitting); a large k averages over many neighbours (smooth, possibly underfitting)."
       },
+      "kn5": {
+        "q": "KNN assumes the training data are uniformly distributed.",
+        "why": "KNN is non-parametric: it assumes no distribution at all, it just looks at the nearest stored points (Final 2024 Q1(c) is false)."
+      },
       "ev1": {
         "q": "A classifier can have 95% accuracy and 0% recall on the positive class.",
         "why": "With 5 positives in 100, always predicting “negative” is 95% accurate and finds none of the positives."
@@ -3540,6 +3548,10 @@
       "ev3": {
         "q": "D-fold cross-validation on data sorted by class, without shuffling, can give 0% accuracy.",
         "why": "With 4 classes × 20 sorted samples and D = 2, each test fold holds only classes the training fold never saw."
+      },
+      "ev4": {
+        "q": "Validation accuracy must always be lower than training accuracy.",
+        "why": "It is usually lower, but not always — a small or easy validation set can score higher (Final 2022 Q1(d) is false)."
       },
       "km1": {
         "q": "K-Means always converges to the clustering with the lowest possible SSE.",
@@ -3588,6 +3600,10 @@
       "ml5": {
         "q": "If all weights start at zero, the two hidden neurons of the lecture’s network stay identical during training.",
         "why": "They compute the same value and receive the same δ, so every update is the same — the symmetry is never broken."
+      },
+      "ml6": {
+        "q": "Adding more hidden layers always improves an MLP’s performance.",
+        "why": "More layers can overfit, train more slowly or not converge; depth is a choice to validate (Final 2022 Q1(b) is false)."
       },
       "im1": {
         "q": "Flipping an image horizontally changes its grey-level histogram.",
@@ -3641,6 +3657,14 @@
         "q": "Dropout with rate 0.5 also drops units at test time.",
         "why": "Dropout is used only during training; at test time every unit is used."
       },
+      "cn6": {
+        "q": "A conv layer with eight 3×3 kernels, padding 3 and stride 1 on a 32×32 RGB image does 8×3×3×36×36 multiplications.",
+        "why": "The output is 36×36×8, but each output value needs 3×3×3 multiplications because the kernel spans all 3 channels: 8×3×3×3×36×36 (Final 2024 Q1(g) is false)."
+      },
+      "cn7": {
+        "q": "A dropout rate of 0.5 means more than half of the layer’s outputs stay non-zero.",
+        "why": "Each output is dropped with probability 0.5, so about half are zeroed during training, not fewer (Final 2024 Q1(h) is false)."
+      },
       "pt1": {
         "q": "Deep learning networks cannot be trained or run on a CPU.",
         "why": "They can; a GPU is only faster. Final 2022 Q1(e) is false."
@@ -3669,6 +3693,10 @@
         "q": "Examining the best moves first lets alpha-beta prune more of the tree.",
         "why": "Good bounds early make α ≥ β happen sooner, so more branches are cut."
       },
+      "ab4": {
+        "q": "A minimax player in 3×3 tic-tac-toe is guaranteed to win.",
+        "why": "Against an opponent who also plays perfectly the game is a draw; minimax only guarantees it never loses (Final 2022 Q1(i) is false)."
+      },
       "et1": {
         "q": "Removing the race column from the data guarantees that a model cannot discriminate by race.",
         "why": "Proxy features such as postcode can be correlated with race and let the model recover it."
@@ -3676,6 +3704,10 @@
       "et2": {
         "q": "Model drift is a reason to keep monitoring a model after it is deployed.",
         "why": "As incoming data changes, accuracy can change — monitoring and maintenance is one of the three areas of AI ethics."
+      },
+      "et3": {
+        "q": "Research involving human participants should require informed consent.",
+        "why": "Participants must know what the study does with them and their data and agree to it (Final 2024 Q1(j) is true)."
       }
     }
   },
