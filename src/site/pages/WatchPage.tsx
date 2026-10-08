@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { EPISODES, LECTURES, lectureScope, moduleUrl, watchUrl } from '../../lib/sitemap'
 import type { EpisodeInfo } from '../../lib/sitemap'
 import { fmtClock, locate, timeline } from '../../lib/explainer'
-import { Player, capKey } from '../watch/Player'
+import { Player, PlayerSkeleton, capKey } from '../watch/Player'
 import { EpisodeCard, lengthOf, readWatched } from '../watch/EpisodeCard'
 import type { Episode } from '../watch/Player'
 import { useEpisode } from '../watch/useEpisode'
@@ -91,7 +91,7 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
       </div>
 
       <div className="mt-5">
-        {ep ? <Player episode={ep} onTime={setNow} seekRef={seek} /> : <div className="aspect-video w-full animate-pulse rounded-2xl bg-[#0e1117]" aria-busy="true" />}
+        {ep ? <Player episode={ep} onTime={setNow} seekRef={seek} /> : <PlayerSkeleton />}
         <p className="mt-2 hidden text-center text-xs text-slate-500 sm:block">{t('watch.ui.keys')}</p>
         <p className="mt-2 text-center text-xs font-semibold text-slate-500 sm:hidden">{t('watch.ui.rotate')}</p>
       </div>

@@ -21,6 +21,15 @@ export interface Episode {
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2]
 
+/** Same parts and heights as the Player (stage, caption bar, controls), so nothing below moves when it loads. */
+export const PlayerSkeleton = () => (
+  <div className="overflow-hidden rounded-2xl bg-[#0b0d12] shadow-2xl shadow-slate-900/30" aria-busy="true">
+    <div className="aspect-video w-full animate-pulse bg-[#0e1117]" />
+    <div className="min-h-[4.5rem] border-t border-white/5 sm:min-h-[5.25rem]" />
+    <div className="h-[125px] border-t border-white/5 sm:h-[85px]" />
+  </div>
+)
+
 /** Caption key for scene `s`, line `k` of episode `ep`. */
 export const capKey = (ep: string, s: string, k: number) => `watch.${ep}.scenes.${s}.c${k + 1}`
 

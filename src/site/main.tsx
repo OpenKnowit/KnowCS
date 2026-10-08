@@ -44,7 +44,7 @@ if (!moved) {
     createRoot(document.getElementById('root')!).render(
       <StrictMode>
         <Shell section={section}>
-          <Suspense fallback={<div className="min-h-[60vh]" aria-busy="true" />}>{content}</Suspense>
+          <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>{content}</Suspense>
         </Shell>
       </StrictMode>,
     )

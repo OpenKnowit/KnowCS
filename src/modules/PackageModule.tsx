@@ -11,7 +11,8 @@ import { NumpyApiPanel } from './NumpyApiPanel'
 
 /** Placeholder while a note's HTML chunk downloads. */
 const NoteSkeleton = () => (
-  <div className="max-w-3xl space-y-3" aria-busy="true">
+  // notes are long: hold a screen of space so the footer does not jump up and back down
+  <div className="min-h-screen max-w-3xl space-y-3" aria-busy="true">
     {[70, 95, 88, 92, 60, 85].map((w, i) => (
       <div key={i} className="h-4 animate-pulse rounded bg-slate-100" style={{ width: `${w}%` }} />
     ))}
