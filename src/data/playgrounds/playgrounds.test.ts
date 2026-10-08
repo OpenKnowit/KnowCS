@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { MATPLOTLIB_PLAYGROUND } from './matplotlib'
+import { PYTORCH_PLAYGROUND } from './pytorch'
 import { runIn } from './run'
 import type { PlayConfig } from './types'
 
-const CONFIGS: PlayConfig[] = [MATPLOTLIB_PLAYGROUND]
+const CONFIGS: PlayConfig[] = [MATPLOTLIB_PLAYGROUND, PYTORCH_PLAYGROUND]
 
 describe.each(CONFIGS.map((c) => [c.id, c] as const))('%s playground', (_id, config) => {
   it('every category has an example and every example has a known category', () => {
@@ -12,9 +13,10 @@ describe.each(CONFIGS.map((c) => [c.id, c] as const))('%s playground', (_id, con
     expect(new Set(config.entries.map((e) => e.id)).size).toBe(config.entries.length)
   })
 
-  it.each(config.entries.map((e) => [e.id, e] as const))('%s runs without errors', (_e, entry) => {
+  it.each(config.entries.map((e) => [e.id, e] as const))('%s runs as intended', (_e, entry) => {
     const r = runIn(config, entry.code, 10_000)
-    expect(r.error).toBeNull()
+    if (entry.expectError) expect(r.error?.type).toBe(entry.expectError)
+    else expect(r.error).toBeNull()
     expect(r.calls.length + r.events.length).toBeGreaterThan(0)
   })
 })

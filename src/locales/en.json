@@ -3936,7 +3936,13 @@
     },
     "note": {
       "default_cmap": "No cmap given: a 2-D array is drawn with the default colormap 'viridis', not in grey. Lecture 7 always passes cmap='gray'.",
-      "auto_range": "No vmin / vmax: matplotlib stretches this image's own range [{{min}}, {{max}}] over the whole colormap, so the darkest pixel turns black and the brightest white even if the image is dark. Pass vmin=0, vmax=1 (or 255) to keep the true brightness."
+      "auto_range": "No vmin / vmax: matplotlib stretches this image's own range [{{min}}, {{max}}] over the whole colormap, so the darkest pixel turns black and the brightest white even if the image is dark. Pass vmin=0, vmax=1 (or 255) to keep the true brightness.",
+      "grad_accumulate": "backward() added to gradients that were already there: PyTorch accumulates .grad across calls. In a training loop, call optimizer.zero_grad() (or w.grad.zero_()) before every backward().",
+      "dropout_eval": "Dropout is still active: the model is in training mode, so random units are zeroed even under no_grad(). Call model.eval() before evaluating or predicting.",
+      "softmax_ce": "These look like probabilities (each row sums to 1). CrossEntropyLoss applies log_softmax itself, so pass the raw logits, which is why lecture 9's model returns fc2(x) without softmax.",
+      "mse_shape": "The prediction {{a}} and the target {{b}} have different shapes, so the loss broadcasts them into a matrix and the result is wrong. Make them the same shape (e.g. y.view(-1, 1) or pred.squeeze(1)).",
+      "nonleaf_grad": ".grad of a non-leaf tensor is None: PyTorch only keeps gradients of leaf tensors (call .retain_grad() first to keep one).",
+      "T_nd": ".T on a tensor with more than 2 dimensions reverses all of them; to swap two dimensions use transpose(a, b) or permute."
     },
     "matplotlib": {
       "title": "matplotlib playground",
@@ -3962,6 +3968,38 @@
         "history": "Plotting history.history is the first check after training. Training loss keeps falling, but once validation loss turns up the model is overfitting. The dotted line marks the epoch that early stopping would keep.",
         "confusion": "imshow draws the confusion matrix and plt.text writes each count in its cell. Rows are the true classes and columns the predictions, so precision reads down a column and recall along a row.",
         "choose_k": "A bar chart of validation accuracy for each K: the cross-validation way of choosing K for KNN (lecture 3)."
+      }
+    },
+    "pytorch": {
+      "title": "PyTorch playground",
+      "subtitle": "{{n}} examples from lecture 9: tensors, autograd, nn.Module and the training loop. Open a step to see the grids, the layer shapes or the gradient graph.",
+      "sandbox_note": "Runs in your browser on a small re-implementation of PyTorch (tensors, autograd, Linear / Conv2d / MaxPool2d / Dropout, the usual losses, SGD and Adam, DataLoader). Printing, dtypes and error messages follow PyTorch 2; random numbers differ from real PyTorch, and there is no GPU or MNIST download.",
+      "cat": {
+        "tensors": "Tensors",
+        "autograd": "Autograd",
+        "nn": "Layers & shapes",
+        "train": "Training"
+      },
+      "e": {
+        "attrs": "Every tensor has a shape (torch.Size), a dtype and a device. Python ints become int64, factory functions like torch.zeros give float32, and in this sandbox the device is always the CPU.",
+        "matmul": "@ (torch.matmul) is the matrix product: each output is a row times a column. * multiplies element by element. Hover a result cell to see which inputs made it.",
+        "indexing": "Indexing works as in NumPy: tensor[0] is a row, tensor[:, 0] a column, tensor[..., -1] the last column. Assigning to a slice changes the tensor in place.",
+        "view": "view gives a new shape over the same memory, and -1 means work it out. unsqueeze(0) adds the batch dimension a model expects. A transposed tensor is not contiguous, so view fails on it while reshape copies.",
+        "bridge": "torch.from_numpy and tensor.numpy() share memory with the NumPy array, so a change on one side shows on the other. torch.tensor(n) makes a copy.",
+        "dtype": "Python ints give int64 and floats give float32. Dividing integers gives floats, and mean() needs a float tensor. float32 cannot store 0.1 exactly, as item() shows.",
+        "grad_basic": "requires_grad=True makes PyTorch record every operation (grad_fn). y.backward() walks that graph backwards and stores dy/dx in x.grad: 2x + 3 = 7 at x = 2. Open the graph step.",
+        "grad_lecture": "Lecture 9's example: z = x·w + b, then a binary cross-entropy loss. loss.backward() fills w.grad and b.grad. Every row of w.grad is the same because x is all ones.",
+        "accumulate": "Calling backward() again adds to .grad instead of replacing it. This is why every training loop starts with optimizer.zero_grad().",
+        "no_grad": "Inside torch.no_grad(), and for detach()ed tensors, nothing is recorded, so outputs have requires_grad=False. Use it for evaluation and prediction.",
+        "linreg": "Gradient descent with nothing but tensors and autograd: compute the loss, backward(), then update w and b inside no_grad() and zero their gradients. w → 2 and b → 1.",
+        "mnist_cnn": "Lecture 9's MNIST_CNN. print(model) lists the layers, and the forward step shows each layer's output shape with the size formula: padding=1 keeps 28 × 28, pooling halves it to 14 × 14, and view flattens 64·14·14 = 12544 features.",
+        "flatten_bug": "The most common CNN bug: fc's in_features assumes 14 × 14, but without padding the conv gives 26 and pooling gives 13. The error reports both shapes, 1x2704 versus 3136x10. Print x.shape before the Linear layer to find the right number.",
+        "sequential": "nn.Sequential chains layers. A Linear layer has (in + 1) × out parameters, one weight per input and one bias per output: (784 + 1) × 128 = 100,480.",
+        "logits": "The last layer outputs raw scores (logits), and CrossEntropyLoss applies log_softmax itself. softmax is only for reading probabilities, and torch.max(logits, 1) gives the predicted class.",
+        "train_xor": "The five steps of every training loop from lecture 9: zero_grad → forward → loss → backward → step. A small MLP learns XOR, which a single perceptron cannot.",
+        "zero_grad_bug": "Without zero_grad(), every step's gradient is added to all the earlier ones. The steps grow, the loss stops falling smoothly, and it can blow up.",
+        "train_eval": "In train() mode dropout zeroes random units and scales the rest by 1 / (1 − p), so every call differs. eval() turns dropout off, so always call it before evaluating.",
+        "dataloader": "A DataLoader cuts a dataset into batches: len(loader) = ⌈10 / 4⌉ = 3, and each iteration gives (inputs, labels) for one batch, as in lecture 9's train_model."
       }
     }
   }

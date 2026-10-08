@@ -3936,7 +3936,13 @@
     },
     "note": {
       "default_cmap": "没有指定 cmap：二维数组会用默认色图 'viridis' 上色，而不是灰度。第 7 讲每次都会写 cmap='gray'。",
-      "auto_range": "没有指定 vmin / vmax：matplotlib 会把这张图自身的范围 [{{min}}, {{max}}] 拉伸到整条色图上，所以就算图片很暗，最暗的像素也会变成黑、最亮的变成白。写上 vmin=0, vmax=1（或 255）才能保留真实亮度。"
+      "auto_range": "没有指定 vmin / vmax：matplotlib 会把这张图自身的范围 [{{min}}, {{max}}] 拉伸到整条色图上，所以就算图片很暗，最暗的像素也会变成黑、最亮的变成白。写上 vmin=0, vmax=1（或 255）才能保留真实亮度。",
+      "grad_accumulate": "backward() 把梯度加到了原来已有的梯度上：PyTorch 会在多次调用之间累加 .grad。训练循环中，每次 backward() 之前都要调用 optimizer.zero_grad()（或 w.grad.zero_()）。",
+      "dropout_eval": "Dropout 仍然生效：模型处于训练模式，即使在 no_grad() 中也会随机把单元置零。评估或预测前请先调用 model.eval()。",
+      "softmax_ce": "这些值看起来已经是概率（每行和为 1）。CrossEntropyLoss 内部会自己做 log_softmax，所以应该传入原始 logits；这也是第 9 讲的模型直接返回 fc2(x)、不加 softmax 的原因。",
+      "mse_shape": "预测 {{a}} 和目标 {{b}} 的形状不同，损失函数会把它们广播成一个矩阵，结果是错的。请先把两者变成相同形状（例如 y.view(-1, 1) 或 pred.squeeze(1)）。",
+      "nonleaf_grad": "非叶子张量的 .grad 是 None：PyTorch 只保留叶子张量的梯度（如需保留，先调用 .retain_grad()）。",
+      "T_nd": "对二维以上的张量用 .T 会把所有维度倒过来；只想交换两个维度时，请用 transpose(a, b) 或 permute。"
     },
     "matplotlib": {
       "title": "matplotlib 实验台",
@@ -3962,6 +3968,38 @@
         "history": "训练后先画 history.history。训练损失一直下降，但验证损失一旦回升，模型就开始过拟合了。点线标出提前停止（early stopping）会保留的那个 epoch。",
         "confusion": "用 imshow 画混淆矩阵，再用 plt.text 把每个计数写进格子。行是真实类别，列是预测类别：精确率沿一列看，召回率沿一行看。",
         "choose_k": "每个 K 的验证准确率柱状图：用交叉验证为 KNN 选 K 的做法（第 3 讲）。"
+      }
+    },
+    "pytorch": {
+      "title": "PyTorch 实验台",
+      "subtitle": "{{n}} 个出自第 9 讲的示例：张量、自动求导、nn.Module 与训练循环。点开一个步骤，可以看到网格、各层形状或梯度计算图。",
+      "sandbox_note": "在浏览器中运行，基于一个精简重写的 PyTorch（张量、自动求导、Linear / Conv2d / MaxPool2d / Dropout、常用损失函数、SGD 与 Adam、DataLoader）。打印格式、数据类型和报错信息与 PyTorch 2 一致；随机数与真实 PyTorch 不同，没有 GPU，也不能下载 MNIST。",
+      "cat": {
+        "tensors": "张量",
+        "autograd": "自动求导",
+        "nn": "层与形状",
+        "train": "训练"
+      },
+      "e": {
+        "attrs": "每个张量都有形状（torch.Size）、数据类型和设备。Python 整数会变成 int64，torch.zeros 这类工厂函数默认是 float32；本沙盒中的设备始终是 CPU。",
+        "matmul": "@（torch.matmul）是矩阵乘法：每个输出都是一行乘一列。* 是逐元素相乘。把鼠标移到结果格子上，可以看到它由哪些输入算出。",
+        "indexing": "索引方式和 NumPy 一样：tensor[0] 是一行，tensor[:, 0] 是一列，tensor[..., -1] 是最后一列。给切片赋值会原地修改张量。",
+        "view": "view 在同一块内存上换一个形状，-1 表示自动推算。unsqueeze(0) 加上模型需要的 batch 维度。转置后的张量不连续，所以 view 会报错，而 reshape 会复制一份。",
+        "bridge": "torch.from_numpy 和 tensor.numpy() 与 NumPy 数组共享内存，一边改动、另一边也会变。torch.tensor(n) 则会复制一份。",
+        "dtype": "Python 整数得到 int64，浮点数得到 float32。整数相除结果是浮点数；mean() 需要浮点张量。float32 无法精确存储 0.1，item() 就能看出来。",
+        "grad_basic": "requires_grad=True 让 PyTorch 记录每一步运算（grad_fn）。y.backward() 沿计算图反向走，把 dy/dx 存进 x.grad：x = 2 时 2x + 3 = 7。可以点开计算图那一步。",
+        "grad_lecture": "第 9 讲的例子：z = x·w + b，再算二元交叉熵损失。loss.backward() 会填好 w.grad 和 b.grad。因为 x 全是 1，w.grad 的每一行都相同。",
+        "accumulate": "再次调用 backward() 会把梯度加到 .grad 上，而不是替换。这就是每个训练循环都以 optimizer.zero_grad() 开头的原因。",
+        "no_grad": "在 torch.no_grad() 中，以及对 detach() 之后的张量，都不会记录运算，所以输出的 requires_grad=False。评估和预测时就这样用。",
+        "linreg": "只用张量和自动求导做梯度下降：算损失、backward()，然后在 no_grad() 中更新 w 和 b 并把梯度清零。w → 2，b → 1。",
+        "mnist_cnn": "第 9 讲的 MNIST_CNN。print(model) 列出各层；前向传播那一步给出每层的输出形状和尺寸公式：padding=1 保持 28 × 28，池化减半为 14 × 14，view 把 64·14·14 = 12544 个特征展平。",
+        "flatten_bug": "最常见的 CNN 错误：fc 的 in_features 假设特征图是 14 × 14，但卷积不加 padding 时得到 26，池化后是 13。报错信息同时给出两个形状（1x2704 与 3136x10）。在 Linear 层前打印 x.shape 就能找到正确的数。",
+        "sequential": "nn.Sequential 把层串起来。Linear 层有 (输入 + 1) × 输出 个参数，即每个输入一个权重、每个输出一个偏置：(784 + 1) × 128 = 100,480。",
+        "logits": "最后一层输出原始分数（logits），CrossEntropyLoss 内部自己做 log_softmax。softmax 只用来读出概率，torch.max(logits, 1) 给出预测类别。",
+        "train_xor": "第 9 讲训练循环的五个步骤：zero_grad → 前向 → 损失 → backward → step。一个小 MLP 学会了单个感知机学不会的 XOR。",
+        "zero_grad_bug": "不调用 zero_grad() 时，每一步的梯度都会加到之前所有梯度上：步长越来越大，损失不再平稳下降，甚至会发散。",
+        "train_eval": "train() 模式下 dropout 随机把单元置零，其余乘以 1 / (1 − p)，所以每次调用结果都不同。eval() 关闭 dropout，评估前一定要调用。",
+        "dataloader": "DataLoader 把数据集切成 batch：len(loader) = ⌈10 / 4⌉ = 3，每次迭代得到一个 batch 的 (inputs, labels)，与第 9 讲 train_model 的写法一致。"
       }
     }
   }
