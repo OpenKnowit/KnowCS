@@ -61,7 +61,8 @@ function pageHtml(page) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#2563eb" />
     <link rel="icon" type="image/svg+xml" href="${FAVICON}" />
-    <link rel="manifest" href="/manifest.webmanifest" />`
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />`
   if (page.kind === "redirect") {
     return `<!doctype html>
 <html lang="en">
@@ -121,6 +122,7 @@ ${PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound").map((p) =>
 copyFileSync(resolve("src/sw/sw.js"), resolve(ROOT, "public/sw.js"))
 // installable as an app: the favicon as a real file, plus a manifest
 writeFileSync(resolve(ROOT, "public/icon.svg"), decodeURIComponent(FAVICON.replace("data:image/svg+xml,", "")))
+for (const f of ["icon-192.png", "icon-512.png", "apple-touch-icon.png"]) copyFileSync(resolve("src/assets/icons", f), resolve(ROOT, "public", f))
 writeFileSync(
   resolve(ROOT, "public/manifest.webmanifest"),
   JSON.stringify({
@@ -130,7 +132,11 @@ writeFileSync(
     display: "standalone",
     background_color: "#f1f5f9",
     theme_color: "#2563eb",
-    icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }],
+    icons: [
+      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+    ],
   }),
 )
 writeFileSync(resolve(ROOT, "public/robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`)
@@ -143,7 +149,7 @@ function offlineManifest() {
     generateBundle(_, bundle) {
       const files = Object.values(bundle).filter((f) => f.fileName.startsWith("assets/"))
       const size = (f) => (f.type === "chunk" ? Buffer.byteLength(f.code) : typeof f.source === "string" ? Buffer.byteLength(f.source) : f.source.length)
-      const assets = [...files.map((f) => `/${f.fileName}`).sort(), "/icon.svg", "/manifest.webmanifest"]
+      const assets = [...files.map((f) => `/${f.fileName}`).sort(), "/icon.svg", "/icon-192.png", "/apple-touch-icon.png", "/manifest.webmanifest"]
       const pages = PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound").map((p) => `/${p.path.replace(/index\.html$/, "")}`)
       const version = createHash("sha256").update(assets.join()).digest("hex").slice(0, 12)
       const bytes = files.reduce((n, f) => n + size(f), 0)

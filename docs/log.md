@@ -7,6 +7,9 @@
 
 ## 进展时间线
 
+### 2026-10-08 — PNG 应用图标
+- **feat**：用无头 Chrome 把 SVG 标志渲染为 PNG：`icon-192.png`、`icon-512.png`（写入 manifest）与满版的 `apple-touch-icon.png`（iOS「添加到主屏幕」不认 SVG，原先会用截图），源文件在 `src/assets/icons/`，构建时复制到站点根目录并纳入离线清单。Chrome `getInstallabilityErrors` 为空。
+
 ### 2026-10-08 — 清理未上架的旧模块
 - **chore**：删除已被实验页取代、无人引用的 `PerceptronModule.tsx`、`PyTorchModule.tsx`，及其专用的 PyTorch 速查表常量、`CheatGroup` 类型、`pytorch.*` / `perceptron.*` 文案与对应文案包；删除旧单页应用遗留的 `TabId` 类型。
 
