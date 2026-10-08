@@ -7,6 +7,9 @@
 
 ## 进展时间线
 
+### 2026-10-08 — Nginx：资源长缓存与自定义 404（用户批准）
+- **ops**：`deploy/knowcs.online.conf` 与线上配置更新：`/assets/`（文件名带内容哈希）返回 `Cache-Control: public, max-age=31536000, immutable`；页面、`sw.js`、`offline.json`、清单仍为 `no-cache`；`error_page 404 /404.html`，缺失页面返回 404 状态码与站点风格的 404 页。流程：备份到 `sites/knowcs/backups/knowcs.online.conf.20261008-102155`，`nginx -t` 通过后 `nginx -s reload`（未重启容器）。验证：资源与页面缓存头、404 状态与内容、HTTP 301、gzip、`mc.iloveust.com` 与 `pastpaper.knowit.top` 均正常；真实浏览器打开深层不存在路径显示完整 404 页。
+
 ### 2026-10-08 — 页眉页脚精简（按用户要求）
 - **change**：版本徽标改为「Beta」；页脚只保留「离线保存」按钮（删去版权行、「完全在浏览器本地运行」「公式由 KaTeX 排版」及对应文案）；左上角标志改为与浏览器标签页 favicon 相同的网络图图标（内联 SVG）。移除不再使用的 `__APP_VERSION__`。
 - **perf**：离线按钮不再在每次打开页面时请求 `offline.json`（12KB，服务器未压缩 JSON）：构建时把版本与大小写入每页的 `<meta name="knowcs-offline">`，按钮直接读取；`offline.json` 只在点击保存时由 Service Worker 读取。清单文件改名 `manifest.json`（服务器 MIME 表无 .webmanifest，原先以 octet-stream 返回）。
