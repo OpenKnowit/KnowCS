@@ -1,6 +1,7 @@
 // 构建期 Vite 插件：在单文件打包的前提下压缩产物体积。
 import { readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
@@ -126,6 +127,54 @@ export function rawHk() {
       this.addWatchFile(file)
       const text = toHK(readFileSync(file, 'utf8')).replace(/<html([^>]*)\blang="[^"]*"/, '<html$1lang="zh-HK"')
       return `export default ${JSON.stringify(text)};`
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 4) 文案拆分：讲解视频的字幕 / 标签 / 小结 / 考点角只在播放该集时需要（约占文案一半）。
+//    `locales/<lng>.json?core`      → 全部文案，但 watch.<集> 只保留 kicker / title / sub
+//    `locales/<lng>.json?ep=<集>`   → { watch: { <集>: 其余键 } }
+//    `virtual:episode-strings`      → { <集>: { <lng>: () => import(...?ep=<集>) } }，每集每语言一个 chunk
+//    load 返回 JSON 文本，交给 Vite 自带的 JSON 插件转为模块。
+// ---------------------------------------------------------------------------
+const EP_CORE = ['kicker', 'title', 'sub']
+export function localeSplit() {
+  const VIRTUAL = 'virtual:episode-strings'
+  const RESOLVED = '\0' + VIRTUAL
+  // the Vite root is site/, so locate the locales from this file instead
+  const localesDir = join(dirname(fileURLToPath(import.meta.url)), '../src/locales')
+  return {
+    name: 'knowcs:locale-split',
+    enforce: 'pre',
+    resolveId(id) {
+      return id === VIRTUAL ? RESOLVED : null
+    },
+    load(id) {
+      if (id === RESOLVED) {
+        const file = join(localesDir, 'en.json')
+        this.addWatchFile(file)
+        const eps = Object.keys(JSON.parse(readFileSync(file, 'utf8')).watch).filter((k) => k !== 'ui')
+        const lngs = ['en', 'zh', 'zh-HK']
+        const body = eps
+          .map((ep) => `  ${JSON.stringify(ep)}: { ${lngs.map((l) => `${JSON.stringify(l)}: () => import(${JSON.stringify(`${join(localesDir, l)}.json?ep=${ep}`)})`).join(', ')} },`)
+          .join('\n')
+        return `export default {\n${body}\n}\n`
+      }
+      const [file, query] = id.split('?')
+      if (!file.endsWith('.json') || !query || !(query === 'core' || query.startsWith('ep='))) return null
+      this.addWatchFile(file)
+      const all = JSON.parse(readFileSync(file, 'utf8'))
+      const watch = all.watch ?? {}
+      if (query === 'core') {
+        const slim = Object.fromEntries(
+          Object.entries(watch).map(([k, v]) => [k, k === 'ui' ? v : Object.fromEntries(EP_CORE.filter((f) => f in v).map((f) => [f, v[f]]))]),
+        )
+        return JSON.stringify({ ...all, watch: slim })
+      }
+      const ep = query.slice(3)
+      const rest = Object.fromEntries(Object.entries(watch[ep] ?? {}).filter(([f]) => !EP_CORE.includes(f)))
+      return JSON.stringify({ watch: { [ep]: rest } })
     },
   }
 }
