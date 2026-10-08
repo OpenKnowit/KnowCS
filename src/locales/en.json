@@ -3940,6 +3940,7 @@
       "keras_dense_nd": "A Dense layer got a {{shape}} input: it only acts on the last axis, so the output keeps the other axes. To classify an image, put Flatten() before Dense({{units}}).",
       "keras_sparse_hint": "The labels are integers (0, 1, 2 …), not one-hot rows. Use loss='sparse_categorical_crossentropy', or convert them first with to_categorical(y, num_classes).",
       "keras_overfit": "Validation loss was lowest at epoch {{epoch}} and then rose while training loss kept falling: the model is overfitting. EarlyStopping(monitor='val_loss') stops there, and fewer units, dropout or L2 also help.",
+      "pandas_ddof": "pandas' std() and var() divide by n − 1 (ddof=1, the sample estimate), while NumPy's np.std divides by n (ddof=0). Pass ddof=0 when you want NumPy's number, e.g. to standardise like lecture 3.",
       "grad_accumulate": "backward() added to gradients that were already there: PyTorch accumulates .grad across calls. In a training loop, call optimizer.zero_grad() (or w.grad.zero_()) before every backward().",
       "dropout_eval": "Dropout is still active: the model is in training mode, so random units are zeroed even under no_grad(). Call model.eval() before evaluating or predicting.",
       "softmax_ce": "These look like probabilities (each row sums to 1). CrossEntropyLoss applies log_softmax itself, so pass the raw logits, which is why lecture 9's model returns fc2(x) without softmax.",
@@ -4015,6 +4016,56 @@
         "linreg": "A full training loop by hand: compute the loss inside the tape, get [dw, db] with tape.gradient, then w.assign_sub(lr · dw). w → 2 and b → 1.",
         "tf_keras": "Keras ships inside TensorFlow as tf.keras, the way older lecture code imports it. Open the summary step to see each layer's output shape and parameter count.",
         "confusion": "tf.math.confusion_matrix(labels, predictions) counts each (true, predicted) pair. The diagonal holds the correct predictions, so accuracy = diagonal sum / total."
+      }
+    },
+    "frame": {
+      "generic": "The table before the operation and the result.",
+      "column": "df['col'] picks one column, which comes back as a Series.",
+      "columns": "df[['a', 'b']] picks several columns, which come back as a DataFrame.",
+      "filter": "A boolean mask keeps the rows where it is True (highlighted). The index labels stay as they were.",
+      "loc": "loc selects by label: rows and columns by name. A label slice includes its end.",
+      "iloc": "iloc selects by position, like a NumPy array. A slice excludes its end.",
+      "head": "head(n) / tail(n) show the first / last n rows.",
+      "tail": "head(n) / tail(n) show the first / last n rows.",
+      "describe": "describe() summarises each numeric column: count, mean, std (ddof=1), min, quartiles and max.",
+      "isna": "isna() marks missing values (NaN / None) with True. Add .sum() to count them per column.",
+      "fillna": "fillna replaces missing values (the highlighted rows) with a value, or with one value per column.",
+      "dropna": "dropna drops every row that has a missing value; the highlighted rows survive.",
+      "sort_values": "sort_values reorders the rows by a column; the index labels travel with their rows.",
+      "groupby": "groupby splits the rows by key (each colour is one group), applies the aggregation to every group, and combines the results, one row per group.",
+      "value_counts": "value_counts counts how often each value occurs (normalize=True gives proportions, e.g. the class priors of Naive Bayes).",
+      "crosstab": "crosstab counts every (row value, column value) pair. normalize='index' turns each row into proportions: P(column | row).",
+      "get_dummies": "get_dummies turns a categorical column into one True / False column per category (one-hot encoding).",
+      "merge": "merge joins two tables on a shared column, like a SQL JOIN.",
+      "arith": "Arithmetic works element by element. A Series lines up with the DataFrame's columns by name, so df - df.mean() subtracts each column's own mean.",
+      "compare": "A comparison gives a boolean Series, ready to use as a mask.",
+      "assign": "A new column is computed for every row at once.",
+      "map": "map replaces every value through a dict or a function, e.g. text labels to numbers."
+    },
+    "pandas": {
+      "title": "pandas playground",
+      "subtitle": "{{n}} examples: build and read tables, select and clean them, and do the course's table maths: Naive Bayes counts, standardising, K-Means centroids, confusion matrices.",
+      "sandbox_note": "Runs in your browser on a small re-implementation of pandas (DataFrame / Series, loc / iloc, isna / fillna / dropna, groupby, value_counts, crosstab, get_dummies, merge, describe, read_csv from io.StringIO). Printing follows pandas 2. MultiIndex and several aggregations at once are not supported.",
+      "cat": {
+        "basics": "Basics",
+        "select": "Select",
+        "clean": "Clean",
+        "ml": "Course maths"
+      },
+      "e": {
+        "create": "A DataFrame is a table of named columns, each a Series with one dtype: int64, float64 (None becomes NaN) or object for text.",
+        "describe": "Column statistics skip missing values. Note std: pandas divides by n − 1 and NumPy by n, so the two numbers differ.",
+        "csv": "read_csv turns comma-separated text into a DataFrame, inferring dtypes and reading empty fields as NaN. info() lists the columns, their non-null counts and dtypes.",
+        "columns": "One name gives a Series, a list of names a DataFrame. This is how you split a table into features X and labels y.",
+        "filter": "df[mask] keeps the rows where the mask is True. Combine masks with & and |, and put each condition in brackets: & binds tighter than >.",
+        "loc": "loc uses labels (here the names) and includes the end of a slice. iloc uses positions and excludes it, as Python does.",
+        "missing": "isna().sum() counts the missing values per column. fillna fills them (here with the column mean) and dropna removes their rows.",
+        "encode": "Models need numbers: map turns labels into codes, and get_dummies makes one-hot columns.",
+        "naive_bayes": "Lecture 2's 14 patients. value_counts(normalize=True) gives the prior P(Z), and crosstab(…, normalize='index') gives P(feature | Z), the lecture's relative-frequency tables. Multiplying them scores a patient: 'No' wins, 0.02057 > 0.00529.",
+        "standardize": "z = (x − mean) / std puts every feature on the same scale before KNN, as lecture 3 recommends. df.mean() and df.std() are computed per column and line up with the columns automatically.",
+        "centroids": "K-Means' update step in one line: group the points by cluster and take the mean of x and y. Each group's mean is the new centroid.",
+        "confusion": "crosstab(true, predicted) is the confusion matrix. Precision divides the true positives by the predicted-1 column, recall by the actually-1 row.",
+        "groupby": "groupby('k')['accuracy'].mean() averages the folds for each K, and idxmax() picks the K with the best mean: cross-validation in two lines."
       }
     },
     "pytorch": {

@@ -3940,6 +3940,7 @@
       "keras_dense_nd": "Dense 層收到的輸入形狀是 {{shape}}：它只作用在最後一個軸上，所以輸出會保留其他軸。要對整張圖片分類，請在 Dense({{units}}) 前加 Flatten()。",
       "keras_sparse_hint": "標籤是整數（0、1、2 …），不是 one-hot 行向量。請用 loss='sparse_categorical_crossentropy'，或先用 to_categorical(y, num_classes) 轉換。",
       "keras_overfit": "驗證損失在第 {{epoch}} 個 epoch 最低，之後訓練損失繼續下降而驗證損失回升：模型在過擬合。EarlyStopping(monitor='val_loss') 會在那裏停下；減少單元數、加 dropout 或 L2 也有幫助。",
+      "pandas_ddof": "pandas 的 std() 和 var() 除以 n − 1（ddof=1，樣本估計），NumPy 的 np.std 除以 n（ddof=0）。想得到 NumPy 的數值時請傳 ddof=0，例如按第 3 講的方式做標準化。",
       "grad_accumulate": "backward() 把梯度加到了原來已有的梯度上：PyTorch 會在多次調用之間累加 .grad。訓練循環中，每次 backward() 之前都要調用 optimizer.zero_grad()（或 w.grad.zero_()）。",
       "dropout_eval": "Dropout 仍然生效：模型處於訓練模式，即使在 no_grad() 中也會隨機把單元置零。評估或預測前請先調用 model.eval()。",
       "softmax_ce": "這些值看起來已經是概率（每行和為 1）。CrossEntropyLoss 內部會自己做 log_softmax，所以應該傳入原始 logits；這也是第 9 講的模型直接返回 fc2(x)、不加 softmax 的原因。",
@@ -4015,6 +4016,56 @@
         "linreg": "手寫完整的訓練循環：在 tape 內算損失，用 tape.gradient 得到 [dw, db]，再執行 w.assign_sub(lr · dw)。w → 2，b → 1。",
         "tf_keras": "Keras 也以 tf.keras 的形式包含在 TensorFlow 裏，舊課件程式碼就是這樣導入的。點開 summary 步驟，可以看到每層的輸出形狀和參數個數。",
         "confusion": "tf.math.confusion_matrix(labels, predictions) 統計每一對（真實, 預測）。對角線上是預測正確的數量，所以準確率 = 對角線之和 / 總數。"
+      }
+    },
+    "frame": {
+      "generic": "操作前的表格與結果。",
+      "column": "df['col'] 選出一列，得到一個 Series。",
+      "columns": "df[['a', 'b']] 選出多列，得到一個 DataFrame。",
+      "filter": "布爾掩碼保留值為 True 的行（高亮），行索引標籤保持不變。",
+      "loc": "loc 按標籤選取：按名字選行和列。標籤切片包含終點。",
+      "iloc": "iloc 按位置選取，與 NumPy 陣列一樣。切片不含終點。",
+      "head": "head(n) / tail(n) 顯示前 / 後 n 行。",
+      "tail": "head(n) / tail(n) 顯示前 / 後 n 行。",
+      "describe": "describe() 彙總每個數值列：數量、均值、標準差（ddof=1）、最小值、四分位數和最大值。",
+      "isna": "isna() 把缺失值（NaN / None）標為 True；再加 .sum() 就能統計每列缺失數。",
+      "fillna": "fillna 用一個值（或每列一個值）替換缺失值（高亮的行）。",
+      "dropna": "dropna 刪除含缺失值的行，留下的是高亮的行。",
+      "sort_values": "sort_values 按某列重新排列行，行索引標籤隨行一起移動。",
+      "groupby": "groupby 按鍵把行分組（每種顏色是一組），對每組做聚合，再把結果合成一張表，每組一行。",
+      "value_counts": "value_counts 統計每個值出現的次數（normalize=True 得到比例，例如樸素貝葉斯的先驗概率）。",
+      "crosstab": "crosstab 統計每一對（行取值, 列取值）出現的次數；normalize='index' 把每行變成比例，即 P(列 | 行)。",
+      "get_dummies": "get_dummies 把一個類別列變成每個類別一列的 True / False（one-hot 編碼）。",
+      "merge": "merge 按共同的列把兩張表連接起來，類似 SQL 的 JOIN。",
+      "arith": "算術運算逐元素進行。Series 按名字與 DataFrame 的列對齊，所以 df - df.mean() 讓每列減去自己的均值。",
+      "compare": "比較運算得到布爾 Series，可以直接當作掩碼使用。",
+      "assign": "新的一列對每一行同時計算出來。",
+      "map": "map 通過字典或函數替換每個值，例如把文字標籤變成數字。"
+    },
+    "pandas": {
+      "title": "pandas 實驗台",
+      "subtitle": "{{n}} 個示例：建表、讀表、選取與清洗，以及課程中的表格計算：樸素貝葉斯計數、標準化、K-Means 質心、混淆矩陣。",
+      "sandbox_note": "在瀏覽器中執行，基於一個精簡重寫的 pandas（DataFrame / Series、loc / iloc、isna / fillna / dropna、groupby、value_counts、crosstab、get_dummies、merge、describe，以及從 io.StringIO 讀取 read_csv）。打印格式與 pandas 2 一致；不支持 MultiIndex 和一次做多種聚合。",
+      "cat": {
+        "basics": "基礎",
+        "select": "選取",
+        "clean": "清洗",
+        "ml": "課程計算"
+      },
+      "e": {
+        "create": "DataFrame 是由命名列組成的表，每一列都是一個單一 dtype 的 Series：int64、float64（None 變成 NaN），或存放文字的 object。",
+        "describe": "列統計會跳過缺失值。注意 std：pandas 除以 n − 1，NumPy 除以 n，所以兩個數不同。",
+        "csv": "read_csv 把逗號分隔的文本讀成 DataFrame，自動推斷 dtype，空字段讀作 NaN。info() 列出各列、非空數量和 dtype。",
+        "columns": "一個列名得到 Series，一組列名得到 DataFrame。把表拆成特徵 X 和標籤 y 就是這樣寫的。",
+        "filter": "df[mask] 保留掩碼為 True 的行。組合條件用 & 和 |，並且每個條件都要加括號：& 比 > 結合得更緊。",
+        "loc": "loc 用標籤（這裏是名字），切片包含終點；iloc 用位置，切片不含終點，與 Python 一致。",
+        "missing": "isna().sum() 統計每列的缺失數；fillna 填補缺失值（這裏用列均值），dropna 刪除這些行。",
+        "encode": "模型需要數字：map 把標籤變成編碼，get_dummies 生成 one-hot 列。",
+        "naive_bayes": "第 2 講的 14 位病人。value_counts(normalize=True) 給出先驗 P(Z)，crosstab(…, normalize='index') 給出 P(特徵 | Z)，也就是課件裏的相對頻率表。把它們相乘就能給病人打分：'No' 勝出，0.02057 > 0.00529。",
+        "standardize": "z = (x − 均值) / 標準差 讓所有特徵處於同一尺度，第 3 講建議在 KNN 前這樣做。df.mean() 和 df.std() 按列計算，並自動與各列對齊。",
+        "centroids": "一行寫出 K-Means 的更新步驟：按簇分組，求 x 和 y 的均值，每組的均值就是新的質心。",
+        "confusion": "crosstab(真實, 預測) 就是混淆矩陣。精確率用真正例除以「預測為 1」那一列，召回率除以「實際為 1」那一行。",
+        "groupby": "groupby('k')['accuracy'].mean() 對每個 K 的各折取平均，idxmax() 選出均值最高的 K：兩行寫完交叉驗證。"
       }
     },
     "pytorch": {
