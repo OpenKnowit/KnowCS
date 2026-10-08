@@ -135,7 +135,7 @@ KnowCS/
 ### 6.1 NumpyModule — NumPy 内存机制
 - **索引实验台**（`NumpyPlayground.tsx`）：学生在浏览器里写 NumPy 代码，输入停顿 300ms 自动运行（或 Ctrl/⌘+Enter）。每次下标读写都会生成一条 `IndexTrace`，界面据此绘制：源数组→结果的格子映射（悬停联动、结果顺序号、源坐标）、View/Copy/Scalar/Write 徽章与原因、逐轴解释、布尔掩码网格、一维底层缓冲区（视图显示 offset/strides，副本显示新缓冲区）、写穿视图时「被连带修改的变量」。提供 8 个预设示例（切片、fancy、掩码、视图陷阱、三维混合索引、None、ReLU 掩码赋值、`&` 优先级陷阱）。
   - **`lib/ndarray.ts`**：迷你 NumPy 内核。共享 `data` 缓冲区 + `shape/strides/offset/base`；`planIndex` 忠实实现 numpy 索引规则：基本索引返回视图，整数/布尔数组触发高级索引并复制；整数与数组一起广播；高级索引被切片隔开时，广播维度移到最前；`...`/`None`；报错文案与 numpy 一致。另含广播运算、reshape（连续时为视图）、转置、规约（axis）、dot，以及对齐 numpy 默认风格的 repr/str（75 列换行、>1000 元素省略、科学计数法）。
-  - **`lib/minipy.ts`**：Python 子集解释器（词法→AST→求值），支持 `import numpy as np`、赋值/元组解包/增量赋值（数组原地写入）、完整运算符优先级与比较链、关键字参数、常用 `np.*` 与数组方法。不支持 for/if/def。单个数组上限 4096 元素。
+  - **`lib/minipy.ts`**：Python 子集解释器（词法→AST→求值），支持 `import numpy as np`、赋值/元组解包/增量赋值（数组原地写入）、完整运算符优先级与比较链、关键字参数、常用 `np.*` 与数组方法。2026-10-08 起还支持缩进语句块（if / for / while / def / class / with）、lambda、推导式、dict、f-string 与 `math` / `random`，供 6.10 的库实验台使用；不支持 try / raise / yield / *args。单个数组上限默认 4096 元素（各实验台可调高）。
   - **选型：自研 TS 解释器而非 Pyodide**。Pyodide 核心 + NumPy 约 10MB WASM，首屏需数秒，国内访问 CDN 不稳定，也与单文件产物不符；更关键的是，真 NumPy 不会告诉你「结果的每个元素来自哪个地址」，可视化所需的溯源信息仍要在 JS 里重写一遍索引规则。自研方案约 +20KB gzip、即时、离线可用。代价是只支持子集，用与真 NumPy 的差分测试保证一致（95 个片段中 90 个逐字相同，其余为有意不支持的语法）。
 - **广播实验台**（`NumpyBroadcast.tsx` + `lib/broadcast.ts`）：
   - **操作**：学生用下拉框编辑 A、B 的形状（0–3 维，每维 1–5），并选择 + / − / × 运算。
@@ -210,6 +210,25 @@ KnowCS/
 - **语言**：原型暂为英文；选定版本迁入主站时按 i18n 规则补齐三语。
 - **已知出入**：2022 期末 Part B Q1(c) 评分标准第 4 层写 13×13，按公式应为 14×14（遗漏 padding）；页面与测试以公式为准并注明。
 
+### 6.10 库实验台 — matplotlib / PyTorch / Keras / TensorFlow / pandas
+资料包里这五篇笔记的右侧是同一种实验台：示例目录（分组 + 搜索 + 说明）、可编辑代码（Tab 缩进、冒号后自动缩进、停顿后自动运行）、逐步可视化、输出与图。每个面板都能全屏（`useFullScreen`：固定覆盖层 + 浏览器全屏 API；Esc 或按钮退出；URL 带 `#playground` 时直接全屏打开）；NumPy 面板也用同一个钩子。笔记里能在该沙盒运行的 Python 代码块会出现「试一试」，点开即载入实验台（没有 import 的代码块自动补上该库的常用 import）。
+
+- **选型沿用 6.1**：仍是自研 TS 解释器而非 Pyodide。PyTorch / TensorFlow 没有可用的 WASM 发行版，而可视化需要的「这一层的形状从哪来、梯度沿哪条边回传、哪些行被选中」只有自己实现才拿得到。代价是只覆盖课程用到的子集；打印格式、默认值和报错信息与真实库做差分测试。
+- **解释器扩展**（`lib/minipy.ts`）：
+  - 库通过 `PyLib`（模块名 → 构建函数，每次运行懒加载一次）、`PyObj`（库对象：属性、下标、运算符、迭代、上下文管理器等钩子）、`HostClass`（可被用户类继承的库基类，如 `nn.Module`）接入；`Host` 接口给库用（报错、调用、取名、记录事件、随机数、每次运行的状态）。
+  - 运行限制：时间预算（默认 2 s，超时抛 `TimeoutError`，防死循环卡页面）、递归深度、单数组元素上限（`RunOptions.maxSize`，深度学习实验台为 2,000,000）。同一行代码只记录前两次执行的追踪，100 个 epoch 的循环不会产生 100 份重复步骤。
+  - 结果里新增 `events`（图、DataFrame 操作、模型形状流、自动求导计算图、训练曲线、讲解提示）、`displays`（运行结束时仍打开的图）和 `outDisplay`（最后一行是 DataFrame 时以表格显示）；调用与事件共用 `seq` 排序成一条步骤时间线。
+- **张量引擎**（`lib/tensorCore.ts`）：数值存于 NDArray（因而 `torch.from_numpy` 与原数组共享内存）、PyTorch 的 dtype 提升规则（Python 标量为「弱类型」）、float32 以 `Math.fround` 存储；反向模式自动求导（梯度在叶子上累加、图默认用后释放、非叶子不保留梯度）。linear / conv2d / 池化 / dropout / softmax / 各损失都是带 PyTorch grad_fn 名字的单个算子（AddmmBackward0、ConvolutionBackward0 …），计算图读起来与真实的一致。每个算子的梯度用中心差分检验。
+- **各库**：
+  - `lib/pyPlot.ts`（matplotlib.pyplot + `seaborn.heatmap`）：图是数据（`FigureSpec`），每次画图调用后记录一帧并标出本次新增的图元；保留关键默认值（tab10 色、二维数据默认 viridis、imshow 不给 vmin/vmax 时拉伸自身范围、图像 y 轴朝下）。`FigureView.tsx` 画成 SVG（图像用 canvas 生成 data URL），悬停像素给出「值 → 归一化 → 色图 → 颜色」。不写 cmap、不写 vmin/vmax 时给出讲解提示。
+  - `lib/pyTorch.ts`：张量（打印、dtype、视图与 `view` 的连续性检查）、`nn` 层与 `nn.Module` 子类（每次前向逐层记录输入输出形状、尺寸公式、参数个数）、`F`、SGD / Adam、TensorDataset / DataLoader、内存中的 `torch.save` / `load`。`backward()` 记录计算图（参数用模型里的名字）；小张量的运算复用 NumPy 面板的元素溯源视图。提示：梯度累加、评估时 dropout 仍开、softmax 后再用 CrossEntropyLoss、MSE 形状不一致被广播。
+  - `lib/pyKeras.ts`（keras + tensorflow）：Sequential / Functional、Dense / Conv2D / 池化 / Flatten / Dropout 等、L1/L2 正则、Adam / SGD / RMSprop、交叉熵与 MSE、EarlyStopping；`summary()` 输出 Keras 3 的表格并生成形状流视图，`fit` 真实训练并返回 History（训练曲线视图）。TensorFlow 部分：`tf.constant` / `Variable` / `GradientTape`、不做隐式类型提升、TF 的打印格式。提示：Dense 前漏 Flatten、整数标签配 categorical_crossentropy、验证损失回升（过拟合）。
+  - `lib/pyPandas.ts`：Series / DataFrame（pandas 2 的打印规则：值前留符号位、非文本列表头也多一格、单空格分列、浮点列统一小数位后整体去尾零）、df[…] / 布尔掩码 / loc / iloc、isna / fillna / dropna、groupby、value_counts、crosstab、get_dummies、merge、describe、`read_csv(io.StringIO(...))`。每个表格操作记录源表、被选中的行列或分组着色与结果。
+- **界面**（`src/site/playground/`）：`Playground.tsx`（外壳）、`CodeEditor.tsx`、`views.tsx`（按事件类型分派：调用网格 / 图 / DataFrame / 形状流 / 计算图 / 训练曲线）、`FigureView.tsx`、`useFullScreen.ts`、`noteBlocks.ts`（找出可运行的代码块）、`loaders.ts`（笔记 id → 配置 + 文案包）。配置与示例在 `src/data/playgrounds/<库>.ts`（`PlayConfig`：库、元素上限、时间预算、防抖、分组、示例、prelude、哪些调用列为步骤）。
+- **文案**：`playground.*` 命名空间，按 `playground.<子键>` 拆包（ui / view / note / frame / 各库），各笔记只下载自己的。
+- **示例数据**：沙盒不能下载 MNIST，训练示例的数据都在代码里现场生成（XOR、高斯团、带噪声的 8×8 横竖条图），并在说明里写明；随机数来自沙盒自己的生成器，与真实库不同。
+- **测试**：每个库都有与真实库的差分测试（CPython 3.10、NumPy 2.2、pandas 2.3、matplotlib 3.10、PyTorch 2.12、Keras 3.12 的输出作黄金值）；`playgrounds.test.ts` 运行全部 77 个示例，要求无错误（或得到示例声明的错误）且有东西可看。
+
 ---
 
 ## 7. 状态管理
@@ -283,7 +302,9 @@ npm run build:lab # tsc --noEmit && vite build -c vite.lab.config.js → dist-la
 
 新增 Lab 页面：纯计算写 `src/lib/xxx.ts` + 测试 → 在 `lab/` 加 `xxx.html`（复制任一页，改 `data-page` 与标题）→ `src/lab/pages/Xxx.tsx` 用 `LabPage` / `Workspace` / `Ans` 搭页面 → 在 `src/lab/main.tsx` 的 `PAGES` 和 `src/lab/registry.ts` 的 `LAB` 各加一项。
 
-新增 Package 笔记：放 `src/content/notes/x.en.md` 与 `x.zh.md`（图片放 `images/`，相对引用，两版引用一致），在 `src/data/notes.ts` 以 `?html`（en、zh）+ `?html-hk`（由 zh 生成）注册三种语言。不要使用 Obsidian 的 `> [!tip]` / `[[双链]]`，它们会原样显示。
+新增 Package 笔记：放 `src/content/notes/x.en.md` 与 `x.zh.md`（图片放 `images/`，相对引用，两版引用一致），在 `src/data/notes.ts` 以 `?html`（en、zh）+ `?html-hk`（由 zh 生成）注册三种语言，并把 id 加进 `sitemap.ts` 的 `NOTE_IDS`。不要使用 Obsidian 的 `> [!tip]` / `[[双链]]`，它们会原样显示；笔记不渲染 LaTeX。
+
+给笔记配实验台：库实现写 `src/lib/pyXxx.ts`（`PyLib` + `PyObj`）并配差分测试 → 示例写 `src/data/playgrounds/xxx.ts`（`PlayConfig`）并加入 `playgrounds.test.ts` → 在 `src/site/playground/loaders.ts` 的 `PLAYGROUND_LOADERS` 用笔记 id 注册（带 `playground.<id>` 文案包）→ `playground.<id>.*` 文案（title、subtitle、sandbox_note、cat.*、e.<示例>）。
 
 ---
 
@@ -293,3 +314,4 @@ npm run build:lab # tsc --noEmit && vite build -c vite.lab.config.js → dist-la
 - **单文件不利于增量缓存**：每次部署都是整包更新；如未来托管支持多文件，可去掉 singlefile 并按模块懒加载。
 - **UI / 交互层无自动化测试**：`src/lib/` 有完整单测，组件层靠手动 / 截图验证。
 - **i18n 双份手工维护**，可引入键一致性校验脚本防止漏翻。
+- **库实验台是子集**：没有 try / *args、MultiIndex、BatchNorm / RNN / 注意力层、GPU、文件与数据集下载；随机数与真实库不同。代码在主线程运行（有时间预算），最重的示例（第 9 讲 MNIST_CNN，约 160 万参数）一次约 0.25 s。

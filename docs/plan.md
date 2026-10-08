@@ -19,6 +19,7 @@
 - ✅ 真实 URL（可分享模块 / 笔记链接，旧 Hash 链接自动跳转）、移动端适配、基础无障碍。
 - ✅ 10 个考点实验页（三语，带「自测」填表），覆盖历年试卷反复出现的手算题型。
 - ✅ 17 集讲解视频（/watch/），第 1–11 讲每讲至少一集；另有概念自测（/drill/）、公式表（/formulas/）、考点地图（/papers/）。
+- ✅ 资料包的库实验台（2026-10-08）：matplotlib（新笔记）、PyTorch、Keras、TensorFlow、pandas 笔记旁各有一个可编辑、逐步可视化、可全屏的 Python 沙盒，共 77 个示例（见 design 6.10）。
 - ✅ 六大可视化模块（见下方覆盖表）。
 - ✅ CI 执行构建校验；生产部署改为 `ssh pastpaper` + OpenResty，目标域名 `knowcs.online`，不再自动发布 PinMe。
 - ✅ 文档体系：design / log / plan 三件套 + 根目录 `CLAUDE.md` 索引。
@@ -92,7 +93,9 @@
 
 > 按 COMP2211 讲义/Lab 缺口排序，立项后从中挑选。（K-Means、Gaussian 似然、感知机、卷积扩展、Alpha-Beta 已分别进入第 5/6 节。）
 
-- [ ] **L9 PyTorch**：张量 / 自动求导（autograd）计算图与梯度回传可视化（偏工具，价值待评估）
+- [x] **L9 PyTorch**：张量 / 自动求导计算图与梯度回传可视化 —— 已由 PyTorch 练习页（`/pytorch/`）与 PyTorch 实验台完成（2026-10-08）
+- [ ] **KNN 距离函数**：KNN 页目前只有欧氏距离；期中考过 Hamming（22F）、余弦（22F、23S）、曼哈顿（24S，13 分），可在 `lib/knn.ts` 加距离选项与逐行距离表
+- [ ] **实验台后续**：Keras BatchNormalization、`agg([...])` 多重聚合、把讲解视频 / 练习页里的代码块也接到对应实验台
 - [ ] **归一化对比小工具**：Min-Max vs Z-score 的直观对比 + **Data Leakage** 提示（贯穿 KNN / K-Means / PA1）
 - [ ] **Decision Stump**：单特征单阈值分类的决策直觉（PA1 天体分类）
 - [ ] **L11 / 复习**：知识点（有监督 vs 无监督）总览与自测式回顾
