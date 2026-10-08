@@ -31,12 +31,14 @@ export function useFullScreen() {
     document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', onKey)
     document.addEventListener('fullscreenchange', onFs)
+    // the page's own hash (the Playground page keeps the library there) comes back on exit
+    const before = window.location.hash === '#playground' ? '' : window.location.hash
     history.replaceState(null, '', '#playground')
     return () => {
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
       document.removeEventListener('fullscreenchange', onFs)
-      history.replaceState(null, '', window.location.pathname + window.location.search)
+      history.replaceState(null, '', window.location.pathname + window.location.search + before)
     }
   }, [full, leave])
 

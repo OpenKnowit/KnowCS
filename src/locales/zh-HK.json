@@ -881,11 +881,26 @@
           "neural": "神經網絡",
           "vision": "圖像與 CNN",
           "search": "博弈搜索"
-        }
-      }
+        },
+        "title": "按主題瀏覽全部實驗"
+      },
+      "view_label": "首頁佈局",
+      "view_map": "課程地圖",
+      "view_lab": "實驗網格"
     },
     "playground": {
-      "title": "實驗場"
+      "title": "實驗場",
+      "lead": "在瀏覽器裏執行真正的 Python。選一個庫、改程式碼，每次調用都會變成一個可以點開的步驟：用到了哪些陣列元素、畫出了什麼圖、各層的形狀或梯度計算圖。",
+      "libs_label": "庫",
+      "read_note": "閲讀 {{name}} 筆記",
+      "libs": {
+        "numpy": "陣列、索引、廣播",
+        "matplotlib": "折線圖、圖像、子圖",
+        "pandas": "表格、選取、分組",
+        "pytorch": "張量、自動求導、訓練循環",
+        "keras": "模型、summary()、fit",
+        "tensorflow": "張量、Variable、GradientTape"
+      }
     }
   },
   "lab": {

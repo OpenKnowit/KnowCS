@@ -881,11 +881,26 @@
           "neural": "Neural networks",
           "vision": "Images & CNNs",
           "search": "Game search"
-        }
-      }
+        },
+        "title": "Every lab, by topic"
+      },
+      "view_label": "Home page layout",
+      "view_map": "Course map",
+      "view_lab": "Lab grid"
     },
     "playground": {
-      "title": "Playground"
+      "title": "Playground",
+      "lead": "Real Python in your browser. Pick a library, edit the code, and every call becomes a step you can open: the array cells it used, the figure it drew, the layer shapes or the gradient graph.",
+      "libs_label": "Libraries",
+      "read_note": "Read the {{name}} note",
+      "libs": {
+        "numpy": "Arrays, indexing, broadcasting",
+        "matplotlib": "Plots, images, subplots",
+        "pandas": "Tables, selection, groupby",
+        "pytorch": "Tensors, autograd, training loops",
+        "keras": "Models, summary(), fit",
+        "tensorflow": "Tensors, Variables, GradientTape"
+      }
     }
   },
   "lab": {

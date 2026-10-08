@@ -28,7 +28,7 @@ function pageMeta(page) {
     case "module":
       return pick(`site.modules.${page.id}.title`, `site.modules.${page.id}.blurb`)
     case "playground":
-      return pick("site.playground.title", "site.home.lab.lead")
+      return pick("site.playground.title", "site.playground.lead")
     case "watch":
       return pick("watch.ui.gallery_title", "watch.ui.gallery_lead")
     case "watch-item":

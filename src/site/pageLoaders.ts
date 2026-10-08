@@ -59,6 +59,7 @@ export const PAGE_LOADERS = {
 export function preloadPage(page: string, id: string): void {
   const kind = page === 'note' ? 'notes' : page === 'extend-item' ? 'extend' : page === 'watch-item' ? 'watch' : page
   void (PAGE_LOADERS as Record<string, (() => Promise<unknown>) | undefined>)[kind]?.()
+  if (page === 'playground') void import('./playground/libs').then((m) => m.loadLib(m.libFromHash()))
   if (page !== 'module') return
   const lab = LAB_LOADERS[id as ModuleId]
   if (lab) void lab()

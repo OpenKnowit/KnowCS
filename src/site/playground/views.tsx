@@ -52,7 +52,7 @@ export const TableView = ({ table, rows, cols, rowTint, title }: TableProps) => 
               <tr key={r} style={{ background: rowTint?.(r) }} className={rows?.has(r) ? 'bg-amber-50' : ''}>
                 <th className={`border-b border-slate-100 px-2 py-1 text-left font-bold ${rows?.has(r) ? 'text-amber-800' : 'text-slate-500'}`}>{table.index[r]}</th>
                 {table.cells[r].map((v, c) => (
-                  <td key={c} className={`border-b border-slate-100 px-2 py-1 text-right ${v === null ? 'italic text-rose-400' : hl(r, c) ? 'bg-amber-100 font-bold text-amber-900' : 'text-slate-700'}`}>
+                  <td key={c} className={`border-b border-slate-100 px-2 py-1 text-right ${v === null ? 'italic text-rose-700' : hl(r, c) ? 'bg-amber-100 font-bold text-amber-900' : 'text-slate-700'}`}>
                     {v ?? 'NaN'}
                   </td>
                 ))}

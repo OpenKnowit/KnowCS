@@ -20,9 +20,11 @@ interface PanelProps {
   initialEntry?: string | null
   /** Shown when the note linked to a namespace outside the sandbox */
   missing?: string | null
+  /** two columns on wide screens (the Playground page) instead of the narrow panel beside the note */
+  wide?: boolean
 }
 
-export const NumpyApiPanel = ({ initialCat, initialEntry, missing }: PanelProps) => {
+export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: PanelProps) => {
   const { t } = useTranslation()
   const start = NUMPY_APIS.find((e) => e.id === initialEntry)
   const [cat, setCat] = useState<ApiCat>(start?.cat ?? initialCat ?? 'reduce')
@@ -222,6 +224,22 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing }: PanelProps)
         </div>
       </div>,
       document.body,
+    )
+  }
+
+  if (wide) {
+    return (
+      <section ref={ref} aria-label={t('numpy_api.title')} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/40 sm:p-6">
+        {header}
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <div className="min-w-0 space-y-4">
+            {left}
+            {output}
+          </div>
+          <div className="min-w-0 space-y-4 lg:border-l lg:border-slate-100 lg:pl-5">{right}</div>
+        </div>
+        <p className="mt-4 text-[11px] leading-relaxed text-slate-500">{t('numpy_api.sandbox_note')}</p>
+      </section>
     )
   }
 

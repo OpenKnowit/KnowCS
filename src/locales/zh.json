@@ -881,11 +881,26 @@
           "neural": "神经网络",
           "vision": "图像与 CNN",
           "search": "博弈搜索"
-        }
-      }
+        },
+        "title": "按主题浏览全部实验"
+      },
+      "view_label": "首页布局",
+      "view_map": "课程地图",
+      "view_lab": "实验网格"
     },
     "playground": {
-      "title": "实验场"
+      "title": "实验场",
+      "lead": "在浏览器里运行真正的 Python。选一个库、改代码，每次调用都会变成一个可以点开的步骤：用到了哪些数组元素、画出了什么图、各层的形状或梯度计算图。",
+      "libs_label": "库",
+      "read_note": "阅读 {{name}} 笔记",
+      "libs": {
+        "numpy": "数组、索引、广播",
+        "matplotlib": "折线图、图像、子图",
+        "pandas": "表格、选取、分组",
+        "pytorch": "张量、自动求导、训练循环",
+        "keras": "模型、summary()、fit",
+        "tensorflow": "张量、Variable、GradientTape"
+      }
     }
   },
   "lab": {
