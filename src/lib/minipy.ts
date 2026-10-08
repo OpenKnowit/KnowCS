@@ -2912,6 +2912,55 @@ class Interp implements Host {
           checkSize(shape)
           return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, draw), shape, 'int64'))
         }, 'random'),
+        normal: rnd('normal', (args, kw) => {
+          const loc = numOf(kw.loc ?? args[0] ?? float(0))
+          const scale = numOf(kw.scale ?? args[1] ?? float(1))
+          const size = kw.size ?? args[2]
+          if (!size || size.k === 'none') return float(loc + scale * this.rng.normal())
+          const shape = this.toShape([size])
+          checkSize(shape)
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => loc + scale * this.rng.normal()), shape, 'float64'))
+        }, 'random'),
+        uniform: rnd('uniform', (args, kw) => {
+          const lo = numOf(kw.low ?? args[0] ?? float(0))
+          const hi = numOf(kw.high ?? args[1] ?? float(1))
+          const size = kw.size ?? args[2]
+          if (!size || size.k === 'none') return float(lo + (hi - lo) * this.rng.next())
+          const shape = this.toShape([size])
+          checkSize(shape)
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => lo + (hi - lo) * this.rng.next()), shape, 'float64'))
+        }, 'random'),
+        permutation: rnd('permutation', (args) => {
+          const a = args[0].k === 'int' ? NDArray.create(Array.from({ length: args[0].v }, (_, i) => i), [args[0].v], 'int64') : toArray(args[0])
+          const n = a.shape[0] ?? 0
+          const order = Array.from({ length: n }, (_, i) => i)
+          for (let i = n - 1; i > 0; i--) {
+            const j = Math.floor(this.rng.next() * (i + 1))
+            ;[order[i], order[j]] = [order[j], order[i]]
+          }
+          const { value } = getIndex(a, [{ kind: 'array', arr: NDArray.create(order, [n], 'int64') }])
+          return arr(value as NDArray)
+        }, 'random'),
+        choice: rnd('choice', (args, kw) => {
+          const pool = args[0].k === 'int' ? Array.from({ length: args[0].v }, (_, i) => i) : toArray(args[0]).values()
+          const size = kw.size ?? args[1]
+          const draw = () => pool[Math.floor(this.rng.next() * pool.length)]
+          if (!size || size.k === 'none') return fromScalar(draw(), args[0].k === 'int' ? 'int64' : toArray(args[0]).dtype)
+          const shape = this.toShape([size])
+          checkSize(shape)
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, draw), shape, args[0].k === 'int' ? 'int64' : toArray(args[0]).dtype))
+        }, 'random'),
+        shuffle: rnd('shuffle', (args) => {
+          const v = args[0]
+          if (v.k === 'list') {
+            for (let i = v.items.length - 1; i > 0; i--) {
+              const j = Math.floor(this.rng.next() * (i + 1))
+              ;[v.items[i], v.items[j]] = [v.items[j], v.items[i]]
+            }
+            return NONE
+          }
+          throw this.err('NotImplementedError', 'np.random.shuffle works on lists here; use a = a[np.random.permutation(len(a))] for arrays')
+        }),
       },
     }
     const la = api('np.linalg')

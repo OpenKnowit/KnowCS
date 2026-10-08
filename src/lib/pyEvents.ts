@@ -70,8 +70,9 @@ export interface FlowRow {
   name: string
   /** Conv2d(1, 32, kernel_size=(3, 3), …) */
   layer: string
-  input: number[]
-  output: number[]
+  /** null = a dimension Keras leaves open (the batch) */
+  input: (number | null)[]
+  output: (number | null)[]
   params: number
   /** extra explanation: the output-size formula with numbers filled in */
   note: string | null

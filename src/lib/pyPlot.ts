@@ -543,7 +543,8 @@ const refLine = (kind: 'hline' | 'vline'): AxMethod => (ax, args, kw, h) => {
 const setText = (field: 'title' | 'xlabel' | 'ylabel'): AxMethod => (ax, args, _kw, h) => {
   ax.spec[field] = h.str(args[0] ?? py.str(''))
   emitFig(h, ax.fig, ax)
-  return py.obj(new Handle('Text', `Text(0.5, 1.0, '${ax.spec[field]}')`))
+  const at = field === 'title' ? '0.5, 1.0' : field === 'xlabel' ? '0.5, 0' : '0, 0.5'
+  return py.obj(new Handle('Text', `Text(${at}, '${ax.spec[field]}')`))
 }
 
 const setLim = (field: 'xlim' | 'ylim'): AxMethod => (ax, args, kw, h) => {
