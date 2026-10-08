@@ -2,7 +2,8 @@ import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { LazyMotion, MotionConfig } from 'framer-motion'
 import '../index.css'
-import { i18nReady } from '../i18n'
+import i18n, { i18nReady } from '../i18n'
+import { withPacks } from '../i18nPacks'
 import { legacyTarget } from '../lib/sitemap'
 import { Shell } from './Shell'
 import type { Section } from './Shell'
@@ -19,11 +20,11 @@ const loadMotionFeatures = () => import('framer-motion').then((r) => r.domAnimat
 
 const HomePage = lazy(() => import('./pages/HomePage'))
 const ModulePage = lazy(() => import('./pages/ModulePage'))
-const NotesPage = lazy(() => import('./pages/NotesPage'))
+const NotesPage = lazy(withPacks(i18n, ['numpy_api'], () => import('./pages/NotesPage')))
 const ExtendPage = lazy(() => import('./pages/ExtendPage'))
 const WatchPage = lazy(() => import('./pages/WatchPage'))
-const DrillPage = lazy(() => import('./pages/DrillPage'))
-const FormulasPage = lazy(() => import('./pages/FormulasPage'))
+const DrillPage = lazy(withPacks(i18n, ['drill'], () => import('./pages/DrillPage')))
+const FormulasPage = lazy(withPacks(i18n, ['formulas.items'], () => import('./pages/FormulasPage')))
 const PapersPage = lazy(() => import('./pages/PapersPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 

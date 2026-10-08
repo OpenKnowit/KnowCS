@@ -76,6 +76,7 @@ GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm 
 - **部署门禁四连**：提交/部署前确保 `npm run lint`、`npm test`、`npm run typecheck`、`npm run build` 均通过。CI 只校验，服务器发布需单独执行。
 - **计算逻辑放 `src/lib/`**：可视化模块的纯计算（距离/卷积/概率等）一律提取为 `src/lib/` 纯函数并配套 `*.test.ts`，组件只负责渲染与交互。
 - **i18n 同步**：新增/修改文案必须同时更新 `src/locales/en.json` 与 `src/locales/zh.json`，键严格对齐；繁体 `zh-HK.json` **由脚本生成、严禁手改**——改完 `zh.json` 后运行 `npm run gen:zh-hk`（OpenCC 简→港繁 + 香港术语映射，映射表见 `scripts/zh-hk.mjs` 的 `HK_TERMS`）。资料包笔记与拓展页同理：只维护 `*.en.*` 与 `*.zh.*` 两份，繁体在构建期自动生成；改内容时两份同步更新。
+- **文案拆包**：每页都加载的只是主文案（`*.json?core`，约 16KB）；只在一页用到的部分（`watch.<集>` 的字幕等、`lab.<页>`、`numpy_module`、`numpy_api`、`drill`、`formulas.items` 及各经典模块命名空间）由构建插件 `localeSplit`（`scripts/vite-plugins.mjs`）拆成「包 × 语言」chunk，页面用 `withPacks` / `ensurePacks`（`src/i18nPacks.ts`）在加载代码时一并加载。新增实验页要在 `ModulePage.tsx` 用 `lab('<键>', …)` 注册；新增顶层命名空间若只属一页，加进插件的 `FIXED_PACKS` 并在该页加载；讲解视频借用其他包时登记在 `useEpisode.ts` 的 `EXTRA_PACKS`（有测试守护）。
 - **新增模块**：照 [docs/design.md](./docs/design.md) 第 11 节 / [docs/plan.md](./docs/plan.md) 第 6 节的步骤执行。
 - **文档维护**：架构决策写入 `design.md`；完成的变更追加到 `log.md`；规划调整更新 `plan.md`。
 
