@@ -1,6 +1,6 @@
 import type { i18n as I18n } from 'i18next'
 import PACKS from 'virtual:locale-packs'
-import { normalizeLang } from './lib/lang'
+import { detectLang, normalizeLang } from './lib/lang'
 
 /**
  * Strings that only one page needs (an explainer's captions, a lab page, the NumPy module, the drill, the formula
@@ -33,8 +33,8 @@ export function mergePacks(res: Record<string, unknown>, extra: (Record<string, 
 
 /** Load packs for the current language into i18n (and remember them for language switches). */
 export async function ensurePacks(i18n: I18n, names: string[]): Promise<void> {
-  // the detector has already picked the language when init() returns, before the core strings arrive
-  const lang = normalizeLang(i18n.resolvedLanguage ?? i18n.language)
+  // i18next detects the language inside its (deferred) init, so a page preloading its packs may run first
+  const lang = i18n.language ? normalizeLang(i18n.resolvedLanguage ?? i18n.language) : detectLang()
   const packs = await Promise.all(
     names.map((n) => {
       usedPacks.add(n)

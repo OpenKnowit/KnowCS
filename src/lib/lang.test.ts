@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { normalizeLang } from './lang'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { detectLang, normalizeLang } from './lang'
 
 describe('normalizeLang', () => {
   it('站点自身的三种语言原样返回', () => {
@@ -24,5 +24,21 @@ describe('normalizeLang', () => {
     for (const tag of ['en-US', 'fr', 'ja-JP', '', undefined, null]) {
       expect(normalizeLang(tag)).toBe('en')
     }
+  })
+})
+
+describe('detectLang', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  it('prefers ?lang=, then the saved choice, then the browser', () => {
+    const store: Record<string, string> = {}
+    const loc = { search: '' }
+    vi.stubGlobal('location', loc)
+    vi.stubGlobal('localStorage', { getItem: (k: string) => store[k] ?? null })
+    vi.stubGlobal('navigator', { languages: ['zh-TW'], language: 'zh-TW' })
+    expect(detectLang()).toBe('zh-HK')
+    store['knowcs-lang'] = 'zh'
+    expect(detectLang()).toBe('zh')
+    loc.search = '?lang=en'
+    expect(detectLang()).toBe('en')
   })
 })

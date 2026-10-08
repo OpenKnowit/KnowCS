@@ -13,3 +13,17 @@ export const normalizeLang = (lang: string | undefined | null): LangCode => {
   if (/(^|-)(hant|hk|tw|mo)(-|$)/.test(tag)) return 'zh-HK'
   return 'zh'
 }
+
+/**
+ * The language i18next's detector will pick (order: ?lang=, saved choice, browser), available before init has run.
+ * Keep in step with the detection options in src/i18n.ts and the inline preload script in vite.config.js.
+ */
+export function detectLang(): LangCode {
+  try {
+    const q = new URLSearchParams(location.search).get('lang')
+    const saved = localStorage.getItem('knowcs-lang')
+    return normalizeLang(q || saved || navigator.languages?.[0] || navigator.language)
+  } catch {
+    return 'en'
+  }
+}
