@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Printer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Latex } from '../../components/Latex'
@@ -11,6 +11,20 @@ export default function FormulasPage() {
   useEffect(() => {
     document.title = `${t('formulas.title')} · KnowCS`
   }, [t])
+  // KaTeX's fonts change every formula's size as they arrive, and a font only loads once text needs it: render the
+  // sheet invisibly so every face starts loading, then reveal it when they are in (3 s at most) — no visible jumps
+  const [fonts, setFonts] = useState(() => typeof document === 'undefined' || !document.fonts)
+  useEffect(() => {
+    if (fonts) return
+    let live = true
+    const done = () => live && setFonts(true)
+    const t = setTimeout(done, 3000)
+    void document.fonts.ready.then(done, done)
+    return () => {
+      live = false
+      clearTimeout(t)
+    }
+  }, [fonts])
   return (
     <main className="mx-auto max-w-[1100px] px-4 pb-12 pt-6 sm:px-8 print:max-w-none print:p-0">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -23,6 +37,7 @@ export default function FormulasPage() {
           <Printer className="h-4 w-4" /> {t('formulas.print')}
         </button>
       </div>
+      <div className={fonts ? undefined : 'invisible'} aria-busy={!fonts}>
       {LECTURES.filter((n) => FORMULAS.some((f) => f.lec === n)).map((n) => (
         <section key={n} className="mt-7 break-inside-avoid print:mt-3" aria-labelledby={`fm-${n}`}>
           <h2 id={`fm-${n}`} className="mb-2 text-sm font-black uppercase tracking-wider text-slate-500 print:mb-1 print:text-[11px]">
@@ -48,6 +63,7 @@ export default function FormulasPage() {
           </div>
         </section>
       ))}
+      </div>
     </main>
   )
 }

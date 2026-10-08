@@ -79,7 +79,6 @@ export function OfflineButton() {
     <button type="button" onClick={save} title={mb ? t('app.footer.offline_hint', { mb }) : undefined} className={`${base} border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-700`}>
       {state.kind === 'stale' ? <RefreshCw size={14} aria-hidden /> : <Download size={14} aria-hidden />}
       {state.kind === 'stale' ? t('app.footer.offline_update') : state.kind === 'failed' ? t('app.footer.offline_retry') : t('app.footer.offline_save')}
-      {mb && state.kind === 'idle' ? <span className="font-medium text-slate-500">· {t('app.footer.offline_mb', { mb })}</span> : null}
     </button>
   )
 }
