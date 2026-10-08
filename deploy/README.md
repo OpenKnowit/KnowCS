@@ -19,6 +19,11 @@ Create a temporary symlink targeting that release, then atomically replace
 `/opt/1panel/www/sites/knowcs/current` using `sudo mv -Tf`.
 Do not remove prior releases. Static updates do not require an OpenResty reload.
 
+The playground's "Run in real Python" card downloads Pyodide from jsDelivr by default
+(`https://cdn.jsdelivr.net/pyodide/v314.0.7/full/`, see `src/lib/pyodide/config.ts`). To serve it
+from elsewhere (a self-hosted copy of the Pyodide `full/` directory, or COS + CDN), build with
+`VITE_PYODIDE_BASE=https://…/full/ npm run build`. The host must send CORS headers for `.mjs`, `.wasm` and wheels.
+
 ## HTTPS and configuration
 
 The virtual host is `/opt/1panel/www/conf.d/knowcs.online.conf` (template in this directory).
