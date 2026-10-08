@@ -33,15 +33,17 @@ export function mergePacks(res: Record<string, unknown>, extra: (Record<string, 
 
 /** Load packs for the current language into i18n (and remember them for language switches). */
 export async function ensurePacks(i18n: I18n, names: string[]): Promise<void> {
+  // the detector has already picked the language when init() returns, before the core strings arrive
   const lang = normalizeLang(i18n.resolvedLanguage ?? i18n.language)
-  await Promise.all(
-    names.map(async (n) => {
+  const packs = await Promise.all(
+    names.map((n) => {
       usedPacks.add(n)
-      if (hasPack(n, lang)) return
-      const p = await fetchPack(n, lang)
-      if (p) i18n.addResourceBundle(lang, 'translation', p, true, true)
+      return hasPack(n, lang) ? null : fetchPack(n, lang)
     }),
   )
+  // i18next stores the core bundle with a shallow merge, which would drop a pack added before it: wait for init
+  if (!i18n.isInitialized) await new Promise<void>((resolve) => i18n.on('initialized', () => resolve()))
+  for (const p of packs) if (p) i18n.addResourceBundle(lang, 'translation', p, true, true)
 }
 
 /** A lazy page or component whose strings arrive in parallel with its code. */
