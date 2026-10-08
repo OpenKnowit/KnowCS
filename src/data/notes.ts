@@ -5,6 +5,9 @@ import type { LangCode } from '../lib/lang'
 import numpyEnChars from '../content/notes/numpy.en.md?chars'
 import numpyZhChars from '../content/notes/numpy.zh.md?chars'
 import numpyHkChars from '../content/notes/numpy.zh.md?chars-hk'
+import matplotlibEnChars from '../content/notes/matplotlib.en.md?chars'
+import matplotlibZhChars from '../content/notes/matplotlib.zh.md?chars'
+import matplotlibHkChars from '../content/notes/matplotlib.zh.md?chars-hk'
 import pandasEnChars from '../content/notes/pandas.en.md?chars'
 import pandasZhChars from '../content/notes/pandas.zh.md?chars'
 import pandasHkChars from '../content/notes/pandas.zh.md?chars-hk'
@@ -48,6 +51,18 @@ export const NOTES: NoteEntry[] = [
       en: () => import('../content/notes/numpy.en.md?html'),
       zh: () => import('../content/notes/numpy.zh.md?html'),
       'zh-HK': () => import('../content/notes/numpy.zh.md?html-hk'),
+    },
+  },
+  {
+    id: 'matplotlib',
+    titleKey: 'package.notes.matplotlib',
+    tag: 'Matplotlib',
+    tagClass: 'bg-teal-100 text-teal-700',
+    chars: { en: matplotlibEnChars, zh: matplotlibZhChars, 'zh-HK': matplotlibHkChars },
+    load: {
+      en: () => import('../content/notes/matplotlib.en.md?html'),
+      zh: () => import('../content/notes/matplotlib.zh.md?html'),
+      'zh-HK': () => import('../content/notes/matplotlib.zh.md?html-hk'),
     },
   },
   {

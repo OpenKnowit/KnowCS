@@ -36,10 +36,21 @@ export const shapeStr = (shape: readonly number[]): string =>
 const shapeTight = (shape: readonly number[]): string =>
   shape.length === 1 ? `(${shape[0]},)` : `(${shape.join(',')})`
 
+let sizeLimit = MAX_SIZE
+
+/** the limit for the current run (the deep-learning sandboxes allow larger arrays); returns the previous one */
+export const setSizeLimit = (n: number): number => {
+  const old = sizeLimit
+  sizeLimit = n
+  return old
+}
+
+export const sizeLimitNow = (): number => sizeLimit
+
 export const checkSize = (shape: readonly number[]): void => {
   const n = prod(shape)
-  if (n > MAX_SIZE) {
-    throw new PyError('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${MAX_SIZE}`)
+  if (n > sizeLimit) {
+    throw new PyError('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${sizeLimit}`)
   }
 }
 
@@ -725,7 +736,17 @@ export const formatScalar = (v: number, dtype: DType): string => {
   if (dtype === 'int64') return String(v)
   if (Number.isNaN(v)) return 'nan'
   if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf'
-  return Number.isInteger(v) && Math.abs(v) < 1e16 ? `${v}.0` : String(v)
+  return pyFloatRepr(v)
+}
+
+/** Python's repr(float): shortest round-trip digits, exponent form below 1e-4 or from 1e16 */
+export const pyFloatRepr = (v: number): string => {
+  if (v === 0) return Object.is(v, -0) ? '-0.0' : '0.0'
+  const [mant, e] = v.toExponential().split('e')
+  const exp = Number(e)
+  if (exp < -4 || exp >= 16) return `${mant}e${exp < 0 ? '-' : '+'}${String(Math.abs(exp)).padStart(2, '0')}`
+  const s = v.toFixed(Math.max(0, (mant.split('.')[1]?.length ?? 0) - exp))
+  return s.includes('.') ? s : `${s}.0`
 }
 
 export const arrayRepr = (a: NDArray): string => {

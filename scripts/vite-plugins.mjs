@@ -179,6 +179,8 @@ export function packNames(strings) {
   return [
     ...Object.keys(strings.watch ?? {}).filter((k) => k !== 'ui').map((k) => `watch.${k}`),
     ...Object.keys(strings.lab ?? {}).filter((k) => !LAB_SHARED.includes(k)).map((k) => `lab.${k}`),
+    // the library playgrounds on the note pages: shared UI strings and one pack per library
+    ...Object.keys(strings.playground ?? {}).map((k) => `playground.${k}`),
     ...FIXED_PACKS,
   ]
 }

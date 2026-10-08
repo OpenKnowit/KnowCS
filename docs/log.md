@@ -41,6 +41,14 @@
 ### 2026-10-08 — 网格的键盘与读屏
 - **a11y**：仿射页输出网格（80 格）与卷积页输出网格改为「一个 Tab 停靠点 + 方向键移动」（roving tabindex），卷积页 Tab 停靠点 57 → 33；卷积网格去掉没有 row / gridcell 的 `role="grid"`，改为带标签的 group，每格读出坐标与数值。考点地图在手机上主题列收窄、带吸附阴影，可见 3–4 份试卷。
 
+### 2026-10-08 — 资料包：五个库的实验台、Matplotlib 笔记、全屏
+- **feat**：matplotlib、PyTorch、Keras、TensorFlow、pandas 五篇笔记右侧各有一个实验台（共 77 个示例，围绕第 2–9 讲与往年考点），NumPy 面板与实验台都可全屏（Esc / 按钮退出，`#playground` 直接打开）。笔记中能运行的代码块带「试一试」。
+- **feat**：新增 `/notes/matplotlib/` 笔记（中英），讲课程用到的画法：Figure/Axes、imshow 的 cmap 与 vmin/vmax（第 7 讲）、图片网格（第 6 讲）、K-Means 散点、训练曲线、混淆矩阵（seaborn.heatmap）。
+- **feat**：可视化：matplotlib 每次调用后的图（新增图元高亮、像素取色说明）；PyTorch / Keras 前向传播的逐层形状流（尺寸公式、参数个数）；`backward()` 的计算图；`fit` 的训练曲线；pandas 每次表格操作选中的行列 / 分组；小张量运算的元素溯源。讲解提示覆盖 imshow 默认色图与拉伸、梯度累加、评估时 dropout 仍开、softmax + CrossEntropyLoss、漏 Flatten、整数标签配 categorical_crossentropy、过拟合、pandas 与 NumPy 的 std。
+- **feat**：解释器支持语句块、函数、类（含继承库基类与 super()）、with、lambda、推导式、dict、f-string、math / random；库通过 `PyLib` / `PyObj` / `HostClass` 接入；时间预算防死循环；循环体只记录前两次迭代的追踪。另修正 Python 浮点 repr（1e-4 以下用指数形式），np.random 增加 normal / uniform / permutation / choice / shuffle。
+- **决策**：继续自研（见 design 6.10）；训练示例的数据在代码中现场生成，不伪造 MNIST。
+- **test**：与 CPython 3.10、NumPy 2.2、pandas 2.3、matplotlib 3.10、PyTorch 2.12、Keras 3.12 的真实输出做差分（Keras summary、PyTorch 打印与报错、pandas 表格逐字一致），张量算子梯度用中心差分检验；全部示例自动运行。测试 465 → 624 个。浏览器检查：六篇带面板的笔记在 1440 / 390 宽度下无控制台错误、无横向滚动。
+
 ### 2026-10-08 — 一键离线保存
 - **feat**：页脚新增「离线保存（约 3 MB）」。构建时生成 `offline.json`（本次构建的全部页面与带哈希的资源、版本号、大小）；Service Worker 收到消息后把它们并发写入 `knowcs-offline-<版本>`（不受 200 条上限裁剪），回报进度，并删除旧版本副本；资源与离线导航会在所有缓存中查找。部署新版本后按钮变为「更新离线副本」。端到端验证：保存后断网，以繁体中文打开 6 个从未访问过的页面（讲解视频、实验页、自测、笔记、经典模块、拓展页）全部正常、无原始键。
 

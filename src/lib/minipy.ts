@@ -1,13 +1,14 @@
 // --- 迷你 Python 解释器：词法 → 语法树 → 求值；所有 ndarray 下标读写都会记录一条 IndexTrace 供可视化 ---
-// 支持子集：import numpy as np、赋值 / 增量赋值 / 元组解包、表达式（含比较链、and/or/not、三元表达式）、
-// 函数调用与关键字参数、属性、下标与切片。不支持 for / if / def 等语句块。
+// 支持子集：import（numpy / math / random 与 RunOptions.libs 提供的库）、赋值 / 增量赋值 / 解包、表达式、f-string、
+// 推导式、lambda，以及 if / for / while / def / class / with 语句块。不支持 try / raise / yield 与 *args。
 
 import {
   NDArray, PyError, MAX_SIZE, arrayRepr, arrayStr, binaryOp, castValue, dot, formatScalar, getIndex, reduce,
   reshape, setIndex, sharesMemory, shapeStr, transpose, unaryOp, checkSize, applyOp, cStrides, broadcastShapes, broadcastTo,
-  reduceDType,
+  reduceDType, setSizeLimit,
 } from './ndarray'
 import type { AxisNote, BinOp, DType, IndexItem, IndexPlan, ReduceKind } from './ndarray'
+import type { Display, PyEvent, PyEventInput } from './pyEvents'
 import { DEFAULT_IV, complexRepr, convert, deriv, integ, lstsq, mapParams, polyRepr, polyStr, polyadd, polymul, polypow, polysub, polyval, roots, trim } from './poly'
 import type { Interval } from './poly'
 import {
@@ -17,39 +18,52 @@ import {
 
 // ================= 词法 =================
 
-type TokType = 'name' | 'num' | 'str' | 'op' | 'nl' | 'eof'
-interface Tok { t: TokType; v: string; pos: number; end: number; line: number }
+type TokType = 'name' | 'num' | 'str' | 'fstr' | 'op' | 'nl' | 'indent' | 'dedent' | 'eof'
+interface Tok { t: TokType; v: string; pos: number; end: number; line: number; body?: number }
 
 const OPS = [
-  '**=', '//=', '...', '**', '//', '==', '!=', '<=', '>=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '@=',
+  '**=', '//=', '...', '->', '**', '//', '==', '!=', '<=', '>=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '@=',
   '+', '-', '*', '/', '%', '@', '&', '|', '^', '~', '<', '>', '=', '(', ')', '[', ']', '{', '}', ',', ':', '.', ';',
 ]
 
 const syntaxError = (msg: string, line: number) => new PyError('SyntaxError', msg, line)
 
-export const tokenize = (src: string): Tok[] => {
+const ESCAPES: Record<string, string> = { n: '\n', t: '\t', r: '\r', '0': '\0', '\\': '\\', "'": "'", '"': '"' }
+
+/** offset / firstLine: an f-string's {expression} is tokenized in place, so its spans still point into the program */
+export const tokenize = (src: string, offset = 0, firstLine = 1): Tok[] => {
   const toks: Tok[] = []
   let i = 0
-  let line = 1
+  let line = firstLine
   let depth = 0
-  let lineStart = true
-  const push = (t: TokType, v: string, pos: number, end = pos + v.length) => toks.push({ t, v, pos, end, line })
+  let lineStart = offset === 0
+  const indents = [0]
+  const push = (t: TokType, v: string, pos: number, end = pos + v.length) => toks.push({ t, v, pos: pos + offset, end: end + offset, line })
   while (i < src.length) {
     const ch = src[i]
     if (lineStart && depth === 0) {
-      // 行首缩进检查（没有语句块，任何缩进都是 unexpected indent）
+      // 行首缩进：比上一层深 → indent；回到外层 → 一个或多个 dedent。空行与注释行不算
       let j = i
-      while (src[j] === ' ' || src[j] === '\t') j++
+      let width = 0
+      while (src[j] === ' ' || src[j] === '\t') width = src[j++] === '\t' ? width + 8 - (width % 8) : width + 1
       const c = src[j]
-      if (j > i && c !== undefined && c !== '\n' && c !== '#' && c !== '\r') {
-        throw new PyError('IndentationError', 'unexpected indent', line)
-      }
-      i = j
       lineStart = false
+      i = j
+      if (c === undefined || c === '\n' || c === '#' || c === '\r') continue
+      if (width > indents[indents.length - 1]) {
+        indents.push(width)
+        push('indent', '', i, i)
+      } else {
+        while (width < indents[indents.length - 1]) {
+          indents.pop()
+          push('dedent', '', i, i)
+        }
+        if (width !== indents[indents.length - 1]) throw new PyError('IndentationError', 'unindent does not match any outer indentation level', line)
+      }
       continue
     }
     if (ch === '\n') {
-      if (depth === 0 && toks.length && toks[toks.length - 1].t !== 'nl') push('nl', '\n', i)
+      if (depth === 0 && toks.length && toks[toks.length - 1].t !== 'nl' && toks[toks.length - 1].t !== 'dedent' && toks[toks.length - 1].t !== 'indent') push('nl', '\n', i)
       line++
       i++
       lineStart = true
@@ -67,26 +81,49 @@ export const tokenize = (src: string): Tok[] => {
       i += m[0].length
       continue
     }
-    if (/[A-Za-z_]/.test(ch)) {
+    // string prefixes: r'…' b'…' f'…' rf'…'
+    const pre = /^([rRbBfFuU]{1,2})(?=['"])/.exec(src.slice(i, i + 3))
+    if (/[A-Za-z_]/.test(ch) && !pre) {
       const m = /^[A-Za-z_][A-Za-z0-9_]*/.exec(src.slice(i))!
       push('name', m[0], i)
       i += m[0].length
       continue
     }
-    if (ch === '"' || ch === "'") {
-      let j = i + 1
+    if (ch === '"' || ch === "'" || pre) {
+      const prefix = pre ? pre[1].toLowerCase() : ''
+      const start = i
+      let j = i + prefix.length
+      const q = src[j]
+      const triple = src.startsWith(q.repeat(3), j)
+      const close = triple ? q.repeat(3) : q
+      j += close.length
+      const startLine = line
       let s = ''
-      while (j < src.length && src[j] !== ch) {
-        if (src[j] === '\n') throw syntaxError('unterminated string literal', line)
-        if (src[j] === '\\' && j + 1 < src.length) {
+      for (;;) {
+        if (j >= src.length) throw syntaxError(triple ? 'unterminated triple-quoted string literal' : 'unterminated string literal', startLine)
+        if (src.startsWith(close, j)) break
+        const c = src[j]
+        if (c === '\n') {
+          if (!triple) throw syntaxError('unterminated string literal', line)
+          line++
+        }
+        if (c === '\\' && j + 1 < src.length && !prefix.includes('r')) {
           const e = src[j + 1]
-          s += e === 'n' ? '\n' : e === 't' ? '\t' : e
+          if (e === '\n') line++
+          else s += ESCAPES[e] ?? '\\' + e
           j += 2
-        } else s += src[j++]
+        } else {
+          s += c
+          j++
+        }
       }
-      if (j >= src.length) throw syntaxError('unterminated string literal', line)
-      push('str', s, i, j + 1)
-      i = j + 1
+      j += close.length
+      const t: TokType = prefix.includes('f') ? 'fstr' : 'str'
+      // an f-string keeps its raw source (the {expressions} are parsed later), so record where the body starts
+      const bodyAt = start + prefix.length + close.length
+      const tok: Tok = { t, v: t === 'fstr' ? src.slice(bodyAt, j - close.length) : s, pos: start + offset, end: j + offset, line: startLine, body: bodyAt + offset }
+      toks.push(tok)
+      i = j
       continue
     }
     const op = OPS.find((o) => src.startsWith(o, i))
@@ -97,7 +134,11 @@ export const tokenize = (src: string): Tok[] => {
     i += op.length
   }
   if (depth > 0) throw syntaxError("'(' was never closed", line)
-  if (toks.length && toks[toks.length - 1].t !== 'nl') push('nl', '\n', src.length)
+  if (toks.length && toks[toks.length - 1].t !== 'nl' && toks[toks.length - 1].t !== 'dedent') push('nl', '\n', src.length)
+  while (indents.length > 1) {
+    indents.pop()
+    push('dedent', '', src.length, src.length)
+  }
   push('eof', '', src.length)
   return toks
 }
@@ -106,13 +147,21 @@ export const tokenize = (src: string): Tok[] => {
 
 interface Span { s: number; e: number; line: number }
 
+export interface Param { name: string; def: Node | null }
+export interface CompFor { target: Node; iter: Node; conds: Node[] }
+export type FPart = string | { x: Node; conv: 'r' | 's' | null; spec: string }
+
 export type Node = Span & (
   | { k: 'num'; v: number; isFloat: boolean }
   | { k: 'str'; v: string }
+  | { k: 'fstr'; parts: FPart[] }
   | { k: 'const'; v: 'True' | 'False' | 'None' }
   | { k: 'name'; id: string }
   | { k: 'list'; items: Node[] }
   | { k: 'tuple'; items: Node[] }
+  | { k: 'dict'; keys: Node[]; vals: Node[] }
+  | { k: 'comp'; kind: 'list' | 'gen' | 'dict'; elt: Node; val: Node | null; gens: CompFor[] }
+  | { k: 'lambda'; params: Param[]; body: Node }
   | { k: 'ellipsis' }
   | { k: 'unary'; op: '-' | '+' | '~'; x: Node }
   | { k: 'not'; x: Node }
@@ -130,11 +179,23 @@ export type Stmt =
   | { k: 'expr'; x: Node; line: number }
   | { k: 'assign'; targets: Node[]; x: Node; line: number }
   | { k: 'aug'; op: string; target: Node; x: Node; line: number; s: number; e: number }
-  | { k: 'import'; alias: string; line: number }
+  | { k: 'import'; mod: string; alias: string | null; line: number }
   | { k: 'from'; mod: string; names: { name: string; alias: string }[]; line: number }
   | { k: 'pass'; line: number }
+  | { k: 'if'; branches: { cond: Node | null; body: Stmt[] }[]; line: number }
+  | { k: 'for'; target: Node; iter: Node; body: Stmt[]; line: number }
+  | { k: 'while'; cond: Node; body: Stmt[]; line: number }
+  | { k: 'def'; name: string; params: Param[]; body: Stmt[]; line: number }
+  | { k: 'return'; x: Node | null; line: number }
+  | { k: 'class'; name: string; bases: Node[]; body: Stmt[]; line: number }
+  | { k: 'with'; items: { x: Node; as: Node | null }[]; body: Stmt[]; line: number }
+  | { k: 'break' | 'continue'; line: number }
+  | { k: 'del'; targets: Node[]; line: number }
+  | { k: 'assert'; x: Node; msg: Node | null; line: number }
 
-const UNSUPPORTED = new Set(['for', 'while', 'if', 'def', 'class', 'with', 'try', 'return', 'lambda', 'del', 'global', 'yield', 'elif', 'else', 'except', 'finally'])
+const UNSUPPORTED = new Set(['try', 'except', 'finally', 'raise', 'global', 'nonlocal', 'yield', 'async', 'await'])
+/** keywords that can never start an expression */
+const KEYWORDS = new Set([...UNSUPPORTED, 'for', 'while', 'if', 'elif', 'else', 'def', 'class', 'with', 'return', 'del', 'pass', 'break', 'continue', 'import', 'from', 'as', 'assert', 'in', 'is', 'and', 'or'])
 const COMPARE_OPS = new Set(['<', '>', '==', '!=', '<=', '>='])
 
 class Parser {
@@ -153,9 +214,14 @@ class Parser {
     if (!this.isOp(v)) throw this.unexpected()
     return this.next()
   }
+  expectName(): string {
+    if (this.cur.t !== 'name' || KEYWORDS.has(this.cur.v)) throw this.unexpected()
+    return this.next().v
+  }
   unexpected() {
     const tk = this.cur
-    if (tk.t === 'eof' || tk.t === 'nl') return syntaxError('unexpected end of line', tk.line)
+    if (tk.t === 'indent') return new PyError('IndentationError', 'unexpected indent', tk.line)
+    if (tk.t === 'eof' || tk.t === 'nl' || tk.t === 'dedent') return syntaxError('unexpected end of line', tk.line)
     return syntaxError(`invalid syntax near '${tk.v}'`, tk.line)
   }
   endOf(): number { return this.toks[this.i - 1].end }
@@ -166,52 +232,205 @@ class Parser {
   program(): Stmt[] {
     const out: Stmt[] = []
     while (this.cur.t !== 'eof') {
-      if (this.cur.t === 'nl' || this.isOp(';')) { this.next(); continue }
-      out.push(this.statement())
-      if (this.isOp(';')) { this.next(); continue }
-      if (!this.atLineEnd()) throw this.unexpected()
+      if (this.cur.t === 'nl') { this.next(); continue }
+      out.push(...this.statement())
     }
     return out
   }
 
-  statement(): Stmt {
+  /** after a header's ':' — an indented block, or simple statements on the same line */
+  block(): Stmt[] {
+    this.expectOp(':')
+    if (this.cur.t !== 'nl') return this.simpleLine()
+    this.next()
+    if (this.toks[this.i].t !== 'indent') throw new PyError('IndentationError', 'expected an indented block', this.cur.line)
+    this.next()
+    const out: Stmt[] = []
+    const kind = () => this.toks[this.i].t
+    while (kind() !== 'dedent' && kind() !== 'eof') {
+      if (kind() === 'nl') { this.next(); continue }
+      out.push(...this.statement())
+    }
+    if (kind() === 'dedent') this.next()
+    return out
+  }
+
+  /** one or more ';'-separated simple statements, up to the end of the line */
+  simpleLine(): Stmt[] {
+    const out = [this.simple()]
+    while (this.isOp(';')) {
+      this.next()
+      if (this.atLineEnd()) break
+      out.push(this.simple())
+    }
+    if (!this.atLineEnd()) throw this.unexpected()
+    if (this.cur.t === 'nl') this.next()
+    return out
+  }
+
+  statement(): Stmt[] {
+    const tk = this.cur
+    if (tk.t === 'indent') throw this.unexpected()
+    if (tk.t !== 'name') return this.simpleLine()
+    switch (tk.v) {
+      case 'if': {
+        const branches: { cond: Node | null; body: Stmt[] }[] = []
+        this.next()
+        branches.push({ cond: this.namedTest(), body: this.block() })
+        while (this.isName('elif')) {
+          this.next()
+          branches.push({ cond: this.namedTest(), body: this.block() })
+        }
+        if (this.isName('else')) {
+          this.next()
+          branches.push({ cond: null, body: this.block() })
+        }
+        return [{ k: 'if', branches, line: tk.line }]
+      }
+      case 'for': {
+        this.next()
+        const target = this.targetList()
+        if (!this.isName('in')) throw this.unexpected()
+        this.next()
+        const iter = this.testList()
+        const body = this.block()
+        if (this.isName('else')) throw new PyError('NotImplementedError', "'for … else' is not supported in this sandbox", this.cur.line)
+        return [{ k: 'for', target, iter, body, line: tk.line }]
+      }
+      case 'while': {
+        this.next()
+        const cond = this.namedTest()
+        return [{ k: 'while', cond, body: this.block(), line: tk.line }]
+      }
+      case 'def': {
+        this.next()
+        const name = this.expectName()
+        this.expectOp('(')
+        const params = this.params(')')
+        this.expectOp(')')
+        if (this.isOp('->')) { this.next(); this.test() }
+        return [{ k: 'def', name, params, body: this.block(), line: tk.line }]
+      }
+      case 'class': {
+        this.next()
+        const name = this.expectName()
+        const bases: Node[] = []
+        if (this.isOp('(')) {
+          this.next()
+          while (!this.isOp(')')) {
+            bases.push(this.test())
+            if (!this.isOp(')')) this.expectOp(',')
+          }
+          this.next()
+        }
+        return [{ k: 'class', name, bases, body: this.block(), line: tk.line }]
+      }
+      case 'with': {
+        this.next()
+        const items: { x: Node; as: Node | null }[] = []
+        do {
+          if (this.isOp(',')) this.next()
+          const x = this.test()
+          let as: Node | null = null
+          if (this.isName('as')) {
+            this.next()
+            as = this.postfix()
+            this.checkTarget(as)
+          }
+          items.push({ x, as })
+        } while (this.isOp(','))
+        return [{ k: 'with', items, body: this.block(), line: tk.line }]
+      }
+    }
+    if (tk.v === 'elif' || tk.v === 'else') throw syntaxError('invalid syntax', tk.line)
+    return this.simpleLine()
+  }
+
+  params(close: string): Param[] {
+    const params: Param[] = []
+    while (!this.isOp(close)) {
+      if (this.isOp('*') || this.isOp('**')) throw new PyError('NotImplementedError', '*args / **kwargs are not supported in this sandbox', this.cur.line)
+      const name = this.expectName()
+      if (this.isOp(':') && close === ')') { this.next(); this.test() }
+      let def: Node | null = null
+      if (this.isOp('=')) { this.next(); def = this.test() }
+      else if (params.some((p) => p.def)) throw syntaxError('non-default argument follows default argument', this.cur.line)
+      params.push({ name, def })
+      if (!this.isOp(close)) this.expectOp(',')
+    }
+    return params
+  }
+
+  /** a condition (no assignment expressions in this sandbox) */
+  namedTest(): Node {
+    return this.test()
+  }
+
+  simple(): Stmt {
     const tk = this.cur
     if (tk.t === 'name' && UNSUPPORTED.has(tk.v)) {
-      throw new PyError('NotImplementedError', `'${tk.v}' is not supported in this sandbox — write one statement per line`, tk.line)
+      throw new PyError('NotImplementedError', `'${tk.v}' is not supported in this sandbox`, tk.line)
     }
     if (this.isName('pass')) { this.next(); return { k: 'pass', line: tk.line } }
+    if (this.isName('break') || this.isName('continue')) return { k: this.next().v as 'break' | 'continue', line: tk.line }
+    if (this.isName('return')) {
+      this.next()
+      return { k: 'return', x: this.atLineEnd() || this.isOp(';') ? null : this.testList(), line: tk.line }
+    }
+    if (this.isName('del')) {
+      this.next()
+      const t = this.testList()
+      const targets = t.k === 'tuple' ? t.items : [t]
+      targets.forEach((x) => this.checkTarget(x))
+      return { k: 'del', targets, line: tk.line }
+    }
+    if (this.isName('assert')) {
+      this.next()
+      const x = this.test()
+      let msg: Node | null = null
+      if (this.isOp(',')) { this.next(); msg = this.test() }
+      return { k: 'assert', x, msg, line: tk.line }
+    }
     if (this.isName('import')) {
       this.next()
-      let mod = this.next().v
-      while (this.isOp('.')) { this.next(); mod += '.' + this.next().v }
-      if (mod !== 'numpy') throw new PyError('ModuleNotFoundError', `No module named '${mod}' (only numpy is available here)`, tk.line)
-      let alias = 'numpy'
-      if (this.isName('as')) { this.next(); alias = this.next().v }
-      return { k: 'import', alias, line: tk.line }
+      const mod = this.dotted()
+      let alias: string | null = null
+      if (this.isName('as')) { this.next(); alias = this.expectName() }
+      if (this.isOp(',')) throw new PyError('NotImplementedError', 'write one import per line in this sandbox', tk.line)
+      return { k: 'import', mod, alias, line: tk.line }
     }
     if (this.isName('from')) {
       this.next()
-      let mod = this.next().v
-      while (this.isOp('.')) { this.next(); mod += '.' + this.next().v }
-      if (mod !== 'numpy' && mod !== 'numpy.polynomial') throw new PyError('ModuleNotFoundError', `No module named '${mod}' (this sandbox has numpy and numpy.polynomial)`, tk.line)
+      const mod = this.dotted()
       if (!this.isName('import')) throw this.unexpected()
       this.next()
+      const paren = this.isOp('(')
+      if (paren) this.next()
       const names: { name: string; alias: string }[] = []
       do {
         if (this.isOp(',')) this.next()
-        const name = this.next().v
+        if (paren && this.isOp(')')) break
+        if (this.isOp('*')) throw new PyError('NotImplementedError', "'from … import *' is not supported in this sandbox", tk.line)
+        const name = this.expectName()
         let alias = name
-        if (this.isName('as')) { this.next(); alias = this.next().v }
+        if (this.isName('as')) { this.next(); alias = this.expectName() }
         names.push({ name, alias })
       } while (this.isOp(','))
+      if (paren) this.expectOp(')')
       return { k: 'from', mod, names, line: tk.line }
     }
     const first = this.testList()
     if (this.cur.t === 'op' && /^(\*\*|\/\/|[-+*/%&|^@])=$/.test(this.cur.v)) {
       const op = this.next().v.slice(0, -1)
-      if (first.k !== 'name' && first.k !== 'sub') throw syntaxError("'illegal expression for augmented assignment'", tk.line)
+      if (first.k !== 'name' && first.k !== 'sub' && first.k !== 'attr') throw syntaxError("'illegal expression for augmented assignment'", tk.line)
       const x = this.testList()
       return { k: 'aug', op, target: first, x, line: tk.line, s: tk.pos, e: this.endOf() }
+    }
+    if (this.isOp(':') && (first.k === 'name' || first.k === 'attr')) {
+      // annotated assignment: x: int = 3
+      this.next()
+      this.test()
+      if (!this.isOp('=')) return { k: 'pass', line: tk.line }
     }
     if (this.isOp('=')) {
       const targets = [first]
@@ -228,10 +447,38 @@ class Parser {
     return { k: 'expr', x: first, line: tk.line }
   }
 
+  dotted(): string {
+    let mod = this.expectName()
+    while (this.isOp('.')) { this.next(); mod += '.' + this.expectName() }
+    return mod
+  }
+
   checkTarget(t: Node) {
-    if (t.k === 'name' || t.k === 'sub') return
-    if ((t.k === 'tuple' || t.k === 'list') && t.items.every((x) => x.k === 'name' || x.k === 'sub')) return
+    if (t.k === 'name' || t.k === 'sub' || t.k === 'attr') return
+    if ((t.k === 'tuple' || t.k === 'list') && t.items.length) {
+      t.items.forEach((x) => this.checkTarget(x))
+      return
+    }
     throw syntaxError('cannot assign to expression', t.line)
+  }
+
+  /** for-loop / comprehension target: a, (b, c) — stops before 'in' */
+  targetList(): Node {
+    const start = this.cur
+    const first = this.bitOr()
+    if (!this.isOp(',')) {
+      this.checkTarget(first)
+      return first
+    }
+    const items = [first]
+    while (this.isOp(',')) {
+      this.next()
+      if (this.isName('in')) break
+      items.push(this.bitOr())
+    }
+    const t = this.mk(start, { k: 'tuple', items })
+    this.checkTarget(t)
+    return t
   }
 
   testList(): Node {
@@ -241,7 +488,7 @@ class Parser {
     const items = [first]
     while (this.isOp(',')) {
       this.next()
-      if (this.cur.t === 'nl' || this.cur.t === 'eof' || this.isOp('=') || this.isOp(';')) break
+      if (this.atLineEnd() || this.isOp('=') || this.isOp(';') || this.isOp(':') || this.isOp(')')) break
       items.push(this.test())
     }
     return this.mk(start, { k: 'tuple', items })
@@ -249,6 +496,12 @@ class Parser {
 
   test(): Node {
     const start = this.cur
+    if (this.isName('lambda')) {
+      this.next()
+      const params = this.params(':')
+      this.expectOp(':')
+      return this.mk(start, { k: 'lambda', params, body: this.test() })
+    }
     const a = this.orTest()
     if (this.isName('if')) {
       this.next()
@@ -334,6 +587,25 @@ class Parser {
     return base
   }
 
+  /** the 'for … in … if …' clauses of a comprehension */
+  compFors(): CompFor[] {
+    const gens: CompFor[] = []
+    while (this.isName('for')) {
+      this.next()
+      const target = this.targetList()
+      if (!this.isName('in')) throw this.unexpected()
+      this.next()
+      const iter = this.orTest()
+      const conds: Node[] = []
+      while (this.isName('if')) {
+        this.next()
+        conds.push(this.orTest())
+      }
+      gens.push({ target, iter, conds })
+    }
+    return gens
+  }
+
   postfix(): Node {
     const start = this.cur
     let x = this.atom()
@@ -343,14 +615,17 @@ class Parser {
         const args: Node[] = []
         const kw: { name: string; v: Node }[] = []
         while (!this.isOp(')')) {
-          if (this.isOp('*')) throw new PyError('NotImplementedError', '*args is not supported in this sandbox', this.cur.line)
+          if (this.isOp('*') || this.isOp('**')) throw new PyError('NotImplementedError', '*args / **kwargs are not supported in this sandbox', this.cur.line)
           if (this.cur.t === 'name' && this.peek().t === 'op' && this.peek().v === '=') {
             const name = this.next().v
             this.next()
             kw.push({ name, v: this.test() })
           } else {
             if (kw.length) throw syntaxError('positional argument follows keyword argument', this.cur.line)
-            args.push(this.test())
+            const argStart = this.cur
+            const a = this.test()
+            // sum(x * x for x in xs)
+            args.push(this.isName('for') ? this.mk(argStart, { k: 'comp', kind: 'gen', elt: a, val: null, gens: this.compFors() }) : a)
           }
           if (!this.isOp(')')) this.expectOp(',')
         }
@@ -397,6 +672,63 @@ class Parser {
     return this.mk(start, { k: 'slice', start: a, stop: b, step: c })
   }
 
+  /** f'…{expr!r:spec}…' → literal text and parsed expressions */
+  fstring(tk: Tok): Node {
+    const raw = tk.v
+    const bodyStart = tk.body ?? tk.pos
+    const parts: FPart[] = []
+    let lit = ''
+    let i = 0
+    const flush = () => {
+      if (lit) parts.push(lit.replace(/\\(.)/g, (_, e: string) => ESCAPES[e] ?? '\\' + e))
+      lit = ''
+    }
+    while (i < raw.length) {
+      const c = raw[i]
+      if (c === '{' && raw[i + 1] === '{') { lit += '{'; i += 2; continue }
+      if (c === '}' && raw[i + 1] === '}') { lit += '}'; i += 2; continue }
+      if (c === '}') throw syntaxError("f-string: single '}' is not allowed", tk.line)
+      if (c !== '{') { lit += c; i++; continue }
+      flush()
+      // find the matching close brace, skipping nested brackets and strings
+      let j = i + 1
+      let depth = 0
+      let exprEnd = -1
+      let q: string | null = null
+      for (; j < raw.length; j++) {
+        const d = raw[j]
+        if (q) { if (d === q) q = null; continue }
+        if (d === '"' || d === "'") q = d
+        else if ('([{'.includes(d)) depth++
+        else if (')]'.includes(d) || (d === '}' && depth > 0)) depth--
+        else if (depth === 0 && (d === '}' || d === ':' || (d === '!' && raw[j + 1] !== '='))) {
+          if (exprEnd < 0) exprEnd = j
+          if (d === '}') break
+          if (d === '!' || d === ':') {
+            // conversion and format spec run to the closing brace
+            const close = raw.indexOf('}', j)
+            if (close < 0) break
+            j = close
+            break
+          }
+        }
+      }
+      if (j >= raw.length) throw syntaxError("f-string: expecting '}'", tk.line)
+      const exprSrc = raw.slice(i + 1, exprEnd)
+      if (!exprSrc.trim()) throw syntaxError('f-string: empty expression not allowed', tk.line)
+      const tail = raw.slice(exprEnd, j)
+      const m = /^(?:!([rs]))?(?::(.*))?$/s.exec(tail)
+      if (!m) throw syntaxError('f-string: invalid conversion character', tk.line)
+      const sub = new Parser(tokenize(exprSrc, bodyStart + i + 1, tk.line))
+      const x = sub.testList()
+      if (sub.cur.t !== 'nl' && sub.cur.t !== 'eof') throw syntaxError('f-string: invalid syntax', tk.line)
+      parts.push({ x, conv: (m[1] as 'r' | 's' | undefined) ?? null, spec: m[2] ?? '' })
+      i = j + 1
+    }
+    flush()
+    return this.mk(tk, { k: 'fstr', parts })
+  }
+
   atom(): Node {
     const tk = this.cur
     if (tk.t === 'num') {
@@ -404,14 +736,19 @@ class Parser {
       const isFloat = /[.eE]/.test(tk.v)
       return this.mk(tk, { k: 'num', v: Number(tk.v), isFloat })
     }
-    if (tk.t === 'str') {
-      this.next()
-      let v = tk.v
-      while (this.cur.t === 'str') v += this.next().v
-      return this.mk(tk, { k: 'str', v })
+    if (tk.t === 'str' || tk.t === 'fstr') {
+      // adjacent literals concatenate; any f-string makes the whole run an f-string
+      const pieces: Node[] = []
+      while (this.cur.t === 'str' || this.cur.t === 'fstr') {
+        const p = this.next()
+        pieces.push(p.t === 'fstr' ? this.fstring(p) : this.mk(p, { k: 'str', v: p.v }))
+      }
+      if (pieces.every((p) => p.k === 'str')) return this.mk(tk, { k: 'str', v: pieces.map((p) => (p as { v: string }).v).join('') })
+      return this.mk(tk, { k: 'fstr', parts: pieces.flatMap((p) => (p.k === 'str' ? [p.v] : p.k === 'fstr' ? p.parts : [])) })
     }
     if (tk.t === 'name') {
       if (UNSUPPORTED.has(tk.v)) throw new PyError('NotImplementedError', `'${tk.v}' is not supported in this sandbox`, tk.line)
+      if (KEYWORDS.has(tk.v)) throw this.unexpected()
       this.next()
       if (tk.v === 'True' || tk.v === 'False' || tk.v === 'None') return this.mk(tk, { k: 'const', v: tk.v })
       return this.mk(tk, { k: 'name', id: tk.v })
@@ -421,6 +758,11 @@ class Parser {
       this.next()
       if (this.isOp(')')) { this.next(); return this.mk(tk, { k: 'tuple', items: [] }) }
       const first = this.test()
+      if (this.isName('for')) {
+        const gens = this.compFors()
+        this.expectOp(')')
+        return this.mk(tk, { k: 'comp', kind: 'gen', elt: first, val: null, gens })
+      }
       if (this.isOp(')')) { this.next(); return { ...first, s: tk.pos, e: this.endOf() } }
       const items = [first]
       while (this.isOp(',')) {
@@ -436,11 +778,36 @@ class Parser {
       const items: Node[] = []
       while (!this.isOp(']')) {
         items.push(this.test())
-        if (this.isName('for')) throw new PyError('NotImplementedError', 'list comprehensions are not supported in this sandbox', tk.line)
+        if (items.length === 1 && this.isName('for')) {
+          const gens = this.compFors()
+          this.expectOp(']')
+          return this.mk(tk, { k: 'comp', kind: 'list', elt: items[0], val: null, gens })
+        }
         if (!this.isOp(']')) this.expectOp(',')
       }
       this.next()
       return this.mk(tk, { k: 'list', items })
+    }
+    if (this.isOp('{')) {
+      this.next()
+      const keys: Node[] = []
+      const vals: Node[] = []
+      while (!this.isOp('}')) {
+        const key = this.test()
+        if (!this.isOp(':')) throw new PyError('NotImplementedError', 'sets are not supported in this sandbox — use a list', tk.line)
+        this.next()
+        const val = this.test()
+        if (keys.length === 0 && this.isName('for')) {
+          const gens = this.compFors()
+          this.expectOp('}')
+          return this.mk(tk, { k: 'comp', kind: 'dict', elt: key, val, gens })
+        }
+        keys.push(key)
+        vals.push(val)
+        if (!this.isOp('}')) this.expectOp(',')
+      }
+      this.next()
+      return this.mk(tk, { k: 'dict', keys, vals })
     }
     throw this.unexpected()
   }
@@ -465,6 +832,36 @@ interface ApiMeta {
   defaultAxis?: number | null
 }
 
+export type Kw = Record<string, Value>
+
+/** A user-defined function or lambda; closure = the enclosing function's frame (null at module level) */
+export interface FuncValue {
+  k: 'func'
+  name: string
+  params: Param[]
+  defaults: (Value | null)[]
+  body: Stmt[] | null
+  expr: Node | null
+  closure: Frame | null
+  /** the class whose body defined it (for zero-argument super()) */
+  owner: ClassValue | null
+}
+
+/**
+ * A library base class that user classes can extend (nn.Module, keras.Model, …).
+ * init runs for super().__init__(); the other hooks run when an attribute is not found on the instance / class.
+ */
+export interface HostClass {
+  init(inst: InstValue, args: Value[], kw: Kw, h: Host): void
+  getAttr?(inst: InstValue, name: string, h: Host): Value | undefined
+  setAttr?(inst: InstValue, name: string, v: Value, h: Host): void
+  call?(inst: InstValue, args: Value[], kw: Kw, h: Host): Value
+  repr?(inst: InstValue): string | undefined
+}
+
+export interface ClassValue { k: 'class'; name: string; bases: Value[]; ns: Map<string, Value>; host: HostClass | null }
+export interface InstValue { k: 'inst'; cls: ClassValue; attrs: Map<string, Value>; state: Record<string, unknown> }
+
 export type Value =
   | { k: 'int'; v: number }
   | { k: 'float'; v: number }
@@ -473,15 +870,140 @@ export type Value =
   | { k: 'str'; v: string }
   | { k: 'list'; items: Value[] }
   | { k: 'tuple'; items: Value[] }
+  | { k: 'dict'; d: PyDict }
+  | { k: 'range'; start: number; stop: number; step: number }
   | { k: 'slice'; start: Value; stop: Value; step: Value }
   | { k: 'ellipsis' }
   | { k: 'array'; a: NDArray }
   | { k: 'fn'; name: string; call: Fn; api?: ApiMeta; self?: NDArray; rebind?: (self: NDArray) => Fn }
-  | { k: 'type'; name: string; call: Fn; dtype?: DType; api?: ApiMeta }
+  | { k: 'type'; name: string; call: Fn; dtype?: DType; api?: ApiMeta; host?: HostClass }
   | { k: 'poly'; coef: number[]; domain: Interval; window: Interval }
   | { k: 'carray'; re: number[]; im: number[] }
   | { k: 'module'; name: string; attrs: Record<string, Value> }
   | { k: 'dtype'; d: DType }
+  | FuncValue
+  | { k: 'bound'; self: Value; f: FuncValue }
+  | ClassValue
+  | InstValue
+  | { k: 'super'; self: InstValue; after: ClassValue }
+  | { k: 'obj'; o: PyObj }
+
+export interface Frame { vars: Map<string, Value>; parent: Frame | null; isClass?: boolean; owner?: ClassValue | null; self?: Value }
+
+/** Python dict: insertion-ordered, keyed by a hash of the key's value (1, 1.0 and True collide, as in Python) */
+export class PyDict {
+  m = new Map<string, [Value, Value]>()
+  static hash(v: Value): string {
+    switch (v.k) {
+      case 'int': case 'float': return `n${v.v}`
+      case 'bool': return `n${v.v ? 1 : 0}`
+      case 'str': return `s${v.v}`
+      case 'none': return 'None'
+      case 'tuple': return `t(${v.items.map(PyDict.hash).join(',')})`
+      case 'list': case 'dict': case 'array':
+        throw new PyError('TypeError', `unhashable type: '${v.k === 'array' ? 'numpy.ndarray' : v.k}'`)
+      case 'obj': return `o${objId(v.o)}`
+      default: return `${v.k}:${repr(v)}`
+    }
+  }
+  get(k: Value): Value | undefined { return this.m.get(PyDict.hash(k))?.[1] }
+  set(k: Value, v: Value) {
+    const h = PyDict.hash(k)
+    const old = this.m.get(h)
+    this.m.set(h, [old ? old[0] : k, v])
+  }
+  has(k: Value) { return this.m.has(PyDict.hash(k)) }
+  delete(k: Value) { return this.m.delete(PyDict.hash(k)) }
+  keys(): Value[] { return [...this.m.values()].map((e) => e[0]) }
+  values(): Value[] { return [...this.m.values()].map((e) => e[1]) }
+  items(): [Value, Value][] { return [...this.m.values()] }
+  get size() { return this.m.size }
+  static from(entries: [Value, Value][]): PyDict {
+    const d = new PyDict()
+    for (const [k, v] of entries) d.set(k, v)
+    return d
+  }
+}
+
+const OBJ_IDS = new WeakMap<object, number>()
+let nextObjId = 1
+export const objId = (o: object): number => {
+  let id = OBJ_IDS.get(o)
+  if (id === undefined) OBJ_IDS.set(o, (id = nextObjId++))
+  return id
+}
+
+/**
+ * A Python object implemented by a sandbox library (DataFrame, Tensor, Figure, …).
+ * Every hook is optional: a missing one gives Python's usual TypeError / AttributeError.
+ */
+export abstract class PyObj {
+  /** type(x).__name__, used in error messages */
+  abstract readonly cls: string
+  abstract repr(): string
+  str?(): string
+  /** format(x, spec) — f'{x:.3f}' */
+  format?(spec: string): string | undefined
+  getAttr?(name: string, h: Host): Value | undefined
+  setAttr?(name: string, v: Value, h: Host): boolean
+  getItem?(idx: Value, h: Host): Value
+  setItem?(idx: Value, v: Value, h: Host): void
+  /** undefined = NotImplemented (the other operand gets a turn) */
+  binop?(op: string, other: Value, reflected: boolean, h: Host): Value | undefined
+  /** x += y in place; false = fall back to x = x + y */
+  inplace?(op: string, rhs: Value, h: Host): boolean
+  unary?(op: '-' | '+' | '~', h: Host): Value
+  call?(args: Value[], kw: Kw, h: Host): Value
+  iter?(h: Host): Value[]
+  len?(h: Host): number
+  contains?(v: Value, h: Host): boolean
+  truthy?(h: Host): boolean
+  enter?(h: Host): Value
+  exit?(h: Host): void
+  /** np.asarray(x) — lets NumPy functions and plotting take this object */
+  toArray?(): NDArray
+  /** isinstance(x, T) for a library type named name */
+  isa?(name: string): boolean
+  /** a richer rendering for the output pane (a table, a figure …) when this is the cell's last value */
+  display?(): Display | null
+}
+
+/** What a library sees of the interpreter */
+export interface Host {
+  err(type: string, msg: string): PyError
+  call(f: Value, args: Value[], kw?: Kw): Value
+  iterate(v: Value): Value[]
+  truthy(v: Value): boolean
+  toInt(v: Value, what?: string): number
+  /** a Python number (or a one-element array / tensor) as a JS number */
+  num(v: Value, what?: string): number
+  str(v: Value): string
+  getAttr(obj: Value, name: string): Value
+  module(name: string): Value
+  /** current line, and the source text of the call or operator being evaluated */
+  readonly line: number
+  readonly code: string
+  /** false inside a loop after its first iterations, so a 100-epoch loop does not record 100 copies of each step */
+  readonly tracing: boolean
+  /** the variable name a value is bound to, or the given fallback */
+  nameOf(v: Value, fallback: string): string
+  emit(ev: PyEventInput): void
+  traceCall(api: string, kind: ApiKind, operands: Operand[], result: GridSnapshot | null, resultText: string, axis?: number | null): void
+  print(s: string): void
+  readonly rng: SandboxRandom
+  /** per-run state a library keeps between calls (pyplot's current figure …) */
+  readonly state: Map<string, unknown>
+  /** the run's array size limit */
+  readonly maxSize: number
+}
+
+/** A library the sandbox can import: the dotted module names it provides and how to build them (once per run) */
+export interface PyLib {
+  modules: string[]
+  load(h: Host): Record<string, Value>
+  /** outputs to show after the run (pyplot's open figures) */
+  finish?(h: Host): Display[]
+}
 
 const NONE: Value = { k: 'none' }
 const int = (v: number): Value => ({ k: 'int', v })
@@ -489,16 +1011,24 @@ const float = (v: number): Value => ({ k: 'float', v })
 const bool = (v: boolean): Value => ({ k: 'bool', v })
 const arr = (a: NDArray): Value => ({ k: 'array', a })
 const tuple = (items: Value[]): Value => ({ k: 'tuple', items })
+const str_ = (v: string): Value => ({ k: 'str', v })
 
-const typeName = (v: Value): string => {
+/** constructors and helpers for library code */
+export const py = { NONE, int, float, bool, arr, tuple, str: str_, list: (items: Value[]): Value => ({ k: 'list', items }), obj: (o: PyObj): Value => ({ k: 'obj', o }) }
+
+export const typeName = (v: Value): string => {
   switch (v.k) {
     case 'none': return 'NoneType'
     case 'array': return 'numpy.ndarray'
     case 'fn': return 'builtin_function_or_method'
-    case 'type': return 'type'
+    case 'type': case 'class': return 'type'
     case 'dtype': return 'numpy.dtype'
     case 'poly': return 'Polynomial'
     case 'carray': return 'numpy.ndarray'
+    case 'func': return 'function'
+    case 'bound': return 'method'
+    case 'inst': return v.cls.name
+    case 'obj': return v.o.cls
     default: return v.k
   }
 }
@@ -507,11 +1037,17 @@ const fromScalar = (x: number, dtype: DType): Value =>
   dtype === 'bool' ? bool(x !== 0) : dtype === 'int64' ? int(x) : float(x)
 
 type NumValue = Extract<Value, { k: 'int' | 'float' | 'bool' }>
-const isNum = (v: Value): v is NumValue => v.k === 'int' || v.k === 'float' || v.k === 'bool'
-const numOf = (v: Value): number => (v.k === 'bool' ? (v.v ? 1 : 0) : v.k === 'int' || v.k === 'float' ? v.v : NaN)
+export const isNum = (v: Value): v is NumValue => v.k === 'int' || v.k === 'float' || v.k === 'bool'
+export const numOf = (v: Value): number => (v.k === 'bool' ? (v.v ? 1 : 0) : v.k === 'int' || v.k === 'float' ? v.v : NaN)
 const scalarDType = (v: Value): DType => (v.k === 'bool' ? 'bool' : v.k === 'int' ? 'int64' : 'float64')
 
-const reprStr = (s: string) => (s.includes("'") && !s.includes('"') ? `"${s}"` : `'${s.replace(/'/g, "\\'")}'`)
+const reprStr = (s: string) => {
+  const q = s.includes("'") && !s.includes('"') ? '"' : "'"
+  const body = s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/\t/g, '\\t')
+  return q + (q === "'" ? body.replace(/'/g, "\\'") : body) + q
+}
+
+const rangeLen = (r: { start: number; stop: number; step: number }) => Math.max(0, Math.ceil((r.stop - r.start) / r.step))
 
 export const repr = (v: Value): string => {
   switch (v.k) {
@@ -522,6 +1058,8 @@ export const repr = (v: Value): string => {
     case 'str': return reprStr(v.v)
     case 'list': return `[${v.items.map(repr).join(', ')}]`
     case 'tuple': return v.items.length === 1 ? `(${repr(v.items[0])},)` : `(${v.items.map(repr).join(', ')})`
+    case 'dict': return `{${v.d.items().map(([k, x]) => `${repr(k)}: ${repr(x)}`).join(', ')}}`
+    case 'range': return v.step === 1 ? `range(${v.start}, ${v.stop})` : `range(${v.start}, ${v.stop}, ${v.step})`
     case 'slice': return `slice(${repr(v.start)}, ${repr(v.stop)}, ${repr(v.step)})`
     case 'ellipsis': return 'Ellipsis'
     case 'array': return arrayRepr(v.a)
@@ -531,6 +1069,12 @@ export const repr = (v: Value): string => {
     case 'dtype': return `dtype('${v.d}')`
     case 'poly': return polyRepr(v.coef, v.domain, v.window)
     case 'carray': return complexRepr(v.re, v.im)
+    case 'func': return `<function ${v.owner ? `${v.owner.name}.` : ''}${v.name}>`
+    case 'bound': return `<bound method ${v.f.owner ? `${v.f.owner.name}.` : ''}${v.f.name} of ${repr(v.self)}>`
+    case 'class': return `<class '__main__.${v.name}'>`
+    case 'inst': return v.cls.host?.repr?.(v) ?? `<__main__.${v.cls.name} object>`
+    case 'super': return `<super: <class '${v.after.name}'>, <${v.self.cls.name} object>>`
+    case 'obj': return v.o.repr()
   }
 }
 
@@ -539,18 +1083,106 @@ export const str = (v: Value): string => {
   if (v.k === 'array') return arrayStr(v.a)
   if (v.k === 'dtype') return v.d
   if (v.k === 'poly') return polyStr(v.coef)
+  if (v.k === 'obj') return v.o.str?.() ?? v.o.repr()
   return repr(v)
 }
 
+const groupThousands = (s: string, sep: string) => s.replace(/^(-?\d+)/, (m) => m.replace(/\B(?=(\d{3})+(?!\d))/g, sep))
+
+/** Python's format-spec mini-language for numbers and strings: [[fill]align][sign][0][width][,][.precision][type] */
+export const formatSpec = (v: Value, spec: string): string => {
+  if (!spec) return str(v)
+  if (v.k === 'obj') {
+    const s = v.o.format?.(spec)
+    if (s !== undefined) return s
+  }
+  const m = /^(?:(.)?([<>^=]))?([+\- ])?(#)?(0)?(\d+)?([,_])?(?:\.(\d+))?([bcdeEfFgGnosxX%])?$/.exec(spec)
+  if (!m) throw new PyError('ValueError', `Invalid format specifier '${spec}'`)
+  const [, fill0, align0, sign, , zero, widthS, group, precS, type] = m
+  const width = widthS ? Number(widthS) : 0
+  const prec = precS !== undefined ? Number(precS) : null
+  let body: string
+  const numeric = isNum(v) || (v.k === 'array' && v.a.size === 1)
+  if (numeric) {
+    const x = v.k === 'array' ? v.a.values()[0] : numOf(v)
+    const isInt = v.k === 'int' || v.k === 'bool' || (v.k === 'array' && v.a.dtype !== 'float64')
+    const t = type ?? (isInt && prec === null ? 'd' : prec === null ? '' : 'g')
+    const ax = Math.abs(x)
+    const fixed = (p: number) => (ax === Infinity ? 'inf' : Number.isNaN(x) ? 'nan' : ax.toFixed(p))
+    const expo = (p: number, up = false) => {
+      const s = ax.toExponential(p).replace(/e([+-])(\d)$/, 'e$10$2')
+      return up ? s.toUpperCase() : s
+    }
+    switch (t) {
+      case 'd': case 'n':
+        if (!isInt) throw new PyError('ValueError', `Unknown format code 'd' for object of type 'float'`)
+        body = String(ax)
+        break
+      case 'f': case 'F': body = fixed(prec ?? 6); break
+      case 'e': case 'E': body = expo(prec ?? 6, t === 'E'); break
+      case '%': body = (ax * 100).toFixed(prec ?? 6) + '%'; break
+      case 'g': case 'G': {
+        const p = prec === 0 ? 1 : prec ?? 6
+        const e = ax === 0 ? 0 : Math.floor(Math.log10(ax))
+        body = e < -4 || e >= p ? expo(p - 1, t === 'G').replace(/\.?0+e/, 'e') : ax.toFixed(Math.max(0, p - 1 - e)).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')
+        break
+      }
+      case 'x': body = ax.toString(16); break
+      case 'b': body = ax.toString(2); break
+      default: body = repr(isInt ? int(ax) : float(ax))
+    }
+    if (group) body = groupThousands(body, group)
+    const neg = x < 0 || Object.is(x, -0)
+    const signStr = neg ? '-' : sign === '+' ? '+' : sign === ' ' ? ' ' : ''
+    if (zero && !align0) return signStr + body.padStart(width - signStr.length, '0')
+    body = signStr + body
+    const align = align0 ?? '>'
+    return pad(body, width, fill0 ?? ' ', align)
+  }
+  if (type && type !== 's') throw new PyError('ValueError', `Unknown format code '${type}' for object of type '${typeName(v)}'`)
+  body = str(v)
+  if (prec !== null) body = body.slice(0, prec)
+  return pad(body, width, fill0 ?? ' ', align0 ?? '<')
+}
+
+/** operator → the dunder method a user class can define for it */
+const DUNDER: Record<string, string> = {
+  '+': '__add__', '-': '__sub__', '*': '__mul__', '/': '__truediv__', '@': '__matmul__', '**': '__pow__',
+  '==': '__eq__', '<': '__lt__', '>': '__gt__', '<=': '__le__', '>=': '__ge__',
+}
+
+const escRe = (s: string) => s.replace(/[\\^$.*+?()[\]{}|-]/g, '\\$&')
+
+const pad = (s: string, width: number, fill: string, align: string): string => {
+  const n = width - s.length
+  if (n <= 0) return s
+  if (align === '<') return s + fill.repeat(n)
+  if (align === '^') return fill.repeat(Math.floor(n / 2)) + s + fill.repeat(Math.ceil(n / 2))
+  return fill.repeat(n) + s
+}
+
 /** Python 值（嵌套 list / 标量 / 数组）→ NDArray */
-export const toArray = (v: Value, dtype?: DType): NDArray => {
+/** library objects (tensors, Series …) and ranges as plain arrays / lists */
+const asArrayLike = (x: Value): Value => {
+  if (x.k === 'obj' && x.o.toArray) return arr(x.o.toArray())
+  if (x.k === 'range') {
+    const n = rangeLen(x)
+    checkSize([n])
+    return { k: 'list', items: Array.from({ length: n }, (_, i) => int(x.start + i * x.step)) }
+  }
+  return x
+}
+
+export const toArray = (v0: Value, dtype?: DType): NDArray => {
+  const v = asArrayLike(v0)
   if (v.k === 'array') return dtype && dtype !== v.a.dtype ? NDArray.create(v.a.values(), v.a.shape, dtype) : v.a
   const flat: number[] = []
   let kind: DType = 'bool'
   const promote = (d: DType) => {
     if (d === 'float64' || (d === 'int64' && kind === 'bool')) kind = d
   }
-  const shapeOf = (x: Value, prefix: number[]): number[] => {
+  const shapeOf = (x0: Value, prefix: number[]): number[] => {
+    const x = asArrayLike(x0)
     if (x.k === 'list' || x.k === 'tuple') {
       const here = [...prefix, x.items.length]
       const shapes = x.items.map((it) => shapeOf(it, here))
@@ -564,7 +1196,8 @@ export const toArray = (v: Value, dtype?: DType): NDArray => {
     if (isNum(x)) return []
     throw new PyError('TypeError', `cannot convert '${typeName(x)}' to a numeric array`)
   }
-  const fill = (x: Value) => {
+  const fill = (x0: Value) => {
+    const x = asArrayLike(x0)
     if (x.k === 'list' || x.k === 'tuple') x.items.forEach(fill)
     else if (x.k === 'array') {
       promote(x.a.dtype)
@@ -636,6 +1269,8 @@ export interface Operand {
 /** 一次 API 调用 / 运算符 / 下标读取的记录，供 API 可视化面板使用 */
 export interface CallTrace {
   id: number
+  /** order among calls and library events */
+  seq: number
   line: number
   code: string
   /** 'np.sum'、'ndarray.reshape'、'op:+'、'ndarray.T'、'index' … */
@@ -672,9 +1307,15 @@ export interface VarInfo {
 export interface RunResult {
   stdout: string
   out: string | null
+  /** the final value drawn richly (a DataFrame as a table …) */
+  outDisplay: Display | null
   error: { type: string; message: string; line?: number } | null
   traces: IndexTrace[]
   calls: CallTrace[]
+  /** library events: figures, model shape flows, autograd graphs … */
+  events: PyEvent[]
+  /** what the libraries show after the run (open figures) */
+  displays: Display[]
   vars: VarInfo[]
 }
 
@@ -682,12 +1323,35 @@ const snap = (a: NDArray): GridSnapshot => ({ shape: [...a.shape], values: a.val
 
 // ================= 解释器 =================
 
-class Interp {
+/** how many runs of one source line keep recording traces (a loop body records its first iterations only) */
+const TRACE_REPEATS = 2
+/** total traces + calls + events kept per run */
+const MAX_RECORDS = 600
+const MAX_DEPTH = 120
+
+class BreakSig {}
+class ContinueSig {}
+class ReturnSig {
+  v: Value
+  constructor(v: Value) { this.v = v }
+}
+
+export interface RunOptions {
+  libs?: PyLib[]
+  /** element limit for one array (default MAX_SIZE); the deep-learning playgrounds raise it */
+  maxSize?: number
+  /** wall-clock budget in ms before a TimeoutError (default 2000) */
+  timeBudget?: number
+}
+
+class Interp implements Host {
   src: string
   env = new Map<string, Value>()
+  frame: Frame | null = null
   stdout: string[] = []
   traces: IndexTrace[] = []
   calls: CallTrace[] = []
+  events: PyEvent[] = []
   line = 0
   quiet = 0
   /** >0 while re-running a call on id arrays to recover element provenance */
@@ -697,9 +1361,22 @@ class Interp {
   pendingPlot: PolyPlot | null = null
   builtins: Record<string, Value>
   np: Value
+  libs: PyLib[]
+  loaded = new Map<PyLib, Record<string, Value>>()
+  state = new Map<string, unknown>()
+  maxSize: number
+  lineRuns = new Map<number, number>()
+  callText = ''
+  steps = 0
+  seqN = 0
+  depth = 0
+  deadline: number
 
-  constructor(src: string) {
+  constructor(src: string, opts: RunOptions = {}) {
     this.src = src
+    this.libs = opts.libs ?? []
+    this.maxSize = opts.maxSize ?? MAX_SIZE
+    this.deadline = Date.now() + (opts.timeBudget ?? 2000)
     this.np = this.makeNumpy()
     this.builtins = this.makeBuiltins()
   }
@@ -712,6 +1389,98 @@ class Interp {
     return this.src.slice(n.s, n.e)
   }
 
+  // ---------- 作用域、追踪开关、库接口 ----------
+
+  lookup(id: string): Value | undefined {
+    for (let f = this.frame; f; f = f.parent) {
+      if (f.isClass && f !== this.frame) continue
+      const v = f.vars.get(id)
+      if (v) return v
+    }
+    return this.env.get(id) ?? this.builtins[id]
+  }
+
+  bind(id: string, v: Value) {
+    ;(this.frame ? this.frame.vars : this.env).set(id, v)
+  }
+
+  get tracing(): boolean {
+    return !this.quiet && !this.replaying && (this.lineRuns.get(this.line) ?? 0) <= TRACE_REPEATS && this.traces.length + this.calls.length + this.events.length < MAX_RECORDS
+  }
+
+  get code(): string {
+    return this.callText
+  }
+
+  tick() {
+    if ((++this.steps & 1023) === 0 && Date.now() > this.deadline) {
+      throw this.err('TimeoutError', 'the code ran too long for this sandbox (an endless loop, or too many iterations?)')
+    }
+  }
+
+  emit(ev: PyEventInput) {
+    if (this.events.length + this.calls.length + this.traces.length >= MAX_RECORDS) return
+    this.events.push({ ...ev, id: this.events.length, seq: this.seqN++, line: ev.line ?? this.line, code: ev.code ?? this.callText } as PyEvent)
+  }
+
+  traceCall(api: string, kind: ApiKind, operands: Operand[], result: GridSnapshot | null, resultText: string, axis: number | null = null) {
+    if (!this.tracing) return
+    this.calls.push({ id: this.calls.length, seq: this.seqN++, line: this.line, code: this.callText, api, kind, operands, axis, result, resultText })
+  }
+
+  print(s: string) {
+    this.stdout.push(s)
+  }
+
+  num(v: Value, what = 'a number'): number {
+    if (isNum(v)) return numOf(v)
+    if (v.k === 'array' && v.a.size === 1) return v.a.values()[0]
+    if (v.k === 'obj' && v.o.toArray) {
+      const a = v.o.toArray()
+      if (a.size === 1) return a.values()[0]
+    }
+    throw this.err('TypeError', `expected ${what}, got '${typeName(v)}'`)
+  }
+
+  nameOf(v: Value, fallback: string): string {
+    const same = (x: Value) => x === v || (x.k === 'obj' && v.k === 'obj' && x.o === v.o) || (x.k === 'array' && v.k === 'array' && x.a === v.a)
+    for (let f = this.frame; f; f = f.parent) for (const [n, x] of f.vars) if (same(x)) return n
+    for (const [n, x] of this.env) if (same(x)) return n
+    return fallback
+  }
+
+  /** import by dotted name: numpy (built in), then the run's libraries */
+  module(name: string): Value {
+    const np = this.np as Value & { k: 'module' }
+    if (name === 'numpy') return np
+    if (name.startsWith('numpy.')) {
+      const sub = np.attrs[name.slice(6)]
+      if (sub?.k === 'module') return sub
+    }
+    if (name === 'math') return this.builtins.__math__
+    if (name === 'random') return this.builtins.__random__
+    const lib = this.libs.find((l) => l.modules.includes(name))
+    if (!lib) {
+      const have = ['numpy', 'math', 'random', ...this.libs.flatMap((l) => l.modules.filter((m) => !m.includes('.')))]
+      throw this.err('ModuleNotFoundError', `No module named '${name}' (this sandbox has ${[...new Set(have)].join(', ')})`)
+    }
+    let mods = this.loaded.get(lib)
+    if (!mods) {
+      mods = lib.load(this)
+      this.loaded.set(lib, mods)
+    }
+    return mods[name]
+  }
+
+  str(v: Value): string {
+    if (v.k === 'inst') {
+      const f = this.classAttr(v.cls, '__str__') ?? this.classAttr(v.cls, '__repr__')
+      if (f && f.k === 'func') return str(this.callFunc(f, [v], {}))
+    }
+    if (v.k === 'list' || v.k === 'tuple' || v.k === 'dict') return repr(v)
+    return str(v)
+  }
+
   // ---------- 基本协议 ----------
 
   truthy(v: Value): boolean {
@@ -721,6 +1490,9 @@ class Interp {
       case 'none': return false
       case 'str': return v.v.length > 0
       case 'list': case 'tuple': return v.items.length > 0
+      case 'dict': return v.d.size > 0
+      case 'range': return rangeLen(v) > 0
+      case 'obj': return v.o.truthy ? v.o.truthy(this) : v.o.len ? v.o.len(this) > 0 : true
       case 'array':
         if (v.a.size === 1) return v.a.values()[0] !== 0
         if (v.a.size === 0) throw this.err('ValueError', 'The truth value of an empty array is ambiguous. Use `array.size > 0` to check that an array is not empty.')
@@ -742,6 +1514,19 @@ class Interp {
   }
 
   binop(op: string, l: Value, r: Value): Value {
+    if (l.k === 'obj' || r.k === 'obj') {
+      const res = (l.k === 'obj' ? l.o.binop?.(op, r, false, this) : undefined) ?? (r.k === 'obj' ? r.o.binop?.(op, l, true, this) : undefined)
+      if (res) return res
+      if (op === '==' || op === '!=') return bool((op === '==') === (l.k === 'obj' && r.k === 'obj' && l.o === r.o))
+      throw this.err('TypeError', `unsupported operand type(s) for ${op}: '${typeName(l)}' and '${typeName(r)}'`)
+    }
+    if (l.k === 'inst' || r.k === 'inst') {
+      const dunder = DUNDER[op]
+      const f = dunder && l.k === 'inst' ? this.classAttr(l.cls, dunder) : undefined
+      if (f && f.k === 'func') return this.callFunc(f, [l, r], {})
+      if (op === '==' || op === '!=') return bool((op === '==') === (l === r))
+      throw this.err('TypeError', `unsupported operand type(s) for ${op}: '${typeName(l)}' and '${typeName(r)}'`)
+    }
     if (op === '@') {
       if (l.k !== 'array' && r.k !== 'array') throw this.err('TypeError', `unsupported operand type(s) for @: '${typeName(l)}' and '${typeName(r)}'`)
       if (toArray(l).ndim === 0 || toArray(r).ndim === 0) throw this.err('ValueError', 'matmul: Input operand does not have enough dimensions')
@@ -809,7 +1594,12 @@ class Interp {
     }
     if (op === 'in' || op === 'not in') {
       let found: boolean
-      if (r.k === 'list' || r.k === 'tuple') found = r.items.some((x) => this.truthy(this.binop('==', x, l)))
+      if (r.k === 'list' || r.k === 'tuple') found = r.items.some((x) => x === l || this.truthy(this.binop('==', x, l)))
+      else if (r.k === 'dict') found = r.d.has(l)
+      else if (r.k === 'range') {
+        const x = isNum(l) ? numOf(l) : NaN
+        found = Number.isInteger(x) && (r.step > 0 ? x >= r.start && x < r.stop : x <= r.start && x > r.stop) && (x - r.start) % r.step === 0
+      } else if (r.k === 'obj' && r.o.contains) found = r.o.contains(l, this)
       else if (r.k === 'str' && l.k === 'str') found = r.v.includes(l.v)
       else if (r.k === 'array') found = toArray(this.binop('==', r, l)).values().some((x) => x !== 0)
       else throw this.err('TypeError', `argument of type '${typeName(r)}' is not iterable`)
@@ -872,7 +1662,7 @@ class Interp {
       const items = this.toIndexItems(idx)
       const { plan, value } = getIndex(a, items)
       const res: Value = typeof value === 'number' ? fromScalar(value, a.dtype) : arr(value)
-      if (!this.quiet && !this.replaying) {
+      if (this.tracing) {
         const out = typeof value === 'number' ? { shape: [], values: [value], dtype: a.dtype } : snap(value)
         this.record(this.targetOf(node), this.text(node), a, before, plan, 'read', out)
         const flatOf = new Map(a.addresses().map((x, i) => [x, i]))
@@ -884,6 +1674,22 @@ class Interp {
       const r = this.seqIndex(obj.items, idx, obj.k)
       return Array.isArray(r) ? ({ k: obj.k, items: r } as Value) : r
     }
+    if (obj.k === 'dict') {
+      const v = obj.d.get(idx)
+      if (!v) throw this.err('KeyError', repr(idx))
+      return v
+    }
+    if (obj.k === 'range') {
+      const n = rangeLen(obj)
+      const items = Array.from({ length: Math.min(n, this.maxSize) }, (_, i) => int(obj.start + i * obj.step))
+      const r = this.seqIndex(items, idx, 'range object')
+      return Array.isArray(r) ? { k: 'list', items: r } : r
+    }
+    if (obj.k === 'obj') {
+      if (!obj.o.getItem) throw this.err('TypeError', `'${obj.o.cls}' object is not subscriptable`)
+      this.callText = this.text(node)
+      return obj.o.getItem(idx, this)
+    }
     if (obj.k === 'str') {
       const r = this.seqIndex([...obj.v].map((c) => ({ k: 'str', v: c }) as Value), idx, 'string')
       return Array.isArray(r) ? { k: 'str', v: r.map((c) => (c as { v: string }).v).join('') } : r
@@ -892,6 +1698,16 @@ class Interp {
   }
 
   setItem(node: Node & { k: 'sub' }, obj: Value, idx: Value, val: Value, codeNode?: Span) {
+    if (obj.k === 'dict') {
+      obj.d.set(idx, val)
+      return
+    }
+    if (obj.k === 'obj') {
+      if (!obj.o.setItem) throw this.err('TypeError', `'${obj.o.cls}' object does not support item assignment`)
+      this.callText = this.text(codeNode ?? node)
+      obj.o.setItem(idx, val, this)
+      return
+    }
     if (obj.k === 'list') {
       if (idx.k !== 'int') throw this.err('TypeError', 'list indices must be integers or slices, not ' + typeName(idx))
       const n = obj.items.length
@@ -934,6 +1750,7 @@ class Interp {
   }
 
   record(target: string, code: string, a: NDArray, before: GridSnapshot, plan: IndexPlan, mode: 'read' | 'write', out: GridSnapshot, memBefore?: number[]) {
+    if (!this.tracing) return
     // 源数组：地址 → 扁平下标
     const srcAddrs = a.addresses()
     const flatOf = new Map(srcAddrs.map((x, i) => [x, i]))
@@ -1004,6 +1821,7 @@ class Interp {
     this.pendingPlot = null
     this.calls.push({
       id: this.calls.length,
+      seq: this.seqN++,
       line: this.line,
       code,
       api,
@@ -1078,7 +1896,7 @@ class Interp {
       case 'const': return n.v === 'None' ? NONE : bool(n.v === 'True')
       case 'ellipsis': return { k: 'ellipsis' }
       case 'name': {
-        const v = this.env.get(n.id) ?? this.builtins[n.id]
+        const v = this.lookup(n.id)
         if (!v) {
           if (n.id === 'np' || n.id === 'numpy') throw this.err('NameError', `name '${n.id}' is not defined. Did you forget 'import numpy as np'?`)
           throw this.err('NameError', `name '${n.id}' is not defined`)
@@ -1087,11 +1905,27 @@ class Interp {
       }
       case 'list': return { k: 'list', items: n.items.map((x) => this.eval(x)) }
       case 'tuple': return tuple(n.items.map((x) => this.eval(x)))
+      case 'dict': return { k: 'dict', d: PyDict.from(n.keys.map((key, i) => [this.eval(key), this.eval(n.vals[i])])) }
+      case 'fstr':
+        return str_(n.parts.map((p) => {
+          if (typeof p === 'string') return p
+          const v = this.eval(p.x)
+          if (p.spec) return formatSpec(v, p.spec)
+          return p.conv === 'r' ? repr(v) : this.str(v)
+        }).join(''))
+      case 'comp': return this.comprehension(n)
+      case 'lambda':
+        return { k: 'func', name: '<lambda>', params: n.params, defaults: n.params.map((p) => (p.def ? this.eval(p.def) : null)), body: null, expr: n.body, closure: this.closureFrame(), owner: null }
       case 'unary': {
         const x = this.eval(n.x)
+        if (x.k === 'obj') {
+          if (!x.o.unary) throw this.err('TypeError', `bad operand type for unary ${n.op}: '${x.o.cls}'`)
+          this.callText = this.text(n)
+          return x.o.unary(n.op, this)
+        }
         if (x.k === 'array') {
           const res = arr(unaryOp(n.op, x.a))
-          if (!this.replaying && !this.quiet && n.op !== '+') this.pushCall(`op:${n.op}x`, 'elementwise', this.text(n), [{ label: this.text(n.x), v: arr(x.a.copy()) }], res, null)
+          if (this.tracing && n.op !== '+') this.pushCall(`op:${n.op}x`, 'elementwise', this.text(n), [{ label: this.text(n.x), v: arr(x.a.copy()) }], res, null)
           return res
         }
         if (!isNum(x)) throw this.err('TypeError', `bad operand type for unary ${n.op}: '${typeName(x)}'`)
@@ -1114,8 +1948,9 @@ class Interp {
         let result: Value = bool(true)
         for (let i = 0; i < n.ops.length; i++) {
           const r = this.eval(n.xs[i + 1])
+          this.callText = this.text(n)
           result = this.compare(n.ops[i], l, r)
-          if ((l.k === 'array' || r.k === 'array') && !this.replaying && !this.quiet) {
+          if ((l.k === 'array' || r.k === 'array') && this.tracing) {
             const ops = this.collectOperands([n.xs[i], n.xs[i + 1]], [l, r], true).map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
             this.pushCall(`op:${n.ops[i]}`, 'elementwise', n.ops.length === 1 ? this.text(n) : `${this.text(n.xs[i])} ${n.ops[i]} ${this.text(n.xs[i + 1])}`, ops, result, null)
           }
@@ -1130,15 +1965,16 @@ class Interp {
         const r = this.eval(n.r)
         if (l.k === 'poly' || r.k === 'poly') {
           const res = this.polyArith(n.op, l, r)
-          if (!this.replaying && !this.quiet) {
+          if (this.tracing) {
             const curves = [[n.l, l], [n.r, r]].flatMap(([node, v]) => ((v as Value).k === 'poly' ? [this.curve(this.text(node as Node), v as Value & { k: 'poly' })] : []))
             this.pendingPlot = { curves: [...curves, this.curve(this.text(n), res)] }
             this.pushCall(`op:${n.op}`, 'poly', this.text(n), [], res, null)
           }
           return res
         }
+        this.callText = this.text(n)
         const res = this.binop(n.op, l, r)
-        if ((l.k === 'array' || r.k === 'array') && !this.replaying && !this.quiet) {
+        if ((l.k === 'array' || r.k === 'array') && this.tracing) {
           const ops = this.collectOperands([n.l, n.r], [l, r], n.op !== '@').map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
           this.pushCall(`op:${n.op}`, n.op === '@' ? 'matmul' : 'elementwise', this.text(n), ops, res, null)
         }
@@ -1147,7 +1983,7 @@ class Interp {
       case 'attr': {
         const obj = this.eval(n.obj)
         const res = this.getAttr(obj, n.name)
-        if (obj.k === 'array' && n.name === 'T' && !this.replaying && !this.quiet) {
+        if (obj.k === 'array' && n.name === 'T' && this.tracing) {
           const ops = [{ label: this.text(n.obj), v: arr(obj.a.copy()) }]
           const source = this.replayMove([{ v: obj }], (subst) => this.getAttr(subst(obj), 'T'))
           this.pushCall('ndarray.T', 'move', this.text(n), ops, res, null, source)
@@ -1160,9 +1996,14 @@ class Interp {
         const kw: Record<string, Value> = {}
         for (const { name, v } of n.kw) kw[name] = this.eval(v)
         if (f.k === 'poly') return this.callPoly(f, n, args)
-        if (f.k !== 'fn' && f.k !== 'type') throw this.err('TypeError', `'${typeName(f)}' object is not callable`)
-        if (f.api && !this.replaying && !this.quiet) return this.tracedCall(f, n, args, kw)
-        return f.call(args, kw)
+        this.callText = this.text(n)
+        if ((f.k === 'fn' || f.k === 'type') && f.api && this.tracing) return this.tracedCall(f, n, args, kw)
+        const line = this.line
+        try {
+          return this.call(f, args, kw)
+        } finally {
+          this.line = line
+        }
       }
       case 'sub': return this.getItem(n, this.eval(n.obj), this.eval(n.idx))
       case 'slice':
@@ -1177,9 +2018,12 @@ class Interp {
 
   assign(t: Node, v: Value, stmtSpan?: Span) {
     if (t.k === 'name') {
-      this.env.set(t.id, v)
+      this.bind(t.id, v)
     } else if (t.k === 'sub') {
       this.setItem(t, this.eval(t.obj), this.eval(t.idx), v, stmtSpan)
+    } else if (t.k === 'attr') {
+      this.callText = stmtSpan ? this.src.slice(stmtSpan.s, stmtSpan.e) : this.text(t)
+      this.setAttr(this.eval(t.obj), t.name, v)
     } else if (t.k === 'tuple' || t.k === 'list') {
       const items = this.iterate(v)
       if (items.length !== t.items.length) {
@@ -1192,6 +2036,13 @@ class Interp {
   iterate(v: Value): Value[] {
     if (v.k === 'list' || v.k === 'tuple') return v.items
     if (v.k === 'str') return [...v.v].map((c) => ({ k: 'str', v: c }))
+    if (v.k === 'dict') return v.d.keys()
+    if (v.k === 'range') {
+      const n = rangeLen(v)
+      if (n > 1_000_000) throw this.err('MemoryError', 'range too large for this sandbox')
+      return Array.from({ length: n }, (_, i) => int(v.start + i * v.step))
+    }
+    if (v.k === 'obj' && v.o.iter) return v.o.iter(this)
     if (v.k === 'array') {
       if (v.a.ndim === 0) throw this.err('TypeError', 'iteration over a 0-d array')
       return Array.from({ length: v.a.shape[0] }, (_, i) => {
@@ -1202,58 +2053,371 @@ class Interp {
     throw this.err('TypeError', `'${typeName(v)}' object is not iterable`)
   }
 
-  exec(stmts: Stmt[]): string | null {
-    let out: string | null = null
-    stmts.forEach((st, i) => {
-      this.line = st.line
-      out = null
-      switch (st.k) {
-        case 'pass': break
-        case 'import': this.env.set(st.alias, this.np); break
-        case 'from': {
-          const np = this.np as Value & { k: 'module' }
-          const mod = st.mod === 'numpy' ? np : (np.attrs.polynomial as Value & { k: 'module' })
-          for (const { name, alias } of st.names) {
-            const v = mod.attrs[name]
-            if (!v) throw this.err('ImportError', `cannot import name '${name}' from '${st.mod}' (not available in this sandbox)`)
-            this.env.set(alias, v)
-          }
-          break
-        }
-        case 'expr': {
-          const v = this.eval(st.x)
-          if (i === stmts.length - 1 && v.k !== 'none') out = repr(v)
-          break
-        }
-        case 'assign': {
-          const v = this.eval(st.x)
-          for (const t of st.targets) this.assign(t, v, { s: t.s, e: st.x.e, line: st.line })
-          break
-        }
-        case 'aug': {
-          const span = { s: st.s, e: st.e, line: st.line }
-          if (st.target.k === 'name') {
-            const cur = this.eval(st.target)
-            const rhs = this.eval(st.x)
-            if (cur.k === 'array') this.inplace(st.target.id, cur.a, st.op, rhs, span)
-            else this.env.set(st.target.id, this.binop(st.op, cur, rhs))
-          } else if (st.target.k === 'sub') {
-            const obj = this.eval(st.target.obj)
-            const idx = this.eval(st.target.idx)
-            this.quiet++
-            const cur = this.getItem(st.target, obj, idx)
-            this.quiet--
-            const v = this.binop(st.op, cur, this.eval(st.x))
-            if (obj.k === 'array' && v.k === 'array' && obj.a.dtype !== 'float64' && v.a.dtype === 'float64') {
-              throw this.err('UFuncTypeError', `Cannot cast ufunc output from dtype('float64') to dtype('${obj.a.dtype}') with casting rule 'same_kind'`)
-            }
-            this.setItem(st.target, obj, idx, v, span)
-          }
-          break
+  // ---------- 函数、类与调用 ----------
+
+  /** the frame a new function closes over (class bodies are not visible from methods) */
+  closureFrame(): Frame | null {
+    let f = this.frame
+    while (f && f.isClass) f = f.parent
+    return f
+  }
+
+  /** look a name up along a class's bases (depth-first, left to right) */
+  classAttr(cls: ClassValue, name: string, after?: ClassValue): Value | undefined {
+    let skipping = !!after
+    const seen = new Set<ClassValue>()
+    const walk = (c: ClassValue): Value | undefined => {
+      if (seen.has(c)) return undefined
+      seen.add(c)
+      if (skipping) {
+        if (c === after) skipping = false
+      } else if (c.ns.has(name)) return c.ns.get(name)
+      for (const b of c.bases) {
+        if (b.k === 'class') {
+          const v = walk(b)
+          if (v) return v
         }
       }
+      return undefined
+    }
+    return walk(cls)
+  }
+
+  call(f: Value, args: Value[], kw: Kw = {}): Value {
+    switch (f.k) {
+      case 'fn': case 'type': return f.call(args, kw)
+      case 'func': return this.callFunc(f, args, kw)
+      case 'bound': return this.callFunc(f.f, [f.self, ...args], kw)
+      case 'class': return this.instantiate(f, args, kw)
+      case 'inst': {
+        const c = this.classAttr(f.cls, '__call__')
+        if (c && c.k === 'func') return this.callFunc(c, [f, ...args], kw)
+        if (f.cls.host?.call) return f.cls.host.call(f, args, kw, this)
+        break
+      }
+      case 'obj':
+        if (f.o.call) return f.o.call(args, kw, this)
+        break
+    }
+    throw this.err('TypeError', `'${typeName(f)}' object is not callable`)
+  }
+
+  callFunc(f: FuncValue, args: Value[], kw: Kw): Value {
+    const vars = new Map<string, Value>()
+    const ps = f.params
+    if (args.length > ps.length) throw this.err('TypeError', `${f.name}() takes ${ps.length} positional argument${ps.length === 1 ? '' : 's'} but ${args.length} were given`)
+    ps.forEach((p, i) => {
+      if (i < args.length) {
+        if (p.name in kw) throw this.err('TypeError', `${f.name}() got multiple values for argument '${p.name}'`)
+        vars.set(p.name, args[i])
+      } else if (p.name in kw) vars.set(p.name, kw[p.name])
+      else if (f.defaults[i]) vars.set(p.name, f.defaults[i]!)
+    })
+    for (const k in kw) if (!ps.some((p) => p.name === k)) throw this.err('TypeError', `${f.name}() got an unexpected keyword argument '${k}'`)
+    const missing = ps.filter((p) => !vars.has(p.name)).map((p) => `'${p.name}'`)
+    if (missing.length) throw this.err('TypeError', `${f.name}() missing ${missing.length} required positional argument${missing.length > 1 ? 's' : ''}: ${missing.join(' and ')}`)
+    if (this.depth >= MAX_DEPTH) throw this.err('RecursionError', 'maximum recursion depth exceeded')
+    const saved = this.frame
+    this.frame = { vars, parent: f.closure, owner: f.owner, self: ps.length ? vars.get(ps[0].name) : undefined }
+    this.depth++
+    try {
+      if (f.expr) return this.eval(f.expr)
+      this.execBlock(f.body!)
+      return NONE
+    } catch (e) {
+      if (e instanceof ReturnSig) return e.v
+      throw e
+    } finally {
+      this.frame = saved
+      this.depth--
+    }
+  }
+
+  instantiate(cls: ClassValue, args: Value[], kw: Kw): Value {
+    const inst: InstValue = { k: 'inst', cls, attrs: new Map(), state: {} }
+    const init = this.classAttr(cls, '__init__')
+    if (init && init.k === 'func') {
+      const r = this.callFunc(init, [inst, ...args], kw)
+      if (r.k !== 'none') throw this.err('TypeError', '__init__() should return None')
+    } else if (cls.host) cls.host.init(inst, args, kw, this)
+    else if (args.length || Object.keys(kw).length) throw this.err('TypeError', `${cls.name}() takes no arguments`)
+    return inst
+  }
+
+  /** the library base class of a user class, if any */
+  hostOf(bases: Value[]): HostClass | null {
+    for (const b of bases) {
+      if (b.k === 'type' && b.host) return b.host
+      if (b.k === 'class' && b.host) return b.host
+    }
+    return null
+  }
+
+  setAttr(obj: Value, name: string, v: Value) {
+    switch (obj.k) {
+      case 'inst':
+        obj.cls.host?.setAttr?.(obj, name, v, this)
+        obj.attrs.set(name, v)
+        return
+      case 'class':
+        obj.ns.set(name, v)
+        return
+      case 'obj':
+        if (obj.o.setAttr?.(name, v, this)) return
+        throw this.err('AttributeError', `'${obj.o.cls}' object attribute '${name}' is read-only (or does not exist in this sandbox)`)
+      case 'func':
+        return
+    }
+    throw this.err('AttributeError', `'${typeName(obj)}' object has no attribute '${name}'`)
+  }
+
+  comprehension(n: Node & { k: 'comp' }): Value {
+    const out: Value[] = []
+    const pairs: [Value, Value][] = []
+    const saved = this.frame
+    // the loop variables live in their own scope, as in Python 3
+    this.frame = { vars: new Map(), parent: saved }
+    try {
+      const loop = (g: number) => {
+        if (g === n.gens.length) {
+          if (n.kind === 'dict') pairs.push([this.eval(n.elt), this.eval(n.val!)])
+          else out.push(this.eval(n.elt))
+          return
+        }
+        const gen = n.gens[g]
+        for (const item of this.iterate(this.eval(gen.iter))) {
+          this.tick()
+          this.assign(gen.target, item)
+          if (gen.conds.every((c) => this.truthy(this.eval(c)))) loop(g + 1)
+        }
+      }
+      loop(0)
+    } finally {
+      this.frame = saved
+    }
+    return n.kind === 'dict' ? { k: 'dict', d: PyDict.from(pairs) } : { k: 'list', items: out }
+  }
+
+  // ---------- 语句 ----------
+
+  /** run a program: the value of a final expression statement is the cell's output */
+  run(stmts: Stmt[]): Value | null {
+    let out: Value | null = null
+    stmts.forEach((st, i) => {
+      out = null
+      if (st.k === 'expr' && i === stmts.length - 1) {
+        this.at(st.line)
+        const v = this.eval(st.x)
+        if (v.k !== 'none') out = v
+      } else this.execStmt(st)
     })
     return out
+  }
+
+  /** enter a source line: counts its runs (for trace throttling) and the step budget */
+  at(line: number) {
+    this.line = line
+    this.lineRuns.set(line, (this.lineRuns.get(line) ?? 0) + 1)
+    this.tick()
+  }
+
+  execBlock(stmts: Stmt[]) {
+    for (const st of stmts) this.execStmt(st)
+  }
+
+  execStmt(st: Stmt) {
+    this.at(st.line)
+    switch (st.k) {
+      case 'pass': return
+      case 'break': throw new BreakSig()
+      case 'continue': throw new ContinueSig()
+      case 'return':
+        if (!this.frame || this.frame.isClass) throw this.err('SyntaxError', "'return' outside function")
+        throw new ReturnSig(st.x ? this.eval(st.x) : NONE)
+      case 'import': {
+        const mod = this.module(st.mod)
+        if (st.alias) this.bind(st.alias, mod)
+        else {
+          const root = st.mod.split('.')[0]
+          this.bind(root, this.module(root))
+        }
+        return
+      }
+      case 'from': {
+        const mod = this.module(st.mod)
+        if (mod.k !== 'module') throw this.err('ImportError', `cannot import from '${st.mod}'`)
+        for (const { name, alias } of st.names) {
+          let v: Value | undefined = mod.attrs[name]
+          if (!v) {
+            try {
+              v = this.module(`${st.mod}.${name}`)
+            } catch {
+              throw this.err('ImportError', `cannot import name '${name}' from '${st.mod}' (not available in this sandbox)`)
+            }
+          }
+          this.bind(alias, v)
+        }
+        return
+      }
+      case 'expr':
+        this.eval(st.x)
+        return
+      case 'assign': {
+        const v = this.eval(st.x)
+        for (const t of st.targets) this.assign(t, v, { s: t.s, e: st.x.e, line: st.line })
+        return
+      }
+      case 'aug': return this.augAssign(st)
+      case 'del':
+        for (const t of st.targets) this.del(t)
+        return
+      case 'assert':
+        if (!this.truthy(this.eval(st.x))) throw this.err('AssertionError', st.msg ? this.str(this.eval(st.msg)) : '')
+        return
+      case 'if':
+        for (const b of st.branches) {
+          if (b.cond === null || this.truthy(this.eval(b.cond))) {
+            this.execBlock(b.body)
+            return
+          }
+        }
+        return
+      case 'for': {
+        const items = this.iterate(this.eval(st.iter))
+        for (const item of items) {
+          this.line = st.line
+          this.tick()
+          this.assign(st.target, item)
+          try {
+            this.execBlock(st.body)
+          } catch (e) {
+            if (e instanceof BreakSig) break
+            if (e instanceof ContinueSig) continue
+            throw e
+          }
+        }
+        return
+      }
+      case 'while':
+        while (this.truthy(this.eval(st.cond))) {
+          try {
+            this.execBlock(st.body)
+          } catch (e) {
+            if (e instanceof BreakSig) break
+            if (e instanceof ContinueSig) continue
+            throw e
+          }
+          this.at(st.line)
+        }
+        return
+      case 'def': {
+        const f: FuncValue = {
+          k: 'func', name: st.name, params: st.params, defaults: st.params.map((p) => (p.def ? this.eval(p.def) : null)),
+          body: st.body, expr: null, closure: this.closureFrame(), owner: null,
+        }
+        this.bind(st.name, f)
+        return
+      }
+      case 'class': {
+        const bases = st.bases.map((b) => this.eval(b))
+        for (const b of bases) {
+          if (b.k !== 'class' && b.k !== 'type') throw this.err('TypeError', `bases must be classes, not '${typeName(b)}'`)
+          if (b.k === 'type' && !b.host && b.name !== 'object') throw this.err('TypeError', `cannot subclass '${b.name}' in this sandbox`)
+        }
+        const cls: ClassValue = { k: 'class', name: st.name, bases, ns: new Map(), host: this.hostOf(bases) }
+        const saved = this.frame
+        this.frame = { vars: cls.ns, parent: saved, isClass: true }
+        try {
+          this.execBlock(st.body)
+        } finally {
+          this.frame = saved
+        }
+        for (const v of cls.ns.values()) if (v.k === 'func') v.owner = cls
+        this.bind(st.name, cls)
+        return
+      }
+      case 'with': {
+        const exits: (() => void)[] = []
+        try {
+          for (const item of st.items) {
+            const ctx = this.eval(item.x)
+            this.callText = this.text(item.x)
+            let entered: Value
+            if (ctx.k === 'obj' && ctx.o.enter) {
+              entered = ctx.o.enter(this)
+              exits.push(() => ctx.o.exit?.(this))
+            } else throw this.err('TypeError', `'${typeName(ctx)}' object does not support the context manager protocol`)
+            if (item.as) this.assign(item.as, entered)
+          }
+          this.execBlock(st.body)
+        } finally {
+          for (const x of exits.reverse()) x()
+        }
+        return
+      }
+    }
+  }
+
+  augAssign(st: Stmt & { k: 'aug' }) {
+    const span = { s: st.s, e: st.e, line: st.line }
+    this.callText = this.src.slice(st.s, st.e)
+    const t = st.target
+    if (t.k === 'name') {
+      const cur = this.eval(t)
+      const rhs = this.eval(st.x)
+      this.callText = this.src.slice(st.s, st.e)
+      if (cur.k === 'array') this.inplace(t.id, cur.a, st.op, rhs, span)
+      else if (cur.k === 'obj' && cur.o.inplace?.(st.op, rhs, this)) return
+      else if (cur.k === 'list' && st.op === '+') cur.items.push(...this.iterate(rhs))
+      else this.bind(t.id, this.binop(st.op, cur, rhs))
+    } else if (t.k === 'attr') {
+      const obj = this.eval(t.obj)
+      const cur = this.getAttr(obj, t.name)
+      const rhs = this.eval(st.x)
+      this.callText = this.src.slice(st.s, st.e)
+      if (cur.k === 'obj' && cur.o.inplace?.(st.op, rhs, this)) return
+      if (cur.k === 'array') {
+        this.inplace(this.text(t), cur.a, st.op, rhs, span)
+        return
+      }
+      this.setAttr(obj, t.name, this.binop(st.op, cur, rhs))
+    } else if (t.k === 'sub') {
+      const obj = this.eval(t.obj)
+      const idx = this.eval(t.idx)
+      this.quiet++
+      let cur: Value
+      try {
+        cur = this.getItem(t, obj, idx)
+      } finally {
+        this.quiet--
+      }
+      const v = this.binop(st.op, cur, this.eval(st.x))
+      if (obj.k === 'array' && v.k === 'array' && obj.a.dtype !== 'float64' && v.a.dtype === 'float64') {
+        throw this.err('UFuncTypeError', `Cannot cast ufunc output from dtype('float64') to dtype('${obj.a.dtype}') with casting rule 'same_kind'`)
+      }
+      this.setItem(t, obj, idx, v, span)
+    }
+  }
+
+  del(t: Node) {
+    if (t.k === 'name') {
+      const scope = this.frame ? this.frame.vars : this.env
+      if (!scope.delete(t.id)) throw this.err('NameError', `name '${t.id}' is not defined`)
+    } else if (t.k === 'sub') {
+      const obj = this.eval(t.obj)
+      const idx = this.eval(t.idx)
+      if (obj.k === 'dict') {
+        if (!obj.d.delete(idx)) throw this.err('KeyError', repr(idx))
+      } else if (obj.k === 'list' && (idx.k === 'int' || idx.k === 'bool')) {
+        const n = obj.items.length
+        const i = numOf(idx)
+        if (i < -n || i >= n) throw this.err('IndexError', 'list assignment index out of range')
+        obj.items.splice(i < 0 ? i + n : i, 1)
+      } else throw this.err('TypeError', `'${typeName(obj)}' object doesn't support item deletion`)
+    } else if (t.k === 'attr') {
+      const obj = this.eval(t.obj)
+      if (obj.k !== 'inst' || !obj.attrs.delete(t.name)) throw this.err('AttributeError', t.name)
+    } else for (const x of (t as { items: Node[] }).items ?? []) this.del(x)
   }
 
   // ---------- 属性与方法 ----------
@@ -1373,7 +2537,7 @@ class Interp {
       res = arr(NDArray.create(ys, xa.shape, 'float64'))
       marks = xa.values().map((t, i) => ({ x: t, y: ys[i] }))
     }
-    if (!this.replaying && !this.quiet) {
+    if (this.tracing) {
       this.pendingPlot = { curves: [this.curve(n.fn.k === 'name' ? n.fn.id : this.text(n.fn), p)], marks }
       this.pushCall('Polynomial.__call__', 'poly', this.text(n), [], res, null)
     }
@@ -1449,6 +2613,52 @@ class Interp {
 
   getAttr(obj: Value, name: string): Value {
     const fn = (call: Fn): Value => ({ k: 'fn', name, call })
+    switch (obj.k) {
+      case 'obj': {
+        const v = obj.o.getAttr?.(name, this)
+        if (v) return v
+        throw this.err('AttributeError', `'${obj.o.cls}' object has no attribute '${name}'${obj.o.getAttr ? ' (or it is not available in this sandbox)' : ''}`)
+      }
+      case 'inst': {
+        const own = obj.attrs.get(name)
+        if (own) return own
+        const c = this.classAttr(obj.cls, name)
+        if (c) return c.k === 'func' ? { k: 'bound', self: obj, f: c } : c
+        const h = obj.cls.host?.getAttr?.(obj, name, this)
+        if (h) return h
+        if (name === '__class__') return obj.cls
+        throw this.err('AttributeError', `'${obj.cls.name}' object has no attribute '${name}'`)
+      }
+      case 'class': {
+        if (name === '__name__') return str_(obj.name)
+        const c = this.classAttr(obj, name)
+        if (c) return c
+        throw this.err('AttributeError', `type object '${obj.name}' has no attribute '${name}'`)
+      }
+      case 'super': {
+        const c = this.classAttr(obj.self.cls, name, obj.after)
+        if (c) return c.k === 'func' ? { k: 'bound', self: obj.self, f: c } : c
+        const host = obj.self.cls.host
+        const inst = obj.self
+        if (name === '__init__') return fn((args, kw) => { host?.init(inst, args, kw, this); return NONE })
+        const h = host?.getAttr?.(inst, name, this)
+        if (h) return h
+        throw this.err('AttributeError', `'super' object has no attribute '${name}'`)
+      }
+      case 'func':
+        if (name === '__name__') return str_(obj.name)
+        break
+      case 'type':
+        if (name === '__name__') return str_(obj.name.split('.').pop()!)
+        break
+      case 'range':
+        if (name === 'start' || name === 'stop' || name === 'step') return int(obj[name])
+        break
+      case 'int': case 'float': case 'bool':
+        if (name === 'item') return fn(() => obj)
+        if (name === 'is_integer') return fn(() => bool(Number.isInteger(numOf(obj))))
+        break
+    }
     if (obj.k === 'module') {
       const v = obj.attrs[name]
       if (!v) throw this.err('AttributeError', `module '${obj.name}' has no attribute '${name}' (not available in this sandbox)`)
@@ -1469,8 +2679,17 @@ class Interp {
       if (m) return { k: 'fn', name, call: m.impl(a), api: m.meta, self: a, rebind: m.impl }
       throw this.err('AttributeError', `'numpy.ndarray' object has no attribute '${name}'`)
     }
-    if (obj.k === 'list' && name === 'append') {
-      return fn((args) => { obj.items.push(args[0]); return NONE })
+    if (obj.k === 'list') {
+      const m = this.listMethod(obj, name)
+      if (m) return fn(m)
+    }
+    if (obj.k === 'dict') {
+      const m = this.dictMethod(obj, name)
+      if (m) return fn(m)
+    }
+    if (obj.k === 'str') {
+      const m = this.strMethod(obj.v, name)
+      if (m) return fn(m)
     }
     if (obj.k === 'dtype' && name === 'name') return { k: 'str', v: obj.d }
     if (obj.k === 'poly') return this.polyAttr(obj, name)
@@ -1478,6 +2697,114 @@ class Interp {
       return { k: 'fn', name: 'fit', call: (args, kw) => this.polyFit(args, kw), api: { name: 'Polynomial.fit', kind: 'poly' } }
     }
     throw this.err('AttributeError', `'${typeName(obj)}' object has no attribute '${name}'`)
+  }
+
+  listMethod(l: Value & { k: 'list' }, name: string): Fn | null {
+    const it = l.items
+    const idxOf = (x: Value) => it.findIndex((y) => y === x || this.truthy(this.binop('==', y, x)))
+    switch (name) {
+      case 'append': return (args) => { it.push(args[0]); return NONE }
+      case 'extend': return (args) => { it.push(...this.iterate(args[0])); return NONE }
+      case 'insert': return (args) => { const n = it.length; let i = this.toInt(args[0]); if (i < 0) i = Math.max(0, i + n); it.splice(Math.min(i, n), 0, args[1]); return NONE }
+      case 'pop': return (args) => {
+        if (!it.length) throw this.err('IndexError', 'pop from empty list')
+        const n = it.length
+        const i = args[0] ? this.toInt(args[0]) : -1
+        if (i < -n || i >= n) throw this.err('IndexError', 'pop index out of range')
+        return it.splice(i < 0 ? i + n : i, 1)[0]
+      }
+      case 'index': return (args) => { const i = idxOf(args[0]); if (i < 0) throw this.err('ValueError', `${repr(args[0])} is not in list`); return int(i) }
+      case 'count': return (args) => int(it.filter((y) => this.truthy(this.binop('==', y, args[0]))).length)
+      case 'remove': return (args) => { const i = idxOf(args[0]); if (i < 0) throw this.err('ValueError', 'list.remove(x): x not in list'); it.splice(i, 1); return NONE }
+      case 'reverse': return () => { it.reverse(); return NONE }
+      case 'copy': return () => ({ k: 'list', items: [...it] })
+      case 'clear': return () => { it.length = 0; return NONE }
+      case 'sort': return (_a, kw) => { const sorted = this.sorted(it, kw.key, kw.reverse); it.splice(0, it.length, ...sorted); return NONE }
+    }
+    return null
+  }
+
+  dictMethod(d: Value & { k: 'dict' }, name: string): Fn | null {
+    const m = d.d
+    switch (name) {
+      case 'keys': return () => ({ k: 'list', items: m.keys() })
+      case 'values': return () => ({ k: 'list', items: m.values() })
+      case 'items': return () => ({ k: 'list', items: m.items().map(([a, b]) => tuple([a, b])) })
+      case 'get': return (args) => m.get(args[0]) ?? args[1] ?? NONE
+      case 'pop': return (args) => {
+        const v = m.get(args[0])
+        if (!v) { if (args[1]) return args[1]; throw this.err('KeyError', repr(args[0])) }
+        m.delete(args[0])
+        return v
+      }
+      case 'setdefault': return (args) => { if (!m.has(args[0])) m.set(args[0], args[1] ?? NONE); return m.get(args[0])! }
+      case 'update': return (args, kw) => {
+        if (args[0]?.k === 'dict') for (const [k, v] of args[0].d.items()) m.set(k, v)
+        for (const k in kw) m.set(str_(k), kw[k])
+        return NONE
+      }
+      case 'copy': return () => ({ k: 'dict', d: PyDict.from(m.items()) })
+    }
+    return null
+  }
+
+  strMethod(sv: string, name: string): Fn | null {
+    const S = (x: string): Value => str_(x)
+    const arg = (v: Value | undefined, what: string) => {
+      if (!v || v.k !== 'str') throw this.err('TypeError', `${what} must be str, not ${v ? typeName(v) : 'nothing'}`)
+      return v.v
+    }
+    switch (name) {
+      case 'upper': return () => S(sv.toUpperCase())
+      case 'lower': return () => S(sv.toLowerCase())
+      case 'title': return () => S(sv.replace(/\b\w/g, (c) => c.toUpperCase()))
+      case 'strip': return (a) => S(a[0]?.k === 'str' ? sv.replace(new RegExp(`^[${escRe(a[0].v)}]+|[${escRe(a[0].v)}]+$`, 'g'), '') : sv.trim())
+      case 'lstrip': return () => S(sv.trimStart())
+      case 'rstrip': return () => S(sv.trimEnd())
+      case 'split': return (a) => ({ k: 'list', items: (a[0] && a[0].k === 'str' ? sv.split(a[0].v) : sv.trim().split(/\s+/).filter(Boolean)).map(S) })
+      case 'join': return (a) => S(this.iterate(a[0]).map((x) => arg(x, 'sequence item')).join(sv))
+      case 'replace': return (a) => S(sv.split(arg(a[0], 'replace() argument 1')).join(arg(a[1], 'replace() argument 2')))
+      case 'startswith': return (a) => bool(sv.startsWith(arg(a[0], 'startswith arg')))
+      case 'endswith': return (a) => bool(sv.endsWith(arg(a[0], 'endswith arg')))
+      case 'find': return (a) => int(sv.indexOf(arg(a[0], 'find arg')))
+      case 'count': return (a) => int(sv.split(arg(a[0], 'count arg')).length - 1)
+      case 'isdigit': return () => bool(/^\d+$/.test(sv))
+      case 'center': return (a) => S(pad(sv, this.toInt(a[0]), a[1]?.k === 'str' ? a[1].v : ' ', '^'))
+      case 'ljust': return (a) => S(pad(sv, this.toInt(a[0]), ' ', '<'))
+      case 'rjust': return (a) => S(pad(sv, this.toInt(a[0]), ' ', '>'))
+      case 'format': return (args, kw) => {
+        let auto = 0
+        return S(sv.replace(/\{\{|\}\}|\{([^{}:!]*)(?:!([rs]))?(?::([^{}]*))?\}/g, (whole, key: string | undefined, conv: string | undefined, spec: string | undefined) => {
+          if (whole === '{{') return '{'
+          if (whole === '}}') return '}'
+          const v = key === undefined || key === '' ? args[auto++] : /^\d+$/.test(key) ? args[Number(key)] : kw[key]
+          if (!v) throw this.err('IndexError', 'Replacement index out of range for positional args tuple')
+          return spec ? formatSpec(v, spec) : conv === 'r' ? repr(v) : this.str(v)
+        }))
+      }
+    }
+    return null
+  }
+
+  /** sorted() / list.sort(): numbers and strings, optional key function */
+  sorted(items: Value[], key?: Value, reverse?: Value): Value[] {
+    const keyed = items.map((v) => ({ v, k: key && key.k !== 'none' ? this.call(key, [v]) : v }))
+    const cmp = (a: Value, b: Value): number => {
+      if (isNum(a) && isNum(b)) return numOf(a) - numOf(b)
+      if (a.k === 'str' && b.k === 'str') return a.v < b.v ? -1 : a.v > b.v ? 1 : 0
+      if ((a.k === 'tuple' || a.k === 'list') && (b.k === 'tuple' || b.k === 'list')) {
+        for (let i = 0; i < Math.min(a.items.length, b.items.length); i++) {
+          const c = cmp(a.items[i], b.items[i])
+          if (c) return c
+        }
+        return a.items.length - b.items.length
+      }
+      if (a.k === 'obj' || b.k === 'obj' || a.k === 'array' || b.k === 'array') return this.truthy(this.binop('<', a, b)) ? -1 : this.truthy(this.binop('<', b, a)) ? 1 : 0
+      throw this.err('TypeError', `'<' not supported between instances of '${typeName(a)}' and '${typeName(b)}'`)
+    }
+    keyed.sort((a, b) => cmp(a.k, b.k))
+    if (reverse && this.truthy(reverse)) keyed.reverse()
+    return keyed.map((x) => x.v)
   }
 
   toList(a: NDArray): Value {
@@ -1585,6 +2912,55 @@ class Interp {
           checkSize(shape)
           return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, draw), shape, 'int64'))
         }, 'random'),
+        normal: rnd('normal', (args, kw) => {
+          const loc = numOf(kw.loc ?? args[0] ?? float(0))
+          const scale = numOf(kw.scale ?? args[1] ?? float(1))
+          const size = kw.size ?? args[2]
+          if (!size || size.k === 'none') return float(loc + scale * this.rng.normal())
+          const shape = this.toShape([size])
+          checkSize(shape)
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => loc + scale * this.rng.normal()), shape, 'float64'))
+        }, 'random'),
+        uniform: rnd('uniform', (args, kw) => {
+          const lo = numOf(kw.low ?? args[0] ?? float(0))
+          const hi = numOf(kw.high ?? args[1] ?? float(1))
+          const size = kw.size ?? args[2]
+          if (!size || size.k === 'none') return float(lo + (hi - lo) * this.rng.next())
+          const shape = this.toShape([size])
+          checkSize(shape)
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => lo + (hi - lo) * this.rng.next()), shape, 'float64'))
+        }, 'random'),
+        permutation: rnd('permutation', (args) => {
+          const a = args[0].k === 'int' ? NDArray.create(Array.from({ length: args[0].v }, (_, i) => i), [args[0].v], 'int64') : toArray(args[0])
+          const n = a.shape[0] ?? 0
+          const order = Array.from({ length: n }, (_, i) => i)
+          for (let i = n - 1; i > 0; i--) {
+            const j = Math.floor(this.rng.next() * (i + 1))
+            ;[order[i], order[j]] = [order[j], order[i]]
+          }
+          const { value } = getIndex(a, [{ kind: 'array', arr: NDArray.create(order, [n], 'int64') }])
+          return arr(value as NDArray)
+        }, 'random'),
+        choice: rnd('choice', (args, kw) => {
+          const pool = args[0].k === 'int' ? Array.from({ length: args[0].v }, (_, i) => i) : toArray(args[0]).values()
+          const size = kw.size ?? args[1]
+          const draw = () => pool[Math.floor(this.rng.next() * pool.length)]
+          if (!size || size.k === 'none') return fromScalar(draw(), args[0].k === 'int' ? 'int64' : toArray(args[0]).dtype)
+          const shape = this.toShape([size])
+          checkSize(shape)
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, draw), shape, args[0].k === 'int' ? 'int64' : toArray(args[0]).dtype))
+        }, 'random'),
+        shuffle: rnd('shuffle', (args) => {
+          const v = args[0]
+          if (v.k === 'list') {
+            for (let i = v.items.length - 1; i > 0; i--) {
+              const j = Math.floor(this.rng.next() * (i + 1))
+              ;[v.items[i], v.items[j]] = [v.items[j], v.items[i]]
+            }
+            return NONE
+          }
+          throw this.err('NotImplementedError', 'np.random.shuffle works on lists here; use a = a[np.random.permutation(len(a))] for arrays')
+        }),
       },
     }
     const la = api('np.linalg')
@@ -1618,7 +2994,7 @@ class Interp {
         const s = numOf(step)
         if (s === 0) throw this.err('ZeroDivisionError', 'division by zero')
         const n = Math.max(0, Math.ceil((numOf(stop) - numOf(start)) / s))
-        if (n > MAX_SIZE) throw this.err('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${MAX_SIZE}`)
+        if (n > this.maxSize) throw this.err('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${this.maxSize}`)
         const vals = Array.from({ length: n }, (_, i) => numOf(start) + i * s)
         return arr(NDArray.create(vals, [n], this.dtypeOf(kw.dtype) ?? (isFloat ? 'float64' : 'int64')))
       }, 'create'),
@@ -1626,7 +3002,7 @@ class Interp {
         const a = numOf(args[0])
         const b = numOf(args[1])
         const n = this.kwInt(kw, args, 2, 'num') ?? 50
-        if (n > MAX_SIZE) throw this.err('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${MAX_SIZE}`)
+        if (n > this.maxSize) throw this.err('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${this.maxSize}`)
         return arr(NDArray.create(Array.from({ length: n }, (_, i) => (n === 1 ? a : a + ((b - a) * i) / (n - 1))), [n], 'float64'))
       }, 'create'),
       zeros: filled('zeros', 0),
@@ -1804,6 +3180,9 @@ class Interp {
       k: 'type', name, dtype: d,
       call: (args) => {
         const x = args[0] ?? int(0)
+        if (x.k === 'str' && d === 'float64' && /^\s*[-+]?(inf|infinity|nan)\s*$/i.test(x.v)) {
+          return float(/nan/i.test(x.v) ? NaN : x.v.includes('-') ? -Infinity : Infinity)
+        }
         if (x.k === 'str') {
           const n = Number(x.v)
           if (x.v.trim() === '' || Number.isNaN(n) || (d === 'int64' && !/^\s*[-+]?\d+\s*$/.test(x.v))) {
@@ -1813,6 +3192,7 @@ class Interp {
         }
         if (d === 'bool') return bool(this.truthy(x))
         if (x.k === 'array' && x.a.size !== 1) throw this.err('TypeError', 'only length-1 arrays can be converted to Python scalars')
+        if (x.k === 'obj') return fromScalar(castValue(this.num(x, 'a number'), d), d)
         const v = x.k === 'array' ? x.a.values()[0] : numOf(x)
         if (Number.isNaN(v) && !isNum(x) && x.k !== 'array') throw this.err('TypeError', `${name}() argument must be a string or a real number, not '${typeName(x)}'`)
         return fromScalar(castValue(v, d), d)
@@ -1822,7 +3202,7 @@ class Interp {
       print: fn('print', (args, kw) => {
         const sep = kw.sep && kw.sep.k === 'str' ? kw.sep.v : ' '
         const end = kw.end && kw.end.k === 'str' ? kw.end.v : '\n'
-        this.stdout.push(args.map(str).join(sep) + end)
+        this.stdout.push(args.map((a) => this.str(a)).join(sep) + end)
         return NONE
       }),
       len: fn('len', (args) => {
@@ -1833,16 +3213,18 @@ class Interp {
         }
         if (v.k === 'list' || v.k === 'tuple') return int(v.items.length)
         if (v.k === 'str') return int(v.v.length)
+        if (v.k === 'dict') return int(v.d.size)
+        if (v.k === 'range') return int(rangeLen(v))
+        if (v.k === 'obj' && v.o.len) return int(v.o.len(this))
         throw this.err('TypeError', `object of type '${typeName(v)}' has no len()`)
       }),
-      range: fn('range', (args) => {
+      range: { k: 'type', name: 'range', call: (args) => {
+        if (!args.length) throw this.err('TypeError', 'range expected at least 1 argument, got 0')
         const n = args.map((x) => this.toInt(x))
-        const [a, b, s] = n.length === 1 ? [0, n[0], 1] : [n[0], n[1], n[2] ?? 1]
-        if (s === 0) throw this.err('ValueError', 'range() arg 3 must not be zero')
-        const len = Math.max(0, Math.ceil((b - a) / s))
-        if (len > MAX_SIZE) throw this.err('MemoryError', 'range too large for this sandbox')
-        return { k: 'list', items: Array.from({ length: len }, (_, i) => int(a + i * s)) }
-      }),
+        const [a, b, st] = n.length === 1 ? [0, n[0], 1] : [n[0], n[1], n[2] ?? 1]
+        if (st === 0) throw this.err('ValueError', 'range() arg 3 must not be zero')
+        return { k: 'range', start: a, stop: b, step: st }
+      } },
       list: fn('list', (args) => ({ k: 'list', items: args[0] ? [...this.iterate(args[0])] : [] })),
       tuple: fn('tuple', (args) => tuple(args[0] ? [...this.iterate(args[0])] : [])),
       abs: fn('abs', (args) => {
@@ -1850,7 +3232,84 @@ class Interp {
         if (x.k === 'array') return arr(NDArray.create(x.a.values().map(Math.abs), x.a.shape, x.a.dtype === 'bool' ? 'int64' : x.a.dtype))
         return x.k === 'float' ? float(Math.abs(x.v)) : int(Math.abs(numOf(x)))
       }),
-      type: fn('type', (args) => ({ k: 'type', name: typeName(args[0]), call: () => NONE })),
+      type: fn('type', (args) => (args[0].k === 'inst' ? args[0].cls : { k: 'type', name: typeName(args[0]), call: () => NONE })),
+      str: { k: 'type', name: 'str', call: (args) => str_(args.length ? this.str(args[0]) : '') },
+      repr: fn('repr', (args) => str_(repr(args[0]))),
+      format: fn('format', (args) => str_(formatSpec(args[0], args[1]?.k === 'str' ? args[1].v : ''))),
+      chr: fn('chr', (args) => str_(String.fromCharCode(this.toInt(args[0])))),
+      ord: fn('ord', (args) => int((args[0] as { v: string }).v.charCodeAt(0))),
+      dict: { k: 'type', name: 'dict', call: (args, kw) => {
+        const d = new PyDict()
+        if (args[0]) for (const p of this.iterate(args[0])) {
+          const kv = this.iterate(p)
+          if (kv.length !== 2) throw this.err('ValueError', 'dictionary update sequence element has wrong length')
+          d.set(kv[0], kv[1])
+        }
+        for (const k in kw) d.set(str_(k), kw[k])
+        return { k: 'dict', d }
+      } },
+      object: { k: 'type', name: 'object', call: () => { throw this.err('TypeError', 'object() is not useful in this sandbox') } },
+      enumerate: fn('enumerate', (args, kw) => {
+        const start = kw.start ?? args[1]
+        const s0 = start ? this.toInt(start) : 0
+        return { k: 'list', items: this.iterate(args[0]).map((v, i) => tuple([int(i + s0), v])) }
+      }),
+      zip: fn('zip', (args) => {
+        const its = args.map((a) => this.iterate(a))
+        const n = its.length ? Math.min(...its.map((x) => x.length)) : 0
+        return { k: 'list', items: Array.from({ length: n }, (_, i) => tuple(its.map((x) => x[i]))) }
+      }),
+      sum: fn('sum', (args, kw) => this.iterate(args[0]).reduce((acc, v) => this.binop('+', acc, v), kw.start ?? args[1] ?? int(0))),
+      min: fn('min', (args, kw) => this.extreme(args, kw, -1)),
+      max: fn('max', (args, kw) => this.extreme(args, kw, 1)),
+      sorted: fn('sorted', (args, kw) => ({ k: 'list', items: this.sorted([...this.iterate(args[0])], kw.key, kw.reverse) })),
+      reversed: fn('reversed', (args) => ({ k: 'list', items: [...this.iterate(args[0])].reverse() })),
+      any: fn('any', (args) => bool(this.iterate(args[0]).some((v) => this.truthy(v)))),
+      all: fn('all', (args) => bool(this.iterate(args[0]).every((v) => this.truthy(v)))),
+      map: fn('map', (args) => ({ k: 'list', items: this.iterate(args[1]).map((v) => this.call(args[0], [v])) })),
+      filter: fn('filter', (args) => ({ k: 'list', items: this.iterate(args[1]).filter((v) => this.truthy(args[0].k === 'none' ? v : this.call(args[0], [v]))) })),
+      round: fn('round', (args) => {
+        const x = args[0]
+        const nd = args[1] && args[1].k !== 'none' ? this.toInt(args[1]) : null
+        if (x.k === 'obj' || x.k === 'array') {
+          const r = this.getAttr(x, 'round')
+          return this.call(r, nd === null ? [] : [int(nd)])
+        }
+        const v = this.num(x)
+        return nd === null ? int(roundHalfEven(v)) : x.k === 'int' ? x : float(roundHalfEven(v, nd))
+      }),
+      pow: fn('pow', (args) => this.binop('**', args[0], args[1])),
+      divmod: fn('divmod', (args) => tuple([this.binop('//', args[0], args[1]), this.binop('%', args[0], args[1])])),
+      isinstance: fn('isinstance', (args) => bool(this.isinstance(args[0], args[1]))),
+      hasattr: fn('hasattr', (args) => {
+        try {
+          this.getAttr(args[0], (args[1] as { v: string }).v)
+          return bool(true)
+        } catch (e) {
+          if (e instanceof PyError) return bool(false)
+          throw e
+        }
+      }),
+      getattr: fn('getattr', (args) => {
+        try {
+          return this.getAttr(args[0], (args[1] as { v: string }).v)
+        } catch (e) {
+          if (e instanceof PyError && args[2]) return args[2]
+          throw e
+        }
+      }),
+      setattr: fn('setattr', (args) => { this.setAttr(args[0], (args[1] as { v: string }).v, args[2]); return NONE }),
+      super: fn('super', (args) => {
+        if (args.length === 2) {
+          if (args[0].k !== 'class' || args[1].k !== 'inst') throw this.err('TypeError', 'super(type, obj): obj must be an instance of type')
+          return { k: 'super', self: args[1], after: args[0] }
+        }
+        const f = this.frame
+        if (!f?.owner || f.self?.k !== 'inst') throw this.err('RuntimeError', 'super(): no arguments — call it inside a method')
+        return { k: 'super', self: f.self, after: f.owner }
+      }),
+      __math__: this.makeMath(),
+      __random__: this.makeRandom(),
       slice: fn('slice', (args) => {
         const [a, b, c] = args.length === 1 ? [NONE, args[0], NONE] : [args[0], args[1], args[2] ?? NONE]
         return { k: 'slice', start: a, stop: b, step: c }
@@ -1862,10 +3321,91 @@ class Interp {
     }
   }
 
+  extreme(args: Value[], kw: Kw, sign: 1 | -1): Value {
+    const items = args.length === 1 ? this.iterate(args[0]) : args
+    if (!items.length) {
+      if (kw.default) return kw.default
+      throw this.err('ValueError', `${sign > 0 ? 'max' : 'min'}() arg is an empty sequence`)
+    }
+    const key = kw.key && kw.key.k !== 'none' ? kw.key : null
+    let best = items[0]
+    let bestK = key ? this.call(key, [best]) : best
+    for (const v of items.slice(1)) {
+      const k = key ? this.call(key, [v]) : v
+      if (this.truthy(this.binop(sign > 0 ? '>' : '<', k, bestK))) {
+        best = v
+        bestK = k
+      }
+    }
+    return best
+  }
+
+  isinstance(v: Value, t: Value): boolean {
+    if (t.k === 'tuple') return t.items.some((x) => this.isinstance(v, x))
+    if (t.k === 'class') {
+      if (v.k !== 'inst') return false
+      const walk = (c: ClassValue): boolean => c === t || c.bases.some((b) => b.k === 'class' && walk(b))
+      return walk(v.cls)
+    }
+    if (t.k === 'type') {
+      const name = t.name
+      if (v.k === 'obj') return v.o.cls === name || !!v.o.isa?.(name)
+      if (v.k === 'inst') return v.cls.host !== null && t.host === v.cls.host
+      const map: Record<string, Value['k'][]> = { int: ['int', 'bool'], float: ['float'], bool: ['bool'], str: ['str'], list: ['list'], tuple: ['tuple'], dict: ['dict'], range: ['range'], 'numpy.ndarray': ['array'] }
+      return (map[name] ?? []).includes(v.k)
+    }
+    throw this.err('TypeError', 'isinstance() arg 2 must be a type, a tuple of types, or a union')
+  }
+
+  makeMath(): Value {
+    const f1 = (name: string, g: (x: number) => number): Value => ({ k: 'fn', name, call: (args) => {
+      const r = g(this.num(args[0]))
+      if (Number.isNaN(r)) throw this.err('ValueError', 'math domain error')
+      return float(r)
+    } })
+    return {
+      k: 'module', name: 'math', attrs: {
+        sqrt: f1('sqrt', Math.sqrt), exp: f1('exp', Math.exp), log: { k: 'fn', name: 'log', call: (args) => {
+          const x = this.num(args[0])
+          if (x <= 0) throw this.err('ValueError', 'math domain error')
+          return float(args[1] ? Math.log(x) / Math.log(this.num(args[1])) : Math.log(x))
+        } },
+        log2: f1('log2', Math.log2), log10: f1('log10', Math.log10), sin: f1('sin', Math.sin), cos: f1('cos', Math.cos), tan: f1('tan', Math.tan),
+        tanh: f1('tanh', Math.tanh), fabs: f1('fabs', Math.abs),
+        floor: { k: 'fn', name: 'floor', call: (args) => int(Math.floor(this.num(args[0]))) },
+        ceil: { k: 'fn', name: 'ceil', call: (args) => int(Math.ceil(this.num(args[0]))) },
+        isclose: { k: 'fn', name: 'isclose', call: (args) => bool(Math.abs(this.num(args[0]) - this.num(args[1])) <= 1e-9 * Math.max(Math.abs(this.num(args[0])), Math.abs(this.num(args[1])))) },
+        pi: float(Math.PI), e: float(Math.E), inf: float(Infinity), nan: float(NaN),
+      },
+    }
+  }
+
+  makeRandom(): Value {
+    const r = this.rng
+    return {
+      k: 'module', name: 'random', attrs: {
+        seed: { k: 'fn', name: 'seed', call: (args) => { r.seed(args[0] ? this.toInt(args[0]) : 0); return NONE } },
+        random: { k: 'fn', name: 'random', call: () => float(r.next()) },
+        uniform: { k: 'fn', name: 'uniform', call: (args) => float(this.num(args[0]) + (this.num(args[1]) - this.num(args[0])) * r.next()) },
+        randint: { k: 'fn', name: 'randint', call: (args) => int(this.toInt(args[0]) + Math.floor(r.next() * (this.toInt(args[1]) - this.toInt(args[0]) + 1))) },
+        choice: { k: 'fn', name: 'choice', call: (args) => { const it = this.iterate(args[0]); return it[Math.floor(r.next() * it.length)] } },
+        shuffle: { k: 'fn', name: 'shuffle', call: (args) => {
+          if (args[0].k !== 'list') throw this.err('TypeError', 'shuffle() needs a list')
+          const it = args[0].items
+          for (let i = it.length - 1; i > 0; i--) {
+            const j = Math.floor(r.next() * (i + 1))
+            ;[it[i], it[j]] = [it[j], it[i]]
+          }
+          return NONE
+        } },
+      },
+    }
+  }
+
   vars(): VarInfo[] {
     const out: VarInfo[] = []
     for (const [name, v] of this.env) {
-      if (v.k === 'module') continue
+      if (v.k === 'module' || v.k === 'func' || v.k === 'class' || v.k === 'fn' || v.k === 'type') continue
       if (v.k === 'array') {
         const sharesWith = [...this.env].filter(([n, o]) => n !== name && o.k === 'array' && sharesMemory(o.a, v.a)).map(([n]) => n)
         out.push({ name, kind: 'ndarray', shape: v.a.shape, dtype: v.a.dtype, sharesWith, isView: v.a.base !== null, preview: '' })
@@ -1879,16 +3419,33 @@ class Interp {
 }
 
 /** 运行一段代码：返回输出、错误、所有下标读写轨迹与变量表 */
-export const runPython = (src: string): RunResult => {
-  const it = new Interp(src)
+export const runPython = (src: string, opts: RunOptions = {}): RunResult => {
+  const it = new Interp(src, opts)
   let out: string | null = null
+  let outDisplay: Display | null = null
   let error: RunResult['error'] = null
+  const prevLimit = setSizeLimit(it.maxSize)
   try {
-    out = it.exec(parse(src))
+    const v = it.run(parse(src))
+    if (v) {
+      out = repr(v)
+      outDisplay = v.k === 'obj' ? v.o.display?.() ?? null : null
+    }
   } catch (e) {
     if (e instanceof PyError) error = { type: e.pyType, message: e.message, line: e.line ?? it.line }
+    else if (e instanceof BreakSig || e instanceof ContinueSig) error = { type: 'SyntaxError', message: `'${e instanceof BreakSig ? 'break' : 'continue'}' outside loop`, line: it.line }
     else if (e instanceof RangeError) error = { type: 'RecursionError', message: 'expression too deeply nested', line: it.line }
     else error = { type: 'InternalError', message: e instanceof Error ? e.message : String(e), line: it.line }
+  } finally {
+    setSizeLimit(prevLimit)
   }
-  return { stdout: it.stdout.join(''), out, error, traces: it.traces, calls: it.calls, vars: it.vars() }
+  const displays: Display[] = []
+  for (const lib of it.libs) if (it.loaded.has(lib) && lib.finish) {
+    try {
+      displays.push(...lib.finish(it))
+    } catch {
+      // a broken figure must not hide the run's output
+    }
+  }
+  return { stdout: it.stdout.join(''), out, outDisplay, error, traces: it.traces, calls: it.calls, events: it.events, displays, vars: it.vars() }
 }

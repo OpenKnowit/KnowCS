@@ -567,7 +567,8 @@
       "pytorch": "PyTorch API 统计与学习路线",
       "tensorflow": "TensorFlow API 数量与模块结构",
       "keras": "Keras 核心 API 学习笔记",
-      "kevin": "COMP2211 课程笔记"
+      "kevin": "COMP2211 课程笔记",
+      "matplotlib": "COMP2211 中的 Matplotlib"
     }
   },
   "extend": {
@@ -3864,5 +3865,223 @@
   "notfound": {
     "title": "页面不存在",
     "lead": "这个地址不存在（或已不再使用）。2026 年 10 月起本站改为每个主题一个页面 —— 从下面开始吧："
+  },
+  "playground": {
+    "ui": {
+      "full": "全屏",
+      "exit_full": "退出全屏",
+      "search": "搜索示例…",
+      "groups": "示例分组",
+      "no_match": "没有匹配的示例。",
+      "editor": "代码（边输入边运行）",
+      "shortcut": "Tab 缩进 · Ctrl/⌘+Enter 运行 · Esc 离开编辑框",
+      "reset": "还原",
+      "run": "运行",
+      "output": "输出",
+      "line": "第 {{n}} 行",
+      "no_output": "暂无输出：print() 的内容和最后一行的值会显示在这里。",
+      "figures_one": "图",
+      "figures_other": "图（{{count}} 张）",
+      "steps": "步骤",
+      "nothing": "代码里的每一次调用都会列在这里，点开即可查看。",
+      "try_block": "试一试",
+      "try_hint": "在实验台中打开这段代码",
+      "open_panel": "打开实验台",
+      "loading": "实验台加载中…",
+      "from_note": "来自笔记的代码。可以随意修改，或在上方选一个示例。"
+    },
+    "view": {
+      "figure_label": "包含 {{n}} 个子图的图",
+      "figure_step": "这一步调用之后的图：本次调用新增的部分高亮，其余变淡。",
+      "pixel": "img[{{row}}, {{col}}] = {{value}} → ({{value}} − {{vmin}}) / ({{vmax}} − {{vmin}}) = {{t}}，在 '{{cmap}}' 上取色 → {{color}}",
+      "pixel_rgb": "img[{{row}}, {{col}}] → {{color}}",
+      "pixel_hint": "把鼠标移到像素上，看它的数值如何变成颜色。",
+      "result": "结果",
+      "series_shape": "Series · {{n}} 行",
+      "frame_shape": "DataFrame · {{r}} 行 × {{c}} 列",
+      "rows_cut": "仅显示前 {{n}} 行",
+      "flow_torch": "这次前向传播中每一层的输入与输出形状（PyTorch 通道在前：batch、通道、高、宽），以及该层的参数个数。",
+      "flow_keras": "图形化的 model.summary()：每层的输出形状（Keras 通道在后：batch、高、宽、通道；None 表示 batch）和参数个数。",
+      "layer": "层",
+      "in_out": "输入 → 输出形状",
+      "params": "参数",
+      "total_params": "参数总数",
+      "trainable": "可训练参数",
+      "graph": "autograd 记录下的计算图。backward() 从 loss 沿图走回叶子节点，把 ∂loss/∂x 存进每个叶子的 .grad。鼠标移到节点上可看它由哪些节点算出。",
+      "graph_label": "自动求导计算图",
+      "value": "值",
+      "no_grad_kept": "不保留梯度（非叶子）",
+      "leaf": "requires_grad=True 的叶子张量（会填入 .grad）",
+      "root": "调用 backward() 的张量",
+      "history": "{{n}} 个 epoch 中每个 epoch 结束时的损失与指标，即 history.history 的内容。",
+      "history_label": "训练曲线",
+      "best_epoch": "验证损失最低：第 {{n}} 个 epoch"
+    },
+    "note": {
+      "default_cmap": "没有指定 cmap：二维数组会用默认色图 'viridis' 上色，而不是灰度。第 7 讲每次都会写 cmap='gray'。",
+      "auto_range": "没有指定 vmin / vmax：matplotlib 会把这张图自身的范围 [{{min}}, {{max}}] 拉伸到整条色图上，所以就算图片很暗，最暗的像素也会变成黑、最亮的变成白。写上 vmin=0, vmax=1（或 255）才能保留真实亮度。",
+      "keras_dense_nd": "Dense 层收到的输入形状是 {{shape}}：它只作用在最后一个轴上，所以输出会保留其他轴。要对整张图片分类，请在 Dense({{units}}) 前加 Flatten()。",
+      "keras_sparse_hint": "标签是整数（0、1、2 …），不是 one-hot 行向量。请用 loss='sparse_categorical_crossentropy'，或先用 to_categorical(y, num_classes) 转换。",
+      "keras_overfit": "验证损失在第 {{epoch}} 个 epoch 最低，之后训练损失继续下降而验证损失回升：模型在过拟合。EarlyStopping(monitor='val_loss') 会在那里停下；减少单元数、加 dropout 或 L2 也有帮助。",
+      "pandas_ddof": "pandas 的 std() 和 var() 除以 n − 1（ddof=1，样本估计），NumPy 的 np.std 除以 n（ddof=0）。想得到 NumPy 的数值时请传 ddof=0，例如按第 3 讲的方式做标准化。",
+      "grad_accumulate": "backward() 把梯度加到了原来已有的梯度上：PyTorch 会在多次调用之间累加 .grad。训练循环中，每次 backward() 之前都要调用 optimizer.zero_grad()（或 w.grad.zero_()）。",
+      "dropout_eval": "Dropout 仍然生效：模型处于训练模式，即使在 no_grad() 中也会随机把单元置零。评估或预测前请先调用 model.eval()。",
+      "softmax_ce": "这些值看起来已经是概率（每行和为 1）。CrossEntropyLoss 内部会自己做 log_softmax，所以应该传入原始 logits；这也是第 9 讲的模型直接返回 fc2(x)、不加 softmax 的原因。",
+      "mse_shape": "预测 {{a}} 和目标 {{b}} 的形状不同，损失函数会把它们广播成一个矩阵，结果是错的。请先把两者变成相同形状（例如 y.view(-1, 1) 或 pred.squeeze(1)）。",
+      "nonleaf_grad": "非叶子张量的 .grad 是 None：PyTorch 只保留叶子张量的梯度（如需保留，先调用 .retain_grad()）。",
+      "T_nd": "对二维以上的张量用 .T 会把所有维度倒过来；只想交换两个维度时，请用 transpose(a, b) 或 permute。"
+    },
+    "matplotlib": {
+      "title": "matplotlib 实验台",
+      "subtitle": "{{n}} 个出自课件的画图示例。改动代码，图会随输入即时重画。",
+      "sandbox_note": "在浏览器中运行，基于一个精简重写的 pyplot（plot、scatter、bar、hist、imshow、subplots、文字、图例、色条）。并非所有参数都支持；但关键的默认行为（tab10 配色、viridis、imshow 自动拉伸范围）与 matplotlib 一致。",
+      "cat": {
+        "basics": "基础",
+        "images": "图像",
+        "ml": "机器学习图"
+      },
+      "e": {
+        "anatomy": "Figure 是整张画布，Axes 是画布里的一个子图。plt.subplots() 同时返回两者，之后在 ax 上调用方法（set_title、set_xlabel、legend）。plt.* 函数做的是同一件事，只是作用在「当前」Axes 上。",
+        "subplot": "plt.subplot(行数, 列数, 序号) 选中网格中的一格。序号从 1 开始，先从左到右、再从上到下，所以 subplot(2, 2, 3) 是左下角那格。",
+        "fmt": "plot 的第三个参数是格式字符串：颜色字母 + 标记 + 线型。'ro--' 表示红色圆点、虚线相连；只写标记不写线型时，只画点不连线。",
+        "imshow_gray": "第 7 讲显示灰度图时都会写 cmap='gray', vmin=0, vmax=1，于是 0 是黑、1 是白。把鼠标移到像素上，看数值怎样变成颜色。",
+        "vmin_vmax": "不写 vmin / vmax 时，imshow 会把图片自己的最小值映射成黑、最大值映射成白，暗图因此看起来很亮；不写 cmap 时连灰色都不是。只有第三张图显示的是真实亮度。",
+        "rgb": "彩色图的形状是 (H, W, 3)，每个通道是一张二维数组。img[:, :, 0] 是红色通道，用灰度画出来：红色越多的地方越亮。",
+        "grid": "plt.subplots(2, 3) 返回一个 2 × 3 的 Axes 数组，axes.flat 按行逐个遍历。批量显示图片（例如第 6 讲的 MNIST 网格）通常就是这样写的。",
+        "sobel": "3 × 3 卷积核在图上滑动。valid 卷积每边得到 8 − 3 + 1 = 6 个输出。Sobel-x 卷积核对竖直边缘有反应：方块左边缘为正，右边缘为负。",
+        "otsu": "Otsu 法逐个尝试阈值 t，保留类间方差 w₀·w₁·(μ₀ − μ₁)² 最大的那个。直方图说明了原因：最佳 t 正好落在两个峰之间的空隙里。",
+        "kmeans": "c=labels 通过色图按所属簇给每个点上色，第二次 scatter 标出质心。这是 K-Means（第 4 讲）的一次分配步骤。",
+        "boundary": "感知机在 w·x + b > 0 时输出 1，因此决策边界是直线 w·x + b = 0，即 x₂ = −(w₁x₁ + b) / w₂。直线两侧的点被分到不同类别。",
+        "history": "训练后先画 history.history。训练损失一直下降，但验证损失一旦回升，模型就开始过拟合了。点线标出提前停止（early stopping）会保留的那个 epoch。",
+        "confusion": "用 imshow 画混淆矩阵，再用 plt.text 把每个计数写进格子。行是真实类别，列是预测类别：精确率沿一列看，召回率沿一行看。",
+        "choose_k": "每个 K 的验证准确率柱状图：用交叉验证为 KNN 选 K 的做法（第 3 讲）。"
+      }
+    },
+    "keras": {
+      "title": "Keras 实验台",
+      "subtitle": "{{n}} 个出自第 6、8 讲的示例：搭建模型、读懂 model.summary()，再用代码里生成的数据 compile、fit、evaluate、predict。",
+      "sandbox_note": "在浏览器中运行，基于一个精简重写的 Keras 3（Sequential 与 Functional 模型；Dense、Conv2D、池化、Flatten、Dropout 等层；Adam / SGD / RMSprop；交叉熵与 MSE 损失；EarlyStopping）。summary() 和报错信息与 Keras 3 一致；训练是真实进行的，但只用小数据。不能下载 MNIST，随机初始权重也与真实 Keras 不同。",
+      "cat": {
+        "build": "搭建",
+        "train": "训练",
+        "pitfalls": "易错点"
+      },
+      "e": {
+        "cnn_summary": "第 8 讲的 CNN。summary 步骤给出每层的输出形状和计算公式：'valid' 的 3 × 3 卷积让 28 → 26 → 24，池化减半为 12，Flatten 得到 12·12·64 = 9216；每个 Conv2D 有 (3·3·通道数 + 1)·filters 个参数。",
+        "mlp_summary": "第 6 讲处理 28 × 28 图片的 MLP：Flatten 把图片变成 784 个输入，每个 Dense 层有 (输入数 + 1) × units 个参数。kernel_regularizer 在损失里加上 0.002·Σw²，让权重保持较小。",
+        "functional": "Functional API 通过「在张量上调用层」把层连接起来。keras.Input 是占位符，batch 维度是 None；keras.Model(inputs, outputs) 会收集两者之间的所有层。",
+        "params": "先手算参数个数，再核对：Conv2D 有 (kh·kw·输入通道数 + 1)·filters 个，Dense 有 (输入数 + 1)·units 个，池化和 Flatten 没有参数。padding='same' 保持高和宽不变。",
+        "fit_xor": "compile 指定优化器、损失和指标；fit 训练并返回 History，可以画出 history['loss']；evaluate 返回 [损失, 准确率]；predict 给出 sigmoid 概率。",
+        "blobs": "三分类需要 3 个单元的 softmax 输出层；整数标签配 sparse_categorical_crossentropy。predict 对每个类别给一个概率，np.argmax(…, axis=1) 选出预测类别。",
+        "overfit": "validation_split=0.3 把数据的最后 30% 留作验证。大网络在 60 个带噪声的样本上会过拟合：验证损失先降到最低再回升。EarlyStopping 在连续 patience 个 epoch 没有改善时停止，并恢复最佳权重。",
+        "tiny_cnn": "一个 CNN 学会区分竖条和横条。图片被 reshape 成 (N, 8, 8, 1)，因为 Conv2D 需要通道轴。一个 3 × 3 卷积、最大池化加 softmax 就够了。",
+        "confusion": "predict → argmax → tf.math.confusion_matrix(y, prediction_results)（与第 6 讲相同），再用 seaborn.heatmap 画出来。行是真实类别，列是预测类别。",
+        "sparse_vs_cat": "最常见的 Keras 报错。categorical_crossentropy 拿 one-hot 行向量和输出比较，所以整数标签会导致形状不匹配。要么改用 sparse_categorical_crossentropy，要么先 to_categorical(y)。",
+        "no_flatten": "没有 Flatten 时，Dense 只作用于最后一个轴，输出是 (None, 28, 28, 10)，只有 20 个参数，而不是每张图一个预测。summary 让这个错误一目了然。",
+        "no_channel": "Conv2D 要求输入为 (batch, 高, 宽, 通道)。形状为 (N, 28, 28) 的灰度数组需要先 reshape(-1, 28, 28, 1)，第 8 讲在搭建模型前也对 x_train 这样做了。"
+      }
+    },
+    "tensorflow": {
+      "title": "TensorFlow 实验台",
+      "subtitle": "{{n}} 个示例：张量及其严格的数据类型、Variable 与 GradientTape，以及 TensorFlow 里的 Keras（tf.keras）。",
+      "sandbox_note": "在浏览器中运行，基于一个精简重写的 TensorFlow 2（tf.constant、tf.Variable、GradientTape、tf.math / tf.nn 基础函数、tf.keras）。打印格式和 dtype 报错与 TensorFlow 一致；没有 GPU，也没有图模式。",
+      "cat": {
+        "tensors": "张量",
+        "autograd": "GradientTape",
+        "keras": "tf.keras"
+      },
+      "e": {
+        "constant": "tf.constant 生成不可变的张量，print 会显示它的值、形状和 dtype；.numpy() 把它转回 NumPy 数组。这里 Python 整数会变成 int32，而 NumPy 会用 int64。",
+        "dtypes": "与 NumPy、PyTorch 不同，TensorFlow 从不帮你转换类型：float32 + int32 会报错。请用 tf.cast(b, tf.float32) 显式转换。",
+        "ops": "tf.matmul（或 @）是矩阵乘法，* 是逐元素相乘。reduce_sum / reduce_mean 可以指定 axis。int32 的均值仍是 int32，所以会被截断。",
+        "variable": "tf.Variable 存放可训练的权重。与常量不同，它可以用 assign、assign_add、assign_sub 原地修改，训练步骤就是这样更新 w 的。",
+        "tape": "在 with tf.GradientTape() as tape: 中，TensorFlow 会记录对 Variable 的运算；之后 tape.gradient(y, x) 给出 dy/dx：x = 3 时 2x + 2 = 8。",
+        "linreg": "手写完整的训练循环：在 tape 内算损失，用 tape.gradient 得到 [dw, db]，再执行 w.assign_sub(lr · dw)。w → 2，b → 1。",
+        "tf_keras": "Keras 也以 tf.keras 的形式包含在 TensorFlow 里，旧课件代码就是这样导入的。点开 summary 步骤，可以看到每层的输出形状和参数个数。",
+        "confusion": "tf.math.confusion_matrix(labels, predictions) 统计每一对（真实, 预测）。对角线上是预测正确的数量，所以准确率 = 对角线之和 / 总数。"
+      }
+    },
+    "frame": {
+      "generic": "操作前的表格与结果。",
+      "column": "df['col'] 选出一列，得到一个 Series。",
+      "columns": "df[['a', 'b']] 选出多列，得到一个 DataFrame。",
+      "filter": "布尔掩码保留值为 True 的行（高亮），行索引标签保持不变。",
+      "loc": "loc 按标签选取：按名字选行和列。标签切片包含终点。",
+      "iloc": "iloc 按位置选取，与 NumPy 数组一样。切片不含终点。",
+      "head": "head(n) / tail(n) 显示前 / 后 n 行。",
+      "tail": "head(n) / tail(n) 显示前 / 后 n 行。",
+      "describe": "describe() 汇总每个数值列：数量、均值、标准差（ddof=1）、最小值、四分位数和最大值。",
+      "isna": "isna() 把缺失值（NaN / None）标为 True；再加 .sum() 就能统计每列缺失数。",
+      "fillna": "fillna 用一个值（或每列一个值）替换缺失值（高亮的行）。",
+      "dropna": "dropna 删除含缺失值的行，留下的是高亮的行。",
+      "sort_values": "sort_values 按某列重新排列行，行索引标签随行一起移动。",
+      "groupby": "groupby 按键把行分组（每种颜色是一组），对每组做聚合，再把结果合成一张表，每组一行。",
+      "value_counts": "value_counts 统计每个值出现的次数（normalize=True 得到比例，例如朴素贝叶斯的先验概率）。",
+      "crosstab": "crosstab 统计每一对（行取值, 列取值）出现的次数；normalize='index' 把每行变成比例，即 P(列 | 行)。",
+      "get_dummies": "get_dummies 把一个类别列变成每个类别一列的 True / False（one-hot 编码）。",
+      "merge": "merge 按共同的列把两张表连接起来，类似 SQL 的 JOIN。",
+      "arith": "算术运算逐元素进行。Series 按名字与 DataFrame 的列对齐，所以 df - df.mean() 让每列减去自己的均值。",
+      "compare": "比较运算得到布尔 Series，可以直接当作掩码使用。",
+      "assign": "新的一列对每一行同时计算出来。",
+      "map": "map 通过字典或函数替换每个值，例如把文字标签变成数字。"
+    },
+    "pandas": {
+      "title": "pandas 实验台",
+      "subtitle": "{{n}} 个示例：建表、读表、选取与清洗，以及课程中的表格计算：朴素贝叶斯计数、标准化、K-Means 质心、混淆矩阵。",
+      "sandbox_note": "在浏览器中运行，基于一个精简重写的 pandas（DataFrame / Series、loc / iloc、isna / fillna / dropna、groupby、value_counts、crosstab、get_dummies、merge、describe，以及从 io.StringIO 读取 read_csv）。打印格式与 pandas 2 一致；不支持 MultiIndex 和一次做多种聚合。",
+      "cat": {
+        "basics": "基础",
+        "select": "选取",
+        "clean": "清洗",
+        "ml": "课程计算"
+      },
+      "e": {
+        "create": "DataFrame 是由命名列组成的表，每一列都是一个单一 dtype 的 Series：int64、float64（None 变成 NaN），或存放文字的 object。",
+        "describe": "列统计会跳过缺失值。注意 std：pandas 除以 n − 1，NumPy 除以 n，所以两个数不同。",
+        "csv": "read_csv 把逗号分隔的文本读成 DataFrame，自动推断 dtype，空字段读作 NaN。info() 列出各列、非空数量和 dtype。",
+        "columns": "一个列名得到 Series，一组列名得到 DataFrame。把表拆成特征 X 和标签 y 就是这样写的。",
+        "filter": "df[mask] 保留掩码为 True 的行。组合条件用 & 和 |，并且每个条件都要加括号：& 比 > 结合得更紧。",
+        "loc": "loc 用标签（这里是名字），切片包含终点；iloc 用位置，切片不含终点，与 Python 一致。",
+        "missing": "isna().sum() 统计每列的缺失数；fillna 填补缺失值（这里用列均值），dropna 删除这些行。",
+        "encode": "模型需要数字：map 把标签变成编码，get_dummies 生成 one-hot 列。",
+        "naive_bayes": "第 2 讲的 14 位病人。value_counts(normalize=True) 给出先验 P(Z)，crosstab(…, normalize='index') 给出 P(特征 | Z)，也就是课件里的相对频率表。把它们相乘就能给病人打分：'No' 胜出，0.02057 > 0.00529。",
+        "standardize": "z = (x − 均值) / 标准差 让所有特征处于同一尺度，第 3 讲建议在 KNN 前这样做。df.mean() 和 df.std() 按列计算，并自动与各列对齐。",
+        "centroids": "一行写出 K-Means 的更新步骤：按簇分组，求 x 和 y 的均值，每组的均值就是新的质心。",
+        "confusion": "crosstab(真实, 预测) 就是混淆矩阵。精确率用真正例除以「预测为 1」那一列，召回率除以「实际为 1」那一行。",
+        "groupby": "groupby('k')['accuracy'].mean() 对每个 K 的各折取平均，idxmax() 选出均值最高的 K：两行写完交叉验证。"
+      }
+    },
+    "pytorch": {
+      "title": "PyTorch 实验台",
+      "subtitle": "{{n}} 个出自第 9 讲的示例：张量、自动求导、nn.Module 与训练循环。点开一个步骤，可以看到网格、各层形状或梯度计算图。",
+      "sandbox_note": "在浏览器中运行，基于一个精简重写的 PyTorch（张量、自动求导、Linear / Conv2d / MaxPool2d / Dropout、常用损失函数、SGD 与 Adam、DataLoader）。打印格式、数据类型和报错信息与 PyTorch 2 一致；随机数与真实 PyTorch 不同，没有 GPU，也不能下载 MNIST。",
+      "cat": {
+        "tensors": "张量",
+        "autograd": "自动求导",
+        "nn": "层与形状",
+        "train": "训练"
+      },
+      "e": {
+        "attrs": "每个张量都有形状（torch.Size）、数据类型和设备。Python 整数会变成 int64，torch.zeros 这类工厂函数默认是 float32；本沙盒中的设备始终是 CPU。",
+        "matmul": "@（torch.matmul）是矩阵乘法：每个输出都是一行乘一列。* 是逐元素相乘。把鼠标移到结果格子上，可以看到它由哪些输入算出。",
+        "indexing": "索引方式和 NumPy 一样：tensor[0] 是一行，tensor[:, 0] 是一列，tensor[..., -1] 是最后一列。给切片赋值会原地修改张量。",
+        "view": "view 在同一块内存上换一个形状，-1 表示自动推算。unsqueeze(0) 加上模型需要的 batch 维度。转置后的张量不连续，所以 view 会报错，而 reshape 会复制一份。",
+        "bridge": "torch.from_numpy 和 tensor.numpy() 与 NumPy 数组共享内存，一边改动、另一边也会变。torch.tensor(n) 则会复制一份。",
+        "dtype": "Python 整数得到 int64，浮点数得到 float32。整数相除结果是浮点数；mean() 需要浮点张量。float32 无法精确存储 0.1，item() 就能看出来。",
+        "grad_basic": "requires_grad=True 让 PyTorch 记录每一步运算（grad_fn）。y.backward() 沿计算图反向走，把 dy/dx 存进 x.grad：x = 2 时 2x + 3 = 7。可以点开计算图那一步。",
+        "grad_lecture": "第 9 讲的例子：z = x·w + b，再算二元交叉熵损失。loss.backward() 会填好 w.grad 和 b.grad。因为 x 全是 1，w.grad 的每一行都相同。",
+        "accumulate": "再次调用 backward() 会把梯度加到 .grad 上，而不是替换。这就是每个训练循环都以 optimizer.zero_grad() 开头的原因。",
+        "no_grad": "在 torch.no_grad() 中，以及对 detach() 之后的张量，都不会记录运算，所以输出的 requires_grad=False。评估和预测时就这样用。",
+        "linreg": "只用张量和自动求导做梯度下降：算损失、backward()，然后在 no_grad() 中更新 w 和 b 并把梯度清零。w → 2，b → 1。",
+        "mnist_cnn": "第 9 讲的 MNIST_CNN。print(model) 列出各层；前向传播那一步给出每层的输出形状和尺寸公式：padding=1 保持 28 × 28，池化减半为 14 × 14，view 把 64·14·14 = 12544 个特征展平。",
+        "flatten_bug": "最常见的 CNN 错误：fc 的 in_features 假设特征图是 14 × 14，但卷积不加 padding 时得到 26，池化后是 13。报错信息同时给出两个形状（1x2704 与 3136x10）。在 Linear 层前打印 x.shape 就能找到正确的数。",
+        "sequential": "nn.Sequential 把层串起来。Linear 层有 (输入 + 1) × 输出 个参数，即每个输入一个权重、每个输出一个偏置：(784 + 1) × 128 = 100,480。",
+        "logits": "最后一层输出原始分数（logits），CrossEntropyLoss 内部自己做 log_softmax。softmax 只用来读出概率，torch.max(logits, 1) 给出预测类别。",
+        "train_xor": "第 9 讲训练循环的五个步骤：zero_grad → 前向 → 损失 → backward → step。一个小 MLP 学会了单个感知机学不会的 XOR。",
+        "zero_grad_bug": "不调用 zero_grad() 时，每一步的梯度都会加到之前所有梯度上：步长越来越大，损失不再平稳下降，甚至会发散。",
+        "train_eval": "train() 模式下 dropout 随机把单元置零，其余乘以 1 / (1 − p)，所以每次调用结果都不同。eval() 关闭 dropout，评估前一定要调用。",
+        "dataloader": "DataLoader 把数据集切成 batch：len(loader) = ⌈10 / 4⌉ = 3，每次迭代得到一个 batch 的 (inputs, labels)，与第 9 讲 train_model 的写法一致。"
+      }
+    }
   }
 }
