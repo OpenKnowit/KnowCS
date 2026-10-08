@@ -3937,6 +3937,9 @@
     "note": {
       "default_cmap": "No cmap given: a 2-D array is drawn with the default colormap 'viridis', not in grey. Lecture 7 always passes cmap='gray'.",
       "auto_range": "No vmin / vmax: matplotlib stretches this image's own range [{{min}}, {{max}}] over the whole colormap, so the darkest pixel turns black and the brightest white even if the image is dark. Pass vmin=0, vmax=1 (or 255) to keep the true brightness.",
+      "keras_dense_nd": "A Dense layer got a {{shape}} input: it only acts on the last axis, so the output keeps the other axes. To classify an image, put Flatten() before Dense({{units}}).",
+      "keras_sparse_hint": "The labels are integers (0, 1, 2 …), not one-hot rows. Use loss='sparse_categorical_crossentropy', or convert them first with to_categorical(y, num_classes).",
+      "keras_overfit": "Validation loss was lowest at epoch {{epoch}} and then rose while training loss kept falling: the model is overfitting. EarlyStopping(monitor='val_loss') stops there, and fewer units, dropout or L2 also help.",
       "grad_accumulate": "backward() added to gradients that were already there: PyTorch accumulates .grad across calls. In a training loop, call optimizer.zero_grad() (or w.grad.zero_()) before every backward().",
       "dropout_eval": "Dropout is still active: the model is in training mode, so random units are zeroed even under no_grad(). Call model.eval() before evaluating or predicting.",
       "softmax_ce": "These look like probabilities (each row sums to 1). CrossEntropyLoss applies log_softmax itself, so pass the raw logits, which is why lecture 9's model returns fc2(x) without softmax.",
@@ -3968,6 +3971,50 @@
         "history": "Plotting history.history is the first check after training. Training loss keeps falling, but once validation loss turns up the model is overfitting. The dotted line marks the epoch that early stopping would keep.",
         "confusion": "imshow draws the confusion matrix and plt.text writes each count in its cell. Rows are the true classes and columns the predictions, so precision reads down a column and recall along a row.",
         "choose_k": "A bar chart of validation accuracy for each K: the cross-validation way of choosing K for KNN (lecture 3)."
+      }
+    },
+    "keras": {
+      "title": "Keras playground",
+      "subtitle": "{{n}} examples from lectures 6 and 8: build a model, read model.summary(), then compile, fit, evaluate and predict on data generated in the code.",
+      "sandbox_note": "Runs in your browser on a small re-implementation of Keras 3 (Sequential and Functional models; Dense, Conv2D, pooling, Flatten, Dropout and a few more; Adam / SGD / RMSprop; the cross-entropy and MSE losses; EarlyStopping). summary() and the error messages follow Keras 3, and training is real but on small data. There is no MNIST download and random weights differ from real Keras.",
+      "cat": {
+        "build": "Build",
+        "train": "Train",
+        "pitfalls": "Pitfalls"
+      },
+      "e": {
+        "cnn_summary": "Lecture 8's CNN. The summary step shows each output shape with its formula: 'valid' 3 × 3 convolutions shrink 28 → 26 → 24, pooling halves 24 → 12, Flatten gives 12·12·64 = 9216, and each Conv2D has (3·3·channels + 1)·filters parameters.",
+        "mlp_summary": "Lecture 6's MLP on 28 × 28 images: Flatten turns them into 784 inputs, and each Dense layer has (inputs + 1) × units parameters. kernel_regularizer adds 0.002·Σw² to the loss to keep the weights small.",
+        "functional": "The Functional API wires layers by calling them on tensors. keras.Input is a placeholder whose batch size is None, and keras.Model(inputs, outputs) collects every layer between the two.",
+        "params": "Count the parameters by hand first, then check: a Conv2D has (kh·kw·in_channels + 1)·filters, a Dense layer (inputs + 1)·units, and pooling or Flatten have none. padding='same' keeps the height and width.",
+        "fit_xor": "compile picks the optimizer, loss and metrics. fit trains and returns a History whose history['loss'] you can plot. evaluate gives [loss, accuracy], and predict gives the sigmoid probabilities.",
+        "blobs": "Three classes need a softmax output with three units and sparse_categorical_crossentropy for integer labels. predict returns one probability per class, and np.argmax(…, axis=1) picks the class.",
+        "overfit": "validation_split=0.3 holds out the last 30% of the data. A large network on 60 noisy samples overfits: validation loss bottoms out and then climbs. EarlyStopping stops after patience epochs without improvement and restores the best weights.",
+        "tiny_cnn": "A CNN learns to tell vertical bars from horizontal ones. Images are reshaped to (N, 8, 8, 1) because Conv2D needs a channel axis. One 3 × 3 convolution, max pooling and a softmax are enough.",
+        "confusion": "predict → argmax → tf.math.confusion_matrix(y, prediction_results), as lecture 6 does, then seaborn.heatmap to draw it. Rows are true classes and columns predictions.",
+        "sparse_vs_cat": "The most common Keras error. categorical_crossentropy compares one-hot rows with the output, so integer labels give a shape mismatch. Either use sparse_categorical_crossentropy, or to_categorical(y) first.",
+        "no_flatten": "Without Flatten, Dense acts only on the last axis, so the output is (None, 28, 28, 10) with just 20 parameters and not one prediction per image. The summary makes the mistake visible.",
+        "no_channel": "Conv2D expects (batch, height, width, channels). Grayscale arrays of shape (N, 28, 28) need reshape(-1, 28, 28, 1), as lecture 8 does with x_train before building the model."
+      }
+    },
+    "tensorflow": {
+      "title": "TensorFlow playground",
+      "subtitle": "{{n}} examples: tensors and their strict dtypes, Variables and GradientTape, and Keras inside TensorFlow (tf.keras).",
+      "sandbox_note": "Runs in your browser on a small re-implementation of TensorFlow 2 (tf.constant, tf.Variable, GradientTape, tf.math / tf.nn basics, tf.keras). Printing and dtype errors follow TensorFlow; there is no GPU and no graph mode.",
+      "cat": {
+        "tensors": "Tensors",
+        "autograd": "GradientTape",
+        "keras": "tf.keras"
+      },
+      "e": {
+        "constant": "tf.constant makes an immutable tensor, and print shows its values, shape and dtype. .numpy() converts it back to a NumPy array. Python ints become int32 here, while NumPy would use int64.",
+        "dtypes": "Unlike NumPy and PyTorch, TensorFlow never converts dtypes for you: float32 + int32 is an error. Convert explicitly with tf.cast(b, tf.float32).",
+        "ops": "tf.matmul (or @) is the matrix product and * is element-wise. reduce_sum / reduce_mean take an axis. An int32 mean stays int32, so it is truncated.",
+        "variable": "tf.Variable holds the trainable weights. Unlike a constant you can change it in place with assign, assign_add and assign_sub, which is how a training step updates w.",
+        "tape": "Inside with tf.GradientTape() as tape:, TensorFlow records the operations on Variables. tape.gradient(y, x) then gives dy/dx, here 2x + 2 = 8 at x = 3.",
+        "linreg": "A full training loop by hand: compute the loss inside the tape, get [dw, db] with tape.gradient, then w.assign_sub(lr · dw). w → 2 and b → 1.",
+        "tf_keras": "Keras ships inside TensorFlow as tf.keras, the way older lecture code imports it. Open the summary step to see each layer's output shape and parameter count.",
+        "confusion": "tf.math.confusion_matrix(labels, predictions) counts each (true, predicted) pair. The diagonal holds the correct predictions, so accuracy = diagonal sum / total."
       }
     },
     "pytorch": {

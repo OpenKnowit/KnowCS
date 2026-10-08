@@ -11,6 +11,8 @@ export interface PlayEntry {
   code: string
   /** step to open first: an api name ('torch.matmul') or an event type ('figure', 'flow' …); default = the last step */
   focus?: string[]
+  /** open the first matching step instead of the last */
+  focusFirst?: boolean
   /** the example ends in this error on purpose (it demonstrates a mistake) */
   expectError?: string
 }

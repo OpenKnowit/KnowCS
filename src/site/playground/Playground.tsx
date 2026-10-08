@@ -70,9 +70,9 @@ export default function Playground({ config, initialEntry, initialCode }: Props)
   const autoSeq = useMemo(() => {
     if (!steps.length) return null
     const want = entry?.focus
-    const hit = want && [...steps].reverse().find((s) => want.includes(stepApi(s)))
+    const hit = want && (entry?.focusFirst ? steps : [...steps].reverse()).find((s) => want.includes(stepApi(s)))
     return (hit ?? steps[steps.length - 1]).seq
-  }, [steps, entry?.focus])
+  }, [steps, entry?.focus, entry?.focusFirst])
   const selectedSeq = picked && picked.code === ran ? picked.seq : autoSeq
   const selected = steps.find((s) => s.seq === selectedSeq) ?? null
 

@@ -9,7 +9,7 @@ import { FigureView } from './FigureView'
 
 // --- 实验台每一步的可视化：调用网格、图、DataFrame、模型形状流、自动求导计算图、训练曲线 ---
 
-const shape = (s: number[]) => `(${s.join(', ')}${s.length === 1 ? ',' : ''})`
+const shape = (s: (number | null)[]) => `(${s.map((d) => (d === null ? 'None' : d)).join(', ')}${s.length === 1 ? ',' : ''})`
 
 // ---------------------------------------------------------------- tables
 
@@ -103,7 +103,7 @@ const FrameStep = ({ ev }: { ev: PyEvent & { type: 'frame' } }) => {
 
 const FlowStep = ({ ev }: { ev: PyEvent & { type: 'flow' } }) => {
   const { t } = useTranslation()
-  const sizes = ev.rows.map((r) => r.output.reduce((a, b) => a * b, 1))
+  const sizes = ev.rows.map((r) => r.output.reduce<number>((a, b) => a * (b ?? 1), 1))
   const maxLog = Math.log10(Math.max(10, ...sizes))
   return (
     <div className="space-y-3">
@@ -232,24 +232,49 @@ const GraphStep = ({ ev }: { ev: PyEvent & { type: 'graph' } }) => {
 // ---------------------------------------------------------------- training history
 
 const HIST_COLORS: Record<string, string> = { loss: '#2563eb', val_loss: '#ea580c', accuracy: '#059669', val_accuracy: '#d946ef' }
+const EXTRA = ['#0ea5e9', '#a855f7', '#f43f5e']
 
-const HistoryStep = ({ ev }: { ev: PyEvent & { type: 'history' } }) => {
-  const { t } = useTranslation()
+/** one panel of curves sharing a y-axis; best = epoch index to mark */
+const Curves = ({ series, best, label }: { series: [string, number[]][]; best: number; label: string }) => {
   const W = 520
-  const H = 220
+  const H = 170
   const L = 40
   const R = 10
   const T = 10
-  const B = 26
-  const series = Object.entries(ev.metrics).filter(([, v]) => v.length > 0)
+  const B = 22
   const n = Math.max(...series.map(([, v]) => v.length))
   const all = series.flatMap(([, v]) => v)
   const y0 = Math.min(0, ...all)
   const y1 = Math.max(...all) * 1.05 || 1
   const X = (i: number) => L + (n <= 1 ? 0 : (i / (n - 1)) * (W - L - R))
   const Y = (v: number) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B)
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full rounded-lg border border-slate-200 bg-white" role="img" aria-label={label}>
+      {niceTicks(y0, y1, 4).map((v) => (
+        <g key={v}>
+          <line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="#f1f5f9" />
+          <text x={L - 5} y={Y(v) + 3.5} fontSize={10} textAnchor="end" fill="#94a3b8">{+v.toFixed(3)}</text>
+        </g>
+      ))}
+      {niceTicks(1, n, 6).filter((e) => e >= 1 && e <= n && Number.isInteger(e)).map((e) => (
+        <text key={e} x={X(e - 1)} y={H - 6} fontSize={10} textAnchor="middle" fill="#94a3b8">{e}</text>
+      ))}
+      {best >= 0 && n > 1 && <line x1={X(best)} x2={X(best)} y1={T} y2={H - B} stroke="#ea580c" strokeDasharray="4 3" />}
+      {series.map(([k, v], i) => (
+        <polyline key={k} fill="none" stroke={HIST_COLORS[k] ?? EXTRA[i % EXTRA.length]} strokeWidth={2} points={v.map((y, j) => `${X(j)},${Y(y)}`).join(' ')} />
+      ))}
+    </svg>
+  )
+}
+
+const HistoryStep = ({ ev }: { ev: PyEvent & { type: 'history' } }) => {
+  const { t } = useTranslation()
+  const series = Object.entries(ev.metrics).filter(([, v]) => v.length > 0)
+  const n = Math.max(...series.map(([, v]) => v.length))
   const val = ev.metrics.val_loss
   const best = val && val.length ? val.indexOf(Math.min(...val)) : -1
+  // losses and scores on separate axes: they live on different scales
+  const groups = [series.filter(([k]) => k.includes('loss')), series.filter(([k]) => !k.includes('loss'))].filter((g) => g.length)
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -257,30 +282,20 @@ const HistoryStep = ({ ev }: { ev: PyEvent & { type: 'history' } }) => {
         <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700">{ev.title}</span>
       </div>
       <p className="text-sm leading-relaxed text-slate-600">{t('playground.view.history', { n })}</p>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full rounded-lg border border-slate-200 bg-white" role="img" aria-label={t('playground.view.history_label')}>
-        {niceTicks(y0, y1, 4).map((v) => (
-          <g key={v}>
-            <line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke="#f1f5f9" />
-            <text x={L - 5} y={Y(v) + 3.5} fontSize={10} textAnchor="end" fill="#94a3b8">{+v.toFixed(3)}</text>
-          </g>
-        ))}
-        {niceTicks(1, n, 6).filter((e) => e >= 1 && e <= n && Number.isInteger(e)).map((e) => (
-          <text key={e} x={X(e - 1)} y={H - 8} fontSize={10} textAnchor="middle" fill="#94a3b8">{e}</text>
-        ))}
-        {best >= 0 && n > 1 && <line x1={X(best)} x2={X(best)} y1={T} y2={H - B} stroke="#ea580c" strokeDasharray="4 3" />}
-        {series.map(([k, v], i) => (
-          <polyline key={k} fill="none" stroke={HIST_COLORS[k] ?? ['#0ea5e9', '#a855f7', '#f43f5e'][i % 3]} strokeWidth={2} points={v.map((y, j) => `${X(j)},${Y(y)}`).join(' ')} />
-        ))}
-      </svg>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
-        {series.map(([k, v], i) => (
-          <span key={k} className="inline-flex items-center gap-1.5 font-mono">
-            <i className="inline-block h-0.5 w-4" style={{ background: HIST_COLORS[k] ?? ['#0ea5e9', '#a855f7', '#f43f5e'][i % 3] }} />
-            {k} {v.length ? (+v[v.length - 1].toFixed(4)).toString() : ''}
-          </span>
-        ))}
-        {best >= 0 && n > 1 && <span className="text-orange-700">{t('playground.view.best_epoch', { n: best + 1 })}</span>}
-      </div>
+      {groups.map((g, k) => (
+        <div key={k} className="space-y-1">
+          <Curves series={g} best={k === 0 ? best : -1} label={t('playground.view.history_label')} />
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
+            {g.map(([name, v], i) => (
+              <span key={name} className="inline-flex items-center gap-1.5 font-mono">
+                <i className="inline-block h-0.5 w-4" style={{ background: HIST_COLORS[name] ?? EXTRA[i % EXTRA.length] }} />
+                {name} {v.length ? (+v[v.length - 1].toFixed(4)).toString() : ''}
+              </span>
+            ))}
+            {k === 0 && best >= 0 && n > 1 && <span className="text-orange-700">{t('playground.view.best_epoch', { n: best + 1 })}</span>}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

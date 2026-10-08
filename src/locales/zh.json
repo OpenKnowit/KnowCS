@@ -3937,6 +3937,9 @@
     "note": {
       "default_cmap": "没有指定 cmap：二维数组会用默认色图 'viridis' 上色，而不是灰度。第 7 讲每次都会写 cmap='gray'。",
       "auto_range": "没有指定 vmin / vmax：matplotlib 会把这张图自身的范围 [{{min}}, {{max}}] 拉伸到整条色图上，所以就算图片很暗，最暗的像素也会变成黑、最亮的变成白。写上 vmin=0, vmax=1（或 255）才能保留真实亮度。",
+      "keras_dense_nd": "Dense 层收到的输入形状是 {{shape}}：它只作用在最后一个轴上，所以输出会保留其他轴。要对整张图片分类，请在 Dense({{units}}) 前加 Flatten()。",
+      "keras_sparse_hint": "标签是整数（0、1、2 …），不是 one-hot 行向量。请用 loss='sparse_categorical_crossentropy'，或先用 to_categorical(y, num_classes) 转换。",
+      "keras_overfit": "验证损失在第 {{epoch}} 个 epoch 最低，之后训练损失继续下降而验证损失回升：模型在过拟合。EarlyStopping(monitor='val_loss') 会在那里停下；减少单元数、加 dropout 或 L2 也有帮助。",
       "grad_accumulate": "backward() 把梯度加到了原来已有的梯度上：PyTorch 会在多次调用之间累加 .grad。训练循环中，每次 backward() 之前都要调用 optimizer.zero_grad()（或 w.grad.zero_()）。",
       "dropout_eval": "Dropout 仍然生效：模型处于训练模式，即使在 no_grad() 中也会随机把单元置零。评估或预测前请先调用 model.eval()。",
       "softmax_ce": "这些值看起来已经是概率（每行和为 1）。CrossEntropyLoss 内部会自己做 log_softmax，所以应该传入原始 logits；这也是第 9 讲的模型直接返回 fc2(x)、不加 softmax 的原因。",
@@ -3968,6 +3971,50 @@
         "history": "训练后先画 history.history。训练损失一直下降，但验证损失一旦回升，模型就开始过拟合了。点线标出提前停止（early stopping）会保留的那个 epoch。",
         "confusion": "用 imshow 画混淆矩阵，再用 plt.text 把每个计数写进格子。行是真实类别，列是预测类别：精确率沿一列看，召回率沿一行看。",
         "choose_k": "每个 K 的验证准确率柱状图：用交叉验证为 KNN 选 K 的做法（第 3 讲）。"
+      }
+    },
+    "keras": {
+      "title": "Keras 实验台",
+      "subtitle": "{{n}} 个出自第 6、8 讲的示例：搭建模型、读懂 model.summary()，再用代码里生成的数据 compile、fit、evaluate、predict。",
+      "sandbox_note": "在浏览器中运行，基于一个精简重写的 Keras 3（Sequential 与 Functional 模型；Dense、Conv2D、池化、Flatten、Dropout 等层；Adam / SGD / RMSprop；交叉熵与 MSE 损失；EarlyStopping）。summary() 和报错信息与 Keras 3 一致；训练是真实进行的，但只用小数据。不能下载 MNIST，随机初始权重也与真实 Keras 不同。",
+      "cat": {
+        "build": "搭建",
+        "train": "训练",
+        "pitfalls": "易错点"
+      },
+      "e": {
+        "cnn_summary": "第 8 讲的 CNN。summary 步骤给出每层的输出形状和计算公式：'valid' 的 3 × 3 卷积让 28 → 26 → 24，池化减半为 12，Flatten 得到 12·12·64 = 9216；每个 Conv2D 有 (3·3·通道数 + 1)·filters 个参数。",
+        "mlp_summary": "第 6 讲处理 28 × 28 图片的 MLP：Flatten 把图片变成 784 个输入，每个 Dense 层有 (输入数 + 1) × units 个参数。kernel_regularizer 在损失里加上 0.002·Σw²，让权重保持较小。",
+        "functional": "Functional API 通过「在张量上调用层」把层连接起来。keras.Input 是占位符，batch 维度是 None；keras.Model(inputs, outputs) 会收集两者之间的所有层。",
+        "params": "先手算参数个数，再核对：Conv2D 有 (kh·kw·输入通道数 + 1)·filters 个，Dense 有 (输入数 + 1)·units 个，池化和 Flatten 没有参数。padding='same' 保持高和宽不变。",
+        "fit_xor": "compile 指定优化器、损失和指标；fit 训练并返回 History，可以画出 history['loss']；evaluate 返回 [损失, 准确率]；predict 给出 sigmoid 概率。",
+        "blobs": "三分类需要 3 个单元的 softmax 输出层；整数标签配 sparse_categorical_crossentropy。predict 对每个类别给一个概率，np.argmax(…, axis=1) 选出预测类别。",
+        "overfit": "validation_split=0.3 把数据的最后 30% 留作验证。大网络在 60 个带噪声的样本上会过拟合：验证损失先降到最低再回升。EarlyStopping 在连续 patience 个 epoch 没有改善时停止，并恢复最佳权重。",
+        "tiny_cnn": "一个 CNN 学会区分竖条和横条。图片被 reshape 成 (N, 8, 8, 1)，因为 Conv2D 需要通道轴。一个 3 × 3 卷积、最大池化加 softmax 就够了。",
+        "confusion": "predict → argmax → tf.math.confusion_matrix(y, prediction_results)（与第 6 讲相同），再用 seaborn.heatmap 画出来。行是真实类别，列是预测类别。",
+        "sparse_vs_cat": "最常见的 Keras 报错。categorical_crossentropy 拿 one-hot 行向量和输出比较，所以整数标签会导致形状不匹配。要么改用 sparse_categorical_crossentropy，要么先 to_categorical(y)。",
+        "no_flatten": "没有 Flatten 时，Dense 只作用于最后一个轴，输出是 (None, 28, 28, 10)，只有 20 个参数，而不是每张图一个预测。summary 让这个错误一目了然。",
+        "no_channel": "Conv2D 要求输入为 (batch, 高, 宽, 通道)。形状为 (N, 28, 28) 的灰度数组需要先 reshape(-1, 28, 28, 1)，第 8 讲在搭建模型前也对 x_train 这样做了。"
+      }
+    },
+    "tensorflow": {
+      "title": "TensorFlow 实验台",
+      "subtitle": "{{n}} 个示例：张量及其严格的数据类型、Variable 与 GradientTape，以及 TensorFlow 里的 Keras（tf.keras）。",
+      "sandbox_note": "在浏览器中运行，基于一个精简重写的 TensorFlow 2（tf.constant、tf.Variable、GradientTape、tf.math / tf.nn 基础函数、tf.keras）。打印格式和 dtype 报错与 TensorFlow 一致；没有 GPU，也没有图模式。",
+      "cat": {
+        "tensors": "张量",
+        "autograd": "GradientTape",
+        "keras": "tf.keras"
+      },
+      "e": {
+        "constant": "tf.constant 生成不可变的张量，print 会显示它的值、形状和 dtype；.numpy() 把它转回 NumPy 数组。这里 Python 整数会变成 int32，而 NumPy 会用 int64。",
+        "dtypes": "与 NumPy、PyTorch 不同，TensorFlow 从不帮你转换类型：float32 + int32 会报错。请用 tf.cast(b, tf.float32) 显式转换。",
+        "ops": "tf.matmul（或 @）是矩阵乘法，* 是逐元素相乘。reduce_sum / reduce_mean 可以指定 axis。int32 的均值仍是 int32，所以会被截断。",
+        "variable": "tf.Variable 存放可训练的权重。与常量不同，它可以用 assign、assign_add、assign_sub 原地修改，训练步骤就是这样更新 w 的。",
+        "tape": "在 with tf.GradientTape() as tape: 中，TensorFlow 会记录对 Variable 的运算；之后 tape.gradient(y, x) 给出 dy/dx：x = 3 时 2x + 2 = 8。",
+        "linreg": "手写完整的训练循环：在 tape 内算损失，用 tape.gradient 得到 [dw, db]，再执行 w.assign_sub(lr · dw)。w → 2，b → 1。",
+        "tf_keras": "Keras 也以 tf.keras 的形式包含在 TensorFlow 里，旧课件代码就是这样导入的。点开 summary 步骤，可以看到每层的输出形状和参数个数。",
+        "confusion": "tf.math.confusion_matrix(labels, predictions) 统计每一对（真实, 预测）。对角线上是预测正确的数量，所以准确率 = 对角线之和 / 总数。"
       }
     },
     "pytorch": {
