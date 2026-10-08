@@ -8,6 +8,7 @@ import type { ApiCat, ApiEntry } from '../data/numpyApis'
 import { runPython } from '../lib/minipy'
 import { CallView } from './NpCallView'
 import { useFullScreen } from '../site/playground/useFullScreen'
+import { RealPython } from '../site/playground/RealPython'
 
 // --- NumPy API 可视化面板：在浏览器里运行示例（lib/minipy），并标出结果每个元素来自哪些输入元素 ---
 
@@ -218,6 +219,7 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
           )}
         </div>
       )}
+      <RealPython code={code} />
     </>
   )
 

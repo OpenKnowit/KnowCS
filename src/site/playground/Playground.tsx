@@ -13,6 +13,8 @@ import { KIND } from './kinds'
 import type { StepKind } from './kinds'
 import { FigureView } from './FigureView'
 import { useFullScreen } from './useFullScreen'
+import { RealPython } from './RealPython'
+import { REAL_PYTHON_LIBS } from '../../lib/pyodide/config'
 
 // --- 各库实验台：示例目录 + 可编辑代码 + 逐步可视化（调用 / 图 / 模型形状 / 计算图 …）+ 全屏 ---
 
@@ -208,6 +210,9 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
     </div>
   )
 
+  // the same code with real CPython and the real library, on request (not for PyTorch / Keras / TensorFlow: no Pyodide build)
+  const real = REAL_PYTHON_LIBS.has(config.id) && <RealPython code={code} />
+
   // the final figures repeat the selected figure step, so they start folded when such a step is shown
   const figureStep = selected?.kind === 'event' && selected.ev.type === 'figure'
   const displays = result.displays.length > 0 && (
@@ -307,6 +312,7 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
             {catalog}
             {editor}
             {output}
+            {real}
           </div>
           <div className="min-h-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 lg:overflow-y-auto">
             {stepsView}
@@ -327,6 +333,7 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
             {catalog}
             {editor}
             {output}
+            {real}
           </div>
           <div className="min-w-0 space-y-4 lg:border-l lg:border-slate-100 lg:pl-5">
             {stepsView}
@@ -345,6 +352,7 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
       {editor}
       {stepsView}
       {output}
+      {real}
       {displays}
       <p className="text-[11px] leading-relaxed text-slate-400">{t(`${ns}.sandbox_note`)}</p>
     </aside>

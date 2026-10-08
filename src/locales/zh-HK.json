@@ -3934,7 +3934,24 @@
       "loading": "實驗台加載中…",
       "from_note": "來自筆記的程式碼。可以隨意修改，或在上方選一個示例。",
       "prev": "上一步",
-      "next": "下一步"
+      "next": "下一步",
+      "real": {
+        "title": "用真實 Python 執行",
+        "engine": "Pyodide · 在瀏覽器裏執行的 CPython",
+        "what": "逐步可視化來自 KnowCS 自帶的解釋器。這裏用真正的 NumPy、pandas 和 matplotlib（也支持 scikit-learn、SciPy、OpenCV）執行同一段程式碼，方便核對輸出。",
+        "size": "首次執行要下載 Python 和程式碼導入的庫：只有 Python 約 7 MB，加 NumPy 約 10 MB，加 pandas 和 matplotlib 約 20 MB，加 scikit-learn 約 37 MB。瀏覽器會緩存，下次直接使用。",
+        "run": "用真實 Python 執行",
+        "rerun": "再執行一次",
+        "stop": "停止",
+        "phase_runtime": "正在下載 Python…",
+        "phase_packages": "正在下載 {{names}}…",
+        "phase_running": "執行中…",
+        "took": "{{ms}} 毫秒",
+        "stale": "這次執行之後程式碼已經改過。",
+        "failed": "無法從 {{host}} 下載 Python。請檢查網絡後重試。",
+        "stopped": "已停止。",
+        "figure": "圖 {{n}}，由真實 matplotlib 繪製"
+      }
     },
     "view": {
       "figure_label": "包含 {{n}} 個子圖的圖",

@@ -3934,7 +3934,24 @@
       "loading": "Loading the playground…",
       "from_note": "Code from the note. Edit it freely, or pick an example above.",
       "prev": "Previous step",
-      "next": "Next step"
+      "next": "Next step",
+      "real": {
+        "title": "Run in real Python",
+        "engine": "Pyodide · CPython running in your browser",
+        "what": "The step-by-step views come from KnowCS's own interpreter. This runs the same code with the real NumPy, pandas and matplotlib (scikit-learn, SciPy and OpenCV work too), so you can check the output.",
+        "size": "The first run downloads Python and the libraries your code imports: about 7 MB for Python alone, 10 MB with NumPy, 20 MB with pandas and matplotlib, 37 MB with scikit-learn. Your browser keeps them for next time.",
+        "run": "Run in real Python",
+        "rerun": "Run again",
+        "stop": "Stop",
+        "phase_runtime": "Downloading Python…",
+        "phase_packages": "Downloading {{names}}…",
+        "phase_running": "Running…",
+        "took": "{{ms}} ms",
+        "stale": "The code has changed since this run.",
+        "failed": "Couldn't download Python from {{host}}. Check your connection, then try again.",
+        "stopped": "Stopped.",
+        "figure": "Figure {{n}}, drawn by real matplotlib"
+      }
     },
     "view": {
       "figure_label": "Figure with {{n}} axes",
