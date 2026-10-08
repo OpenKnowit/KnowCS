@@ -44,7 +44,29 @@ function Grid({ img, mark, ring, hatch, pick, label, centre }: { img: number[][]
             const cls = `relative aspect-square rounded-[3px] ${on ? `z-10 ring-[3px] ${ring}` : ''}`
             const dot = centre && x === X0 && y === Y0 ? <i className="absolute inset-0 m-auto h-1.5 w-1.5 rounded-full bg-rose-500" aria-hidden /> : null
             return pick ? (
-              <button key={x} type="button" className={`${cls} focus-visible:outline-2 focus-visible:outline-blue-500`} style={style} onClick={() => pick(x, y)} aria-pressed={!!on} aria-label={t('lab.affine.pixel', { x, y })}>{dot}</button>
+              <button
+                key={x}
+                type="button"
+                data-cell={`${x},${y}`}
+                // one tab stop for the whole grid; arrow keys move the selection (roving tabindex)
+                tabIndex={on ? 0 : -1}
+                className={`${cls} focus-visible:outline-2 focus-visible:outline-blue-500`}
+                style={style}
+                onClick={() => pick(x, y)}
+                onKeyDown={(e) => {
+                  const d = ({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as Record<string, [number, number]>)[e.key]
+                  if (!d) return
+                  e.preventDefault()
+                  const nx = Math.min(cols - 1, Math.max(0, x + d[0]))
+                  const ny = Math.min(img.length - 1, Math.max(0, y + d[1]))
+                  pick(nx, ny)
+                  e.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-cell="${nx},${ny}"]`)?.focus()
+                }}
+                aria-pressed={!!on}
+                aria-label={t('lab.affine.pixel', { x, y })}
+              >
+                {dot}
+              </button>
             ) : (
               <span key={x} className={cls} style={style}>{dot}</span>
             )
