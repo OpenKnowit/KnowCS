@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* the Manim scripts are Python, not markup: their words must not become utility classes */
+@source not "../manim";
 
 @theme {
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
