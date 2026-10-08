@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
+  FileText,
   GitBranch,
+  Layers,
+  ListOrdered,
   Pause,
   Play,
   RotateCcw,
-  Scissors,
   Shuffle,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
@@ -82,9 +85,8 @@ export const AlphaBetaModule = () => {
     setPreset('custom')
   }
 
-  // 结构化步骤 → 本地化解释文案
-  const explanation = useMemo(() => {
-    const s = step
+  // 结构化步骤 → 本地化解释文案（当前步骤与追踪链共用）
+  const explain = (s: AbStep): string => {
     const node = nodes[s.nodeId]
     const label = node.type === 'max' ? 'MAX' : node.type === 'min' ? 'MIN' : 'LEAF'
     switch (s.type) {
@@ -105,16 +107,29 @@ export const AlphaBetaModule = () => {
           newBound: s.newBound,
         })
       case 'prune':
-        return t('alphabeta.explain.prune', {
-          node: s.nodeId,
-          alpha: fmt(s.alpha),
-          beta: fmt(s.beta),
-          children: s.prunedChildren!.join(', '),
-        })
+        return t('alphabeta.explain.prune', { node: s.nodeId, alpha: fmt(s.alpha), beta: fmt(s.beta), children: s.prunedChildren!.join(', ') })
       case 'exit':
         return t('alphabeta.explain.exit', { node: s.nodeId, value: s.returnValue })
     }
-  }, [step, nodes, t])
+  }
+  const explanation = explain(step)
+  // the live condition under α / β: why the search continues or cuts here
+  const formula =
+    step.type === 'prune'
+      ? t('alphabeta.formula.prune', { alpha: fmt(step.alpha), beta: fmt(step.beta) })
+      : safeIdx === 0
+        ? t('alphabeta.formula.waiting')
+        : safeIdx === steps.length - 1
+          ? t('alphabeta.formula.done', { value: steps.at(-1)!.returnValue })
+          : t('alphabeta.formula.continue', { alpha: fmt(step.alpha), beta: fmt(step.beta) })
+
+  // keep the current step of the trace in view without scrolling the page
+  const listRef = useRef<HTMLOListElement>(null)
+  useEffect(() => {
+    const list = listRef.current
+    const item = list?.querySelector<HTMLElement>(`[data-step="${safeIdx}"]`)
+    if (list && item) list.scrollTop = item.offsetTop - list.offsetTop - list.clientHeight / 2 + item.clientHeight / 2
+  }, [safeIdx])
 
   const counts = useMemo(() => {
     const pruned = new Set(steps.at(-1)!.prunedNodes)
@@ -122,207 +137,242 @@ export const AlphaBetaModule = () => {
     return { evaluated: AB_LEAF_IDS.length - prunedLeaves, prunedLeaves, total: AB_LEAF_IDS.length }
   }, [steps])
 
-  const mathBoxClass =
-    step.type === 'prune'
-      ? 'bg-rose-50 border-rose-300'
-      : step.type === 'leaf_eval' || step.type === 'update'
-        ? 'bg-emerald-50 border-emerald-200'
-        : 'bg-slate-50 border-slate-200'
+  const mathBoxClass = step.type === 'prune' ? 'border-rose-500/60 bg-rose-950/40' : step.type === 'leaf_eval' || step.type === 'update' ? 'border-emerald-500/40 bg-emerald-950/30' : 'border-slate-800 bg-slate-950'
+  const panel = 'rounded-2xl border border-slate-800 bg-slate-900 shadow-xl'
+  const heading = 'flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-300'
+  const STEP_TONE: Record<AbStep['type'], string> = {
+    enter: 'bg-indigo-500/20 text-indigo-300',
+    traverse: 'bg-slate-700 text-slate-200',
+    leaf_eval: 'bg-emerald-500/20 text-emerald-300',
+    update: 'bg-emerald-500/20 text-emerald-300',
+    prune: 'bg-rose-500/25 text-rose-300',
+    exit: 'bg-amber-500/20 text-amber-300',
+  }
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* 树画布 */}
-        <div className="lg:col-span-8 space-y-4">
-          {/* 预设 + 随机 */}
-          <div className="flex flex-wrap gap-3 items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-200">
-            <div className="flex flex-wrap gap-2">
-              {(['user', 'beta', 'alpha'] as const).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => applyPreset(key)}
-                  aria-pressed={preset === key}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${preset === key ? 'bg-indigo-600 text-white shadow' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}
-                >
-                  {t(`alphabeta.preset.${key}`)}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={randomize} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center gap-1.5">
-                <Shuffle size={13} className="text-indigo-500" /> {t('alphabeta.randomize')}
-              </button>
-              <button onClick={() => applyPreset(preset === 'custom' ? 'user' : preset)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center gap-1.5">
-                <RotateCcw size={13} className="text-slate-400" /> {t('alphabeta.reset')}
-              </button>
+      <div className="space-y-5 rounded-[1.75rem] bg-slate-950 p-4 text-slate-100 sm:p-6">
+        {/* header: title + state legend */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl border border-indigo-500/30 bg-indigo-600/20 p-2.5 text-indigo-300"><GitBranch size={22} aria-hidden /></div>
+            <div>
+              <p className="bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-lg font-extrabold tracking-tight text-transparent">{t('alphabeta.header_title')}</p>
+              <p className="text-xs text-slate-400">{t('alphabeta.header_sub')}</p>
             </div>
           </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {[['bg-emerald-500', 'visited'], ['bg-indigo-500', 'active'], ['bg-rose-500', 'pruned']].map(([c, k]) => (
+              <span key={k} className="flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-800/80 px-3 py-1.5"><span className={`h-2.5 w-2.5 rounded-full ${c}`} />{t(`alphabeta.legend.${k}`)}</span>
+            ))}
+          </div>
+        </div>
 
-          {/* SVG 树 */}
-          <div className="bg-slate-900 rounded-[2rem] p-4 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 text-[11px] font-semibold text-slate-200 bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 backdrop-blur">
-              <div className="flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-indigo-500" />{t('alphabeta.legend.active')}</div>
-              <div className="flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-emerald-500" />{t('alphabeta.legend.visited')}</div>
-              <div className="flex items-center gap-2"><span className="w-3 h-1.5 rounded bg-rose-500" />{t('alphabeta.legend.pruned')}</div>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+          {/* left: presets + tree canvas */}
+          <section className="flex min-w-0 flex-col gap-5 lg:col-span-8">
+            <div className={`${panel} flex flex-wrap items-center justify-between gap-4 p-4`}>
+              <div className="flex flex-col gap-1.5">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400"><Layers size={14} aria-hidden /> {t('alphabeta.presets_label')}</span>
+                <div className="flex flex-wrap gap-2">
+                  {(['user', 'beta', 'alpha'] as const).map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => applyPreset(key)}
+                      aria-pressed={preset === key}
+                      className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${preset === key ? 'border-indigo-500 bg-indigo-600/25 text-indigo-200 shadow-md' : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700/60'}`}
+                    >
+                      {t(`alphabeta.preset.${key}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={randomize} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700">
+                  <Shuffle size={14} className="text-indigo-400" aria-hidden /> {t('alphabeta.randomize')}
+                </button>
+                <button onClick={() => applyPreset(preset === 'custom' ? 'user' : preset)} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700">
+                  <RotateCcw size={14} className="text-slate-400" aria-hidden /> {t('alphabeta.reset')}
+                </button>
+              </div>
             </div>
-            <svg viewBox="0 0 1000 470" className="w-full h-auto max-h-[460px]" role="img" aria-label={t('alphabeta.tree_label')}>
-              <defs>
-                <marker id="ab-arrow" viewBox="0 0 10 10" refX="20" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" />
-                </marker>
-              </defs>
-              {/* 边 */}
-              {EDGES.map((e) => {
-                const p = nodes[e.from]
-                const c = nodes[e.to]
-                const key = `${e.from}->${e.to}`
-                const isPruned = step.prunedEdges.includes(key)
-                const isActive = step.activeEdge === key
-                const isVisited = step.visited.includes(e.to) && !isPruned
-                let stroke = '#334155'
-                let width = 3
-                let dash = '0'
-                if (isPruned) { stroke = '#f43f5e'; width = 2; dash = '6,5' }
-                else if (isActive) { stroke = '#818cf8'; width = 6 }
-                else if (isVisited) { stroke = '#10b981'; width = 4 }
-                return (
-                  <g key={key}>
-                    <line x1={p.x} y1={p.y} x2={c.x} y2={c.y} stroke={stroke} strokeWidth={width} strokeDasharray={dash} markerEnd="url(#ab-arrow)" />
-                    {isPruned && (
-                      <g transform={`translate(${(p.x + c.x) / 2}, ${(p.y + c.y) / 2})`}>
-                        <circle r={10} fill="#f43f5e" />
-                        <text textAnchor="middle" dy={3.5} fill="white" fontSize={10} fontWeight={900}>×</text>
-                      </g>
-                    )}
-                  </g>
-                )
-              })}
-              {/* 节点 */}
-              {Object.values(nodes).map((node) => {
-                const value = step.nodeValues[node.id]
-                const a = step.nodeAlphas[node.id]
-                const b = step.nodeBetas[node.id]
-                const isPruned = step.prunedNodes.includes(node.id)
-                const isActive = step.nodeId === node.id
-                const isVisited = step.visited.includes(node.id)
-                let fill = '#0f172a'
-                let stroke = '#334155'
-                let text = '#94a3b8'
-                if (isPruned) { fill = '#1f0a12'; stroke = '#7f1d1d'; text = '#9f1239' }
-                else if (isActive) { fill = '#1e1b4b'; stroke = '#6366f1'; text = '#c7d2fe' }
-                else if (isVisited) { fill = '#052e2b'; stroke = '#10b981'; text = '#a7f3d0' }
 
-                if (node.type === 'leaf') {
+            <div className={`${panel} relative min-h-[360px] overflow-hidden rounded-3xl p-4 shadow-2xl`}>
+              <div className="absolute left-4 top-4 z-10 rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-1 text-[11px] font-semibold text-slate-400 backdrop-blur">{t('alphabeta.canvas_label')}</div>
+              <div className="absolute right-4 top-4 z-10 flex flex-col gap-2 rounded-xl border border-slate-800/80 bg-slate-950/70 p-3 text-[11px] text-slate-300 backdrop-blur">
+                <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-indigo-500" />{t('alphabeta.layers.max')}</span>
+                <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-amber-500" />{t('alphabeta.layers.min')}</span>
+                <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-emerald-500" />{t('alphabeta.layers.leaf')}</span>
+              </div>
+              <svg viewBox="0 0 1000 470" className="mt-10 h-auto max-h-[460px] w-full" role="img" aria-label={t('alphabeta.tree_label')}>
+                <defs>
+                  <marker id="ab-arrow" viewBox="0 0 10 10" refX="20" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" />
+                  </marker>
+                </defs>
+                {/* 边 */}
+                {EDGES.map((e) => {
+                  const p = nodes[e.from]
+                  const c = nodes[e.to]
+                  const key = `${e.from}->${e.to}`
+                  const isPruned = step.prunedEdges.includes(key)
+                  const isActive = step.activeEdge === key
+                  const isVisited = step.visited.includes(e.to) && !isPruned
+                  let stroke = '#334155'
+                  let width = 3
+                  let dash = '0'
+                  if (isPruned) { stroke = '#f43f5e'; width = 2; dash = '6,5' }
+                  else if (isActive) { stroke = '#818cf8'; width = 6 }
+                  else if (isVisited) { stroke = '#10b981'; width = 4 }
                   return (
-                    <g key={node.id} className="cursor-pointer" onClick={() => {
-                      const nv = window.prompt(t('alphabeta.edit_leaf', { id: node.id }), String(node.value))
-                      const n = Number(nv)
-                      if (nv !== null && Number.isFinite(n) && n >= 0 && n <= 20) setLeaf(node.id, Math.round(n))
-                    }}>
-                      <circle cx={node.x} cy={node.y} r={22} fill={fill} stroke={stroke} strokeWidth={3} />
-                      <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#9f1239' : '#f1f5f9'}>{node.value}</text>
-                      <text x={node.x + 28} y={node.y + 4} fontSize={10} fontFamily="monospace" fill="#64748b" fontWeight={700}>{node.id}</text>
+                    <g key={key}>
+                      <line x1={p.x} y1={p.y} x2={c.x} y2={c.y} stroke={stroke} strokeWidth={width} strokeDasharray={dash} markerEnd="url(#ab-arrow)" />
+                      {isPruned && (
+                        <g transform={`translate(${(p.x + c.x) / 2}, ${(p.y + c.y) / 2})`}>
+                          <circle r={10} fill="#f43f5e" />
+                          <text textAnchor="middle" dy={3.5} fill="white" fontSize={10} fontWeight={900}>×</text>
+                        </g>
+                      )}
                     </g>
                   )
-                }
-                const isMax = node.type === 'max'
-                const points = isMax
-                  ? `${node.x},${node.y - 26} ${node.x - 26},${node.y + 18} ${node.x + 26},${node.y + 18}`
-                  : `${node.x - 26},${node.y - 18} ${node.x + 26},${node.y - 18} ${node.x},${node.y + 26}`
-                return (
-                  <g key={node.id}>
-                    <polygon points={points} fill={fill} stroke={stroke} strokeWidth={3} />
-                    <text x={node.x} y={node.y + (isMax ? 10 : -2)} textAnchor="middle" fontSize={9} fontWeight={800} fill={text}>{isMax ? '▲MAX' : '▼MIN'}</text>
-                    <g transform={`translate(${node.x}, ${node.y + (isMax ? -40 : -34)})`}>
-                      <rect x={-52} y={-11} width={104} height={19} rx={6} fill="#020617" stroke="#1e293b" />
-                      <text textAnchor="middle" dy={2} fontSize={9} fontFamily="monospace">
-                        <tspan fill="#34d399">α:{fmt(a)}</tspan> <tspan fill="#fbbf24">β:{fmt(b)}</tspan>
-                      </text>
-                    </g>
-                    <text x={node.x + 32} y={node.y + 2} fontSize={10} fontFamily="monospace" fill="#64748b" fontWeight={700}>{node.id}</text>
-                    {value !== null && (
-                      <g transform={`translate(${node.x}, ${node.y + (isMax ? 34 : 40)})`}>
-                        <rect x={-15} y={-10} width={30} height={18} rx={5} fill="#10b981" />
-                        <text textAnchor="middle" dy={3} fontSize={11} fontWeight="bold" fill="white">{value}</text>
+                })}
+                {/* 节点 */}
+                {Object.values(nodes).map((node) => {
+                  const value = step.nodeValues[node.id]
+                  const a = step.nodeAlphas[node.id]
+                  const b = step.nodeBetas[node.id]
+                  const isPruned = step.prunedNodes.includes(node.id)
+                  const isActive = step.nodeId === node.id
+                  const isVisited = step.visited.includes(node.id)
+                  let fill = '#0f172a'
+                  let stroke = '#334155'
+                  let text = '#94a3b8'
+                  if (isPruned) { fill = '#1f0a12'; stroke = '#7f1d1d'; text = '#9f1239' }
+                  else if (isActive) { fill = '#1e1b4b'; stroke = '#6366f1'; text = '#c7d2fe' }
+                  else if (isVisited) { fill = '#052e2b'; stroke = '#10b981'; text = '#a7f3d0' }
+  
+                  if (node.type === 'leaf') {
+                    return (
+                      <g key={node.id} className="cursor-pointer" onClick={() => {
+                        const nv = window.prompt(t('alphabeta.edit_leaf', { id: node.id }), String(node.value))
+                        const n = Number(nv)
+                        if (nv !== null && Number.isFinite(n) && n >= 0 && n <= 20) setLeaf(node.id, Math.round(n))
+                      }}>
+                        <circle cx={node.x} cy={node.y} r={22} fill={fill} stroke={stroke} strokeWidth={3} />
+                        <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#9f1239' : '#f1f5f9'}>{node.value}</text>
+                        <text x={node.x + 28} y={node.y + 4} fontSize={10} fontFamily="monospace" fill="#64748b" fontWeight={700}>{node.id}</text>
                       </g>
-                    )}
-                  </g>
-                )
-              })}
-            </svg>
-          </div>
-
-          {/* 叶子滑块沙盒 */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Shuffle size={13} className="text-purple-500" /> {t('alphabeta.sandbox')}
-            </h4>
-            <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-              {AB_LEAF_IDS.map((id) => (
-                <div key={id} className="flex flex-col items-center gap-1.5">
-                  <span className="text-[10px] font-mono font-bold text-slate-500">{id}</span>
-                  <input type="range" min={0} max={20} value={leaves[id]} onChange={(e) => setLeaf(id, parseInt(e.target.value))} aria-label={t('alphabeta.leaf_label', { id })} className="w-full accent-indigo-600 cursor-pointer" />
-                  <span className="text-sm font-black text-indigo-600">{leaves[id]}</span>
-                </div>
-              ))}
+                    )
+                  }
+                  const isMax = node.type === 'max'
+                  const points = isMax
+                    ? `${node.x},${node.y - 26} ${node.x - 26},${node.y + 18} ${node.x + 26},${node.y + 18}`
+                    : `${node.x - 26},${node.y - 18} ${node.x + 26},${node.y - 18} ${node.x},${node.y + 26}`
+                  return (
+                    <g key={node.id}>
+                      <polygon points={points} fill={fill} stroke={stroke} strokeWidth={3} />
+                      <text x={node.x} y={node.y + (isMax ? 10 : -2)} textAnchor="middle" fontSize={9} fontWeight={800} fill={text}>{isMax ? '▲MAX' : '▼MIN'}</text>
+                      <g transform={`translate(${node.x}, ${node.y + (isMax ? -40 : -34)})`}>
+                        <rect x={-52} y={-11} width={104} height={19} rx={6} fill="#020617" stroke="#1e293b" />
+                        <text textAnchor="middle" dy={2} fontSize={9} fontFamily="monospace">
+                          <tspan fill="#34d399">α:{fmt(a)}</tspan> <tspan fill="#fbbf24">β:{fmt(b)}</tspan>
+                        </text>
+                      </g>
+                      <text x={node.x + 32} y={node.y + 2} fontSize={10} fontFamily="monospace" fill="#64748b" fontWeight={700}>{node.id}</text>
+                      {value !== null && (
+                        <g transform={`translate(${node.x}, ${node.y + (isMax ? 34 : 40)})`}>
+                          <rect x={-15} y={-10} width={30} height={18} rx={5} fill="#10b981" />
+                          <text textAnchor="middle" dy={3} fontSize={11} fontWeight="bold" fill="white">{value}</text>
+                        </g>
+                      )}
+                    </g>
+                  )
+                })}
+              </svg>
             </div>
-          </div>
+          </section>
+
+          {/* right: control deck + live explanation */}
+          <section className="flex min-w-0 flex-col gap-5 lg:col-span-4">
+            <div className="flex flex-col gap-5 rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 p-5 shadow-xl">
+              <h3 className={heading}><Play size={15} className="text-indigo-400" aria-hidden /> {t('alphabeta.control')}</h3>
+              <div className="grid grid-cols-4 gap-2">
+                <button onClick={() => { setStepIdx(0); setPlaying(false) }} className="flex items-center justify-center rounded-xl bg-slate-800 p-3 text-slate-200 transition hover:scale-105 hover:bg-slate-700" title={t('alphabeta.first')} aria-label={t('alphabeta.first')}><ChevronsLeft size={18} /></button>
+                <button onClick={() => { setStepIdx((i) => Math.max(0, i - 1)); setPlaying(false) }} className="flex items-center justify-center rounded-xl bg-slate-800 p-3 text-slate-200 transition hover:scale-105 hover:bg-slate-700" title={t('alphabeta.prev')} aria-label={t('alphabeta.prev')}><ChevronLeft size={18} /></button>
+                <button onClick={() => { if (safeIdx >= steps.length - 1) setStepIdx(0); setPlaying((p) => !p) }} className="flex items-center justify-center rounded-xl bg-indigo-600 p-3 text-white shadow-lg shadow-indigo-600/25 transition hover:scale-105 hover:bg-indigo-500" title={t('alphabeta.play')} aria-label={t('alphabeta.play')}>{playing ? <Pause size={18} /> : <Play size={18} className="fill-white" />}</button>
+                <button onClick={() => { setStepIdx((i) => Math.min(steps.length - 1, i + 1)); setPlaying(false) }} className="flex items-center justify-center rounded-xl bg-slate-800 p-3 text-slate-200 transition hover:scale-105 hover:bg-slate-700" title={t('alphabeta.next')} aria-label={t('alphabeta.next')}><ChevronRight size={18} /></button>
+              </div>
+              <div className="flex flex-col gap-4 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between text-xs text-slate-400"><span>{t('alphabeta.progress')}</span><span className="font-mono font-bold text-indigo-300">{safeIdx + 1} / {steps.length}</span></div>
+                  <input type="range" min={0} max={steps.length - 1} value={safeIdx} aria-label={t('alphabeta.progress')} onChange={(e) => { setStepIdx(parseInt(e.target.value)); setPlaying(false) }} className="w-full cursor-pointer accent-indigo-500" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between text-xs text-slate-400"><span>{t('alphabeta.speed')}</span><span className="font-mono text-slate-300">{(speed / 1000).toFixed(1)}s</span></div>
+                  <input type="range" min={200} max={2400} step={200} value={speed} aria-label={t('alphabeta.speed')} onChange={(e) => setSpeed(parseInt(e.target.value))} className="w-full cursor-pointer accent-indigo-500" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 border-t border-slate-800 pt-4 text-center">
+                <div><p className="text-[10px] uppercase text-slate-400">{t('alphabeta.evaluated')}</p><p className="text-xl font-black text-emerald-400">{counts.evaluated}/{counts.total}</p></div>
+                <div><p className="text-[10px] uppercase text-slate-400">{t('alphabeta.pruned')}</p><p className="text-xl font-black text-rose-400">{counts.prunedLeaves}</p></div>
+              </div>
+            </div>
+
+            <div className="flex min-h-[260px] flex-1 flex-col rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+              <h3 className={`${heading} border-b border-slate-800 pb-3`}><FileText size={15} className="text-emerald-400" aria-hidden /> {t('alphabeta.detail')}</h3>
+              <div className="flex flex-1 flex-col justify-between gap-4 pt-4">
+                <p className="text-sm leading-relaxed text-slate-200" aria-live="polite">{explanation}</p>
+                <div className={`flex flex-col gap-2 rounded-xl border p-3.5 transition-colors ${mathBoxClass}`}>
+                  <div className="font-mono text-[10px] uppercase tracking-wider text-slate-400">{t('alphabeta.range_label')}</div>
+                  <div className="flex items-center justify-around font-mono text-xs">
+                    <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-400">α ({t('alphabeta.lower')})</span><span className="text-base font-bold text-emerald-400">{fmt(step.alpha)}</span></div>
+                    <div className="text-lg text-slate-500" aria-hidden>|</div>
+                    <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-400">β ({t('alphabeta.upper')})</span><span className="text-base font-bold text-amber-400">{fmt(step.beta)}</span></div>
+                  </div>
+                  <div className="mt-1 border-t border-slate-800 pt-2 text-center text-xs font-semibold italic text-slate-300">{formula}</div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
 
-        {/* 控制台 + 解释 */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-2xl space-y-5">
-            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <GitBranch size={14} className="text-indigo-400" /> {t('alphabeta.control')}
-            </h4>
-            <div className="grid grid-cols-4 gap-2">
-              <button onClick={() => { setStepIdx(0); setPlaying(false) }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center" title={t('alphabeta.first')} aria-label={t('alphabeta.first')}><ChevronsLeft size={18} /></button>
-              <button onClick={() => { setStepIdx((i) => Math.max(0, i - 1)); setPlaying(false) }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center" title={t('alphabeta.prev')} aria-label={t('alphabeta.prev')}><ChevronLeft size={18} /></button>
-              <button onClick={() => { if (safeIdx >= steps.length - 1) setStepIdx(0); setPlaying((p) => !p) }} className="p-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/25" title={t('alphabeta.play')} aria-label={t('alphabeta.play')}>{playing ? <Pause size={18} /> : <Play size={18} />}</button>
-              <button onClick={() => { setStepIdx((i) => Math.min(steps.length - 1, i + 1)); setPlaying(false) }} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center" title={t('alphabeta.next')} aria-label={t('alphabeta.next')}><ChevronRight size={18} /></button>
-            </div>
-            <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 space-y-4">
-              <div>
-                <div className="flex justify-between text-xs text-slate-400 mb-1.5">
-                  <span>{t('alphabeta.progress')}</span>
-                  <span className="font-mono text-indigo-400 font-bold">{safeIdx + 1} / {steps.length}</span>
-                </div>
-                <input type="range" min={0} max={steps.length - 1} value={safeIdx} aria-label={t('alphabeta.progress')} onChange={(e) => { setStepIdx(parseInt(e.target.value)); setPlaying(false) }} className="w-full accent-indigo-500 cursor-pointer" />
+        {/* leaf value sandbox, full width */}
+        <section className={`${panel} flex flex-col gap-4 rounded-3xl p-5`}>
+          <h3 className={`${heading} flex-wrap justify-between border-b border-slate-800 pb-3`}>
+            <span className="flex items-center gap-2"><SlidersHorizontal size={15} className="text-purple-400" aria-hidden /> {t('alphabeta.sandbox')}</span>
+            <span className="text-xs font-normal normal-case tracking-normal text-slate-400">{t('alphabeta.sandbox_hint')}</span>
+          </h3>
+          <div className="grid grid-cols-4 gap-4 md:grid-cols-8">
+            {AB_LEAF_IDS.map((id) => (
+              <div key={id} className="flex flex-col items-center gap-1.5">
+                <span className="font-mono text-[11px] font-bold text-slate-400">{id}</span>
+                <input type="range" min={0} max={20} value={leaves[id]} onChange={(e) => setLeaf(id, parseInt(e.target.value))} aria-label={t('alphabeta.leaf_label', { id })} className="w-full cursor-pointer accent-indigo-500" />
+                <span className="text-sm font-black text-indigo-300">{leaves[id]}</span>
               </div>
-              <div>
-                <div className="flex justify-between text-xs text-slate-400 mb-1.5">
-                  <span>{t('alphabeta.speed')}</span>
-                  <span className="font-mono text-slate-300">{(speed / 1000).toFixed(1)}s</span>
-                </div>
-                <input type="range" min={200} max={2400} step={200} value={speed} aria-label={t('alphabeta.speed')} onChange={(e) => setSpeed(parseInt(e.target.value))} className="w-full accent-indigo-500 cursor-pointer" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-center border-t border-slate-800 pt-4">
-              <div><p className="text-[9px] text-slate-500 uppercase">{t('alphabeta.evaluated')}</p><p className="text-xl font-black text-emerald-400">{counts.evaluated}/{counts.total}</p></div>
-              <div><p className="text-[9px] text-slate-500 uppercase">{t('alphabeta.pruned')}</p><p className="text-xl font-black text-rose-400">{counts.prunedLeaves}</p></div>
-            </div>
+            ))}
           </div>
+        </section>
 
-          <div className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm space-y-4">
-            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <Scissors size={14} className="text-emerald-500" /> {t('alphabeta.detail')}
-            </h4>
-            <p className="text-sm text-slate-700 leading-relaxed min-h-[72px]" aria-live="polite">{explanation}</p>
-            <div className={`rounded-xl p-3.5 border ${mathBoxClass} transition-colors`}>
-              <div className="flex justify-around items-center text-xs font-mono">
-                <div className="flex flex-col items-center">
-                  <span className="text-slate-400 text-[10px] mb-0.5">α ({t('alphabeta.lower')})</span>
-                  <span className="text-emerald-600 font-bold text-base">{fmt(step.alpha)}</span>
-                </div>
-                <div className="text-slate-300 text-lg">|</div>
-                <div className="flex flex-col items-center">
-                  <span className="text-slate-400 text-[10px] mb-0.5">β ({t('alphabeta.upper')})</span>
-                  <span className="text-amber-600 font-bold text-base">{fmt(step.beta)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* step trace: click any step to jump there */}
+        <section className={`${panel} flex h-[260px] flex-col gap-3 rounded-3xl p-5`}>
+          <h3 className={`${heading} border-b border-slate-800 pb-2`}><ListOrdered size={15} className="text-indigo-400" aria-hidden /> {t('alphabeta.timeline')}</h3>
+          <ol ref={listRef} className="relative flex flex-1 flex-col gap-1 overflow-y-auto pr-2">
+            {steps.map((s, k) => (
+              <li key={k} data-step={k}>
+                <button
+                  type="button"
+                  onClick={() => { setStepIdx(k); setPlaying(false) }}
+                  aria-current={k === safeIdx ? 'step' : undefined}
+                  className={`flex w-full items-start gap-3 rounded-lg px-2.5 py-1.5 text-left text-xs transition ${k === safeIdx ? 'bg-indigo-600/25 ring-1 ring-indigo-500/60' : k < safeIdx ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-300 hover:bg-slate-800'}`}
+                >
+                  <span className="w-7 shrink-0 pt-0.5 text-right font-mono text-[10px] text-slate-500">{k + 1}</span>
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase ${STEP_TONE[s.type]}`}>{t(`alphabeta.step_type.${s.type}`)}</span>
+                  <span className="leading-relaxed">{explain(s)}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </section>
       </div>
       <SeniorAdvice content={<Trans i18nKey="alphabeta.advice" components={{
         1: <Latex formula="\beta \leq \alpha" />,

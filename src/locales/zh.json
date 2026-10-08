@@ -430,7 +430,7 @@
     "sidebar": {
       "knowledge_core": "Knowledge Core",
       "exam_tip": {
-        "title": "Exam Tip",
+        "title": "考试提示",
         "content_numpy": "考试注意：<1>Broadcasting</1> 只能扩展 Size 为 1 的维度。<3>A \\cdot B</3> (np.dot) 和 <5>A \\odot B</5> (Element-wise) 物理含义完全不同！",
         "content_backprop": "考试注意：误差是反向流动的——先在输出层算 <1>\\delta_k</1>。记住 <3>\\Delta w = \\eta \\delta O</3>，并小心 (T - O) 的符号！",
         "content_kernel": "考试注意：无 padding、步长为 1 时，输出尺寸是 <1>N - K + 1</1>。Sobel-X 响应的是垂直边缘——方向别搞反！",
@@ -443,22 +443,14 @@
         "content_pytorch": "考试注意：训练三步顺序很关键——<1>\\text{zero\\_grad} \\to \\text{backward} \\to \\text{step}</1>。忘了 zero_grad 梯度会累加！"
       }
     },
-    "footer": {
-      "offline_save": "离线保存",
-      "offline_mb": "约 {{mb}} MB",
-      "offline_hint": "把所有页面、讲解视频和笔记保存在本机（约 {{mb}} MB），没有网络也能使用。",
-      "offline_starting": "准备中…",
-      "offline_saving": "正在保存 {{done}} / {{total}}",
-      "offline_saved": "已离线保存",
-      "offline_update": "更新离线副本",
-      "offline_retry": "未能全部保存——请重试"
-    },
     "nav": {
       "course": "课程",
       "package": "资料包",
       "extend": "拓展",
       "watch": "视频",
-      "drill": "自测"
+      "drill": "自测",
+      "more": "更多",
+      "playground": "实验场"
     },
     "tabs_sub": {
       "numpy": "视图 vs 副本 & 广播",
@@ -517,7 +509,33 @@
     },
     "advice": "Alpha-Beta 与朴素 Minimax 返回完全相同的值，只是更快。剪枝条件 <1></1> 意味着父节点已有更优的保底选择，本分支剩余部分绝不可能改变结果。<3>节点排序至关重要</3>：先评估最有希望的子节点，才能触发最多剪枝。",
     "leaf_label": "叶子 {{id}} 的值",
-    "tree_label": "博弈树（MAX / MIN 节点），颜色表示当前步骤的活跃、已访问与已剪枝部分。"
+    "tree_label": "博弈树（MAX / MIN 节点），颜色表示当前步骤的活跃、已访问与已剪枝部分。",
+    "header_title": "Alpha-Beta 剪枝逐步演示",
+    "header_sub": "带 α / β 上下界的深度优先搜索：看清每一次决策与剪枝。",
+    "presets_label": "选择树预设",
+    "canvas_label": "可交互树画布（点击叶子节点可修改数值）",
+    "layers": {
+      "max": "MAX 层（取最大值）",
+      "min": "MIN 层（取最小值）",
+      "leaf": "叶子层（估值节点）"
+    },
+    "range_label": "实时范围 / 剪枝条件",
+    "formula": {
+      "waiting": "点击播放或下一步开始搜索。",
+      "continue": "α = {{alpha}} < β = {{beta}}：继续搜索",
+      "prune": "β = {{beta}} ≤ α = {{alpha}} ⇒ 剪掉剩余子节点",
+      "done": "搜索结束：根节点的 minimax 值为 {{value}}"
+    },
+    "sandbox_hint": "拖动滑块，看剪枝路径如何随之变化！",
+    "timeline": "算法运行追踪链（点击任一步直接跳转）",
+    "step_type": {
+      "enter": "进入",
+      "traverse": "访问",
+      "leaf_eval": "叶子",
+      "update": "更新",
+      "prune": "剪枝",
+      "exit": "返回"
+    }
   },
   "kmeans": {
     "canvas_title": "簇分配（点击播放逐轮迭代）",
@@ -846,7 +864,27 @@
       "watch_title": "讲解视频",
       "watch_lead": "考试最常考的概念做成的短动画讲解 —— 先看一集，再去动手练。",
       "watch_all": "全部讲解视频",
-      "drill_link": "{{n}} 道判断自测"
+      "drill_link": "{{n}} 道判断自测",
+      "lab": {
+        "lead": "覆盖 COMP2211 每个考点的交互式实验页。打开即用，无需安装，适合投屏讲解与课后自学。",
+        "online": "{{n}} 个实验在线",
+        "filter": "按领域筛选",
+        "all": "全部",
+        "ready": "Ready",
+        "visited": "已打开",
+        "open": "进入实验",
+        "areas": {
+          "numpy": "NumPy",
+          "prob": "概率",
+          "classic": "近邻与聚类",
+          "neural": "神经网络",
+          "vision": "图像与 CNN",
+          "search": "博弈搜索"
+        }
+      }
+    },
+    "playground": {
+      "title": "实验场"
     }
   },
   "lab": {

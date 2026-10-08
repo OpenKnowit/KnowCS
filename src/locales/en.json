@@ -443,22 +443,14 @@
         "content_pytorch": "Exam Note: the training trio order matters — <1>\\text{zero\\_grad} \\to \\text{backward} \\to \\text{step}</1>. Forget zero_grad and gradients accumulate!"
       }
     },
-    "footer": {
-      "offline_save": "Save for offline",
-      "offline_mb": "about {{mb}} MB",
-      "offline_hint": "Keeps every page, explainer and note on this device (about {{mb}} MB), so the site works without a connection.",
-      "offline_starting": "Preparing…",
-      "offline_saving": "Saving {{done}} / {{total}}",
-      "offline_saved": "Saved for offline",
-      "offline_update": "Update offline copy",
-      "offline_retry": "Couldn’t save everything — try again"
-    },
     "nav": {
       "course": "Course",
       "package": "Package",
       "extend": "Extend",
       "watch": "Watch",
-      "drill": "Check"
+      "drill": "Check",
+      "more": "More",
+      "playground": "Playground"
     },
     "tabs_sub": {
       "numpy": "View vs Copy & Broadcasting",
@@ -517,7 +509,33 @@
     },
     "advice": "Alpha-Beta returns the exact same value as plain Minimax, just faster. The prune condition <1></1> means the parent already has a better guaranteed option, so the rest of this branch can never affect the result. <3>Move ordering is everything</3>: evaluate the most promising child first to trigger maximum pruning.",
     "leaf_label": "Value of leaf {{id}}",
-    "tree_label": "Game tree with MAX and MIN nodes; colours show the active, visited and pruned parts at the current step."
+    "tree_label": "Game tree with MAX and MIN nodes; colours show the active, visited and pruned parts at the current step.",
+    "header_title": "Alpha-beta pruning, step by step",
+    "header_sub": "Depth-first search with α / β bounds: watch every decision and every cut.",
+    "presets_label": "Tree preset",
+    "canvas_label": "Interactive tree (click a leaf to change its value)",
+    "layers": {
+      "max": "MAX layer (takes the largest)",
+      "min": "MIN layer (takes the smallest)",
+      "leaf": "Leaves (evaluated values)"
+    },
+    "range_label": "Live bounds / cut condition",
+    "formula": {
+      "waiting": "Press play or step forward to start the search.",
+      "continue": "α = {{alpha}} < β = {{beta}}: keep searching",
+      "prune": "β = {{beta}} ≤ α = {{alpha}} ⇒ cut the remaining children",
+      "done": "Search finished: the root’s minimax value is {{value}}"
+    },
+    "sandbox_hint": "Drag a slider and watch the pruned branches change.",
+    "timeline": "Algorithm trace (click a step to jump to it)",
+    "step_type": {
+      "enter": "enter",
+      "traverse": "visit",
+      "leaf_eval": "leaf",
+      "update": "update",
+      "prune": "prune",
+      "exit": "return"
+    }
   },
   "kmeans": {
     "canvas_title": "Cluster Assignment (click Play to iterate)",
@@ -846,7 +864,27 @@
       "watch_title": "Explainers",
       "watch_lead": "Short animated explainers of the most-examined ideas — watch one, then practise it.",
       "watch_all": "All explainers",
-      "drill_link": "{{n}} true/false checks"
+      "drill_link": "{{n}} true/false checks",
+      "lab": {
+        "lead": "Interactive labs for every examined COMP2211 topic. Open in the browser, nothing to install — good on a projector and for studying on your own.",
+        "online": "{{n}} labs online",
+        "filter": "Filter by area",
+        "all": "All",
+        "ready": "Ready",
+        "visited": "Visited",
+        "open": "Open lab",
+        "areas": {
+          "numpy": "NumPy",
+          "prob": "Probability",
+          "classic": "Neighbours & clusters",
+          "neural": "Neural networks",
+          "vision": "Images & CNNs",
+          "search": "Game search"
+        }
+      }
+    },
+    "playground": {
+      "title": "Playground"
     }
   },
   "lab": {

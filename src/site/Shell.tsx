@@ -4,7 +4,6 @@ import { Check, ChevronDown, Languages } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { normalizeLang, SUPPORTED_LANGS } from '../lib/lang'
 import type { LangCode } from '../lib/lang'
-import { OfflineButton } from './OfflineButton'
 
 const LANG_LABELS: Record<LangCode, string> = {
   en: 'English',
@@ -12,7 +11,7 @@ const LANG_LABELS: Record<LangCode, string> = {
   'zh-HK': '繁體中文',
 }
 
-export type Section = 'course' | 'watch' | 'drill' | 'notes' | 'extend'
+export type Section = 'course' | 'playground' | 'watch' | 'drill' | 'notes' | 'extend'
 
 const LanguageMenu = () => {
   const { t, i18n } = useTranslation()
@@ -60,7 +59,7 @@ const LanguageMenu = () => {
         aria-label={t('app.a11y.language')}
       >
         <Languages size={18} className="text-blue-600" aria-hidden />
-        <span className="hidden sm:inline">{LANG_LABELS[currentLang]}</span>
+        <span className="hidden lg:inline">{LANG_LABELS[currentLang]}</span>
         <ChevronDown size={14} className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
       </button>
       {open && (
@@ -116,13 +115,73 @@ const SiteLogo = () => (
 
 const NAV: { section: Section; href: string; key: string }[] = [
   { section: 'course', href: '/', key: 'app.nav.course' },
+  { section: 'playground', href: '/playground/', key: 'app.nav.playground' },
+]
+/** The other sections, grouped under "More" in this order. */
+const MORE: { section: Section; href: string; key: string }[] = [
   { section: 'watch', href: '/watch/', key: 'app.nav.watch' },
-  { section: 'drill', href: '/drill/', key: 'app.nav.drill' },
   { section: 'notes', href: '/notes/', key: 'app.nav.package' },
+  { section: 'drill', href: '/drill/', key: 'app.nav.drill' },
   { section: 'extend', href: '/extend/', key: 'app.nav.extend' },
 ]
 
-/** Site header + footer around every page. */
+const pill = (on: boolean) => `rounded-full px-2.5 py-1.5 text-sm font-bold transition sm:px-3.5 ${on ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:text-slate-800'}`
+
+/** "More ▾": Watch, Package, Check, Extend. Shows the current one's name when you are in it. */
+function MoreMenu({ section }: { section: Section }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const current = MORE.find((m) => m.section === section)
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      setOpen(false)
+      buttonRef.current?.focus()
+      return
+    }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+    e.preventDefault()
+    const items = [...e.currentTarget.querySelectorAll<HTMLAnchorElement>('[role="menuitem"]')]
+    const idx = items.indexOf(document.activeElement as HTMLAnchorElement)
+    items[(idx + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus()
+  }
+  return (
+    <div className="relative" ref={rootRef}>
+      <button ref={buttonRef} type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className={`flex items-center gap-1 ${pill(!!current)}`}>
+        {current ? t(current.key) : t('app.nav.more')}
+        <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      {open && (
+        <div role="menu" aria-label={t('app.nav.more')} onKeyDown={onKey} className="lang-menu absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white py-1 shadow-xl shadow-slate-200/50">
+          {MORE.map((m, i) => (
+            <a
+              key={m.section}
+              role="menuitem"
+              href={m.href}
+              autoFocus={i === 0}
+              aria-current={section === m.section ? 'page' : undefined}
+              className={`flex items-center justify-between px-4 py-2.5 text-sm font-bold focus:outline-none focus-visible:bg-slate-100 ${section === m.section ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
+            >
+              {t(m.key)}
+              {section === m.section && <Check size={14} aria-hidden />}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Site header around every page. */
 export function Shell({ section, children }: { section: Section; children: ReactNode }) {
   const { t } = useTranslation()
   return (
@@ -134,32 +193,26 @@ export function Shell({ section, children }: { section: Section; children: React
         {t('app.a11y.skip')}
       </a>
       <header className="mx-auto flex max-w-[1480px] flex-wrap items-center gap-3 px-4 pb-2 pt-4 sm:px-6 print:hidden">
-        <a href="/" className="flex min-w-0 items-center gap-2.5 font-black tracking-tight text-slate-900">
+        <a href="/" className="flex min-w-0 flex-1 items-center gap-2.5 font-black tracking-tight text-slate-900 lg:flex-none">
           <SiteLogo />
           <span className="truncate text-lg">{t('app.title')}</span>
           <span className="hidden rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-600 md:inline">Beta</span>
         </a>
-        <span className="flex-1" />
+        <span className="hidden flex-1 lg:block" />
         <nav aria-label={t('app.a11y.mode_nav')} className="order-last flex w-full items-center justify-between rounded-full border border-slate-200 bg-white p-1 shadow-sm sm:order-none sm:w-auto sm:justify-start">
           {NAV.map((n) => (
-            <a
-              key={n.section}
-              href={n.href}
-              aria-current={section === n.section ? 'page' : undefined}
-              className={`rounded-full px-2.5 py-1.5 text-sm font-bold transition sm:px-3.5 ${section === n.section ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:text-slate-800'}`}
-            >
+            <a key={n.section} href={n.href} aria-current={section === n.section ? 'page' : undefined} className={pill(section === n.section)}>
               {t(n.key)}
             </a>
           ))}
+          <MoreMenu section={section} />
         </nav>
         <LanguageMenu />
       </header>
       <div id="main-content" tabIndex={-1} className="focus:outline-none">
         {children}
       </div>
-      <footer className="print:hidden mx-auto mt-8 flex max-w-[1480px] justify-center border-t border-slate-200 px-4 py-6 text-xs sm:px-6">
-        <OfflineButton />
-      </footer>
+      <div className="h-10 print:hidden" aria-hidden />
     </div>
   )
 }

@@ -60,10 +60,11 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
   const [captions, setCaptions] = useState(true)
   const [full, setFull] = useState(false)
   const box = useRef<HTMLDivElement>(null)
-  const tRef = useRef(0)
-  useEffect(() => {
-    tRef.current = t
-  }, [t])
+  // the playback loop's own clock. Only the loop, seeks and restarts write it: copying the rendered t back in an
+  // effect could land late and pull the clock back just before a ponder stop, so Continue hit the same stop forever
+  const tRef = useRef(t)
+  // the ponder stop the viewer just continued from: never stop there twice in a row
+  const ackRef = useRef<number | null>(null)
 
   const { i, p } = locate(tl, scenes, t)
   const scene = scenes[i]
@@ -85,7 +86,9 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
       last = now
       const from = tRef.current
       const to = Math.min(tl.total, from + dt)
-      const stop = stopBetween(tl.stops, from, to)
+      const found = stopBetween(tl.stops, from, to)
+      const stop = found !== null && found === ackRef.current ? null : found
+      if (ackRef.current !== null && to > ackRef.current) ackRef.current = null
       if (stop !== null) {
         tRef.current = stop
         setT(stop)
@@ -107,8 +110,11 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
 
   const seek = useCallback(
     (v: number) => {
+      const next = Math.max(0, Math.min(tl.total, v))
       setPonder(null)
-      setT(Math.max(0, Math.min(tl.total, v)))
+      ackRef.current = null
+      tRef.current = next
+      setT(next)
     },
     [tl.total],
   )
@@ -120,9 +126,17 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
     }
   }, [seek, seekRef])
 
-  const toggle = () => {
+  /** Leave a ponder stop and play on from it. */
+  const resume = () => {
+    if (ponder !== null) ackRef.current = ponder
     setPonder(null)
+    setPlaying(true)
+  }
+  const toggle = () => {
+    if (ponder !== null) return resume()
     if (ended) {
+      tRef.current = 0
+      ackRef.current = null
       setT(0)
       setPlaying(true)
     } else setPlaying(!playing)
@@ -192,7 +206,7 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
             <div className="max-w-xl text-center">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-300 sm:text-sm">{tr('watch.ui.ponder')}</p>
               <p className="mt-2 text-base font-bold leading-snug text-white sm:mt-3 sm:text-2xl">{tr(`watch.${ep}.scenes.${ponderScene.id}.ponder`)}</p>
-              <button type="button" onClick={() => { setPonder(null); setPlaying(true) }} className="mt-4 rounded-full bg-amber-300 px-5 py-2 text-sm font-black text-slate-900 hover:bg-amber-200 sm:mt-6 sm:text-base">
+              <button type="button" onClick={resume} className="mt-4 rounded-full bg-amber-300 px-5 py-2 text-sm font-black text-slate-900 hover:bg-amber-200 sm:mt-6 sm:text-base">
                 {tr('watch.ui.continue')} →
               </button>
             </div>

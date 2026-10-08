@@ -1,6 +1,5 @@
 // KnowCS: a multi-page site. Every page in src/lib/sitemap.ts gets its own HTML file, generated into site/
 // (gitignored) when the config loads; all pages share one entry script that renders the right page.
-import { createHash } from "node:crypto"
 import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { defineConfig } from "vite"
@@ -28,6 +27,8 @@ function pageMeta(page) {
   switch (page.kind) {
     case "module":
       return pick(`site.modules.${page.id}.title`, `site.modules.${page.id}.blurb`)
+    case "playground":
+      return pick("site.playground.title", "site.home.lab.lead")
     case "watch":
       return pick("watch.ui.gallery_title", "watch.ui.gallery_lead")
     case "watch-item":
@@ -141,32 +142,6 @@ writeFileSync(
 writeFileSync(resolve(ROOT, "public/robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`)
 
 /**
- * offline.json: every page and hashed asset of this build, for "save for offline" (see src/sw/sw.js). Its version
- * and size also go into every page as <meta name="knowcs-offline">, so the footer button needs no request.
- */
-function offlineManifest() {
-  return {
-    name: "knowcs:offline-manifest",
-    apply: "build",
-    generateBundle: {
-      order: "post",
-      handler(_, bundle) {
-        const files = Object.values(bundle).filter((f) => f.fileName.startsWith("assets/"))
-        const size = (f) => (f.type === "chunk" ? Buffer.byteLength(f.code) : typeof f.source === "string" ? Buffer.byteLength(f.source) : f.source.length)
-        const assets = [...files.map((f) => `/${f.fileName}`).sort(), "/icon.svg", "/icon-192.png", "/apple-touch-icon.png", "/manifest.json"]
-        const pages = PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound").map((p) => `/${p.path.replace(/index\.html$/, "")}`)
-        const version = createHash("sha256").update(assets.join()).digest("hex").slice(0, 12)
-        const bytes = files.reduce((n, f) => n + size(f), 0)
-        this.emitFile({ type: "asset", fileName: "offline.json", source: JSON.stringify({ version, bytes, pages, assets }) })
-        const meta = `<meta name="knowcs-offline" content="${version} ${bytes}" />`
-        for (const f of Object.values(bundle))
-          if (f.type === "asset" && f.fileName.endsWith(".html") && typeof f.source === "string") f.source = f.source.replace("</head>", `    ${meta}\n  </head>`)
-      },
-    },
-  }
-}
-
-/**
  * The core strings are only requested once the entry script has run. A tiny inline script picks the language the
  * way i18n.ts does (?lang=, then the saved choice, then the browser) and preloads that file right away.
  */
@@ -193,7 +168,7 @@ function preloadStrings() {
 
 export default defineConfig({
   root: ROOT,
-  plugins: [katexFontSlim(), markdownHtml(), rawHk(), localeSplit(), offlineManifest(), preloadStrings(), react()],
+  plugins: [katexFontSlim(), markdownHtml(), rawHk(), localeSplit(), preloadStrings(), react()],
   build: {
     outDir: resolve("dist"),
     emptyOutDir: true,

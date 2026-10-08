@@ -16,6 +16,7 @@ if (moved) window.location.replace(moved)
 
 
 const HomePage = lazy(PAGE_LOADERS.home)
+const PlaygroundPage = lazy(PAGE_LOADERS.playground)
 const ModulePage = lazy(PAGE_LOADERS.module)
 const NotesPage = lazy(PAGE_LOADERS.notes)
 const ExtendPage = lazy(PAGE_LOADERS.extend)
@@ -26,10 +27,10 @@ const PapersPage = lazy(PAGE_LOADERS.papers)
 const NotFoundPage = lazy(PAGE_LOADERS.notfound)
 
 const section: Section =
-  page === 'notes' || page === 'note' ? 'notes' : page === 'extend' || page === 'extend-item' ? 'extend' : page === 'watch' || page === 'watch-item' ? 'watch' : page === 'drill' || page === 'formulas' ? 'drill' : 'course'
+  page === 'notes' || page === 'note' ? 'notes' : page === 'extend' || page === 'extend-item' ? 'extend' : page === 'watch' || page === 'watch-item' ? 'watch' : page === 'drill' || page === 'formulas' ? 'drill' : page === 'playground' ? 'playground' : 'course'
 
 const content =
-  page === 'module' ? <ModulePage id={id} /> : page === 'drill' ? <DrillPage /> : page === 'formulas' ? <FormulasPage /> : page === 'papers' ? <PapersPage /> : page === 'notfound' ? <NotFoundPage /> : page === 'watch' || page === 'watch-item' ? <WatchPage id={id || null} /> : page === 'notes' || page === 'note' ? <NotesPage id={id || null} /> : page === 'extend' || page === 'extend-item' ? <ExtendPage id={id || null} /> : <HomePage />
+  page === 'module' ? <ModulePage id={id} /> : page === 'playground' ? <PlaygroundPage /> : page === 'drill' ? <DrillPage /> : page === 'formulas' ? <FormulasPage /> : page === 'papers' ? <PapersPage /> : page === 'notfound' ? <NotFoundPage /> : page === 'watch' || page === 'watch-item' ? <WatchPage id={id || null} /> : page === 'notes' || page === 'note' ? <NotesPage id={id || null} /> : page === 'extend' || page === 'extend-item' ? <ExtendPage id={id || null} /> : <HomePage />
 
 // cache-first for hashed assets, offline fallback for pages (production only; see src/sw/sw.js)
 if (!moved && import.meta.env.PROD && 'serviceWorker' in navigator) {

@@ -100,6 +100,7 @@ export const PAPERS: Paper[] = [
 
 export const moduleUrl = (id: string): string => `/${id}/`
 export const noteUrl = (id?: string): string => (id ? `/notes/${id}/` : '/notes/')
+export const playgroundUrl = (): string => '/playground/'
 export const drillUrl = (): string => '/drill/'
 export const formulasUrl = (): string => '/formulas/'
 export const papersUrl = (): string => '/papers/'
@@ -143,6 +144,7 @@ export const LAB_REDIRECTS: Record<string, string> = {
 
 export type PageSpec =
   | { kind: 'home'; path: string }
+  | { kind: 'playground'; path: string }
   | { kind: 'module'; path: string; id: ModuleId }
   | { kind: 'notes'; path: string }
   | { kind: 'note'; path: string; id: string }
@@ -159,6 +161,7 @@ export type PageSpec =
 /** Every HTML file the build emits. path is the output file, relative to the site root. */
 export const PAGES: PageSpec[] = [
   { kind: 'home', path: 'index.html' },
+  { kind: 'playground', path: 'playground/index.html' },
   ...MODULES.map((m): PageSpec => ({ kind: 'module', path: `${m.id}/index.html`, id: m.id })),
   { kind: 'watch', path: 'watch/index.html' },
   { kind: 'drill', path: 'drill/index.html' },
