@@ -1,11 +1,47 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { LayoutGrid, List } from 'lucide-react'
 import { EPISODES, LECTURES, MODULES, PAPERS, lectureScope, papersUrl, moduleUrl, noteUrl, watchUrl } from '../../lib/sitemap'
 import type { ModuleInfo } from '../../lib/sitemap'
 import { readVisited } from '../ui'
 
 // the explainer thumbnails pull in the animation code and KaTeX: load them after the rest of the page
 const WatchStrip = lazy(() => import('../watch/WatchStrip'))
+const HomeLab = lazy(() => import('./HomeLab'))
+
+type View = 'map' | 'lab'
+const VIEW_KEY = 'knowcs-home-view'
+const readView = (): View => {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'lab' ? 'lab' : 'map'
+  } catch {
+    return 'map'
+  }
+}
+const GRID = { backgroundImage: 'linear-gradient(#e7ebf1 1px, transparent 1px), linear-gradient(90deg, #e7ebf1 1px, transparent 1px)', backgroundSize: '32px 32px' }
+
+/** Course map (lectures in order) or lab grid (every lab by area); the choice is remembered. */
+function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => void }) {
+  const { t } = useTranslation()
+  return (
+    <div className="mx-auto flex max-w-[1280px] justify-end px-4 pt-4 sm:px-8">
+      <div className="inline-flex gap-1 rounded-xl border border-slate-200 bg-white p-1 text-sm font-bold shadow-sm" role="group" aria-label={t('site.home.view_label')}>
+        {(['map', 'lab'] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onChange(v)}
+            aria-pressed={view === v}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${view === v ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            {v === 'map' ? <List size={15} aria-hidden /> : <LayoutGrid size={15} aria-hidden />}
+            {t(`site.home.view_${v}`)}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 type Scope = 'all' | 'mid' | 'final'
 
@@ -43,15 +79,36 @@ export default function HomePage() {
   const [scope, setScope] = useState<Scope>('all')
   const [q, setQ] = useState('')
   const [visited] = useState(readVisited)
+  const [view, setViewState] = useState<View>(readView)
+  const setView = (v: View) => {
+    setViewState(v)
+    try {
+      localStorage.setItem(VIEW_KEY, v)
+    } catch {
+      // private mode: the choice just isn't remembered
+    }
+  }
   const query = q.trim().toLowerCase()
   useEffect(() => {
     document.title = `KnowCS · ${t('site.home.tab_title')}`
   }, [t])
   const matches = (m: ModuleInfo) => !query || `${t(`site.modules.${m.id}.title`)} ${t(`site.modules.${m.id}.blurb`)}`.toLowerCase().includes(query)
 
+  if (view === 'lab') {
+    return (
+      <main className="min-h-screen pb-10" style={GRID}>
+        <ViewSwitch view={view} onChange={setView} />
+        <Suspense fallback={<div className="min-h-screen" />}>
+          <HomeLab />
+        </Suspense>
+      </main>
+    )
+  }
+
   return (
     <main className="pb-10">
-      <section className="mx-auto max-w-[1280px] px-4 pb-6 pt-8 sm:px-8">
+      <ViewSwitch view={view} onChange={setView} />
+      <section className="mx-auto max-w-[1280px] px-4 pb-6 pt-2 sm:px-8">
         <div className="grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-blue-600">{t('site.home.eyebrow')}</p>

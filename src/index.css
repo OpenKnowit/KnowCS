@@ -24,7 +24,7 @@
   .note-prose thead { @apply bg-slate-50; }
   .note-prose th { @apply px-3 py-2 text-left font-bold text-slate-700 border-b border-slate-200 whitespace-nowrap; }
   .note-prose td { @apply px-3 py-2 text-slate-600 border-b border-slate-100 align-top; }
-  .note-prose :not(pre) > code { @apply px-1.5 py-0.5 bg-slate-100 text-rose-600 rounded text-[0.85em] font-mono; }
+  .note-prose :not(pre) > code { @apply px-1.5 py-0.5 bg-slate-100 text-rose-700 rounded text-[0.85em] font-mono; }
   .note-prose .np-block { @apply relative; }
   .note-prose .np-run { @apply absolute right-2 top-2 rounded-lg bg-blue-600 px-2.5 py-1 font-sans text-xs font-bold text-white shadow hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300; }
   .note-prose code.np-link { @apply cursor-pointer bg-blue-50 text-blue-700 underline decoration-blue-300 decoration-dotted underline-offset-2 hover:bg-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400; }

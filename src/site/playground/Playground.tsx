@@ -34,9 +34,11 @@ interface Props {
   initialEntry?: string | null
   /** code to open first (a code block from the note) */
   initialCode?: string | null
+  /** two columns on wide screens (the Playground page) instead of the narrow panel beside a note */
+  wide?: boolean
 }
 
-export default function Playground({ config, initialEntry, initialCode }: Props) {
+export default function Playground({ config, initialEntry, initialCode, wide }: Props) {
   const { t } = useTranslation()
   const ns = `playground.${config.id}`
   const start = config.entries.find((e) => e.id === initialEntry) ?? config.entries[0]
@@ -165,7 +167,6 @@ export default function Playground({ config, initialEntry, initialCode }: Props)
       <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-bold text-slate-400">
         <span>{t('playground.ui.editor')}</span>
         <span className="flex items-center gap-2">
-          <span className="hidden sm:inline">{t('playground.ui.shortcut')}</span>
           {code !== original && (
             <button type="button" onClick={() => setCode(original)} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800">
               <RotateCcw size={11} aria-hidden /> {t('playground.ui.reset')}
@@ -177,6 +178,7 @@ export default function Playground({ config, initialEntry, initialCode }: Props)
         </span>
       </div>
       <CodeEditor value={code} onChange={setCode} onRun={() => setRan(code)} errorLine={result.error?.line} label={t('playground.ui.editor')} tall={full} />
+      <p className="mt-1 hidden text-[11px] text-slate-500 sm:block">{t('playground.ui.shortcut')}</p>
     </div>
   )
 
@@ -264,6 +266,26 @@ export default function Playground({ config, initialEntry, initialCode }: Props)
         </div>
       </div>,
       document.body,
+    )
+  }
+
+  if (wide) {
+    return (
+      <section ref={rootRef} aria-label={t(`${ns}.title`)} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/40 sm:p-6">
+        {header}
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-2">
+          <div className="min-w-0 space-y-4">
+            {catalog}
+            {editor}
+            {output}
+          </div>
+          <div className="min-w-0 space-y-4 lg:border-l lg:border-slate-100 lg:pl-5">
+            {stepsView}
+            {displays}
+          </div>
+        </div>
+        <p className="mt-4 text-[11px] leading-relaxed text-slate-500">{t(`${ns}.sandbox_note`)}</p>
+      </section>
     )
   }
 

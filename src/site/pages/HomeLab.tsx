@@ -271,7 +271,8 @@ export default function HomeLab() {
   )
   return (
     <div className="mx-auto max-w-[1280px] px-4 sm:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-5">
+      <h1 className="text-[clamp(26px,3.2vw,36px)] font-black tracking-tight text-slate-900">{t('site.home.lab.title')}</h1>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-5">
         <p className="max-w-3xl text-[15px] text-slate-600">{t('site.home.lab.lead')}</p>
         <span className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
           <i className="inline-block h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
