@@ -117,7 +117,7 @@ export function Shell({ section, children }: { section: Section; children: React
           <span className="hidden rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-600 md:inline">v{__APP_VERSION__}</span>
         </a>
         <span className="flex-1" />
-        <nav aria-label={t('app.a11y.mode_nav')} className="flex items-center rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+        <nav aria-label={t('app.a11y.mode_nav')} className="order-last flex w-full items-center justify-between rounded-full border border-slate-200 bg-white p-1 shadow-sm sm:order-none sm:w-auto sm:justify-start">
           {NAV.map((n) => (
             <a
               key={n.section}
