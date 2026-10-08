@@ -140,7 +140,7 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${openNote.tagClass}`}>{openNote.tag}</span>
         </div>
         {playLoader ? (
-          <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,600px)]">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,600px)]">
             <div className="min-w-0">
               {noteHtml ? (
                 <article key={lang} lang={lang} className="note-prose" onClick={onArticleClick} dangerouslySetInnerHTML={{ __html: noteHtml }} />
@@ -157,7 +157,7 @@ export const PackageModule = ({ openId, onOpen }: PackageModuleProps) => {
             </div>
           </div>
         ) : withPanel ? (
-          <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,560px)]">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,560px)]">
             <div className="min-w-0 space-y-4">
               <p className="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900">
                 <MousePointerClick size={14} aria-hidden /> {t('numpy_api.link_hint')}
