@@ -7,6 +7,10 @@
 
 ## 进展时间线
 
+### 2026-10-08 — 页眉页脚精简（按用户要求）
+- **change**：版本徽标改为「Beta」；页脚只保留「离线保存」按钮（删去版权行、「完全在浏览器本地运行」「公式由 KaTeX 排版」及对应文案）；左上角标志改为与浏览器标签页 favicon 相同的网络图图标（内联 SVG）。移除不再使用的 `__APP_VERSION__`。
+- **perf**：离线按钮不再在每次打开页面时请求 `offline.json`（12KB，服务器未压缩 JSON）：构建时把版本与大小写入每页的 `<meta name="knowcs-offline">`，按钮直接读取；`offline.json` 只在点击保存时由 Service Worker 读取。清单文件改名 `manifest.json`（服务器 MIME 表无 .webmanifest，原先以 octet-stream 返回）。
+
 ### 2026-10-08 — PNG 应用图标
 - **feat**：用无头 Chrome 把 SVG 标志渲染为 PNG：`icon-192.png`、`icon-512.png`（写入 manifest）与满版的 `apple-touch-icon.png`（iOS「添加到主屏幕」不认 SVG，原先会用截图），源文件在 `src/assets/icons/`，构建时复制到站点根目录并纳入离线清单。Chrome `getInstallabilityErrors` 为空。
 

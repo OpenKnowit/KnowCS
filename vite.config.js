@@ -8,7 +8,6 @@ import react from "@vitejs/plugin-react"
 import { katexFontSlim, localeSplit, markdownHtml, rawHk } from "./scripts/vite-plugins.mjs"
 import { PAGES } from "./src/lib/sitemap.ts"
 
-const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"))
 const ROOT = resolve("site")
 const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%233b82f6'/%3E%3Cstop offset='1' stop-color='%234f46e5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cg stroke='%23fff' stroke-width='2.8' opacity='0.8'%3E%3Cline x1='16' y1='20' x2='32' y2='14'/%3E%3Cline x1='16' y1='20' x2='32' y2='32'/%3E%3Cline x1='16' y1='20' x2='32' y2='50'/%3E%3Cline x1='16' y1='44' x2='32' y2='14'/%3E%3Cline x1='16' y1='44' x2='32' y2='32'/%3E%3Cline x1='16' y1='44' x2='32' y2='50'/%3E%3Cline x1='32' y1='14' x2='48' y2='32'/%3E%3Cline x1='32' y1='32' x2='48' y2='32'/%3E%3Cline x1='32' y1='50' x2='48' y2='32'/%3E%3C/g%3E%3Cg fill='%23fff'%3E%3Ccircle cx='16' cy='20' r='6'/%3E%3Ccircle cx='16' cy='44' r='6'/%3E%3Ccircle cx='32' cy='14' r='6'/%3E%3Ccircle cx='32' cy='32' r='6'/%3E%3Ccircle cx='32' cy='50' r='6'/%3E%3Ccircle cx='48' cy='32' r='6'/%3E%3C/g%3E%3C/svg%3E"
 const DESCRIPTION = "KnowCS: interactive visual lab for HKUST COMP2211 Machine Learning: Naive Bayes, KNN, K-Means, perceptrons, backpropagation, convolution, CNNs and alpha-beta pruning. English / 简体中文 / 繁體中文."
@@ -141,19 +140,28 @@ writeFileSync(
 )
 writeFileSync(resolve(ROOT, "public/robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`)
 
-/** offline.json: every page and hashed asset of this build, for "save for offline" (see src/sw/sw.js). */
+/**
+ * offline.json: every page and hashed asset of this build, for "save for offline" (see src/sw/sw.js). Its version
+ * and size also go into every page as <meta name="knowcs-offline">, so the footer button needs no request.
+ */
 function offlineManifest() {
   return {
     name: "knowcs:offline-manifest",
     apply: "build",
-    generateBundle(_, bundle) {
-      const files = Object.values(bundle).filter((f) => f.fileName.startsWith("assets/"))
-      const size = (f) => (f.type === "chunk" ? Buffer.byteLength(f.code) : typeof f.source === "string" ? Buffer.byteLength(f.source) : f.source.length)
-      const assets = [...files.map((f) => `/${f.fileName}`).sort(), "/icon.svg", "/icon-192.png", "/apple-touch-icon.png", "/manifest.json"]
-      const pages = PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound").map((p) => `/${p.path.replace(/index\.html$/, "")}`)
-      const version = createHash("sha256").update(assets.join()).digest("hex").slice(0, 12)
-      const bytes = files.reduce((n, f) => n + size(f), 0)
-      this.emitFile({ type: "asset", fileName: "offline.json", source: JSON.stringify({ version, bytes, pages, assets }) })
+    generateBundle: {
+      order: "post",
+      handler(_, bundle) {
+        const files = Object.values(bundle).filter((f) => f.fileName.startsWith("assets/"))
+        const size = (f) => (f.type === "chunk" ? Buffer.byteLength(f.code) : typeof f.source === "string" ? Buffer.byteLength(f.source) : f.source.length)
+        const assets = [...files.map((f) => `/${f.fileName}`).sort(), "/icon.svg", "/icon-192.png", "/apple-touch-icon.png", "/manifest.json"]
+        const pages = PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound").map((p) => `/${p.path.replace(/index\.html$/, "")}`)
+        const version = createHash("sha256").update(assets.join()).digest("hex").slice(0, 12)
+        const bytes = files.reduce((n, f) => n + size(f), 0)
+        this.emitFile({ type: "asset", fileName: "offline.json", source: JSON.stringify({ version, bytes, pages, assets }) })
+        const meta = `<meta name="knowcs-offline" content="${version} ${bytes}" />`
+        for (const f of Object.values(bundle))
+          if (f.type === "asset" && f.fileName.endsWith(".html") && typeof f.source === "string") f.source = f.source.replace("</head>", `    ${meta}\n  </head>`)
+      },
     },
   }
 }
@@ -186,9 +194,6 @@ function preloadStrings() {
 export default defineConfig({
   root: ROOT,
   plugins: [katexFontSlim(), markdownHtml(), rawHk(), localeSplit(), offlineManifest(), preloadStrings(), react()],
-  define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
-  },
   build: {
     outDir: resolve("dist"),
     emptyOutDir: true,
