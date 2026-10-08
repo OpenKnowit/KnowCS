@@ -3903,7 +3903,9 @@
       "try_hint": "在實驗台中打開這段程式碼",
       "open_panel": "打開實驗台",
       "loading": "實驗台加載中…",
-      "from_note": "來自筆記的程式碼。可以隨意修改，或在上方選一個示例。"
+      "from_note": "來自筆記的程式碼。可以隨意修改，或在上方選一個示例。",
+      "prev": "上一步",
+      "next": "下一步"
     },
     "view": {
       "figure_label": "包含 {{n}} 個子圖的圖",
@@ -3930,7 +3932,15 @@
       "root": "調用 backward() 的張量",
       "history": "{{n}} 個 epoch 中每個 epoch 結束時的損失與指標，即 history.history 的內容。",
       "history_label": "訓練曲線",
-      "best_epoch": "驗證損失最低：第 {{n}} 個 epoch"
+      "best_epoch": "驗證損失最低：第 {{n}} 個 epoch",
+      "input": "輸入",
+      "stack_label": "網絡結構圖：每個方塊是一層的輸出（越高表示特徵圖越大，越厚表示通道越多），細條是向量",
+      "role_root": "損失",
+      "role_param": "參數",
+      "role_data": "數據",
+      "role_op": "運算",
+      "grad_flow": "backward() 之後梯度沿邊迴流",
+      "epoch": "第 {{n}} 輪"
     },
     "note": {
       "default_cmap": "沒有指定 cmap：二維陣列會用預設色圖 'viridis' 上色，而不是灰度。第 7 講每次都會寫 cmap='gray'。",

@@ -3903,7 +3903,9 @@
       "try_hint": "Opens this code in the playground",
       "open_panel": "Open the playground",
       "loading": "Loading the playground…",
-      "from_note": "Code from the note. Edit it freely, or pick an example above."
+      "from_note": "Code from the note. Edit it freely, or pick an example above.",
+      "prev": "Previous step",
+      "next": "Next step"
     },
     "view": {
       "figure_label": "Figure with {{n}} axes",
@@ -3925,12 +3927,20 @@
       "graph": "The computation graph autograd recorded. backward() walks it from the loss back to the leaves and stores ∂loss/∂x in each leaf's .grad. Hover a node to see where it came from.",
       "graph_label": "Autograd computation graph",
       "value": "value",
-      "no_grad_kept": "grad not kept (not a leaf)",
+      "no_grad_kept": "no .grad (not a leaf)",
       "leaf": "leaf tensor with requires_grad=True (its .grad is filled)",
       "root": "the tensor backward() was called on",
       "history": "Loss and metrics after each of the {{n}} epochs, as stored in history.history.",
       "history_label": "Training curves",
-      "best_epoch": "lowest validation loss at epoch {{n}}"
+      "best_epoch": "lowest validation loss at epoch {{n}}",
+      "input": "input",
+      "stack_label": "The network as blocks: each box is a layer’s output (taller = larger feature map, deeper = more channels), bars are vectors",
+      "role_root": "loss",
+      "role_param": "param",
+      "role_data": "data",
+      "role_op": "op",
+      "grad_flow": "gradient flowing back after backward()",
+      "epoch": "epoch {{n}}"
     },
     "note": {
       "default_cmap": "No cmap given: a 2-D array is drawn with the default colormap 'viridis', not in grey. Lecture 7 always passes cmap='gray'.",

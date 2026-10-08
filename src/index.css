@@ -84,3 +84,8 @@ main .formula .text-rose-600 {
     animation: none;
   }
 }
+
+/* autograd graph: gradients drift back along the edges after backward() */
+@keyframes grad-flow { to { stroke-dashoffset: 24; } }
+.grad-flow { animation: grad-flow 1.1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .grad-flow { animation: none; } }
