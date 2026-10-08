@@ -100,7 +100,7 @@ export type PyEventData =
   | { type: 'history'; metrics: Record<string, number[]>; title: string }
   | { type: 'note'; tone: 'info' | 'warn'; key: string; params: Record<string, string | number> }
 
-export type PyEventInput = PyEventData & { code?: string }
+export type PyEventInput = PyEventData & { code?: string; line?: number }
 export type PyEvent = PyEventData & { id: number; seq: number; line: number; code: string }
 
 export type Display =

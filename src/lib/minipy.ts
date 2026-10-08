@@ -1420,7 +1420,7 @@ class Interp implements Host {
 
   emit(ev: PyEventInput) {
     if (this.events.length + this.calls.length + this.traces.length >= MAX_RECORDS) return
-    this.events.push({ ...ev, id: this.events.length, seq: this.seqN++, line: this.line, code: ev.code ?? this.callText } as PyEvent)
+    this.events.push({ ...ev, id: this.events.length, seq: this.seqN++, line: ev.line ?? this.line, code: ev.code ?? this.callText } as PyEvent)
   }
 
   traceCall(api: string, kind: ApiKind, operands: Operand[], result: GridSnapshot | null, resultText: string, axis: number | null = null) {

@@ -159,6 +159,8 @@ const FlowStep = ({ ev }: { ev: PyEvent & { type: 'flow' } }) => {
 
 // ---------------------------------------------------------------- autograd graph
 
+const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
+
 const GraphStep = ({ ev }: { ev: PyEvent & { type: 'graph' } }) => {
   const { t } = useTranslation()
   const [hover, setHover] = useState<number | null>(null)
@@ -178,8 +180,8 @@ const GraphStep = ({ ev }: { ev: PyEvent & { type: 'graph' } }) => {
     const perCol: number[][] = Array.from({ length: cols }, () => [])
     ev.nodes.forEach((n) => perCol[col.get(n.id)!].push(n.id))
     const pos = new Map<number, { x: number; y: number }>()
-    const W = 150
-    const H = 64
+    const W = 196
+    const H = 66
     perCol.forEach((ids, c) => ids.forEach((id, r) => pos.set(id, { x: 10 + c * (W + 40), y: 10 + r * (H + 18) + ((Math.max(...perCol.map((p) => p.length)) - ids.length) * (H + 18)) / 2 })))
     return { pos, W, H, width: 20 + cols * (W + 40) - 40, height: 20 + Math.max(...perCol.map((p) => p.length)) * (H + 18) - 18, byId }
   }, [ev.nodes])
@@ -193,7 +195,7 @@ const GraphStep = ({ ev }: { ev: PyEvent & { type: 'graph' } }) => {
       </div>
       <p className="text-sm leading-relaxed text-slate-600">{t('playground.view.graph')}</p>
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-slate-50/60 p-2">
-        <svg width={layout.width} height={layout.height} className="block" role="img" aria-label={t('playground.view.graph_label')}>
+        <svg viewBox={`0 0 ${layout.width} ${layout.height}`} className="block w-full" style={{ minWidth: Math.min(layout.width, 560) }} role="img" aria-label={t('playground.view.graph_label')}>
           <defs>
             <marker id="gArrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L8,4L0,8z" fill="#94a3b8" /></marker>
           </defs>
@@ -209,10 +211,11 @@ const GraphStep = ({ ev }: { ev: PyEvent & { type: 'graph' } }) => {
             return (
               <g key={n.id} onMouseEnter={() => setHover(n.id)} onMouseLeave={() => setHover(null)} transform={`translate(${p.x} ${p.y})`}>
                 <rect width={W} height={H} rx={10} fill={root ? '#fff1f2' : n.leaf ? (n.requiresGrad ? '#eff6ff' : '#f8fafc') : '#ffffff'} stroke={hover === n.id ? '#e11d48' : root ? '#fda4af' : n.leaf && n.requiresGrad ? '#93c5fd' : '#cbd5e1'} strokeWidth={hover === n.id ? 2 : 1} />
-                <text x={8} y={16} fontSize={11} fontWeight={700} fill="#0f172a" fontFamily="ui-monospace, monospace">{n.label}</text>
-                {n.op && <text x={W - 8} y={16} fontSize={9} textAnchor="end" fill="#64748b" fontFamily="ui-monospace, monospace">{n.op}</text>}
-                <text x={8} y={33} fontSize={10} fill="#334155" fontFamily="ui-monospace, monospace">{t('playground.view.value')} {n.value}</text>
-                <text x={8} y={50} fontSize={10} fill={n.grad ? '#be123c' : '#94a3b8'} fontFamily="ui-monospace, monospace">{n.grad ? `grad ${n.grad}` : n.requiresGrad ? (n.leaf ? 'grad None' : t('playground.view.no_grad_kept')) : 'requires_grad=False'}</text>
+                <title>{[n.label, n.op, `${t('playground.view.value')} ${n.value}`, n.grad ? `grad ${n.grad}` : ''].filter(Boolean).join('\n')}</title>
+                <text x={8} y={16} fontSize={11} fontWeight={700} fill="#0f172a" fontFamily="ui-monospace, monospace">{clip(n.label, 14)}</text>
+                {n.op && <text x={W - 8} y={16} fontSize={9} textAnchor="end" fill="#64748b" fontFamily="ui-monospace, monospace">{clip(n.op.replace(/Backward\d*$/, ''), 16)}</text>}
+                <text x={8} y={34} fontSize={10} fill="#334155" fontFamily="ui-monospace, monospace">{clip(`${t('playground.view.value')} ${n.value}`, 30)}</text>
+                <text x={8} y={52} fontSize={10} fill={n.grad ? '#be123c' : '#94a3b8'} fontFamily="ui-monospace, monospace">{clip(n.grad ? `grad ${n.grad}` : n.requiresGrad ? (n.leaf ? 'grad None' : t('playground.view.no_grad_kept')) : 'requires_grad=False', 30)}</text>
               </g>
             )
           })}

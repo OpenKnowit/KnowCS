@@ -736,7 +736,17 @@ export const formatScalar = (v: number, dtype: DType): string => {
   if (dtype === 'int64') return String(v)
   if (Number.isNaN(v)) return 'nan'
   if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf'
-  return Number.isInteger(v) && Math.abs(v) < 1e16 ? `${v}.0` : String(v)
+  return pyFloatRepr(v)
+}
+
+/** Python's repr(float): shortest round-trip digits, exponent form below 1e-4 or from 1e16 */
+export const pyFloatRepr = (v: number): string => {
+  if (v === 0) return Object.is(v, -0) ? '-0.0' : '0.0'
+  const [mant, e] = v.toExponential().split('e')
+  const exp = Number(e)
+  if (exp < -4 || exp >= 16) return `${mant}e${exp < 0 ? '-' : '+'}${String(Math.abs(exp)).padStart(2, '0')}`
+  const s = v.toFixed(Math.max(0, (mant.split('.')[1]?.length ?? 0) - exp))
+  return s.includes('.') ? s : `${s}.0`
 }
 
 export const arrayRepr = (a: NDArray): string => {
