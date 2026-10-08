@@ -31,7 +31,7 @@ export const LAB_LOADERS: Partial<Record<ModuleId, Loader>> = {
 
 /** The original modules (shown inside ClassicPage with an exam tip). */
 export const CLASSIC_LOADERS: Partial<Record<ModuleId, () => Promise<{ default: ComponentType }>>> = {
-  numpy: memo(withPacks(i18n, ['numpy_module', 'numpy_api'], () => import('../modules/NumpyModule').then((m) => ({ default: m.NumpyModule })))),
+  numpy: memo(withPacks(i18n, ['numpy_module', 'numpy_api', 'playground.ui'], () => import('../modules/NumpyModule').then((m) => ({ default: m.NumpyModule })))),
   'bayes-basics': memo(withPacks(i18n, ['bayes'], () => import('../modules/BayesBasicsModule').then((m) => ({ default: m.BayesBasicsModule })))),
   'naive-bayes': memo(withPacks(i18n, ['bayes'], () => import('../modules/NaiveBayesModule').then((m) => ({ default: m.NaiveBayesModule })))),
   knn: memo(withPacks(i18n, ['knn'], () => import('../modules/KnnModule').then((m) => ({ default: m.KnnModule })))),
@@ -46,7 +46,7 @@ export const PAGE_LOADERS = {
   playground: memo(() => import('./pages/PlaygroundPage')),
   module: memo(() => import('./pages/ModulePage')),
   classic: memo(() => import('./pages/ClassicPage')),
-  notes: memo(withPacks(i18n, ['numpy_api'], () => import('./pages/NotesPage'))),
+  notes: memo(withPacks(i18n, ['numpy_api', 'playground.ui'], () => import('./pages/NotesPage'))),
   extend: memo(() => import('./pages/ExtendPage')),
   watch: memo(() => import('./pages/WatchPage')),
   drill: memo(withPacks(i18n, ['drill'], () => import('./pages/DrillPage'))),

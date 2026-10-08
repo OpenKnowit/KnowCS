@@ -567,7 +567,8 @@
       "pytorch": "PyTorch API Stats & Learning Path",
       "tensorflow": "TensorFlow API Counts & Module Structure",
       "keras": "Keras Core API Study Notes",
-      "kevin": "COMP2211 Course Notes"
+      "kevin": "COMP2211 Course Notes",
+      "matplotlib": "Matplotlib for COMP2211"
     }
   },
   "extend": {
@@ -3864,5 +3865,223 @@
   "notfound": {
     "title": "Page not found",
     "lead": "This address does not exist (any more). The site moved to one page per topic in October 2026 — start from one of these:"
+  },
+  "playground": {
+    "ui": {
+      "full": "Full screen",
+      "exit_full": "Exit full screen",
+      "search": "Search examples…",
+      "groups": "Example groups",
+      "no_match": "No example matches.",
+      "editor": "Code — runs as you type",
+      "shortcut": "Tab indents · Ctrl/⌘+Enter runs · Esc leaves the editor",
+      "reset": "Reset",
+      "run": "Run",
+      "output": "Output",
+      "line": "line {{n}}",
+      "no_output": "No output yet — print() and the value of the last line appear here.",
+      "figures_one": "Figure",
+      "figures_other": "Figures ({{count}})",
+      "steps": "Steps",
+      "nothing": "Every call your code makes shows up here as a step you can open.",
+      "try_block": "Try it",
+      "try_hint": "Opens this code in the playground",
+      "open_panel": "Open the playground",
+      "loading": "Loading the playground…",
+      "from_note": "Code from the note. Edit it freely, or pick an example above."
+    },
+    "view": {
+      "figure_label": "Figure with {{n}} axes",
+      "figure_step": "The figure right after this call: what the call added is highlighted, the rest is faded.",
+      "pixel": "img[{{row}}, {{col}}] = {{value}} → ({{value}} − {{vmin}}) / ({{vmax}} − {{vmin}}) = {{t}} along '{{cmap}}' → {{color}}",
+      "pixel_rgb": "img[{{row}}, {{col}}] → {{color}}",
+      "pixel_hint": "Hover a pixel to see how its value becomes a colour.",
+      "result": "result",
+      "series_shape": "Series · {{n}} rows",
+      "frame_shape": "DataFrame · {{r}} rows × {{c}} columns",
+      "rows_cut": "first {{n}} rows shown",
+      "flow_torch": "Each layer's input and output shape for this forward pass (PyTorch is channels-first: batch, channels, height, width), with its parameter count.",
+      "flow_keras": "model.summary() as a picture: the output shape of each layer (Keras is channels-last: batch, height, width, channels; None is the batch) and its parameter count.",
+      "layer": "Layer",
+      "in_out": "Input → output shape",
+      "params": "Params",
+      "total_params": "Total parameters",
+      "trainable": "Trainable",
+      "graph": "The computation graph autograd recorded. backward() walks it from the loss back to the leaves and stores ∂loss/∂x in each leaf's .grad. Hover a node to see where it came from.",
+      "graph_label": "Autograd computation graph",
+      "value": "value",
+      "no_grad_kept": "grad not kept (not a leaf)",
+      "leaf": "leaf tensor with requires_grad=True (its .grad is filled)",
+      "root": "the tensor backward() was called on",
+      "history": "Loss and metrics after each of the {{n}} epochs, as stored in history.history.",
+      "history_label": "Training curves",
+      "best_epoch": "lowest validation loss at epoch {{n}}"
+    },
+    "note": {
+      "default_cmap": "No cmap given: a 2-D array is drawn with the default colormap 'viridis', not in grey. Lecture 7 always passes cmap='gray'.",
+      "auto_range": "No vmin / vmax: matplotlib stretches this image's own range [{{min}}, {{max}}] over the whole colormap, so the darkest pixel turns black and the brightest white even if the image is dark. Pass vmin=0, vmax=1 (or 255) to keep the true brightness.",
+      "keras_dense_nd": "A Dense layer got a {{shape}} input: it only acts on the last axis, so the output keeps the other axes. To classify an image, put Flatten() before Dense({{units}}).",
+      "keras_sparse_hint": "The labels are integers (0, 1, 2 …), not one-hot rows. Use loss='sparse_categorical_crossentropy', or convert them first with to_categorical(y, num_classes).",
+      "keras_overfit": "Validation loss was lowest at epoch {{epoch}} and then rose while training loss kept falling: the model is overfitting. EarlyStopping(monitor='val_loss') stops there, and fewer units, dropout or L2 also help.",
+      "pandas_ddof": "pandas' std() and var() divide by n − 1 (ddof=1, the sample estimate), while NumPy's np.std divides by n (ddof=0). Pass ddof=0 when you want NumPy's number, e.g. to standardise like lecture 3.",
+      "grad_accumulate": "backward() added to gradients that were already there: PyTorch accumulates .grad across calls. In a training loop, call optimizer.zero_grad() (or w.grad.zero_()) before every backward().",
+      "dropout_eval": "Dropout is still active: the model is in training mode, so random units are zeroed even under no_grad(). Call model.eval() before evaluating or predicting.",
+      "softmax_ce": "These look like probabilities (each row sums to 1). CrossEntropyLoss applies log_softmax itself, so pass the raw logits, which is why lecture 9's model returns fc2(x) without softmax.",
+      "mse_shape": "The prediction {{a}} and the target {{b}} have different shapes, so the loss broadcasts them into a matrix and the result is wrong. Make them the same shape (e.g. y.view(-1, 1) or pred.squeeze(1)).",
+      "nonleaf_grad": ".grad of a non-leaf tensor is None: PyTorch only keeps gradients of leaf tensors (call .retain_grad() first to keep one).",
+      "T_nd": ".T on a tensor with more than 2 dimensions reverses all of them; to swap two dimensions use transpose(a, b) or permute."
+    },
+    "matplotlib": {
+      "title": "matplotlib playground",
+      "subtitle": "{{n}} plots from the lectures. Edit the code and the figure redraws as you type.",
+      "sandbox_note": "Runs in your browser on a small re-implementation of pyplot (plot, scatter, bar, hist, imshow, subplots, text, legends, colour bars). Not every option exists; the defaults that matter — tab10 colours, viridis, imshow's automatic range — follow matplotlib.",
+      "cat": {
+        "basics": "Basics",
+        "images": "Images",
+        "ml": "ML plots"
+      },
+      "e": {
+        "anatomy": "A Figure is the whole canvas; an Axes is one plot inside it. plt.subplots() returns both, then you call methods on ax (set_title, set_xlabel, legend). The plt.* functions do the same thing on the current Axes.",
+        "subplot": "plt.subplot(rows, cols, index) picks one cell of a grid. The index counts from 1, left to right and then top to bottom, so subplot(2, 2, 3) is the bottom-left cell.",
+        "fmt": "plot's third argument is a format string: colour letter + marker + line style. 'ro--' means red circles joined by a dashed line; a marker without a line style draws markers only.",
+        "imshow_gray": "Lecture 7 shows every grayscale image with cmap='gray', vmin=0, vmax=1, so 0 is black and 1 is white. Hover a pixel to see its value turn into a colour.",
+        "vmin_vmax": "Without vmin / vmax, imshow maps the image's own minimum to black and maximum to white, so a dark image looks bright. Without cmap it isn't even grey. Only the third panel shows the true brightness.",
+        "rgb": "A colour image is (H, W, 3): one 2-D array per channel. img[:, :, 0] is the red channel, drawn in grey: bright where there is a lot of red.",
+        "grid": "plt.subplots(2, 3) returns a 2 × 3 array of Axes, and axes.flat walks it row by row. This is the usual way to show a batch of images, like the MNIST grid in lecture 6.",
+        "sobel": "A 3 × 3 kernel slides over the image. A valid convolution gives 8 − 3 + 1 = 6 outputs per side. The Sobel-x kernel reacts to vertical edges: positive on the square's left edge, negative on its right edge.",
+        "otsu": "Otsu's method tries every threshold t and keeps the one with the largest between-class variance w₀·w₁·(μ₀ − μ₁)². The histogram shows why it works: the best t lands in the gap between the two peaks.",
+        "kmeans": "c=labels colours each point by its cluster through a colormap, and a second scatter marks the centroids. This is one assignment step of K-Means (lecture 4).",
+        "boundary": "A perceptron predicts 1 when w·x + b > 0, so its decision boundary is the line w·x + b = 0, i.e. x₂ = −(w₁x₁ + b) / w₂. Points on different sides get different classes.",
+        "history": "Plotting history.history is the first check after training. Training loss keeps falling, but once validation loss turns up the model is overfitting. The dotted line marks the epoch that early stopping would keep.",
+        "confusion": "imshow draws the confusion matrix and plt.text writes each count in its cell. Rows are the true classes and columns the predictions, so precision reads down a column and recall along a row.",
+        "choose_k": "A bar chart of validation accuracy for each K: the cross-validation way of choosing K for KNN (lecture 3)."
+      }
+    },
+    "keras": {
+      "title": "Keras playground",
+      "subtitle": "{{n}} examples from lectures 6 and 8: build a model, read model.summary(), then compile, fit, evaluate and predict on data generated in the code.",
+      "sandbox_note": "Runs in your browser on a small re-implementation of Keras 3 (Sequential and Functional models; Dense, Conv2D, pooling, Flatten, Dropout and a few more; Adam / SGD / RMSprop; the cross-entropy and MSE losses; EarlyStopping). summary() and the error messages follow Keras 3, and training is real but on small data. There is no MNIST download and random weights differ from real Keras.",
+      "cat": {
+        "build": "Build",
+        "train": "Train",
+        "pitfalls": "Pitfalls"
+      },
+      "e": {
+        "cnn_summary": "Lecture 8's CNN. The summary step shows each output shape with its formula: 'valid' 3 × 3 convolutions shrink 28 → 26 → 24, pooling halves 24 → 12, Flatten gives 12·12·64 = 9216, and each Conv2D has (3·3·channels + 1)·filters parameters.",
+        "mlp_summary": "Lecture 6's MLP on 28 × 28 images: Flatten turns them into 784 inputs, and each Dense layer has (inputs + 1) × units parameters. kernel_regularizer adds 0.002·Σw² to the loss to keep the weights small.",
+        "functional": "The Functional API wires layers by calling them on tensors. keras.Input is a placeholder whose batch size is None, and keras.Model(inputs, outputs) collects every layer between the two.",
+        "params": "Count the parameters by hand first, then check: a Conv2D has (kh·kw·in_channels + 1)·filters, a Dense layer (inputs + 1)·units, and pooling or Flatten have none. padding='same' keeps the height and width.",
+        "fit_xor": "compile picks the optimizer, loss and metrics. fit trains and returns a History whose history['loss'] you can plot. evaluate gives [loss, accuracy], and predict gives the sigmoid probabilities.",
+        "blobs": "Three classes need a softmax output with three units and sparse_categorical_crossentropy for integer labels. predict returns one probability per class, and np.argmax(…, axis=1) picks the class.",
+        "overfit": "validation_split=0.3 holds out the last 30% of the data. A large network on 60 noisy samples overfits: validation loss bottoms out and then climbs. EarlyStopping stops after patience epochs without improvement and restores the best weights.",
+        "tiny_cnn": "A CNN learns to tell vertical bars from horizontal ones. Images are reshaped to (N, 8, 8, 1) because Conv2D needs a channel axis. One 3 × 3 convolution, max pooling and a softmax are enough.",
+        "confusion": "predict → argmax → tf.math.confusion_matrix(y, prediction_results), as lecture 6 does, then seaborn.heatmap to draw it. Rows are true classes and columns predictions.",
+        "sparse_vs_cat": "The most common Keras error. categorical_crossentropy compares one-hot rows with the output, so integer labels give a shape mismatch. Either use sparse_categorical_crossentropy, or to_categorical(y) first.",
+        "no_flatten": "Without Flatten, Dense acts only on the last axis, so the output is (None, 28, 28, 10) with just 20 parameters and not one prediction per image. The summary makes the mistake visible.",
+        "no_channel": "Conv2D expects (batch, height, width, channels). Grayscale arrays of shape (N, 28, 28) need reshape(-1, 28, 28, 1), as lecture 8 does with x_train before building the model."
+      }
+    },
+    "tensorflow": {
+      "title": "TensorFlow playground",
+      "subtitle": "{{n}} examples: tensors and their strict dtypes, Variables and GradientTape, and Keras inside TensorFlow (tf.keras).",
+      "sandbox_note": "Runs in your browser on a small re-implementation of TensorFlow 2 (tf.constant, tf.Variable, GradientTape, tf.math / tf.nn basics, tf.keras). Printing and dtype errors follow TensorFlow; there is no GPU and no graph mode.",
+      "cat": {
+        "tensors": "Tensors",
+        "autograd": "GradientTape",
+        "keras": "tf.keras"
+      },
+      "e": {
+        "constant": "tf.constant makes an immutable tensor, and print shows its values, shape and dtype. .numpy() converts it back to a NumPy array. Python ints become int32 here, while NumPy would use int64.",
+        "dtypes": "Unlike NumPy and PyTorch, TensorFlow never converts dtypes for you: float32 + int32 is an error. Convert explicitly with tf.cast(b, tf.float32).",
+        "ops": "tf.matmul (or @) is the matrix product and * is element-wise. reduce_sum / reduce_mean take an axis. An int32 mean stays int32, so it is truncated.",
+        "variable": "tf.Variable holds the trainable weights. Unlike a constant you can change it in place with assign, assign_add and assign_sub, which is how a training step updates w.",
+        "tape": "Inside with tf.GradientTape() as tape:, TensorFlow records the operations on Variables. tape.gradient(y, x) then gives dy/dx, here 2x + 2 = 8 at x = 3.",
+        "linreg": "A full training loop by hand: compute the loss inside the tape, get [dw, db] with tape.gradient, then w.assign_sub(lr · dw). w → 2 and b → 1.",
+        "tf_keras": "Keras ships inside TensorFlow as tf.keras, the way older lecture code imports it. Open the summary step to see each layer's output shape and parameter count.",
+        "confusion": "tf.math.confusion_matrix(labels, predictions) counts each (true, predicted) pair. The diagonal holds the correct predictions, so accuracy = diagonal sum / total."
+      }
+    },
+    "frame": {
+      "generic": "The table before the operation and the result.",
+      "column": "df['col'] picks one column, which comes back as a Series.",
+      "columns": "df[['a', 'b']] picks several columns, which come back as a DataFrame.",
+      "filter": "A boolean mask keeps the rows where it is True (highlighted). The index labels stay as they were.",
+      "loc": "loc selects by label: rows and columns by name. A label slice includes its end.",
+      "iloc": "iloc selects by position, like a NumPy array. A slice excludes its end.",
+      "head": "head(n) / tail(n) show the first / last n rows.",
+      "tail": "head(n) / tail(n) show the first / last n rows.",
+      "describe": "describe() summarises each numeric column: count, mean, std (ddof=1), min, quartiles and max.",
+      "isna": "isna() marks missing values (NaN / None) with True. Add .sum() to count them per column.",
+      "fillna": "fillna replaces missing values (the highlighted rows) with a value, or with one value per column.",
+      "dropna": "dropna drops every row that has a missing value; the highlighted rows survive.",
+      "sort_values": "sort_values reorders the rows by a column; the index labels travel with their rows.",
+      "groupby": "groupby splits the rows by key (each colour is one group), applies the aggregation to every group, and combines the results, one row per group.",
+      "value_counts": "value_counts counts how often each value occurs (normalize=True gives proportions, e.g. the class priors of Naive Bayes).",
+      "crosstab": "crosstab counts every (row value, column value) pair. normalize='index' turns each row into proportions: P(column | row).",
+      "get_dummies": "get_dummies turns a categorical column into one True / False column per category (one-hot encoding).",
+      "merge": "merge joins two tables on a shared column, like a SQL JOIN.",
+      "arith": "Arithmetic works element by element. A Series lines up with the DataFrame's columns by name, so df - df.mean() subtracts each column's own mean.",
+      "compare": "A comparison gives a boolean Series, ready to use as a mask.",
+      "assign": "A new column is computed for every row at once.",
+      "map": "map replaces every value through a dict or a function, e.g. text labels to numbers."
+    },
+    "pandas": {
+      "title": "pandas playground",
+      "subtitle": "{{n}} examples: build and read tables, select and clean them, and do the course's table maths: Naive Bayes counts, standardising, K-Means centroids, confusion matrices.",
+      "sandbox_note": "Runs in your browser on a small re-implementation of pandas (DataFrame / Series, loc / iloc, isna / fillna / dropna, groupby, value_counts, crosstab, get_dummies, merge, describe, read_csv from io.StringIO). Printing follows pandas 2. MultiIndex and several aggregations at once are not supported.",
+      "cat": {
+        "basics": "Basics",
+        "select": "Select",
+        "clean": "Clean",
+        "ml": "Course maths"
+      },
+      "e": {
+        "create": "A DataFrame is a table of named columns, each a Series with one dtype: int64, float64 (None becomes NaN) or object for text.",
+        "describe": "Column statistics skip missing values. Note std: pandas divides by n − 1 and NumPy by n, so the two numbers differ.",
+        "csv": "read_csv turns comma-separated text into a DataFrame, inferring dtypes and reading empty fields as NaN. info() lists the columns, their non-null counts and dtypes.",
+        "columns": "One name gives a Series, a list of names a DataFrame. This is how you split a table into features X and labels y.",
+        "filter": "df[mask] keeps the rows where the mask is True. Combine masks with & and |, and put each condition in brackets: & binds tighter than >.",
+        "loc": "loc uses labels (here the names) and includes the end of a slice. iloc uses positions and excludes it, as Python does.",
+        "missing": "isna().sum() counts the missing values per column. fillna fills them (here with the column mean) and dropna removes their rows.",
+        "encode": "Models need numbers: map turns labels into codes, and get_dummies makes one-hot columns.",
+        "naive_bayes": "Lecture 2's 14 patients. value_counts(normalize=True) gives the prior P(Z), and crosstab(…, normalize='index') gives P(feature | Z), the lecture's relative-frequency tables. Multiplying them scores a patient: 'No' wins, 0.02057 > 0.00529.",
+        "standardize": "z = (x − mean) / std puts every feature on the same scale before KNN, as lecture 3 recommends. df.mean() and df.std() are computed per column and line up with the columns automatically.",
+        "centroids": "K-Means' update step in one line: group the points by cluster and take the mean of x and y. Each group's mean is the new centroid.",
+        "confusion": "crosstab(true, predicted) is the confusion matrix. Precision divides the true positives by the predicted-1 column, recall by the actually-1 row.",
+        "groupby": "groupby('k')['accuracy'].mean() averages the folds for each K, and idxmax() picks the K with the best mean: cross-validation in two lines."
+      }
+    },
+    "pytorch": {
+      "title": "PyTorch playground",
+      "subtitle": "{{n}} examples from lecture 9: tensors, autograd, nn.Module and the training loop. Open a step to see the grids, the layer shapes or the gradient graph.",
+      "sandbox_note": "Runs in your browser on a small re-implementation of PyTorch (tensors, autograd, Linear / Conv2d / MaxPool2d / Dropout, the usual losses, SGD and Adam, DataLoader). Printing, dtypes and error messages follow PyTorch 2; random numbers differ from real PyTorch, and there is no GPU or MNIST download.",
+      "cat": {
+        "tensors": "Tensors",
+        "autograd": "Autograd",
+        "nn": "Layers & shapes",
+        "train": "Training"
+      },
+      "e": {
+        "attrs": "Every tensor has a shape (torch.Size), a dtype and a device. Python ints become int64, factory functions like torch.zeros give float32, and in this sandbox the device is always the CPU.",
+        "matmul": "@ (torch.matmul) is the matrix product: each output is a row times a column. * multiplies element by element. Hover a result cell to see which inputs made it.",
+        "indexing": "Indexing works as in NumPy: tensor[0] is a row, tensor[:, 0] a column, tensor[..., -1] the last column. Assigning to a slice changes the tensor in place.",
+        "view": "view gives a new shape over the same memory, and -1 means work it out. unsqueeze(0) adds the batch dimension a model expects. A transposed tensor is not contiguous, so view fails on it while reshape copies.",
+        "bridge": "torch.from_numpy and tensor.numpy() share memory with the NumPy array, so a change on one side shows on the other. torch.tensor(n) makes a copy.",
+        "dtype": "Python ints give int64 and floats give float32. Dividing integers gives floats, and mean() needs a float tensor. float32 cannot store 0.1 exactly, as item() shows.",
+        "grad_basic": "requires_grad=True makes PyTorch record every operation (grad_fn). y.backward() walks that graph backwards and stores dy/dx in x.grad: 2x + 3 = 7 at x = 2. Open the graph step.",
+        "grad_lecture": "Lecture 9's example: z = x·w + b, then a binary cross-entropy loss. loss.backward() fills w.grad and b.grad. Every row of w.grad is the same because x is all ones.",
+        "accumulate": "Calling backward() again adds to .grad instead of replacing it. This is why every training loop starts with optimizer.zero_grad().",
+        "no_grad": "Inside torch.no_grad(), and for detach()ed tensors, nothing is recorded, so outputs have requires_grad=False. Use it for evaluation and prediction.",
+        "linreg": "Gradient descent with nothing but tensors and autograd: compute the loss, backward(), then update w and b inside no_grad() and zero their gradients. w → 2 and b → 1.",
+        "mnist_cnn": "Lecture 9's MNIST_CNN. print(model) lists the layers, and the forward step shows each layer's output shape with the size formula: padding=1 keeps 28 × 28, pooling halves it to 14 × 14, and view flattens 64·14·14 = 12544 features.",
+        "flatten_bug": "The most common CNN bug: fc's in_features assumes 14 × 14, but without padding the conv gives 26 and pooling gives 13. The error reports both shapes, 1x2704 versus 3136x10. Print x.shape before the Linear layer to find the right number.",
+        "sequential": "nn.Sequential chains layers. A Linear layer has (in + 1) × out parameters, one weight per input and one bias per output: (784 + 1) × 128 = 100,480.",
+        "logits": "The last layer outputs raw scores (logits), and CrossEntropyLoss applies log_softmax itself. softmax is only for reading probabilities, and torch.max(logits, 1) gives the predicted class.",
+        "train_xor": "The five steps of every training loop from lecture 9: zero_grad → forward → loss → backward → step. A small MLP learns XOR, which a single perceptron cannot.",
+        "zero_grad_bug": "Without zero_grad(), every step's gradient is added to all the earlier ones. The steps grow, the loss stops falling smoothly, and it can blow up.",
+        "train_eval": "In train() mode dropout zeroes random units and scales the rest by 1 / (1 − p), so every call differs. eval() turns dropout off, so always call it before evaluating.",
+        "dataloader": "A DataLoader cuts a dataset into batches: len(loader) = ⌈10 / 4⌉ = 3, and each iteration gives (inputs, labels) for one batch, as in lecture 9's train_model."
+      }
+    }
   }
 }
