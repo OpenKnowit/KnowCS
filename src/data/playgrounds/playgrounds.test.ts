@@ -3,10 +3,11 @@ import { MATPLOTLIB_PLAYGROUND } from './matplotlib'
 import { PYTORCH_PLAYGROUND } from './pytorch'
 import { KERAS_PLAYGROUND } from './keras'
 import { TENSORFLOW_PLAYGROUND } from './tensorflow'
+import { PANDAS_PLAYGROUND } from './pandas'
 import { runIn } from './run'
 import type { PlayConfig } from './types'
 
-const CONFIGS: PlayConfig[] = [MATPLOTLIB_PLAYGROUND, PYTORCH_PLAYGROUND, KERAS_PLAYGROUND, TENSORFLOW_PLAYGROUND]
+const CONFIGS: PlayConfig[] = [MATPLOTLIB_PLAYGROUND, PYTORCH_PLAYGROUND, KERAS_PLAYGROUND, TENSORFLOW_PLAYGROUND, PANDAS_PLAYGROUND]
 
 describe.each(CONFIGS.map((c) => [c.id, c] as const))('%s playground', (_id, config) => {
   it('every category has an example and every example has a known category', () => {
