@@ -15,7 +15,9 @@ describe('parse', () => {
 
   it('缩进与不支持的语句给出明确错误', () => {
     expect(() => parse('  x = 1')).toThrow('unexpected indent')
-    expect(() => parse('for i in range(3): pass')).toThrow('not supported')
+    expect(() => parse('try:\n    x = 1')).toThrow('not supported')
+    expect(() => parse('if x:\ny = 1')).toThrow('expected an indented block')
+    expect(() => parse('if x:\n    y = 1\n  z = 2')).toThrow('unindent does not match')
   })
 })
 
