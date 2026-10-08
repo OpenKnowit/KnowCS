@@ -316,6 +316,39 @@ print(len(loader), 'batches')         # ceil(10 / 4) = 3
 for i, (inputs, labels) in enumerate(loader):
     print(i, inputs.shape, labels.tolist())`,
   },
+  {
+    id: 'cat_stack', cat: 'tensors', label: "torch.cat vs torch.stack",
+    code: `${H}a = torch.zeros(2, 3)
+b = torch.ones(2, 3)
+print(torch.cat([a, b], dim=0).shape)    # joins along an existing axis
+print(torch.cat([a, b], dim=1).shape)
+print(torch.stack([a, b]).shape)         # adds a new axis in front`,
+  },
+  {
+    id: 'conv_edge', cat: 'nn', label: "F.conv2d (Sobel edge)", focus: ['F.conv2d'],
+    code: `${NN}img = torch.tensor([[0., 0., 0., 9., 9., 9.],
+                    [0., 0., 0., 9., 9., 9.],
+                    [0., 0., 0., 9., 9., 9.],
+                    [0., 0., 0., 9., 9., 9.]]).reshape(1, 1, 4, 6)   # (batch, channels, H, W)
+sobel_x = torch.tensor([[-1., 0., 1.],
+                        [-2., 0., 2.],
+                        [-1., 0., 1.]]).reshape(1, 1, 3, 3)
+out = F.conv2d(img, sobel_x)        # no padding: (4 - 3 + 1) x (6 - 3 + 1)
+print(out.shape)
+print(out[0, 0])                    # strong response where dark meets bright`,
+  },
+  {
+    id: 'softmax_acc', cat: 'train', label: "softmax → argmax → accuracy",
+    code: `${H}logits = torch.tensor([[2.0, 0.5, -1.0],
+                       [0.1, 1.5, 0.3],
+                       [1.2, 0.2, 2.2]])
+y = torch.tensor([0, 1, 1])
+probs = torch.softmax(logits, dim=1)       # each row now sums to 1
+pred = probs.argmax(dim=1)
+print(probs)
+print(pred)
+print((pred == y).float().mean())          # accuracy: 2 of 3`,
+  },
 ]
 
 export const PYTORCH_PLAYGROUND: PlayConfig = {
@@ -327,5 +360,5 @@ export const PYTORCH_PLAYGROUND: PlayConfig = {
   cats: ['tensors', 'autograd', 'nn', 'train'],
   entries: ENTRIES,
   prelude: NN,
-  callApis: ['torch.', 'Tensor.', 'op:'],
+  callApis: ['torch.', 'Tensor.', 'op:', 'F.'],
 }

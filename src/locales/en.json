@@ -612,7 +612,9 @@
       "sort": "Sort",
       "linalg": "Linear algebra",
       "random": "Random",
-      "poly": "Polynomial"
+      "poly": "Polynomial",
+      "stats": "Count & stats",
+      "ml": "Course recipes"
     },
     "kind": {
       "create": "creates",
@@ -626,7 +628,8 @@
       "linalg": "linear algebra",
       "random": "random",
       "info": "returns info",
-      "poly": "polynomial"
+      "poly": "polynomial",
+      "group": "groups"
     },
     "rule": {
       "create": "Builds a new array from scratch — there is no input array to trace.",
@@ -656,7 +659,15 @@
       "poly_fit": "Least squares: the curve that makes the total squared vertical gap to the points as small as possible.",
       "poly_arith": "Polynomials combine with + − * ** like numbers; the solid curve is the result.",
       "polyfit": "Legacy API: same least-squares fit, but the coefficients come back highest degree first.",
-      "polyval": "Legacy API: evaluates coefficients given highest degree first."
+      "polyval": "Legacy API: evaluates coefficients given highest degree first.",
+      "group": "Each result cell is built from a group of input cells. Hover it to see the group.",
+      "group_bincount": "result[k] counts the cells equal to k (or adds up their weights). Hover a count to see which cells it counted.",
+      "group_histogram": "Each count is the number of values that fall in that bin; the last bin includes its right edge. Hover a count to see its values.",
+      "group_meshgrid": "X repeats x down every row (Y repeats y across every column), so X[i, j], Y[i, j] runs over every (x, y) pair. Shown: X.",
+      "group_diff": "Each cell is the next value minus this one along the axis, so the result is one shorter.",
+      "group_pad": "The input is copied into the middle; the new border cells come from no input at all.",
+      "group_isin": "True where the value appears among the test values. Hover a cell to see its match.",
+      "group_conv2d": "Each output cell is the sum of a K×K window of the input times the kernel (plus the bias). Hover an output cell to see its window; slide one step for each next cell."
     },
     "api": {
       "array": "Turns a (nested) Python list into an array; the nesting depth becomes the number of axes.",
@@ -719,7 +730,25 @@
       "poly_deriv": "Differentiate (deriv) or integrate (integ) and get a new Polynomial back.",
       "poly_roots": "All roots of the polynomial, sorted; complex ones are returned as complex numbers.",
       "poly_fit": "Fit a polynomial of a chosen degree to noisy data, then convert() to read the coefficients.",
-      "polyfit": "The old np.polyfit: coefficients highest degree first — for degree 1 that is [slope, intercept]."
+      "polyfit": "The old np.polyfit: coefficients highest degree first — for degree 1 that is [slope, intercept].",
+      "meshgrid": "Two 1-D axes in, two 2-D grids out: together they list every (x, y) point, which is how decision-boundary plots colour the plane.",
+      "pad": "Adds a border of zeros (or constant_values). Padding P = 1 keeps a 3×3 convolution's output the same size as its input.",
+      "isin": "Element-wise membership test against a list of values.",
+      "diff": "Differences between neighbours: a quick way to see whether a loss curve is still falling.",
+      "isnan": "Finds missing values. NaN is not equal to anything, itself included, so x == np.nan never works.",
+      "tanh": "The tanh activation, squashing any input into (-1, 1); np.log2 and np.log10 work the same way.",
+      "bincount": "Counts how often each non-negative integer occurs: class sizes, or the votes of KNN neighbours.",
+      "bincount_w": "With weights, each occurrence adds its weight instead of 1. Weighting by 1 / distance lets close neighbours count more.",
+      "histogram": "Splits the range into equal bins and counts the values in each, the first step of Otsu's threshold.",
+      "median": "The middle value (np.percentile(x, 50)), unaffected by a single outlier, unlike the mean.",
+      "average": "A weighted mean: Σ w·x / Σ w. Without weights it is the plain mean.",
+      "kmeans_assign": "The K-Means assignment step: broadcast every point against every centroid, take distances, then argmin along the centroid axis.",
+      "knn_vote": "KNN in four lines: distances to the query, the k smallest with argsort, then the most common label with bincount().argmax().",
+      "softmax": "Softmax per row. keepdims=True keeps the reduced axis, so (2, 3) minus (2, 1) broadcasts; subtracting the max avoids overflow.",
+      "zscore": "Standardisation: every column ends up with mean 0 and standard deviation 1, so no feature dominates the KNN distance.",
+      "onehot": "Indexing the identity matrix with the labels gives one-hot rows, the targets for categorical cross-entropy.",
+      "confusion": "A confusion matrix without loops: true * k + pred gives each (true, pred) pair its own number, and bincount counts them.",
+      "perceptron": "A perceptron's prediction for all rows at once: the step function of X @ w + b."
     },
     "run_block": "Run in the NumPy panel",
     "plot_label": "Polynomial curves",
@@ -3954,7 +3983,8 @@
       "softmax_ce": "These look like probabilities (each row sums to 1). CrossEntropyLoss applies log_softmax itself, so pass the raw logits, which is why lecture 9's model returns fc2(x) without softmax.",
       "mse_shape": "The prediction {{a}} and the target {{b}} have different shapes, so the loss broadcasts them into a matrix and the result is wrong. Make them the same shape (e.g. y.view(-1, 1) or pred.squeeze(1)).",
       "nonleaf_grad": ".grad of a non-leaf tensor is None: PyTorch only keeps gradients of leaf tensors (call .retain_grad() first to keep one).",
-      "T_nd": ".T on a tensor with more than 2 dimensions reverses all of them; to swap two dimensions use transpose(a, b) or permute."
+      "T_nd": ".T on a tensor with more than 2 dimensions reverses all of them; to swap two dimensions use transpose(a, b) or permute.",
+      "pandas_sample": "The sandbox has its own random generator, so sample() picks different rows from real pandas even with the same random_state. The sizes and the method are the same."
     },
     "matplotlib": {
       "title": "matplotlib playground",
@@ -3979,7 +4009,13 @@
         "boundary": "A perceptron predicts 1 when w·x + b > 0, so its decision boundary is the line w·x + b = 0, i.e. x₂ = −(w₁x₁ + b) / w₂. Points on different sides get different classes.",
         "history": "Plotting history.history is the first check after training. Training loss keeps falling, but once validation loss turns up the model is overfitting. The dotted line marks the epoch that early stopping would keep.",
         "confusion": "imshow draws the confusion matrix and plt.text writes each count in its cell. Rows are the true classes and columns the predictions, so precision reads down a column and recall along a row.",
-        "choose_k": "A bar chart of validation accuracy for each K: the cross-validation way of choosing K for KNN (lecture 3)."
+        "choose_k": "A bar chart of validation accuracy for each K: the cross-validation way of choosing K for KNN (lecture 3).",
+        "knn_regions": "Colour every point of the plane by the class KNN would give it: classify a meshgrid, reshape the answers back to the grid, and contourf fills the regions. The boundary is where the colour changes.",
+        "errorbar": "Mean cross-validation accuracy for each k, with one standard deviation as an error bar. Pick the best mean, and prefer the steadier k when two are close.",
+        "boxplot": "Each box spans the middle half of the data (Q1 to Q3) with the median in orange; whiskers reach the furthest points within 1.5 IQR, and the circle beyond is an outlier.",
+        "pie": "A pie chart of class counts. With 62 % cats, always guessing \"cat\" already scores 62 % accuracy, so look at precision and recall too.",
+        "annotate": "annotate writes text at xytext and draws an arrow to the point xy. Here it marks the epoch with the lowest validation loss, where early stopping would stop.",
+        "step": "plt.step draws a function that jumps. where='post' keeps each value until the next x: the perceptron's hard threshold next to the smooth sigmoid."
       }
     },
     "keras": {
@@ -4003,7 +4039,9 @@
         "confusion": "predict → argmax → tf.math.confusion_matrix(y, prediction_results), as lecture 6 does, then seaborn.heatmap to draw it. Rows are true classes and columns predictions.",
         "sparse_vs_cat": "The most common Keras error. categorical_crossentropy compares one-hot rows with the output, so integer labels give a shape mismatch. Either use sparse_categorical_crossentropy, or to_categorical(y) first.",
         "no_flatten": "Without Flatten, Dense acts only on the last axis, so the output is (None, 28, 28, 10) with just 20 parameters and not one prediction per image. The summary makes the mistake visible.",
-        "no_channel": "Conv2D expects (batch, height, width, channels). Grayscale arrays of shape (N, 28, 28) need reshape(-1, 28, 28, 1), as lecture 8 does with x_train before building the model."
+        "no_channel": "Conv2D expects (batch, height, width, channels). Grayscale arrays of shape (N, 28, 28) need reshape(-1, 28, 28, 1), as lecture 8 does with x_train before building the model.",
+        "same_stride": "padding='same' keeps the size (output = ceil(N / S)); without it ('valid') the output is floor((N − K) / S) + 1. Read the shapes off model.summary() and check the parameter counts: (K·K·C_in + 1)·C_out.",
+        "onehot": "to_categorical turns integer labels into one-hot rows. Use it with categorical_crossentropy; keep integer labels for sparse_categorical_crossentropy."
       }
     },
     "tensorflow": {
@@ -4048,7 +4086,15 @@
       "arith": "Arithmetic works element by element. A Series lines up with the DataFrame's columns by name, so df - df.mean() subtracts each column's own mean.",
       "compare": "A comparison gives a boolean Series, ready to use as a mask.",
       "assign": "A new column is computed for every row at once.",
-      "map": "map replaces every value through a dict or a function, e.g. text labels to numbers."
+      "map": "map replaces every value through a dict or a function, e.g. text labels to numbers.",
+      "isin": "True for every value found in the list; use it as a mask to keep those rows.",
+      "nlargest": "The rows with the largest values in the column, biggest first.",
+      "nsmallest": "The rows with the smallest values in the column, smallest first.",
+      "duplicated": "Highlighted rows repeat an earlier row (in the compared columns).",
+      "drop_duplicates": "The highlighted repeats are removed; the first copy of each row stays.",
+      "sample": "Rows drawn at random without replacement; the highlighted ones were picked.",
+      "pivot_table": "Rows are grouped by the index column (colours), and each group's values are aggregated into one row.",
+      "cut": "Each number is put in the bin (interval) that contains it; the result is an ordered category."
     },
     "pandas": {
       "title": "pandas playground",
@@ -4073,7 +4119,15 @@
         "standardize": "z = (x − mean) / std puts every feature on the same scale before KNN, as lecture 3 recommends. df.mean() and df.std() are computed per column and line up with the columns automatically.",
         "centroids": "K-Means' update step in one line: group the points by cluster and take the mean of x and y. Each group's mean is the new centroid.",
         "confusion": "crosstab(true, predicted) is the confusion matrix. Precision divides the true positives by the predicted-1 column, recall by the actually-1 row.",
-        "groupby": "groupby('k')['accuracy'].mean() averages the folds for each K, and idxmax() picks the K with the best mean: cross-validation in two lines."
+        "groupby": "groupby('k')['accuracy'].mean() averages the folds for each K, and idxmax() picks the K with the best mean: cross-validation in two lines.",
+        "isin": "isin keeps the rows whose value is one of a list: a shorter way to write several == tests joined with |.",
+        "nlargest": "nlargest(n, column) gives the n rows with the biggest values, already sorted: sort_values(ascending=False).head(n) in one step.",
+        "duplicates": "duplicated() marks rows that repeat an earlier row exactly; drop_duplicates() removes them (subset= compares only some columns). Repeated rows quietly double their weight in training.",
+        "apply_rows": "With axis=1 the function gets one row at a time, and row.height reads that row's height. Prefer vectorised column maths when you can; apply is for row logic that is hard to vectorise.",
+        "cut": "pd.cut turns a number into a category by bins: ages 0–30, 30–50, 50–100. Categorical Naive Bayes needs this, and the categories keep their order (young < middle < old).",
+        "gaussian_nb": "Gaussian Naive Bayes fits one normal curve per class and feature. agg(['mean', 'std']) gives both parameters for every class in one table (pandas' std is the sample std, ddof=1).",
+        "pivot": "pivot_table groups by index and averages the values: here the K-Means update step, giving one new centroid per cluster.",
+        "sample_split": "sample(frac=0.75) draws 75 % of the rows at random for training, and drop(train.index) keeps the rest for testing. The sandbox draws different rows from real pandas, but the split works the same way."
       }
     },
     "pytorch": {
@@ -4105,7 +4159,10 @@
         "train_xor": "The five steps of every training loop from lecture 9: zero_grad → forward → loss → backward → step. A small MLP learns XOR, which a single perceptron cannot.",
         "zero_grad_bug": "Without zero_grad(), every step's gradient is added to all the earlier ones. The steps grow, the loss stops falling smoothly, and it can blow up.",
         "train_eval": "In train() mode dropout zeroes random units and scales the rest by 1 / (1 − p), so every call differs. eval() turns dropout off, so always call it before evaluating.",
-        "dataloader": "A DataLoader cuts a dataset into batches: len(loader) = ⌈10 / 4⌉ = 3, and each iteration gives (inputs, labels) for one batch, as in lecture 9's train_model."
+        "dataloader": "A DataLoader cuts a dataset into batches: len(loader) = ⌈10 / 4⌉ = 3, and each iteration gives (inputs, labels) for one batch, as in lecture 9's train_model.",
+        "cat_stack": "torch.cat joins tensors along an axis they already have; torch.stack puts them on a new axis, so two (2, 3) tensors become (2, 2, 3). Stacking images into a batch is a stack.",
+        "conv_edge": "F.conv2d is the convolution of lecture 7 with PyTorch's (batch, channels, H, W) layout. A hand-set Sobel kernel lights up where the dark half meets the bright half; with no padding the output is (H − 3 + 1) × (W − 3 + 1).",
+        "softmax_acc": "softmax turns each row of logits into probabilities, argmax(dim=1) picks the predicted class, and (pred == y).float().mean() is the accuracy. argmax of the logits gives the same classes, since softmax keeps the order."
       }
     }
   }

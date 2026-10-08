@@ -5,12 +5,13 @@
 import {
   NDArray, PyError, MAX_SIZE, arrayRepr, arrayStr, binaryOp, castValue, dot, formatScalar, getIndex, reduce,
   reshape, setIndex, sharesMemory, shapeStr, transpose, unaryOp, checkSize, applyOp, cStrides, broadcastShapes, broadcastTo,
-  reduceDType, setSizeLimit,
+  reduceDType, setSizeLimit, normAxis,
 } from './ndarray'
 import type { AxisNote, BinOp, DType, IndexItem, IndexPlan, ReduceKind } from './ndarray'
 import type { Display, PyEvent, PyEventInput } from './pyEvents'
 import { DEFAULT_IV, complexRepr, convert, deriv, integ, lstsq, mapParams, polyRepr, polyStr, polyadd, polymul, polypow, polysub, polyval, roots, trim } from './poly'
 import type { Interval } from './poly'
+import { allclose, average, bincount, diff, histogram, isin, median, meshgrid, pad as padArray, padWidths, percentile } from './ndextra'
 import {
   SandboxRandom, concatenate, cumsum, det, expandDims, flip, hstack, inv, norm, outer, repeat, roundHalfEven, sortAlong,
   squeeze, stack, swapaxes, tile, trace, unique, vstack, commonDType,
@@ -820,7 +821,7 @@ export const parse = (src: string): Stmt[] => new Parser(tokenize(src)).program(
 type Fn = (args: Value[], kw: Record<string, Value>) => Value
 
 /** 可视化用的 API 分类：决定「输出元素来自哪些输入元素」的计算方式 */
-export type ApiKind = 'create' | 'move' | 'elementwise' | 'reduce' | 'scan' | 'matmul' | 'sort' | 'unique' | 'linalg' | 'random' | 'info' | 'poly'
+export type ApiKind = 'create' | 'move' | 'elementwise' | 'reduce' | 'scan' | 'matmul' | 'sort' | 'unique' | 'linalg' | 'random' | 'info' | 'poly' | 'group'
 
 interface ApiMeta {
   /** 'np.sum' / 'ndarray.sum' / 'np.linalg.inv' … */
@@ -988,7 +989,8 @@ export interface Host {
   /** the variable name a value is bound to, or the given fallback */
   nameOf(v: Value, fallback: string): string
   emit(ev: PyEventInput): void
-  traceCall(api: string, kind: ApiKind, operands: Operand[], result: GridSnapshot | null, resultText: string, axis?: number | null): void
+  /** groups: for kind 'group', the input cells behind each result cell ([operand, flat index]) */
+  traceCall(api: string, kind: ApiKind, operands: Operand[], result: GridSnapshot | null, resultText: string, axis?: number | null, groups?: [number, number][][]): void
   print(s: string): void
   readonly rng: SandboxRandom
   /** per-run state a library keeps between calls (pyplot's current figure …) */
@@ -1286,6 +1288,8 @@ export interface CallTrace {
   source?: [number, number][]
   /** kind = 'poly'：要画的曲线（普通 x 的系数，低次在前）、数据点与标记点 */
   plot?: PolyPlot
+  /** kind = 'group'：结果每个元素来自哪一组输入元素（由函数自己算出，如 bincount 的计数、pad 的边框） */
+  groups?: [number, number][][]
 }
 
 export interface PolyPlot {
@@ -1359,6 +1363,8 @@ class Interp implements Host {
   rng = new SandboxRandom()
   /** 多项式调用把要画的曲线放在这里，由 pushCall 取走 */
   pendingPlot: PolyPlot | null = null
+  /** set by a 'group' function during its call: the provenance of each result cell, and the array to show as the result */
+  pendingGroups: { groups: [number, number][][]; result: NDArray } | null = null
   builtins: Record<string, Value>
   np: Value
   libs: PyLib[]
@@ -1423,9 +1429,9 @@ class Interp implements Host {
     this.events.push({ ...ev, id: this.events.length, seq: this.seqN++, line: ev.line ?? this.line, code: ev.code ?? this.callText } as PyEvent)
   }
 
-  traceCall(api: string, kind: ApiKind, operands: Operand[], result: GridSnapshot | null, resultText: string, axis: number | null = null) {
+  traceCall(api: string, kind: ApiKind, operands: Operand[], result: GridSnapshot | null, resultText: string, axis: number | null = null, groups?: [number, number][][]) {
     if (!this.tracing) return
-    this.calls.push({ id: this.calls.length, seq: this.seqN++, line: this.line, code: this.callText, api, kind, operands, axis, result, resultText })
+    this.calls.push({ id: this.calls.length, seq: this.seqN++, line: this.line, code: this.callText, api, kind, operands, axis, result, resultText, groups })
   }
 
   print(s: string) {
@@ -1819,6 +1825,8 @@ class Interp implements Host {
   pushCall(api: string, kind: ApiKind, code: string, ops: { label: string; v: Value }[], res: Value, axis: number | null, source?: [number, number][]) {
     const plot = this.pendingPlot ?? undefined
     this.pendingPlot = null
+    const grouped = this.pendingGroups
+    this.pendingGroups = null
     this.calls.push({
       id: this.calls.length,
       seq: this.seqN++,
@@ -1828,10 +1836,11 @@ class Interp implements Host {
       kind,
       operands: ops.map((o) => ({ label: o.label, snap: o.v.k === 'array' ? snap(o.v.a) : this.resultSnap(o.v)! })),
       axis,
-      result: this.resultSnap(res),
+      result: grouped ? snap(grouped.result) : this.resultSnap(res),
       resultText: repr(res),
       source,
       plot,
+      groups: grouped?.groups,
     })
   }
 
@@ -1868,6 +1877,7 @@ class Interp implements Host {
     const ops = this.collectOperands(nodes, vals, meta.kind === 'elementwise')
     // 先拍快照：调用本身可能改动输入（如原地操作）
     const opSnaps = ops.map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
+    this.pendingGroups = null
     const res = f.call(args, kw)
     let axis: number | null = null
     if (meta.axisPos !== undefined) {
@@ -2443,6 +2453,12 @@ class Interp implements Host {
   reduceFn(a: NDArray, kind: ReduceKind, args: Value[], kw: Record<string, Value>): Value {
     const axis = this.kwInt(kw, args, 0, 'axis')
     const res = reduce(a, kind, axis)
+    // keepdims=True leaves the reduced axis in place with length 1, so the result still broadcasts against a
+    if (kw.keepdims && this.truthy(kw.keepdims)) {
+      const shape = axis === null ? a.shape.map(() => 1) : a.shape.map((d, i) => (i === normAxis(axis, a.ndim) ? 1 : d))
+      const vals = typeof res === 'number' ? [res] : res.values()
+      return arr(NDArray.create(vals, shape, typeof res === 'number' ? reduceDType(kind, a.dtype) : res.dtype))
+    }
     if (typeof res === 'number') return fromScalar(res, reduceDType(kind, a.dtype))
     return arr(res)
   }
@@ -2829,6 +2845,40 @@ class Interp implements Host {
     return tuple(coords.map((c) => arr(NDArray.create(c, [c.length], 'int64'))))
   }
 
+  /** a median / percentile / average result: a NumPy float scalar or an array */
+  orderStat(r: NDArray | number): Value {
+    return typeof r === 'number' ? fromScalar(r, 'float64') : arr(r)
+  }
+
+  /** percentile's q (scale 1) or quantile's q (scale 100, so 0.75 → 75) as one number */
+  scalarQ(v: Value | undefined, scale: number): number {
+    if (!v) throw this.err('TypeError', "missing required argument 'q'")
+    if (!isNum(v)) throw this.err('NotImplementedError', 'q must be a single number in this sandbox')
+    if (scale === 100 && (numOf(v) < 0 || numOf(v) > 1)) throw this.err('ValueError', 'Quantiles must be in the range [0, 1]')
+    return numOf(v) * scale
+  }
+
+  /** nested Python numbers (pad_width: 1, (1, 2), ((1, 1), (0, 2))) */
+  toPyNumbers(v: Value | undefined): number | number[] | number[][] {
+    if (!v) throw this.err('TypeError', "pad() missing required argument 'pad_width'")
+    if (isNum(v)) return this.toInt(v)
+    if (v.k === 'array') return this.toPyNumbers(this.toList(v.a))
+    if (v.k !== 'list' && v.k !== 'tuple') throw this.err('TypeError', '`pad_width` must be of integral type.')
+    return v.items.map((x) => (isNum(x) ? this.toInt(x) : this.iterate(x).map((y) => this.toInt(y)))) as number[] | number[][]
+  }
+
+  /** np.isnan and friends: element-wise, boolean result */
+  predicate(name: string, f: (x: number) => boolean): Value {
+    return {
+      k: 'fn', name, api: { name: `np.${name}`, kind: 'elementwise' },
+      call: (args) => {
+        const a = toArray(args[0])
+        const res = NDArray.create(a.values().map((x) => (f(x) ? 1 : 0)), a.shape, 'bool')
+        return args[0].k === 'array' || args[0].k === 'list' ? arr(res) : bool(res.values()[0] === 1)
+      },
+    }
+  }
+
   // ---------- numpy 命名空间与内置函数 ----------
 
   makeNumpy(): Value {
@@ -3129,6 +3179,75 @@ class Interp implements Host {
         return arr(sortAlong(asArr(args[0], 'argsort'), ax && ax.k === 'none' ? null : ax ? this.toInt(ax) : -1).order)
       }, 'sort', { axisPos: 1, defaultAxis: -1 }),
       unique: fn('unique', (args) => arr(unique(asArr(args[0], 'unique'))), 'unique'),
+      // ---- counting, histograms and order statistics (lib/ndextra)
+      bincount: fn('bincount', (args, kw) => {
+        const w = kw.weights ?? args[1]
+        const r = bincount(asArr(args[0], 'bincount'), this.kwInt(kw, args, 2, 'minlength') ?? 0, w && w.k !== 'none' ? toArray(w) : null)
+        this.pendingGroups = { groups: r.groups, result: r.out }
+        return arr(r.out)
+      }, 'group'),
+      histogram: fn('histogram', (args, kw) => {
+        const b = kw.bins ?? args[1]
+        if (b && b.k !== 'none' && !isNum(b)) throw this.err('NotImplementedError', 'histogram takes a number of bins in this sandbox (not a list of edges)')
+        const rg = kw.range ?? args[2]
+        const range = rg && rg.k !== 'none' ? (toArray(rg, 'float64').values() as [number, number]) : null
+        const r = histogram(asArr(args[0], 'histogram'), b && b.k !== 'none' ? this.toInt(b) : 10, range)
+        this.pendingGroups = { groups: r.groups, result: r.out }
+        return tuple([arr(r.out), arr(r.edges)])
+      }, 'group'),
+      median: fn('median', (args, kw) => this.orderStat(median(asArr(args[0], 'median'), this.kwInt(kw, args, 1, 'axis'))), 'reduce', { axisPos: 1, defaultAxis: null }),
+      percentile: fn('percentile', (args, kw) => this.orderStat(percentile(asArr(args[0], 'percentile'), this.scalarQ(kw.q ?? args[1], 1), this.kwInt(kw, args, 2, 'axis'))), 'reduce', { axisPos: 2, defaultAxis: null }),
+      quantile: fn('quantile', (args, kw) => this.orderStat(percentile(asArr(args[0], 'quantile'), this.scalarQ(kw.q ?? args[1], 100), this.kwInt(kw, args, 2, 'axis'))), 'reduce', { axisPos: 2, defaultAxis: null }),
+      average: fn('average', (args, kw) => {
+        const w = kw.weights ?? args[2]
+        return this.orderStat(average(asArr(args[0], 'average'), this.kwInt(kw, args, 1, 'axis'), w && w.k !== 'none' ? toArray(w) : null))
+      }, 'reduce', { axisPos: 1, defaultAxis: null }),
+      // ---- grids, differences, padding, membership
+      meshgrid: fn('meshgrid', (args, kw) => {
+        if (args.length !== 2) throw this.err('NotImplementedError', 'meshgrid takes two 1-D arrays (x, y) in this sandbox')
+        if (kw.indexing && kw.indexing.k === 'str' && kw.indexing.v !== 'xy') throw this.err('NotImplementedError', "meshgrid supports indexing='xy' (the default) in this sandbox")
+        const { X, Y } = meshgrid(asArr(args[0], 'meshgrid'), asArr(args[1], 'meshgrid'))
+        checkSize(X.out.shape)
+        this.pendingGroups = { groups: X.groups, result: X.out }
+        return tuple([arr(X.out), arr(Y.out)])
+      }, 'group'),
+      diff: fn('diff', (args, kw) => {
+        const n = kw.n ?? args[1]
+        if (n && n.k !== 'none' && this.toInt(n) !== 1) throw this.err('NotImplementedError', 'diff supports n=1 in this sandbox')
+        const r = diff(asArr(args[0], 'diff'), this.kwInt(kw, args, 2, 'axis') ?? -1)
+        this.pendingGroups = { groups: r.groups, result: r.out }
+        return arr(r.out)
+      }, 'group'),
+      pad: fn('pad', (args, kw) => {
+        const a = asArr(args[0], 'pad')
+        const mode = kw.mode ?? args[2]
+        if (mode && mode.k === 'str' && mode.v !== 'constant') throw this.err('NotImplementedError', `pad mode '${mode.v}' is not available in this sandbox (only 'constant')`)
+        const spec = this.toPyNumbers(kw.pad_width ?? args[1])
+        const cv = kw.constant_values
+        const r = padArray(a, padWidths(spec, a.ndim), cv ? this.num(cv) : 0)
+        checkSize(r.out.shape)
+        this.pendingGroups = { groups: r.groups, result: r.out }
+        return arr(r.out)
+      }, 'group'),
+      isin: fn('isin', (args, kw) => {
+        const r = isin(asArr(args[0], 'isin'), toArray(kw.test_elements ?? args[1]))
+        this.pendingGroups = { groups: r.groups, result: r.out }
+        return arr(r.out)
+      }, 'group'),
+      isnan: this.predicate('isnan', Number.isNaN),
+      isinf: this.predicate('isinf', (x) => x === Infinity || x === -Infinity),
+      isfinite: this.predicate('isfinite', Number.isFinite),
+      allclose: fn('allclose', (args, kw) => {
+        const a = toArray(args[0])
+        const b = toArray(args[1])
+        const shape = broadcastShapes([a.shape, b.shape])
+        return bool(allclose(broadcastTo(a, shape).values(), broadcastTo(b, shape).values(), kw.rtol ? this.num(kw.rtol) : 1e-5, kw.atol ? this.num(kw.atol) : 1e-8))
+      }, 'info'),
+      array_equal: fn('array_equal', (args) => {
+        const a = toArray(args[0])
+        const b = toArray(args[1])
+        return bool(a.shape.length === b.shape.length && a.shape.every((d, i) => d === b.shape[i]) && a.values().every((x, i) => x === b.values()[i]))
+      }, 'info'),
       // ---- element-wise math
       abs: elementwise('abs', Math.abs, 'same'),
       sqrt: elementwise('sqrt', Math.sqrt),
@@ -3136,6 +3255,9 @@ class Interp implements Host {
       log: elementwise('log', Math.log),
       sin: elementwise('sin', Math.sin),
       cos: elementwise('cos', Math.cos),
+      tanh: elementwise('tanh', Math.tanh),
+      log2: elementwise('log2', Math.log2),
+      log10: elementwise('log10', Math.log10),
       square: elementwise('square', (x) => x * x, 'same'),
       // numpy 2: floor / ceil keep integer dtypes
       floor: elementwise('floor', Math.floor, 'same'),

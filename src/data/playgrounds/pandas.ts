@@ -154,6 +154,60 @@ plt.bar([str(k) for k in mean_acc.index], mean_acc.tolist())
 plt.ylim(0.75, 0.95)
 plt.title(f'cross-validation: best K = {best_k}')`,
   },
+  {
+    id: 'isin', cat: 'select', label: ".isin([...])",
+    code: `${H}df = pd.DataFrame({'student': ['Ann', 'Bob', 'Cy', 'Dee', 'Eve'],
+                   'major': ['COMP', 'MATH', 'COMP', 'PHYS', 'ELEC']})
+df[df['major'].isin(['COMP', 'ELEC'])]`,
+  },
+  {
+    id: 'nlargest', cat: 'select', label: "df.nlargest(3, col)",
+    code: `${H}df = pd.DataFrame({'model': ['KNN', 'NB', 'MLP', 'CNN', 'Perceptron'],
+                   'accuracy': [0.88, 0.81, 0.91, 0.95, 0.76]})
+df.nlargest(3, 'accuracy')`,
+  },
+  {
+    id: 'duplicates', cat: 'clean', label: "duplicated / drop_duplicates",
+    code: `${H}df = pd.DataFrame({'name': ['Ann', 'Bob', 'Ann', 'Cy', 'Bob'],
+                   'score': [90, 75, 90, 60, 80]})
+print(df.duplicated())        # True = an exact repeat of an earlier row
+df.drop_duplicates()`,
+  },
+  {
+    id: 'apply_rows', cat: 'clean', label: "apply(…, axis=1)",
+    code: `${H}df = pd.DataFrame({'height': [170, 160, 182], 'weight': [65, 50, 90]})
+df['bmi'] = df.apply(lambda r: r.weight / (r.height / 100) ** 2, axis=1)
+df.round(1)`,
+  },
+  {
+    id: 'cut', cat: 'clean', label: "pd.cut → categories",
+    code: `${H}df = pd.DataFrame({'age': [22, 35, 58, 41, 19, 66, 30, 47],
+                   'buys': ['yes', 'no', 'no', 'yes', 'yes', 'no', 'yes', 'no']})
+df['age_group'] = pd.cut(df['age'], bins=[0, 30, 50, 100], labels=['young', 'middle', 'old'])
+pd.crosstab(df['age_group'], df['buys'])     # the counts Naive Bayes needs`,
+  },
+  {
+    id: 'gaussian_nb', cat: 'ml', label: "agg(['mean', 'std'])",
+    code: `${H}df = pd.DataFrame({'cls': ['spam', 'ham', 'spam', 'ham', 'spam', 'ham'],
+                   'length': [12.0, 30.0, 9.0, 26.0, 15.0, 34.0]})
+params = df.groupby('cls')['length'].agg(['mean', 'std'])
+params      # Gaussian Naive Bayes: one mean and one std per class`,
+  },
+  {
+    id: 'pivot', cat: 'ml', label: "pivot_table",
+    code: `${H}df = pd.DataFrame({'cluster': [0, 1, 0, 1, 0, 1],
+                   'x': [1.0, 8.0, 2.0, 9.0, 1.5, 7.0],
+                   'y': [2.0, 8.5, 1.0, 9.5, 1.5, 8.0]})
+df.pivot_table(index='cluster', values=['x', 'y'], aggfunc='mean')   # the new K-Means centroids`,
+  },
+  {
+    id: 'sample_split', cat: 'ml', label: "sample → train / test",
+    code: `${H}df = pd.DataFrame({'x': range(8), 'label': [0, 1, 0, 1, 1, 0, 1, 0]})
+train = df.sample(frac=0.75, random_state=0)
+test = df.drop(train.index)     # every row not drawn for training
+print(len(train), 'train rows,', len(test), 'test rows')
+test`,
+  },
 ]
 
 export const PANDAS_PLAYGROUND: PlayConfig = {

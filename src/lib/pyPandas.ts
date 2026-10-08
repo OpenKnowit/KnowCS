@@ -4,7 +4,7 @@
  * the course does around its models (Naive Bayes counts, standardising features, K-Means centroids, confusion
  * matrices). Each table operation is recorded with the rows / columns it picked or the groups it formed.
  */
-import { NDArray, PyError } from './ndarray'
+import { NDArray, PyError, pyFloatRepr as pyFloat } from './ndarray'
 import { PyDict, PyObj, isNum, py, repr } from './minipy'
 import type { Host, Kw, PyLib, Value } from './minipy'
 import type { TableSpec } from './pyEvents'
@@ -59,6 +59,7 @@ const valueOf = (c: Cell, dt: DT): Value => {
 /** a list / array / Series as cells */
 const cellsOf = (h: Host, v: Value): Cell[] => {
   if (v.k === 'obj' && v.o instanceof Series) return [...v.o.values]
+  if (v.k === 'obj' && v.o instanceof IndexObj) return [...v.o.labels]
   if (v.k === 'array') return v.a.dtype === 'bool' ? v.a.values().map((x) => x !== 0) : v.a.values()
   if (v.k === 'range' || v.k === 'list' || v.k === 'tuple') return h.iterate(v).map((x) => cellOf(h, x))
   if (v.k === 'obj' && v.o.toArray) return v.o.toArray().values()
@@ -139,6 +140,8 @@ export class Series extends PyObj {
   index: Cell[]
   name: Cell
   indexName: string | null
+  /** a categorical Series (pd.cut): the ordered categories and how pandas names their type */
+  cats: { labels: string[]; kind: string } | null = null
   constructor(values: Cell[], index: Cell[] | null, name: Cell = null, dtype?: DT, indexName: string | null = null) {
     super()
     this.dtype = dtype ?? inferDT(values)
@@ -158,8 +161,9 @@ export class Series extends PyObj {
     const vw = Math.max(...shownVals.map((x) => x.length))
     const lines = rows.map((_, k) => `${idx[k].padEnd(iw)}   ${shownVals[k].padStart(vw)}`)
     const head = this.indexName ? [this.indexName] : []
-    const foot = `${this.name !== null ? `Name: ${labelStr(this.name)}, ` : ''}${this.length > MAX_SHOW ? `Length: ${this.length}, ` : ''}dtype: ${this.dtype}`
-    return [...head, ...lines, foot].join('\n')
+    const foot = `${this.name !== null ? `Name: ${labelStr(this.name)}, ` : ''}${this.length > MAX_SHOW ? `Length: ${this.length}, ` : ''}dtype: ${dtName(this)}`
+    const cats = this.cats ? [`Categories (${this.cats.labels.length}, ${this.cats.kind}): [${this.cats.labels.map((l) => (this.cats!.kind === 'object' ? `'${l}'` : l)).join(' < ')}]`] : []
+    return [...head, ...lines, foot, ...cats].join('\n')
   }
   display() { return { type: 'table' as const, table: tableOfSeries(this) } }
   len() { return this.length }
@@ -247,7 +251,9 @@ export class Series extends PyObj {
     this.values = normalise(this.values, this.dtype)
   }
   pick(rows: number[]): Series {
-    return new Series(rows.map((r) => this.values[r]), rows.map((r) => this.index[r]), this.name, this.dtype, this.indexName)
+    const out = new Series(rows.map((r) => this.values[r]), rows.map((r) => this.index[r]), this.name, this.dtype, this.indexName)
+    out.cats = this.cats
+    return out
   }
   getAttr(name: string, h: Host): Value | undefined {
     const fn = (call: (args: Value[], kw: Kw) => Value): Value => ({ k: 'fn', name, call })
@@ -255,7 +261,7 @@ export class Series extends PyObj {
     const label = () => h.nameOf(self, 's')
     switch (name) {
       case 'name': return this.name === null ? py.NONE : valueOf(this.name, inferDT([this.name]))
-      case 'dtype': return py.str(this.dtype)
+      case 'dtype': return py.str(dtName(this))
       case 'shape': return py.tuple([py.int(this.length)])
       case 'size': return py.int(this.length)
       case 'index': return py.obj(new IndexObj(this.index, this.indexName, isRangeIndex(this.index)))
@@ -346,7 +352,28 @@ export class Series extends PyObj {
       })
       case 'to_frame': return fn(() => py.obj(new Frame([labelStr(this.name ?? 0)], [this.with([...this.values])], [...this.index], this.indexName)))
       case 'plot': return undefined
+      case 'isin': return fn((args) => {
+        const want = cellsOf(h, args[0] ?? py.list([]))
+        const out = this.with(this.values.map((c) => want.some((w) => w === c)), 'bool')
+        traceFrame(h, 'isin', [{ label: label(), table: tableOfSeries(this) }], tableOfSeries(out), { rows: out.values.flatMap((b, i) => (b ? [i] : [])), cols: null })
+        return py.obj(out)
+      })
+      case 'nlargest': case 'nsmallest': return fn((args, kw) => {
+        const n = h.toInt(kw.n ?? args[0] ?? py.int(5))
+        const order = sortOrder([this.numeric(h, name)], [name === 'nsmallest']).slice(0, n)
+        const out = this.pick(order)
+        traceFrame(h, name, [{ label: label(), table: tableOfSeries(this) }], tableOfSeries(out), { rows: order, cols: null })
+        return py.obj(out)
+      })
+      case 'quantile': return fn((args, kw) => {
+        const q = h.num(kw.q ?? args[0] ?? py.float(0.5))
+        if (q < 0 || q > 1) throw h.err('ValueError', 'percentiles should all be in the interval [0, 1]')
+        return py.float(quantile(this.numeric(h, 'quantile').filter((v) => !Number.isNaN(v)).sort((a, b) => a - b), q))
+      })
     }
+    // a row from df.apply(…, axis=1) or iterrows(): its values by column name (row.height)
+    const at = this.index.indexOf(name)
+    if (at >= 0) return valueOf(this.values[at], inferDT([this.values[at]]))
     return undefined
   }
 }
@@ -439,6 +466,62 @@ const valueCounts = (s: Series, normalize: boolean): Series => {
   const entries = [...counts.values()].sort((a, b) => b.n - a.n || a.first - b.first)
   const total = entries.reduce((a, e) => a + e.n, 0)
   return new Series(entries.map((e) => (normalize ? e.n / total : e.n)), entries.map((e) => e.c), normalize ? 'proportion' : 'count', normalize ? 'float64' : 'int64', s.name === null ? null : labelStr(s.name))
+}
+
+/** the dtype pandas prints: 'category' for a cut result */
+const dtName = (s: Series): string => (s.cats ? 'category' : s.dtype)
+
+/** pivot_table(index=, columns=None, values=, aggfunc='mean'): one row per index key, one column per value (or per column key) */
+const pivotTable = (h: Host, f: Frame, kw: Kw, label: string): Value => {
+  if (!kw.index) throw h.err('TypeError', "pivot_table needs index='column'")
+  const idx = h.str(kw.index)
+  f.colPos(h, py.str(idx))
+  const how = kw.aggfunc ? h.str(kw.aggfunc) : 'mean'
+  if (!AGGS.includes(how)) throw h.err('ValueError', `aggfunc '${how}' is not available in this sandbox`)
+  const colKey = kw.columns && kw.columns.k !== 'none' ? h.str(kw.columns) : null
+  const valsV = kw.values
+  const values = valsV && valsV.k !== 'none' ? (valsV.k === 'list' ? h.iterate(valsV).map((v) => h.str(v)) : [h.str(valsV)]) : f.columns.filter((c) => c !== idx && c !== colKey && f.col(c)!.dtype !== 'object')
+  values.forEach((v) => f.colPos(h, py.str(v)))
+  const groupsOf = (col: string) => {
+    const s = f.col(col)!
+    const uniq = [...new Map(s.values.filter((c) => !isMissing(c)).map((c) => [labelStr(c), c])).values()]
+    const keys = s.cats ? s.cats.labels.filter((l) => uniq.some((u) => labelStr(u) === l)) : sortOrder([uniq], [true]).map((i) => labelStr(uniq[i]))
+    return { keys, of: (r: number) => labelStr(s.values[r]) }
+  }
+  const rows = groupsOf(idx)
+  const agg = (cells: Cell[], dt: DT, what: string): Cell => (cells.length ? cellOf(h, reduceCells(h, cells, dt, how, 1, what)) : NaN)
+  let out: Frame
+  if (!colKey) {
+    out = new Frame(values, values.map((v) => {
+      const s = f.col(v)!
+      const cells = rows.keys.map((k) => agg(f.index.flatMap((_, r) => (rows.of(r) === k ? [s.values[r]] : [])), s.dtype, `column '${v}'`))
+      return new Series(cells, null, v, how === 'count' ? 'int64' : ['mean', 'std', 'var', 'median'].includes(how) ? 'float64' : undefined)
+    }), rows.keys.map((k) => cellOfLabel(f.col(idx)!, k)), idx)
+  } else {
+    if (values.length !== 1) throw h.err('NotImplementedError', 'pivot_table with columns= takes one values= column in this sandbox')
+    const s = f.col(values[0])!
+    const cols = groupsOf(colKey)
+    const grid = cols.keys.map((ck) => rows.keys.map((rk) => agg(f.index.flatMap((_, r) => (rows.of(r) === rk && cols.of(r) === ck ? [s.values[r]] : [])), s.dtype, `column '${values[0]}'`)))
+    // one missing combination makes the whole table float, as in pandas
+    const anyNaN = grid.some((c) => c.some((x) => typeof x === 'number' && Number.isNaN(x)))
+    out = new Frame(cols.keys, grid.map((cells, j) => new Series(cells, null, cols.keys[j], anyNaN || ['mean', 'std', 'var', 'median'].includes(how) ? 'float64' : undefined)), rows.keys.map((k) => cellOfLabel(f.col(idx)!, k)), idx)
+    out.columnsName = colKey
+  }
+  const ofRow = f.index.map((_, r) => rows.keys.indexOf(rows.of(r)))
+  traceFrame(h, 'pivot_table', [{ label, table: tableOfFrame(f) }], tableOfFrame(out), { rows: null, cols: [f.columns.indexOf(idx), ...values.map((v) => f.columns.indexOf(v))] }, { keys: rows.keys, ofRow })
+  return py.obj(out)
+}
+
+/** the original cell (number or text) behind a group label */
+const cellOfLabel = (s: Series, label: string): Cell => s.values.find((c) => labelStr(c) === label) ?? label
+
+/** pandas' _round_frac: round an interval edge to `precision` significant decimals */
+const roundFrac = (x: number, precision = 3): number => {
+  if (!Number.isFinite(x) || x === 0) return x
+  const whole = Math.trunc(x)
+  const frac = x - whole
+  const digits = whole === 0 ? -Math.floor(Math.log10(Math.abs(frac))) - 1 + precision : precision
+  return Math.round(x * 10 ** digits) / 10 ** digits
 }
 
 const describeSeries = (h: Host, s: Series): Series => {
@@ -573,7 +656,11 @@ export class Frame extends PyObj {
     const n = data[0]?.length ?? (index ? index.length : 0)
     this.index = index ?? Array.from({ length: n }, (_, i) => i)
     this.indexName = indexName
-    this.data = data.map((s, k) => new Series(s.values, this.index, columns[k], s.dtype, indexName))
+    this.data = data.map((s, k) => {
+      const out = new Series(s.values, this.index, columns[k], s.dtype, indexName)
+      out.cats = s.cats
+      return out
+    })
   }
   get nrows() { return this.index.length }
   col(name: string): Series | null {
@@ -699,6 +786,7 @@ export class Frame extends PyObj {
         return i < 0 ? NaN : src.values[i]
       })
       s = new Series(vals, this.index, name, inferDT(vals))
+      s.cats = src.cats
     } else if (v.k === 'list' || v.k === 'tuple' || v.k === 'array' || v.k === 'range') {
       const vals = cellsOf(h, v)
       if (vals.length !== this.nrows) throw h.err('ValueError', `Length of values (${vals.length}) does not match length of index (${this.nrows})`)
@@ -776,7 +864,7 @@ export class Frame extends PyObj {
       case 'shape': return py.tuple([py.int(this.nrows), py.int(this.columns.length)])
       case 'columns': return py.obj(new IndexObj([...this.columns], this.columnsName))
       case 'index': return py.obj(new IndexObj([...this.index], this.indexName, isRangeIndex(this.index)))
-      case 'dtypes': return py.obj(new Series(this.data.map((s) => s.dtype), [...this.columns], null, 'object'))
+      case 'dtypes': return py.obj(new Series(this.data.map((s) => dtName(s)), [...this.columns], null, 'object'))
       case 'size': return py.int(this.nrows * this.columns.length)
       case 'ndim': return py.int(2)
       case 'empty': return py.bool(this.nrows === 0 || !this.columns.length)
@@ -877,7 +965,9 @@ export class Frame extends PyObj {
           return py.obj(this.take(null, this.columns.map((_, k) => k).filter((k) => !names.includes(this.columns[k]))))
         }
         const rowsV = kw.index ?? args[0]
-        const labels = rowsV.k === 'list' ? cellsOf(h, rowsV) : [cellOf(h, rowsV)]
+        // one label, or many: a list, an array, a Series, or another frame's index (df.drop(train.index))
+        const many = rowsV.k === 'list' || rowsV.k === 'tuple' || rowsV.k === 'array' || (rowsV.k === 'obj' && (rowsV.o instanceof IndexObj || rowsV.o instanceof Series))
+        const labels = many ? cellsOf(h, rowsV) : [cellOf(h, rowsV)]
         return py.obj(this.take(this.index.map((_, r) => r).filter((r) => !labels.includes(this.index[r])), null))
       })
       case 'rename': return fn((_a, kw) => {
@@ -942,6 +1032,56 @@ export class Frame extends PyObj {
       })
       case 'iterrows': return fn(() => py.list(this.index.map((l, r) => py.tuple([valueOf(l, inferDT(this.index)), py.obj(new Series(this.data.map((s) => s.values[r]), [...this.columns], l))]))))
       case 'items': return fn(() => py.list(this.data.map((s, k) => py.tuple([py.str(this.columns[k]), py.obj(s)]))))
+      case 'duplicated': case 'drop_duplicates': return fn((_a, kw) => {
+        const subset = kw.subset && kw.subset.k !== 'none' ? (kw.subset.k === 'str' ? [this.colPos(h, kw.subset)] : h.iterate(kw.subset).map((v) => this.colPos(h, v))) : this.columns.map((_, k) => k)
+        const keepLast = kw.keep && kw.keep.k === 'str' && kw.keep.v === 'last'
+        const keyOf = (r: number) => JSON.stringify(subset.map((k) => labelStr(this.data[k].values[r])))
+        const rows = this.index.map((_, r) => r)
+        const seen = new Set<string>()
+        const dup = new Array<boolean>(this.nrows).fill(false)
+        for (const r of keepLast ? [...rows].reverse() : rows) {
+          const k = keyOf(r)
+          if (seen.has(k)) dup[r] = true
+          else seen.add(k)
+        }
+        if (name === 'duplicated') {
+          const out = new Series(dup, [...this.index], null, 'bool', this.indexName)
+          traceFrame(h, 'duplicated', src(), tableOfSeries(out), { rows: rows.filter((r) => dup[r]), cols: subset })
+          return py.obj(out)
+        }
+        const keep = rows.filter((r) => !dup[r])
+        const out = this.take(keep, null)
+        traceFrame(h, 'drop_duplicates', src(), tableOfFrame(out), { rows: rows.filter((r) => dup[r]), cols: subset })
+        return py.obj(out)
+      })
+      case 'nlargest': case 'nsmallest': return fn((args, kw) => {
+        const n = h.toInt(kw.n ?? args[0])
+        const colsV = kw.columns ?? args[1]
+        const by = colsV.k === 'list' || colsV.k === 'tuple' ? h.iterate(colsV).map((v) => this.colPos(h, v)) : [this.colPos(h, colsV)]
+        by.forEach((k) => this.data[k].numeric(h, name))
+        const order = sortOrder(by.map((k) => this.data[k].values), by.map(() => name === 'nsmallest')).slice(0, n)
+        const out = this.take(order, null)
+        traceFrame(h, name, src(), tableOfFrame(out), { rows: order, cols: by })
+        return py.obj(out)
+      })
+      case 'sample': return fn((args, kw) => {
+        const fracV = kw.frac
+        const n = fracV && fracV.k !== 'none' ? Math.round(h.num(fracV) * this.nrows) : h.toInt(kw.n ?? args[0] ?? py.int(1))
+        if (n > this.nrows) throw h.err('ValueError', 'Cannot take a larger sample than population when \'replace=False\'')
+        const rs = kw.random_state
+        if (rs && rs.k !== 'none') h.rng.seed(h.toInt(rs))
+        const order = this.index.map((_, r) => r)
+        for (let i = order.length - 1; i > 0; i--) {
+          const j = Math.floor(h.rng.next() * (i + 1))
+          ;[order[i], order[j]] = [order[j], order[i]]
+        }
+        const pick = order.slice(0, n)
+        noteOnce(h, 'pandas_sample')
+        const out = this.take(pick, null)
+        traceFrame(h, 'sample', src(), tableOfFrame(out), { rows: pick, cols: null })
+        return py.obj(out)
+      })
+      case 'pivot_table': return fn((_a, kw) => pivotTable(h, this, kw, me()))
       case 'value_counts': return undefined
       case 'to_csv': return fn((args) => {
         const lines = [[this.indexName ?? '', ...this.columns].join(','), ...this.index.map((l, r) => [labelStr(l), ...this.data.map((s) => (isMissing(s.values[r]) ? '' : labelStr(s.values[r])))].join(','))]
@@ -1054,7 +1194,12 @@ class GroupBy extends PyObj {
       else map.set(s, { key: k, rows: [r] })
     })
     const entries = [...map.values()]
-    const order = sortOrder(this.by.map((_, j) => entries.map((e) => e.key[j])), this.by.map(() => true))
+    // a categorical key sorts by its categories (young < middle < old), anything else by value
+    const keyCol = (j: number) => {
+      const cats = this.f.col(this.by[j])!.cats
+      return entries.map((e) => (cats ? cats.labels.indexOf(labelStr(e.key[j])) : e.key[j]))
+    }
+    const order = sortOrder(this.by.map((_, j) => keyCol(j)), this.by.map(() => true))
     const sorted = order.map((i) => entries[i])
     const ofRow = this.f.index.map(() => -1)
     sorted.forEach((e, g) => e.rows.forEach((r) => (ofRow[r] = g)))
@@ -1094,6 +1239,28 @@ class GroupBy extends PyObj {
     traceFrame(h, 'groupby', [{ label: this.label, table: tableOfFrame(this.f) }], out instanceof Frame ? tableOfFrame(out) : tableOfSeries(out), { rows: null, cols: this.by.map((b) => this.f.columns.indexOf(b)) }, { keys: keys.map((k) => k.map(labelStr).join(', ')), ofRow })
     return py.obj(out)
   }
+  /** df.groupby('cls')['x'].agg(['mean', 'std', 'count']): one column per statistic */
+  aggList(h: Host, hows: string[]): Value {
+    const { keys, members, ofRow } = this.groups()
+    const index = keys.map((k) => (k.length === 1 ? k[0] : k.map(labelStr).join(', ')))
+    const indexName = this.by.length === 1 ? this.by[0] : this.by.join(', ')
+    const c = this.select![0]
+    const s = this.f.col(c)!
+    const data = hows.map((fn) => {
+      if (!AGGS.includes(fn)) throw h.err('AttributeError', `'SeriesGroupBy' object has no attribute '${fn}'`)
+      const vals = members.map((rows) => {
+        const cells = rows.map((r) => s.values[r])
+        if (fn === 'first') return cells[0]
+        if (fn === 'last') return cells[cells.length - 1]
+        if (fn === 'nunique') return new Set(cells.map(labelStr)).size
+        return cellOf(h, reduceCells(h, cells, s.dtype, fn, 1, `column '${c}'`))
+      })
+      return new Series(vals, index, fn, fn === 'count' || fn === 'nunique' ? 'int64' : ['mean', 'std', 'var', 'median'].includes(fn) ? 'float64' : undefined, indexName)
+    })
+    const out = new Frame(hows, data, index, indexName)
+    traceFrame(h, 'groupby', [{ label: this.label, table: tableOfFrame(this.f) }], tableOfFrame(out), { rows: null, cols: [...this.by, c].map((b) => this.f.columns.indexOf(b)) }, { keys: keys.map((k) => k.map(labelStr).join(', ')), ofRow })
+    return py.obj(out)
+  }
   getItem(idx: Value, h: Host): Value {
     const cols = idx.k === 'list' ? h.iterate(idx).map((v) => h.str(v)) : [h.str(idx)]
     for (const c of cols) this.f.colPos(h, py.str(c))
@@ -1117,7 +1284,8 @@ class GroupBy extends PyObj {
       const a = args[0]
       if (a.k === 'str') return this.agg(h, a.v)
       if (a.k === 'dict') return this.agg(h, Object.fromEntries(a.d.items().map(([k, v]) => [h.str(k), h.str(v)])))
-      throw h.err('NotImplementedError', "agg takes a name ('mean') or a dict ({'col': 'mean'}) in this sandbox")
+      if ((a.k === 'list' || a.k === 'tuple') && this.select && this.select.length === 1) return this.aggList(h, h.iterate(a).map((v) => h.str(v)))
+      throw h.err('NotImplementedError', "agg takes a name ('mean'), a dict ({'col': 'mean'}), or a list (['mean', 'std']) after selecting one column, in this sandbox")
     } }
     if (name === 'value_counts') return { k: 'fn', name, call: (_a, kw) => {
       const c = this.valueCols()[0]
@@ -1242,7 +1410,7 @@ export const tableOfFrame = (f: Frame): TableSpec => {
     columns: [...f.columns],
     index: f.index.map(labelStr),
     cells: f.index.map((_, r) => f.data.map((s, k) => (isMissing(s.values[r]) ? null : cols[k][r]))),
-    dtypes: f.data.map((s) => s.dtype),
+    dtypes: f.data.map((s) => dtName(s)),
     series: false,
     name: null,
     indexName: f.indexName,
@@ -1255,7 +1423,7 @@ export const tableOfSeries = (s: Series): TableSpec => {
     columns: [],
     index: s.index.map(labelStr),
     cells: s.values.map((c, i) => [isMissing(c) ? null : all[i]]),
-    dtypes: [s.dtype],
+    dtypes: [dtName(s)],
     series: true,
     name: s.name === null ? '' : labelStr(s.name),
     indexName: s.indexName,
@@ -1280,8 +1448,8 @@ const build = (h: Host): Record<string, Value> => {
     const rb = b.o
     const rk = [...new Set(ra.values.map(labelStr))].map((x) => ra.values.find((c) => labelStr(c) === x)!)
     const ck = [...new Set(rb.values.map(labelStr))].map((x) => rb.values.find((c) => labelStr(c) === x)!)
-    const rows = sortOrder([rk], [true]).map((i) => rk[i])
-    const cols = sortOrder([ck], [true]).map((i) => ck[i])
+    const rows = ra.cats ? ra.cats.labels.filter((l) => rk.some((c) => labelStr(c) === l)) : sortOrder([rk], [true]).map((i) => rk[i])
+    const cols = rb.cats ? rb.cats.labels.filter((l) => ck.some((c) => labelStr(c) === l)) : sortOrder([ck], [true]).map((i) => ck[i])
     const counts = rows.map((r) => cols.map((c) => ra.values.filter((v, i) => v === r && rb.values[i] === c).length))
     const norm = kw.normalize ? (kw.normalize.k === 'str' ? kw.normalize.v : h.truthy(kw.normalize) ? 'all' : '') : ''
     const total = counts.flat().reduce((x, y) => x + y, 0)
@@ -1356,6 +1524,47 @@ const build = (h: Host): Record<string, Value> => {
       return py.obj(out)
     }),
     crosstab,
+    cut: fn('cut', (args, kw) => {
+      const xv = args[0] ?? kw.x
+      const src = xv.k === 'obj' && xv.o instanceof Series ? xv.o : new Series(cellsOf(h, xv), null)
+      const v = src.numeric(h, 'cut')
+      const bv = kw.bins ?? args[1]
+      if (!bv) throw h.err('TypeError', "cut() missing 1 required positional argument: 'bins'")
+      const right = !kw.right || h.truthy(kw.right)
+      let edges: number[]
+      let intEdges = false
+      if (isNum(bv)) {
+        const n = h.toInt(bv)
+        if (n < 1) throw h.err('ValueError', '`bins` should be a positive integer.')
+        const fin = v.filter(Number.isFinite)
+        let lo = Math.min(...fin)
+        let hi = Math.max(...fin)
+        if (lo === hi) { lo -= 0.001 * Math.abs(lo || 1); hi += 0.001 * Math.abs(hi || 1) }
+        edges = Array.from({ length: n + 1 }, (_, i) => lo + ((hi - lo) * i) / n)
+        const adj = (hi - lo) * 0.001
+        if (right) edges[0] -= adj
+        else edges[n] += adj
+      } else {
+        edges = cellsOf(h, bv).map(Number)
+        intEdges = h.iterate(bv).every((e) => e.k === 'int')
+        if (edges.some((e, i) => i > 0 && e <= edges[i - 1])) throw h.err('ValueError', 'bins must increase monotonically.')
+      }
+      const lv = kw.labels
+      const nb = edges.length - 1
+      const edgeStr = (e: number) => (intEdges ? String(e) : pyFloat(roundFrac(e)))
+      const labels = lv && lv.k !== 'none' && !(lv.k === 'bool' && !lv.v)
+        ? h.iterate(lv).map((x) => h.str(x))
+        : Array.from({ length: nb }, (_, i) => (right ? `(${edgeStr(edges[i])}, ${edgeStr(edges[i + 1])}]` : `[${edgeStr(edges[i])}, ${edgeStr(edges[i + 1])})`))
+      if (labels.length !== nb) throw h.err('ValueError', 'Bin labels must be one fewer than the number of bin edges')
+      const vals: Cell[] = v.map((x) => {
+        const i = edges.findIndex((e, k) => k < nb && (right ? x > e && x <= edges[k + 1] : x >= e && x < edges[k + 1]))
+        return i < 0 ? NaN : labels[i]
+      })
+      const out = new Series(vals, [...src.index], src.name, 'object', src.indexName)
+      out.cats = { labels, kind: lv && lv.k !== 'none' && !(lv.k === 'bool' && !lv.v) ? 'object' : `interval[${intEdges ? 'int64' : 'float64'}, ${right ? 'right' : 'left'}]` }
+      traceFrame(h, 'cut', [{ label: h.nameOf(xv, 'x'), table: tableOfSeries(src) }], tableOfSeries(out))
+      return py.obj(out)
+    }),
     merge: fn('merge', (args, kw) => {
       const l = args[0]
       if (!(l.k === 'obj' && l.o instanceof Frame)) throw h.err('TypeError', 'merge(left, right, on=...)')

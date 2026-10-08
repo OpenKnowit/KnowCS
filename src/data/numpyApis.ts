@@ -1,7 +1,7 @@
 // NumPy API 目录：右侧可视化面板的分类与示例代码。说明文案在 locales 的 numpy_api.api.<id>。
 // match：示例运行后，第一个 api 名在列表里的调用会被选中展示（找不到就展示最后一次调用）。
 
-export type ApiCat = 'create' | 'shape' | 'index' | 'math' | 'reduce' | 'sort' | 'linalg' | 'poly' | 'random'
+export type ApiCat = 'create' | 'shape' | 'index' | 'math' | 'reduce' | 'stats' | 'sort' | 'linalg' | 'ml' | 'poly' | 'random'
 
 export interface ApiEntry {
   id: string
@@ -11,7 +11,7 @@ export interface ApiEntry {
   code: string
 }
 
-export const API_CATS: ApiCat[] = ['create', 'shape', 'index', 'math', 'reduce', 'sort', 'linalg', 'poly', 'random']
+export const API_CATS: ApiCat[] = ['create', 'shape', 'index', 'math', 'reduce', 'stats', 'sort', 'linalg', 'ml', 'poly', 'random']
 
 const H = 'import numpy as np\n'
 
@@ -24,6 +24,7 @@ export const NUMPY_APIS: ApiEntry[] = [
   { id: 'full', cat: 'create', label: 'np.full', match: ['np.full'], code: `${H}np.full((2, 4), 7)` },
   { id: 'eye', cat: 'create', label: 'np.eye', match: ['np.eye'], code: `${H}np.eye(3)   # identity matrix` },
   { id: 'zeros_like', cat: 'create', label: 'np.zeros_like', match: ['np.zeros_like', 'np.ones_like'], code: `${H}a = np.arange(6).reshape(2, 3)\nnp.zeros_like(a)   # same shape and dtype as a` },
+  { id: 'meshgrid', cat: 'create', label: 'np.meshgrid', match: ['np.meshgrid'], code: `${H}xs = np.array([0, 1, 2, 3])\nys = np.array([10, 20, 30])\nX, Y = np.meshgrid(xs, ys)   # every (x, y) pair on a grid\nY` },
 
   // ---- shape & data movement
   { id: 'reshape', cat: 'shape', label: 'reshape', match: ['ndarray.reshape', 'np.reshape'], code: `${H}a = np.arange(12)\na.reshape(3, 4)   # same 12 values, read row by row` },
@@ -39,12 +40,14 @@ export const NUMPY_APIS: ApiEntry[] = [
   { id: 'tile', cat: 'shape', label: 'np.tile', match: ['np.tile'], code: `${H}a = np.array([[1, 2], [3, 4]])\nnp.tile(a, (2, 2))` },
   { id: 'repeat', cat: 'shape', label: 'np.repeat', match: ['np.repeat', 'ndarray.repeat'], code: `${H}a = np.array([[1, 2], [3, 4]])\nnp.repeat(a, 2, axis=1)` },
   { id: 'flip', cat: 'shape', label: 'np.flip', match: ['np.flip'], code: `${H}a = np.arange(6).reshape(2, 3)\nnp.flip(a, axis=1)` },
+  { id: 'pad', cat: 'shape', label: 'np.pad', match: ['np.pad'], code: `${H}img = np.array([[1, 2], [3, 4]])\nnp.pad(img, 1)   # zero padding P = 1 before a 3×3 convolution` },
 
   // ---- indexing & selection
   { id: 'slice', cat: 'index', label: 'a[r0:r1, c0:c1]', match: ['index'], code: `${H}a = np.arange(16).reshape(4, 4)\na[1:3, ::2]` },
   { id: 'fancy', cat: 'index', label: 'a[[i, j]]', match: ['index'], code: `${H}a = np.arange(16).reshape(4, 4)\na[[0, 2, 3], [1, 3, 0]]   # points (0,1) (2,3) (3,0)` },
   { id: 'mask', cat: 'index', label: 'a[a > k]', match: ['index'], code: `${H}a = np.arange(12).reshape(3, 4)\nmask = a % 3 == 0\na[mask]` },
   { id: 'where', cat: 'index', label: 'np.where', match: ['np.where'], code: `${H}z = np.array([[-2, 3], [4, -1]])\nnp.where(z > 0, z, 0)   # ReLU without changing z` },
+  { id: 'isin', cat: 'index', label: 'np.isin', match: ['np.isin'], code: `${H}labels = np.array([3, 7, 1, 7, 2])\nnp.isin(labels, [1, 7])   # is each label one of these?` },
 
   // ---- element-wise math
   { id: 'broadcast', cat: 'math', label: 'a + b (broadcast)', match: ['op:+'], code: `${H}a = np.arange(3)\nb = np.array([[0], [10]])\na + b   # (3,) + (2, 1) → (2, 3)` },
@@ -55,6 +58,9 @@ export const NUMPY_APIS: ApiEntry[] = [
   { id: 'clip', cat: 'math', label: 'np.clip', match: ['np.clip', 'ndarray.clip'], code: `${H}a = np.array([-5, 0, 3, 8, 12])\nnp.clip(a, 0, 10)` },
   { id: 'round', cat: 'math', label: 'np.round', match: ['np.round', 'ndarray.round'], code: `${H}a = np.array([0.5, 1.5, 2.5, 2.567])\nnp.round(a)   # halves go to the even neighbour` },
   { id: 'abs', cat: 'math', label: 'np.abs / np.square', match: ['np.abs', 'np.square'], code: `${H}d = np.array([[1, -3], [-2, 4]])\nnp.abs(d)` },
+  { id: 'diff', cat: 'math', label: 'np.diff', match: ['np.diff'], code: `${H}loss = np.array([0.9, 0.6, 0.45, 0.4, 0.41])\nnp.diff(loss)   # change per epoch: > 0 means the loss went up` },
+  { id: 'isnan', cat: 'math', label: 'np.isnan', match: ['np.isnan'], code: `${H}x = np.array([1.5, np.nan, 3.0, np.nan])\nnp.isnan(x)   # x == np.nan is always False` },
+  { id: 'tanh', cat: 'math', label: 'tanh / log2', match: ['np.tanh', 'np.log2'], code: `${H}z = np.array([-2.0, -0.5, 0.0, 0.5, 2.0])\nnp.tanh(z)   # squashes to (-1, 1)` },
 
   // ---- reductions
   { id: 'sum', cat: 'reduce', label: 'sum(axis=…)', match: ['np.sum', 'ndarray.sum'], code: `${H}a = np.arange(6).reshape(2, 3)\na.sum(axis=0)   # collapse the rows` },
@@ -68,6 +74,13 @@ export const NUMPY_APIS: ApiEntry[] = [
   { id: 'any', cat: 'reduce', label: 'any / all', match: ['np.any', 'ndarray.any', 'np.all', 'ndarray.all'], code: `${H}a = np.array([[0, 0, 1], [0, 0, 0]])\na.any(axis=1)` },
   { id: 'count_nonzero', cat: 'reduce', label: 'count_nonzero', match: ['np.count_nonzero'], code: `${H}pred = np.array([1, 0, 1, 1])\ntrue = np.array([1, 1, 1, 0])\nnp.count_nonzero(pred == true)   # correct predictions` },
 
+
+  // ---- counting and statistics
+  { id: 'bincount', cat: 'stats', label: 'np.bincount', match: ['np.bincount'], code: `${H}labels = np.array([0, 2, 1, 2, 2, 0])\nnp.bincount(labels)   # how many 0s, 1s, 2s` },
+  { id: 'bincount_w', cat: 'stats', label: 'bincount(weights=…)', match: ['np.bincount'], code: `${H}votes = np.array([0, 1, 1, 0])          # labels of the 4 nearest neighbours\ndist = np.array([0.5, 2.0, 2.5, 1.0])\nnp.bincount(votes, weights=1 / dist)   # distance-weighted KNN vote` },
+  { id: 'histogram', cat: 'stats', label: 'np.histogram', match: ['np.histogram'], code: `${H}pixels = np.array([12, 15, 40, 44, 47, 200, 210, 205, 198, 30])\ncounts, edges = np.histogram(pixels, bins=4, range=(0, 256))\ncounts   # Otsu's method starts from this` },
+  { id: 'median', cat: 'stats', label: 'median / percentile', match: ['np.median', 'np.percentile'], code: `${H}x = np.array([[1, 9, 3], [4, 2, 100]])\nnp.median(x, axis=1)   # robust to the outlier 100` },
+  { id: 'average', cat: 'stats', label: 'np.average(weights=…)', match: ['np.average'], code: `${H}marks = np.array([70, 85, 60])\nweights = np.array([0.5, 0.3, 0.2])\nnp.average(marks, weights=weights)` },
   // ---- sorting
   { id: 'sort', cat: 'sort', label: 'np.sort', match: ['np.sort'], code: `${H}a = np.array([[3, 1, 2], [9, 7, 8]])\nnp.sort(a, axis=1)` },
   { id: 'argsort', cat: 'sort', label: 'np.argsort', match: ['np.argsort', 'ndarray.argsort'], code: `${H}d = np.array([4.2, 0.5, 3.1, 1.0])\nnp.argsort(d)[:2]   # indices of the 2 nearest (KNN)` },
@@ -82,6 +95,15 @@ export const NUMPY_APIS: ApiEntry[] = [
   { id: 'inv', cat: 'linalg', label: 'np.linalg.inv', match: ['np.linalg.inv'], code: `${H}A = np.array([[4.0, 7.0], [2.0, 6.0]])\nAinv = np.linalg.inv(A)\nA @ Ainv   # ≈ identity` },
   { id: 'det', cat: 'linalg', label: 'np.linalg.det', match: ['np.linalg.det'], code: `${H}A = np.array([[3, 1], [2, 4]])\nnp.linalg.det(A)` },
 
+
+  // ---- course recipes
+  { id: 'kmeans_assign', cat: 'ml', label: 'K-Means: nearest centroid', match: ['np.argmin'], code: `${H}X = np.array([[1, 1], [2, 1], [8, 9], [9, 8]])\nC = np.array([[1, 2], [9, 9]])\nd = np.sqrt(((X[:, None, :] - C[None, :, :]) ** 2).sum(axis=2))   # (4, 2)\nnp.argmin(d, axis=1)   # cluster of each point` },
+  { id: 'knn_vote', cat: 'ml', label: 'KNN: majority vote', match: ['np.bincount'], code: `${H}X = np.array([[1, 1], [2, 2], [8, 8], [9, 9], [2, 1]])\ny = np.array([0, 0, 1, 1, 0])\nq = np.array([3, 3])\nd = np.linalg.norm(X - q, axis=1)\nnearest = np.argsort(d)[:3]\nnp.bincount(y[nearest]).argmax()` },
+  { id: 'softmax', cat: 'ml', label: 'softmax (stable)', match: ['op:/'], code: `${H}z = np.array([[2.0, 1.0, 0.1], [1.0, 3.0, 0.0]])\ne = np.exp(z - z.max(axis=1, keepdims=True))   # subtract the max: no overflow\ne / e.sum(axis=1, keepdims=True)   # each row sums to 1` },
+  { id: 'zscore', cat: 'ml', label: 'standardise (z-score)', match: ['op:/'], code: `${H}X = np.array([[150, 50], [160, 60], [170, 80], [180, 90]])\n(X - X.mean(axis=0)) / X.std(axis=0)   # each column: mean 0, std 1` },
+  { id: 'onehot', cat: 'ml', label: 'one-hot: np.eye(k)[y]', match: ['index'], code: `${H}y = np.array([2, 0, 1, 2])\nnp.eye(3)[y]   # row y of the identity = one-hot label` },
+  { id: 'confusion', cat: 'ml', label: 'confusion matrix', match: ['np.bincount'], code: `${H}true = np.array([0, 1, 2, 2, 1, 0, 2])\npred = np.array([0, 2, 2, 2, 1, 0, 1])\nk = 3\nnp.bincount(true * k + pred, minlength=k * k).reshape(k, k)   # rows = true, columns = predicted` },
+  { id: 'perceptron', cat: 'ml', label: 'perceptron predict', match: ['np.where'], code: `${H}X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])\nw = np.array([1.0, 1.0])\nb = -1.5\nnp.where(X @ w + b >= 0, 1, 0)   # AND gate` },
   // ---- numpy.polynomial (the note's section 3)
   { id: 'poly_note', cat: 'poly', label: 'the note’s example', match: ['op:*'], code: `from numpy.polynomial import Polynomial\n\np = Polynomial([1, 2, 3])   # coefficients low → high: 1 + 2x + 3x²\nq = Polynomial([0, 1])      # q(x) = x (the note leaves q undefined)\np(2)          # evaluate → 17.0\np.roots()     # roots (may be complex)\np.deriv()     # derivative → 2 + 6x\np.integ()     # integral → x + x² + x³\np * q         # multiply with plain operators` },
   { id: 'poly_eval', cat: 'poly', label: 'Polynomial(…)(x)', match: ['Polynomial.__call__'], code: `${H}from numpy.polynomial import Polynomial\np = Polynomial([1, -3, 2])   # 1 - 3x + 2x²\np(np.array([-1, 0, 0.5, 1, 2]))` },

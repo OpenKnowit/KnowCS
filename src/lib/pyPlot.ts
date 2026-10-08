@@ -5,7 +5,7 @@
  * imshow stretching the data range to the colormap unless vmin / vmax are given, y pointing down on images.
  */
 import { NDArray } from './ndarray'
-import { PyObj, formatSpec, py, toArray } from './minipy'
+import { PyObj, formatSpec, isNum, py, toArray } from './minipy'
 import type { Host, Kw, PyLib, Value } from './minipy'
 import type { Artist, AxesSpec, Display, FigureSpec, Marker } from './pyEvents'
 
@@ -569,6 +569,200 @@ const setTicks = (field: 'xticks' | 'yticks'): AxMethod => (ax, args, kw, h) => 
   return py.NONE
 }
 
+// ---------------------------------------------------------------- contourf, pie, errorbar, boxplot, annotate, step
+
+/** matplotlib's MaxNLocator(nbins) with its default steps, as contour uses it to pick levels */
+export const maxNLocator = (vmin: number, vmax: number, nbins: number): number[] => {
+  if (vmin === vmax) return [vmin]
+  const steps = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
+  const scale = 10 ** Math.floor(Math.log10((vmax - vmin) / nbins))
+  const raw = (vmax - vmin) / nbins
+  const step = (steps.find((s) => s * scale >= raw - 1e-12 * scale) ?? 10) * scale
+  const lo = Math.floor(vmin / step + 1e-10) * step
+  const out: number[] = []
+  for (let k = 0; ; k++) {
+    const v = +(lo + k * step).toPrecision(12)
+    out.push(v)
+    if (v >= vmax - 1e-10 * step) break
+  }
+  return out
+}
+
+/** contourf's levels: n bands picked by MaxNLocator(n + 1) (default 7), or the given list */
+export const contourLevels = (z: number[], levels: number | number[] | null): number[] => {
+  if (Array.isArray(levels)) return levels
+  const f = z.filter(Number.isFinite)
+  return maxNLocator(Math.min(...f), Math.max(...f), (levels ?? 7) + 1)
+}
+
+/** boxplot statistics as matplotlib computes them (NumPy's linear percentiles, whis = 1.5) */
+export const boxStats = (data: number[], pos: number) => {
+  const s = data.filter(Number.isFinite).sort((a, b) => a - b)
+  const q = (p: number) => {
+    const i = (s.length - 1) * p
+    const lo = Math.floor(i)
+    return lo + 1 < s.length ? s[lo] + (s[lo + 1] - s[lo]) * (i - lo) : s[lo]
+  }
+  const q1 = q(0.25)
+  const q3 = q(0.75)
+  const iqr = q3 - q1
+  const inside = s.filter((v) => v >= q1 - 1.5 * iqr && v <= q3 + 1.5 * iqr)
+  return { pos, q1, med: q(0.5), q3, lo: inside.length ? inside[0] : q1, hi: inside.length ? inside[inside.length - 1] : q3, fliers: s.filter((v) => v < q1 - 1.5 * iqr || v > q3 + 1.5 * iqr) }
+}
+
+/** printf-style autopct ('%1.1f%%') applied to a percentage */
+const printfPct = (fmt: string, v: number) =>
+  fmt.replace(/%(-?\d*)(?:\.(\d+))?([dfi])|%%/g, (m, _w, prec, conv) => (m === '%%' ? '%' : conv === 'f' ? v.toFixed(prec ? Number(prec) : 6) : String(Math.round(v))))
+
+/** a 2-D grid argument (meshgrid output) or 1-D axis → its distinct coordinates along one direction */
+const gridAxis = (h: Host, v: Value, along: 0 | 1, what: string): number[] => {
+  const a = toArray(v, 'float64')
+  if (a.ndim === 1) return a.values()
+  if (a.ndim !== 2) throw h.err('TypeError', `${what} must be 1-D or 2-D`)
+  const [r, c] = a.shape
+  const vals = a.values()
+  return along === 1 ? Array.from({ length: c }, (_, j) => vals[j]) : Array.from({ length: r }, (_, i) => vals[i * c])
+}
+
+const contourf: AxMethod = (ax, args, kw, h) => {
+  const zArg = args.length >= 3 ? args[2] : args[0]
+  if (!zArg) throw h.err('TypeError', 'contourf() takes contourf(Z) or contourf(X, Y, Z)')
+  const Z = toArray(zArg, 'float64')
+  if (Z.ndim !== 2) throw h.err('TypeError', `Input z must be 2D, not ${Z.ndim}D`)
+  const [ny, nx] = Z.shape
+  const xs = args.length >= 3 ? gridAxis(h, args[0], 1, 'X') : Array.from({ length: nx }, (_, j) => j)
+  const ys = args.length >= 3 ? gridAxis(h, args[1], 0, 'Y') : Array.from({ length: ny }, (_, i) => i)
+  if (xs.length !== nx || ys.length !== ny) throw h.err('TypeError', `Length of x (${xs.length}) must match number of columns in z (${nx}) and length of y (${ys.length}) must match number of rows (${ny})`)
+  const lv = kw.levels ?? (args.length === 4 ? args[3] : args.length === 2 ? args[1] : undefined)
+  const levels = contourLevels(Z.values(), !lv || lv.k === 'none' ? null : isNum(lv) ? h.toInt(lv) : nums(h, lv, 'levels'))
+  if (levels.length < 2) throw h.err('ValueError', 'Filled contours require at least 2 levels.')
+  const cmap = optStr(h, kw.cmap) ?? 'viridis'
+  if (!isCmap(cmap)) throw h.err('ValueError', `'${cmap}' is not a valid value for cmap`)
+  const lo = levels[0]
+  const hi = levels[levels.length - 1]
+  const bandColor = levels.slice(1).map((l, i) => cmapColor(cmap, hi === lo ? 0 : ((levels[i] + l) / 2 - lo) / (hi - lo)))
+  const colors = Z.values().map((v) => {
+    if (!Number.isFinite(v) || v < lo || v > hi) return 'transparent'
+    let b = levels.findIndex((l, i) => i > 0 && v <= l) - 1
+    if (b < 0) b = 0
+    return bandColor[b]
+  })
+  addArtist(h, ax, { kind: 'mesh', nx, ny, extent: [xs[0], xs[nx - 1], ys[0], ys[ny - 1]], colors, values: Z.values(), alpha: optNum(h, kw.alpha) ?? 1 })
+  ax.state = { cmap, vmin: lo, vmax: hi }
+  return py.obj(new Handle('QuadContourSet', '<matplotlib.contour.QuadContourSet object>'))
+}
+
+const pie: AxMethod = (ax, args, kw, h) => {
+  const x = nums(h, args[0] ?? kw.x, 'pie x')
+  if (x.some((v) => v < 0)) throw h.err('ValueError', "Wedge sizes 'x' must be non negative values")
+  const total = x.reduce((s, v) => s + v, 0)
+  if (total === 0) throw h.err('ValueError', 'Wedge sizes must not all be zero')
+  const fracs = x.map((v) => v / total)
+  const lv = kw.labels ?? args[2]
+  const cv = kw.colors
+  const ap = kw.autopct
+  const pct = !ap || ap.k === 'none' ? null : fracs.map((f) => (ap.k === 'str' ? printfPct(ap.v, f * 100) : h.str(h.call(ap, [py.float(f * 100)]))))
+  ax.spec.axisOff = true
+  ax.spec.equal = true
+  ax.spec.xlim = [-1.25, 1.25]
+  ax.spec.ylim = [-1.25, 1.25]
+  const ev = kw.explode
+  addArtist(h, ax, {
+    kind: 'pie', fracs, colors: cv && cv.k !== 'none' ? h.iterate(cv).map((c) => toColor(h, c)) : fracs.map(() => ax.nextColor()),
+    labels: lv && lv.k !== 'none' ? h.iterate(lv).map((v) => h.str(v)) : null, pct, start: optNum(h, kw.startangle) ?? 0,
+    explode: ev && ev.k !== 'none' ? nums(h, ev, 'explode') : fracs.map(() => 0),
+  })
+  return py.tuple([py.list(fracs.map(() => py.obj(new Handle('Wedge', '<matplotlib.patches.Wedge object>')))), py.list([])])
+}
+
+/** yerr / xerr: a number, one value per point, or [below, above] */
+const errSpec = (h: Host, v: Value | undefined, n: number, what: string): [number[], number[]] | null => {
+  if (!v || v.k === 'none') return null
+  const a = toArray(v, 'float64')
+  const vals = a.values()
+  if (vals.some((e) => e < 0)) throw h.err('ValueError', `'${what}' must not contain negative values`)
+  if (a.ndim === 0 || vals.length === 1) return [Array(n).fill(vals[0]), Array(n).fill(vals[0])]
+  if (a.ndim === 1 && vals.length === n) return [vals, vals]
+  if (a.ndim === 2 && a.shape[0] === 2 && a.shape[1] === n) return [vals.slice(0, n), vals.slice(n)]
+  throw h.err('ValueError', `'${what}' (shape: (${a.shape.join(', ')})) must be a scalar or a 1D or (2, n) array-like whose shape matches 'y' (shape: (${n},))`)
+}
+
+const errorbar: AxMethod = (ax, args, kw, h) => {
+  const x = nums(h, args[0], 'errorbar x')
+  const y = nums(h, args[1], 'errorbar y')
+  if (x.length !== y.length) throw h.err('ValueError', `'x' and 'y' must have the same size`)
+  const fmtV = kw.fmt ?? (args[2]?.k === 'str' ? args[2] : undefined)
+  const f = fmtV && fmtV.k === 'str' && fmtV.v ? parseFmt(h, fmtV.v) : { color: null, marker: null as Marker, dash: null, line: true }
+  const none = fmtV && fmtV.k === 'str' && fmtV.v === 'none'
+  const color = kw.color ?? kw.c ? toColor(h, (kw.color ?? kw.c)!) : f.color ?? ax.nextColor()
+  if (!none) {
+    ax.spec.artists.push({ kind: 'line', x, y, color, width: f.line ? optNum(h, kw.linewidth ?? kw.lw) ?? 1.5 : 0, dash: f.dash, marker: (optStr(h, kw.marker) as Marker) ?? f.marker, label: labelOf(h, kw), alpha: optNum(h, kw.alpha) ?? 1 })
+  }
+  addArtist(h, ax, { kind: 'errbar', x, y, xerr: errSpec(h, kw.xerr, x.length, 'xerr'), yerr: errSpec(h, kw.yerr ?? (args[2]?.k !== 'str' ? args[2] : undefined), y.length, 'yerr'), color: kw.ecolor ? toColor(h, kw.ecolor) : color, cap: optNum(h, kw.capsize) ?? 0 })
+  return py.obj(new Handle('ErrorbarContainer', '<ErrorbarContainer object of 3 artists>'))
+}
+
+const boxplot: AxMethod = (ax, args, kw, h) => {
+  const d = args[0] ?? kw.x
+  if (!d) throw h.err('TypeError', "boxplot() missing 1 required positional argument: 'x'")
+  // one list of numbers → one box; a list of lists, or a 2-D array's columns → one box each
+  const groups: number[][] = (() => {
+    if ((d.k === 'list' || d.k === 'tuple') && d.items.some((x) => x.k === 'list' || x.k === 'tuple' || x.k === 'array')) return d.items.map((x) => nums(h, x, 'boxplot data'))
+    const a = toArray(d, 'float64')
+    if (a.ndim === 2) return Array.from({ length: a.shape[1] }, (_, c) => Array.from({ length: a.shape[0] }, (_, r) => a.values()[r * a.shape[1] + c]))
+    return [a.values()]
+  })()
+  const pv = kw.positions
+  const pos = pv && pv.k !== 'none' ? nums(h, pv, 'positions') : groups.map((_, i) => i + 1)
+  const vert = kw.vert ? h.truthy(kw.vert) : !(kw.orientation && kw.orientation.k === 'str' && kw.orientation.v === 'horizontal')
+  const span = Math.max(...pos) - Math.min(...pos)
+  const width = optNum(h, kw.widths) ?? Math.min(0.5, Math.max(0.15, 0.15 * span))
+  ax.spec.artists.push({ kind: 'box', boxes: groups.map((g, i) => boxStats(g, pos[i])), width, vert })
+  const lv = kw.tick_labels ?? kw.labels
+  const ticks = { at: pos, labels: lv && lv.k !== 'none' ? h.iterate(lv).map((v) => h.str(v)) : pos.map((p) => String(p)) }
+  if (vert) ax.spec.xticks = ticks
+  else ax.spec.yticks = ticks
+  emitFig(h, ax.fig, ax, ax.spec.artists.length - 1)
+  return py.NONE
+}
+
+const annotate: AxMethod = (ax, args, kw, h) => {
+  const text = h.str(args[0] ?? kw.text ?? py.str(''))
+  const xy = nums(h, args[1] ?? kw.xy, 'xy')
+  const xt = kw.xytext ?? args[2]
+  const at = xt && xt.k !== 'none' ? nums(h, xt, 'xytext') : xy
+  const ap = kw.arrowprops
+  if (ap && ap.k === 'dict') {
+    const c = ap.d.get(py.str('color')) ?? ap.d.get(py.str('facecolor'))
+    ax.spec.artists.push({ kind: 'arrow', x1: at[0], y1: at[1], x2: xy[0], y2: xy[1], color: c ? toColor(h, c) : '#000000' })
+  }
+  const ha = optStr(h, kw.ha ?? kw.horizontalalignment)
+  const va = optStr(h, kw.va ?? kw.verticalalignment)
+  addArtist(h, ax, {
+    kind: 'text', x: at[0], y: at[1], text, color: kw.color ? toColor(h, kw.color) : '#000000', size: optNum(h, kw.fontsize ?? kw.size) ?? 10,
+    ha: ha === 'center' || ha === 'right' ? ha : 'left', va: va === 'center' || va === 'top' ? va : 'bottom',
+  })
+  return py.obj(new Handle('Annotation', `Annotation(${xy[0]}, ${xy[1]}, '${text}')`))
+}
+
+const step: AxMethod = (ax, args, kw, h) => {
+  const x = nums(h, args[0], 'step x')
+  const y = nums(h, args[1], 'step y')
+  const where = optStr(h, kw.where) ?? 'pre'
+  const px: number[] = []
+  const py_: number[] = []
+  x.forEach((xi, i) => {
+    if (i === 0) { px.push(xi); py_.push(y[0]); return }
+    if (where === 'pre') { px.push(x[i - 1], xi); py_.push(y[i], y[i]) }
+    else if (where === 'post') { px.push(xi, xi); py_.push(y[i - 1], y[i]) }
+    else { const m = (x[i - 1] + xi) / 2; px.push(m, m, xi); py_.push(y[i - 1], y[i], y[i]) }
+  })
+  if (where === 'post' && x.length) { /* the last value only marks its point */ }
+  const fmtV = args[2]?.k === 'str' ? parseFmt(h, args[2].v) : null
+  addArtist(h, ax, { kind: 'line', x: px, y: py_, color: kw.color ? toColor(h, kw.color) : fmtV?.color ?? ax.nextColor(), width: optNum(h, kw.linewidth ?? kw.lw) ?? 1.5, dash: fmtV?.dash ?? null, marker: null, label: labelOf(h, kw), alpha: optNum(h, kw.alpha) ?? 1 })
+  return py.list([py.obj(new Handle('Line2D', '<matplotlib.lines.Line2D object>'))])
+}
+
 const colorbar = (h: Host, _mappable: Value | undefined, ax: Axes | null): Value => {
   const target = ax ?? gca(h)
   const st = target.state
@@ -579,7 +773,7 @@ const colorbar = (h: Host, _mappable: Value | undefined, ax: Axes | null): Value
 }
 
 const AXES_METHODS: Record<string, AxMethod> = {
-  plot, scatter, bar: bar(false), barh: bar(true), hist, imshow,
+  plot, scatter, bar: bar(false), barh: bar(true), hist, imshow, contourf, pie, errorbar, boxplot, annotate, step,
   axhline: refLine('hline'), axvline: refLine('vline'),
   set_title: setText('title'), set_xlabel: setText('xlabel'), set_ylabel: setText('ylabel'),
   set_xlim: setLim('xlim'), set_ylim: setLim('ylim'), set_xticks: setTicks('xticks'), set_yticks: setTicks('yticks'),
@@ -662,6 +856,7 @@ const pyplot = (h: Host): Value => {
     plot: 'plot', scatter: 'scatter', bar: 'bar', barh: 'barh', hist: 'hist', imshow: 'imshow', axhline: 'axhline', axvline: 'axvline',
     title: 'set_title', xlabel: 'set_xlabel', ylabel: 'set_ylabel', xlim: 'xlim', ylim: 'ylim', xticks: 'xticks', yticks: 'yticks',
     text: 'text', fill_between: 'fill_between', legend: 'legend', grid: 'grid', axis: 'axis',
+    contourf: 'contourf', pie: 'pie', errorbar: 'errorbar', boxplot: 'boxplot', annotate: 'annotate', step: 'step',
   }
   for (const [name, method] of Object.entries(twins)) {
     attrs[name] = fn(name, (args, kw) => {

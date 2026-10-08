@@ -7,6 +7,14 @@
 
 ## 进展时间线
 
+### 2026-10-08 — 实验台可视化重做；新增常用 API 与示例（按用户要求）
+- **feat（可视化）**：步骤改为可横向滚动的「胶片条」：按类型配图标与颜色（调用 / 图 / 表格 / 形状流 / 计算图 / 训练曲线），显示位置、上一步 / 下一步按钮与方向键。模型形状流在表格上方画出网络结构图（特征图为立体方块，高度随尺寸、厚度随通道数；向量为细条；激活与 Dropout 作为箭头上的标签），与表格悬停联动，表格加参数量条。自动求导计算图改为自上而下、按真实字号绘制，按入边重排减少交叉，节点按角色着色（参数 / 数据 / 运算 / 损失），backward() 后梯度沿边回流的动画（减少动态效果时静止）。训练曲线加渐变填充、终点标记与逐轮悬停读数；表格斑马纹、索引列固定，loc / iloc 选中的交叉格加深；NumPy 网格空闲格按数值着色（正蓝负红）。
+- **feat（NumPy）**：新增 bincount（含 weights）、histogram、median、percentile、quantile、average（含 weights）、meshgrid、diff、pad、isin、isnan / isinf / isfinite、allclose、array_equal、tanh、log2、log10，归约支持 keepdims。新增调用类型「分组」：函数自己给出每个结果格来自哪组输入格（bincount 的计数、直方图的区间、pad 的边框、F.conv2d 的窗口），悬停可查。目录新增「计数与统计」「课程常用写法」两组（K-Means 最近质心、KNN 投票、稳定 softmax、z-score、one-hot、bincount 混淆矩阵、感知机预测）共 25 个示例。
+- **feat（matplotlib）**：新增 contourf（MaxNLocator 选等值线、按区间中点取色）、pie、errorbar、boxplot、annotate（箭头）、step；新增 KNN 决策区域、类别占比饼图、交叉验证误差棒、特征箱线图、标注早停点、阶跃与 sigmoid 对比 6 个示例。
+- **feat（pandas）**：新增 isin、nlargest / nsmallest、quantile、duplicated / drop_duplicates、sample、pivot_table（含 columns）、pd.cut（类别型，含区间标签与顺序，crosstab / groupby 按类别顺序）、groupby 选列后 agg 列表、apply(axis=1) 中用 row.列名，drop 接受另一个表的 index；新增 8 个示例（离散化后做朴素贝叶斯计数、去重、按列表筛选、取前 n、高斯朴素贝叶斯参数、逐行 BMI、K-Means 质心、训练 / 测试划分）。
+- **feat（PyTorch / Keras）**：F.conv2d 作为步骤记录并可悬停查看窗口；新增 torch.cat 与 stack、Sobel 边缘卷积、softmax → argmax → 准确率、padding='same' 与 strides、to_categorical 5 个示例。
+- **test**：NumPy 2.2.6、pandas 2.3.3、matplotlib 3.10.8 的真实输出作为黄金值（ndextra、等值线层级与颜色、箱线图统计、pie 百分比、pandas cut / 去重 / pivot_table 等逐字一致）；新示例在真实库中运行通过并与沙盒输出逐字比对（标量回显与 sample 抽样行除外，前者为既有约定，后者有提示）。PyTorch / Keras 未在本机安装，新示例只用已有黄金测试覆盖的接口，数值手算核对。测试 627 → 663。浏览器：六个库 1440 / 390 宽无控制台错误、无横向滚动，对比度与可访问名称检查通过。
+
 ### 2026-10-08 — 合并库实验台；实验场改为六个库的沙盒；实验网格回到课程首页（按用户要求）
 - **merge**：合并 `worktree-playgrounds`（matplotlib / PyTorch / Keras / TensorFlow / pandas 实验台、Matplotlib 笔记、解释器扩展，测试 627 个）。`docs/design.md` 的改动未合入（用户要求忽略该文件）。
 - **change**：`/playground/` 现在是库沙盒页：顶部六张库卡片（NumPy、matplotlib、pandas、PyTorch、Keras、TensorFlow，按讲次排序，tablist + 方向键），下面是整宽两栏的实验台（左：目录、编辑器、输出；右：步骤与图），附「阅读对应笔记」链接。所选库写在网址 hash（`/playground/#keras`），全屏退出后恢复；入口在加载页面代码的同时预取该库。笔记页旁的实验台保留。

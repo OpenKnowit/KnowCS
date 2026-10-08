@@ -249,6 +249,34 @@ const trace = (h: Host, api: string, kind: 'elementwise' | 'matmul' | 'reduce' |
 
 const label = (h: Host, v: Value, fallback: string) => h.nameOf(v, fallback)
 
+/** F.conv2d on one image: each output cell comes from a K×K window of the input (every input channel) and the kernel */
+const traceConv = (h: Host, x: TT, w: TT, out: TT, [sh, sw]: number[], [ph, pw]: number[], xl: string, wl: string) => {
+  if (!h.tracing || x.shape[0] !== 1 || out.size > SNAP_MAX || x.size > SNAP_MAX || w.size > SNAP_MAX) return
+  const [, cin, H, W] = x.shape
+  const [cout, , kh, kw] = w.shape
+  const [, , ho, wo] = out.shape
+  const groups: [number, number][][] = []
+  for (let co = 0; co < cout; co++) {
+    for (let i = 0; i < ho; i++) {
+      for (let j = 0; j < wo; j++) {
+        const g: [number, number][] = []
+        for (let ci = 0; ci < cin; ci++) {
+          for (let a = 0; a < kh; a++) {
+            for (let c = 0; c < kw; c++) {
+              const r = i * sh - ph + a
+              const q = j * sw - pw + c
+              if (r >= 0 && r < H && q >= 0 && q < W) g.push([0, (ci * H + r) * W + q])
+              g.push([1, ((co * cin + ci) * kh + a) * kw + c])
+            }
+          }
+        }
+        groups.push(g)
+      }
+    }
+  }
+  h.traceCall('F.conv2d', 'group', [{ label: xl, snap: snapOf(x) }, { label: wl, snap: snapOf(w) }], snapOf(out), formatTensor(out), null, groups)
+}
+
 const toDims = (h: Host, args: Value[]): number[] => {
   const src = args.length === 1 && (args[0].k === 'tuple' || args[0].k === 'list' || (args[0].k === 'obj' && args[0].o instanceof SizeObj)) ? h.iterate(args[0]) : args
   return src.map((v) => h.toInt(v, 'an integer size'))
@@ -1384,7 +1412,13 @@ const build = (h: Host): Record<string, Value> => {
     }),
     conv2d: fnv('conv2d', (args, kw) => {
       const b = kw.bias ?? args[2]
-      return wrap(C.conv2d(E, T(args[0], 'conv2d'), T(kw.weight ?? args[1], 'conv2d weight'), b && b.k !== 'none' ? asTT(b) : null, { stride: pair(h, kw.stride ?? args[3], 1), padding: pair(h, kw.padding ?? args[4], 0) }))
+      const x = T(args[0], 'conv2d')
+      const w = T(kw.weight ?? args[1], 'conv2d weight')
+      const stride = pair(h, kw.stride ?? args[3], 1)
+      const padding = pair(h, kw.padding ?? args[4], 0)
+      const out = C.conv2d(E, x, w, b && b.k !== 'none' ? asTT(b) : null, { stride, padding })
+      traceConv(h, x, w, out, stride, padding, label(h, args[0], 'input'), label(h, kw.weight ?? args[1], 'weight'))
+      return wrap(out)
     }),
     linear: fnv('linear', (args, kw) => {
       const b = kw.bias ?? args[2]

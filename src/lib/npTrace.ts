@@ -136,6 +136,8 @@ function linalg(c: CallTrace): Explain {
 }
 
 export function explainCall(c: CallTrace): Explain {
+  // the function worked out its own provenance (bincount, histogram, pad …)
+  if (c.groups) return { sources: c.groups, axis: null }
   switch (c.kind) {
     case 'move':
       return { sources: (c.source ?? []).map((cell) => [cell]), axis: c.axis }

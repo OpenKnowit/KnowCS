@@ -234,6 +234,65 @@ plt.xlabel('K')
 plt.ylabel('validation accuracy')
 plt.title(f'Choosing K: best K = {ks[int(np.argmax(acc))]}')`,
   },
+  {
+    id: 'knn_regions', cat: 'ml', label: "contourf: KNN regions", focus: ['figure'], 
+    code: `${H}X = np.array([[1, 2], [2, 3], [3, 1], [2, 1], [6, 5], [7, 7], [8, 6], [6, 7], [4, 4], [5, 3]])
+y = np.array([0, 0, 0, 0, 1, 1, 1, 1, 0, 1])
+xx, yy = np.meshgrid(np.linspace(0, 9, 46), np.linspace(0, 8, 41))
+grid = np.stack([xx.ravel(), yy.ravel()], axis=1)            # (1886, 2): every point of the plane
+d = np.sqrt(((grid[:, None, :] - X[None, :, :]) ** 2).sum(axis=2))   # (1886, 10) distances
+nearest = np.argsort(d, axis=1)[:, :3]                       # k = 3
+Z = (y[nearest].mean(axis=1) > 0.5).astype(int).reshape(xx.shape)
+plt.contourf(xx, yy, Z, alpha=0.35, cmap='coolwarm')
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap='coolwarm', edgecolors='k')
+plt.title('KNN (k = 3) decision regions')`,
+  },
+  {
+    id: 'errorbar', cat: 'ml', label: "plt.errorbar (CV)", 
+    code: `${H}ks = np.array([1, 3, 5, 7, 9])
+acc = np.array([[0.80, 0.78, 0.83, 0.79, 0.81],      # 5-fold accuracy for each k
+                [0.86, 0.84, 0.88, 0.85, 0.87],
+                [0.88, 0.87, 0.90, 0.86, 0.89],
+                [0.87, 0.85, 0.88, 0.84, 0.88],
+                [0.84, 0.83, 0.86, 0.82, 0.85]])
+plt.errorbar(ks, acc.mean(axis=1), yerr=acc.std(axis=1), fmt='o-', capsize=4)
+plt.xlabel('k')
+plt.ylabel('cross-validation accuracy')
+plt.title('Pick k: mean ± std over the folds')`,
+  },
+  {
+    id: 'boxplot', cat: 'ml', label: "plt.boxplot", 
+    code: `${H}height = np.array([152, 158, 160, 163, 165, 168, 170, 172, 175, 181, 199])
+weight = np.array([45, 50, 52, 55, 58, 60, 62, 65, 70, 74, 80])
+plt.boxplot([height, weight], tick_labels=['height (cm)', 'weight (kg)'])
+plt.title('Different scales (and an outlier): standardise before KNN')`,
+  },
+  {
+    id: 'pie', cat: 'ml', label: "plt.pie", 
+    code: `${H}labels = ['cat', 'dog', 'bird']
+counts = np.array([620, 300, 80])
+plt.pie(counts, labels=labels, autopct='%1.1f%%', startangle=90)
+plt.title('Class balance: is accuracy a fair score here?')`,
+  },
+  {
+    id: 'annotate', cat: 'basics', label: "plt.annotate", 
+    code: `${H}val = np.array([0.92, 0.70, 0.55, 0.47, 0.44, 0.43, 0.45, 0.49, 0.54, 0.60])
+epochs = np.arange(1, 11)
+best = np.argmin(val)
+plt.plot(epochs, val, 'o-', label='val_loss')
+plt.annotate('stop here', xy=(epochs[best], val[best]), xytext=(epochs[best] + 1.5, val[best] + 0.25),
+             arrowprops=dict(arrowstyle='->'))
+plt.xlabel('epoch')
+plt.legend()`,
+  },
+  {
+    id: 'step', cat: 'basics', label: "plt.step(where='post')", 
+    code: `${H}z = np.linspace(-3, 3, 13)
+plt.step(z, (z >= 0).astype(int), where='post', label='step (perceptron)')
+plt.plot(z, 1 / (1 + np.exp(-z)), label='sigmoid')
+plt.legend()
+plt.title('Hard threshold vs smooth activation')`,
+  },
 ]
 
 export const MATPLOTLIB_PLAYGROUND: PlayConfig = {

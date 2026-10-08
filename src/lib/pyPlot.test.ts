@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { runPython } from './minipy'
-import { MATPLOTLIB, cmapColor, histogram } from './pyPlot'
+import { MATPLOTLIB, boxStats, cmapColor, contourLevels, histogram, maxNLocator } from './pyPlot'
 import type { PyEvent } from './pyEvents'
 
 const run = (code: string) => runPython(`import numpy as np\nimport matplotlib.pyplot as plt\n${code}`, { libs: [MATPLOTLIB], maxSize: 65536 })
@@ -72,5 +72,48 @@ describe('pyplot', () => {
     expect(run("plt.plot([1, 2], 'q')").error?.message).toMatch("'q' is not a valid format string")
     expect(run('plt.plot([1, 2, 3], [1, 2])').error?.message).toBe('x and y must have same first dimension, but have shapes (3,) and (2,)')
     expect(run('plt.imshow(np.arange(4))').error?.message).toBe('Invalid shape (4,) for image data')
+  })
+})
+
+// Checked on 2026-10-08 against matplotlib 3.10.8.
+describe('contourf, boxplot, pie, errorbar', () => {
+  it('contour levels follow MaxNLocator(levels + 1) with matplotlib\'s default steps', () => {
+    expect(contourLevels([0, 1], null)).toEqual([0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1.05])
+    expect(contourLevels([0, 6], null)).toEqual([0, 0.8, 1.6, 2.4, 3.2, 4, 4.8, 5.6, 6.4])
+    expect(contourLevels([-10, 10], null)).toEqual([-10, -7.5, -5, -2.5, 0, 2.5, 5, 7.5, 10])
+    expect(contourLevels([0, 6], 3)).toEqual([0, 1.5, 3, 4.5, 6])
+    expect(maxNLocator(0, 1, 8)[1]).toBe(0.15)
+  })
+  it('contourf colours each band by its midpoint and fills the grid without margins', () => {
+    const r = run('xx, yy = np.meshgrid(np.linspace(0, 4, 5), np.linspace(0, 2, 3))\nplt.contourf(xx, yy, (xx > 2).astype(int))')
+    expect(r.error).toBeNull()
+    const ax = figs(r)[0].axes[0]
+    const mesh = ax.artists[0]
+    expect(mesh.kind).toBe('mesh')
+    if (mesh.kind !== 'mesh') return
+    expect(mesh.extent).toEqual([0, 4, 0, 2])
+    // first band (0–0.15) is viridis(0.075 / 1.05) ≈ (0.283, 0.105, 0.427)
+    expect(mesh.colors[0]).toBe(cmapColor('viridis', 0.075 / 1.05))
+  })
+  it('boxplot statistics: quartiles, whiskers within 1.5 IQR, fliers', () => {
+    expect(boxStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 30], 1)).toEqual({ pos: 1, q1: 3.25, med: 5.5, q3: 7.75, lo: 1, hi: 9, fliers: [30] })
+    expect(boxStats([2, 3, 3, 4], 2)).toMatchObject({ q1: 2.75, med: 3, q3: 3.25, lo: 2, hi: 4, fliers: [] })
+    const r = run('plt.boxplot([[1, 2, 3], [2, 3, 4]])')
+    const box = figs(r)[0].axes[0].artists[0]
+    expect(box.kind === 'box' && box.width).toBe(0.15)
+  })
+  it('pie: fractions, autopct text and fixed limits', () => {
+    const r = run("plt.pie([1, 2, 3], labels=['a', 'b', 'c'], autopct='%1.1f%%')")
+    expect(r.error).toBeNull()
+    const ax = figs(r)[0].axes[0]
+    const p = ax.artists[0]
+    expect(p.kind === 'pie' && p.pct).toEqual(['16.7%', '33.3%', '50.0%'])
+    expect(ax.xlim).toEqual([-1.25, 1.25])
+  })
+  it('errorbar takes a scalar, one value per point, or [below, above]', () => {
+    const r = run('plt.errorbar([1, 2], [3, 4], yerr=[0.5, 1], capsize=3)')
+    expect(r.error).toBeNull()
+    const e = figs(r)[0].axes[0].artists[1]
+    expect(e.kind === 'errbar' && e.yerr).toEqual([[0.5, 1], [0.5, 1]])
   })
 })
