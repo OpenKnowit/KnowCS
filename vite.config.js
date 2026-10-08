@@ -152,9 +152,34 @@ function offlineManifest() {
   }
 }
 
+/**
+ * The core strings are only requested once the entry script has run. A tiny inline script picks the language the
+ * way i18n.ts does (?lang=, then the saved choice, then the browser) and preloads that file right away.
+ */
+function preloadStrings() {
+  return {
+    name: "knowcs:preload-strings",
+    apply: "build",
+    transformIndexHtml: {
+      order: "post",
+      handler(html, ctx) {
+        if (!ctx.bundle) return html
+        const files = {}
+        for (const f of Object.values(ctx.bundle)) {
+          const m = f.type === "chunk" && f.facadeModuleId && /locales\/(en|zh|zh-HK)\.json\?core$/.exec(f.facadeModuleId)
+          if (m) files[m[1]] = `/${f.fileName}`
+        }
+        if (Object.keys(files).length !== 3) return html
+        const script = `<script>(function(){try{var f=${JSON.stringify(files)};var t=new URLSearchParams(location.search).get("lang")||localStorage.getItem("knowcs-lang")||(navigator.languages&&navigator.languages[0])||navigator.language||"";t=t.toLowerCase().replace(/_/g,"-");var l=t.indexOf("zh")!==0?"en":/(^|-)(hant|hk|tw|mo)(-|$)/.test(t)?"zh-HK":"zh";var a=document.createElement("link");a.rel="modulepreload";a.href=f[l];document.head.appendChild(a)}catch(e){}})()</script>`
+        return html.replace("</head>", `    ${script}\n  </head>`)
+      },
+    },
+  }
+}
+
 export default defineConfig({
   root: ROOT,
-  plugins: [katexFontSlim(), markdownHtml(), rawHk(), localeSplit(), offlineManifest(), react()],
+  plugins: [katexFontSlim(), markdownHtml(), rawHk(), localeSplit(), offlineManifest(), preloadStrings(), react()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
