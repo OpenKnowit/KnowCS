@@ -4,7 +4,7 @@ import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "no
 import { dirname, resolve } from "node:path"
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
-import { katexFontSlim, markdownHtml, rawHk } from "./scripts/vite-plugins.mjs"
+import { katexFontSlim, localeSplit, markdownHtml, rawHk } from "./scripts/vite-plugins.mjs"
 import { PAGES } from "./src/lib/sitemap.ts"
 
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"))
@@ -136,7 +136,7 @@ writeFileSync(resolve(ROOT, "public/robots.txt"), `User-agent: *\nAllow: /\nSite
 
 export default defineConfig({
   root: ROOT,
-  plugins: [katexFontSlim(), markdownHtml(), rawHk(), react()],
+  plugins: [katexFontSlim(), markdownHtml(), rawHk(), localeSplit(), react()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },

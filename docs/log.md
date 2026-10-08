@@ -7,6 +7,9 @@
 
 ## 进展时间线
 
+### 2026-10-08 — 讲解视频文案按集拆分
+- **perf**：每个页面都加载的文案 chunk 162KB → 101KB（英文；中文 157KB → 98KB）。讲解视频的字幕、标签、小结、考点角改为按「集 × 语言」懒加载（每份约 6KB），与该集代码一起加载；主文案只保留各集 kicker / title / sub。实现为构建插件 `localeSplit`（`*.json?core`、`*.json?ep=<集>`、`virtual:episode-strings`），源文件仍是一份 JSON；切换语言时会顺带加载页面上已打开的各集文案，正在播放的视频不中断。新增 3 个测试保证「主文案 + 各集文案 = 完整文件」。
+
 ### 2026-10-08 — 第 20 个练习页：PyTorch（L9），CNN 页加 PyTorch 代码
 - **feat**：新增 `/pytorch/`：张量 shape / dtype / device（含 0 维、from_numpy 保持 float64）；`@` 与 `*`（讲义 ones(4,4) 例子，自测）；NumPy 桥接共享内存（add_ / out= 同步，x = x + 1 与 clone 断开）；z = w·x + b + BCE 计算图逐步反向、backward 两次梯度翻倍、zero_grad / step / no_grad；训练循环五行排序并解释每种错误。`src/lib/torchSim.ts` + 13 个测试。概念自测新增 pt1–pt4（第 9 讲）。讲解视频 autograd 现链接到 PyTorch 页与 CNN 形状页。
 - **feat**：CNN 形状页代码卡片增加 PyTorch 切换：按第 9 讲写法生成 nn.Module（in_channels、展平后 `nn.Linear(64 * 14 * 14, 128)`、通道在前的形状注释、CrossEntropyLoss 不加 softmax），Keras 'same' 映射为 padding = k // 2。`src/lib/torchCode.ts` + 5 个测试；Keras summary 与 Final 2024 评分标准数值一致。

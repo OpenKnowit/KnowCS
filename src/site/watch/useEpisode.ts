@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { normalizeLang } from '../../lib/lang'
+import { fetchEpisodeStrings, hasEpisodeStrings, usedEpisodes } from './episodeStrings'
 import type { Episode } from './Player'
 
 /** One chunk per episode, so a page downloads only the explainers it shows. */
@@ -26,19 +29,22 @@ export const episodeIds = (): string[] => Object.keys(LOADERS)
 
 const cache = new Map<string, Episode>()
 
-/** The episode's code once its chunk has loaded (null until then). */
+/** The episode's code once its chunk and its strings in the current language have loaded (null until then). */
 export function useEpisode(id: string): Episode | null {
-  const [loaded, setLoaded] = useState<{ id: string; ep: Episode } | null>(null)
+  const { i18n } = useTranslation()
+  const lang = normalizeLang(i18n.resolvedLanguage ?? i18n.language)
+  const [, rerender] = useState(0)
+  const ready = cache.has(id) && hasEpisodeStrings(id, lang)
   useEffect(() => {
-    if (cache.has(id)) return
+    usedEpisodes.add(id)
+    if (ready) return
     let live = true
-    void LOADERS[id]?.().then((e) => {
-      cache.set(id, e)
-      if (live) setLoaded({ id, ep: e })
-    })
+    const code = cache.has(id) ? Promise.resolve() : LOADERS[id]?.().then((e) => void cache.set(id, e))
+    const strings = hasEpisodeStrings(id, lang) ? Promise.resolve() : fetchEpisodeStrings(id, lang).then((s) => s && i18n.addResourceBundle(lang, 'translation', s, true, true))
+    void Promise.all([code, strings]).then(() => live && rerender((n) => n + 1))
     return () => {
       live = false
     }
-  }, [id])
-  return cache.get(id) ?? (loaded?.id === id ? loaded.ep : null)
+  }, [id, lang, ready, i18n])
+  return ready ? cache.get(id)! : null
 }
