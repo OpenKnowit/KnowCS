@@ -124,26 +124,3 @@ export interface PerceptronStep {
   errors: number // 本轮累计错分数
 }
 
-// PyTorch cheatsheet（L9）
-export interface CheatItem {
-  api: string
-  code: string
-  descKey: string
-}
-export interface CheatGroup {
-  titleKey: string
-  items: CheatItem[]
-}
-
-// App 导航
-export type TabId =
-  | 'numpy'
-  | 'backprop'
-  | 'kernel'
-  | 'bayesBasics'
-  | 'naiveBayes'
-  | 'knn'
-  | 'alphabeta'
-  | 'kmeans'
-  | 'perceptron'
-  | 'pytorch'

@@ -565,58 +565,6 @@
       }
     }
   },
-  "perceptron": {
-    "canvas_title": "Decision Boundary (sign of w·x + b)",
-    "reset": "Reset",
-    "play": "Play",
-    "pause": "Pause",
-    "step": "Step",
-    "weights": "Weights & Bias",
-    "misclassified": "Misclassified",
-    "step_count": "Step",
-    "separated": "✓ Linearly separated — 0 errors",
-    "current_step": "Current Sample",
-    "step_correct": "Sample #{{idx}} correctly classified (target {{target}}) — no weight update.",
-    "step_wrong": "Sample #{{idx}} misclassified (predicted {{pred}}, target {{target}}) — update w += η·y·x, b += η·y.",
-    "lr": "Learning rate",
-    "advice": "The perceptron is error-driven: it only updates when it gets a sample wrong, nudging the boundary by <1>\\delta = y - \\hat{y}</1>. It is guaranteed to converge only if the data is <3>linearly separable</3>. Note the bias trick: merge <5>[w, b]</5> into one weight vector with a constant 1 input."
-  },
-  "pytorch": {
-    "autograd_title": "Autograd: Computational Graph",
-    "autograd_subtitle": "Drag inputs — forward computes values, backward fills gradients via the chain rule:",
-    "autograd_hint": "Each node stores data (forward) and .grad = ∂L/∂node (backward). ReLU passes gradient only when its input is positive — set a·b+c < 0 and watch all grads drop to 0.",
-    "forward": "Forward",
-    "backward": "Backward",
-    "cheatsheet_title": "PyTorch Cheatsheet (Lab9)",
-    "train_loop_title": "Standard Training Loop",
-    "train_loop_hint": "The sacred trio: zero_grad → backward → step. Forgetting zero_grad() makes gradients accumulate across batches.",
-    "cnn_title": "CNN Definition (Lab8/9)",
-    "cnn_hint": "Conv → Pool → Conv → Pool → Flatten → Dense. See the 'Kernel Lab' CNN tab for the layer-by-layer sizes.",
-    "group": {
-      "tensor": "Tensors",
-      "autograd": "Autograd",
-      "nn": "Layers (nn)",
-      "train": "Training"
-    },
-    "api": {
-      "tensor": "Create a tensor; requires_grad enables autograd tracking.",
-      "create": "Quick constructors for ranges and zero/one-filled tensors.",
-      "reshape": "Reshape; -1 infers the dimension. Used to flatten before Dense.",
-      "device": "Move model/tensor to GPU or CPU.",
-      "requires_grad": "Track operations on this tensor to compute gradients.",
-      "backward": "Run backprop; populates .grad on every leaf tensor.",
-      "grad": "The accumulated gradient ∂loss/∂tensor.",
-      "conv": "2D convolution layer (in_channels, out_channels, kernel).",
-      "pool": "Max pooling — downsamples spatial dimensions.",
-      "linear": "Fully-connected layer (in_features, out_features).",
-      "relu": "ReLU activation; Dropout randomly zeros units for regularization.",
-      "loss": "Softmax + cross-entropy in one; pass raw logits.",
-      "optim": "Stochastic gradient descent over model parameters.",
-      "zero_grad": "Clear gradients BEFORE backward — or they accumulate.",
-      "step": "Apply one gradient-descent update to the parameters."
-    },
-    "advice": "The single most common bug: forgetting <1>optimizer.zero_grad()</1>. PyTorch *accumulates* gradients into .grad, so without clearing them each batch's gradient piles onto the last. <3>Order is fixed</3>: zero_grad → backward → step, every iteration."
-  },
   "numpy_api": {
     "title": "NumPy, live",
     "subtitle": "{{n}} APIs you can run. Hover any result cell to see exactly which input cells made it.",

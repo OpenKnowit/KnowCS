@@ -7,6 +7,9 @@
 
 ## 进展时间线
 
+### 2026-10-08 — 清理未上架的旧模块
+- **chore**：删除已被实验页取代、无人引用的 `PerceptronModule.tsx`、`PyTorchModule.tsx`，及其专用的 PyTorch 速查表常量、`CheatGroup` 类型、`pytorch.*` / `perceptron.*` 文案与对应文案包；删除旧单页应用遗留的 `TabId` 类型。
+
 ### 2026-10-08 — 代码生成与 PyTorch 页对照真实库验证
 - **test**：在临时环境安装 Keras 3.12（torch 后端）与 PyTorch 2.14.1 后对照：CNN 形状页 10 种层栈 × 分类 / 回归共 20 例，Keras 层名、输出形状、参数量全部一致；生成的 nn.Module 都能运行，通道在前的形状注释与实际输出一致、参数总数一致。PyTorch 页的 dtype / Size、`@` 与 `*`、NumPy 共享内存、两次 backward 后 w.grad −1 → −2、no_grad 均与真实 PyTorch 一致。
 
