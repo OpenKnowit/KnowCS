@@ -52,6 +52,35 @@ const remarkHtmlAsText = () => (tree) => {
 }
 
 /** hast：图片 / 链接 / 表格后处理，收集需要 import 的图片路径 */
+/** Pixel size of a WebP / PNG / JPEG file, read from its header (null if unknown), so <img> can reserve its space. */
+export function imageSize(file) {
+  let b
+  try {
+    b = readFileSync(file)
+  } catch {
+    return null
+  }
+  if (b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP') {
+    const kind = b.toString('ascii', 12, 16)
+    if (kind === 'VP8 ') return { width: b.readUInt16LE(26) & 0x3fff, height: b.readUInt16LE(28) & 0x3fff }
+    if (kind === 'VP8L') {
+      const v = b.readUInt32LE(21)
+      return { width: (v & 0x3fff) + 1, height: ((v >> 14) & 0x3fff) + 1 }
+    }
+    if (kind === 'VP8X') return { width: b.readUIntLE(24, 3) + 1, height: b.readUIntLE(27, 3) + 1 }
+  }
+  if (b.readUInt32BE(0) === 0x89504e47) return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) }
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    for (let i = 2; i < b.length - 9; ) {
+      const marker = b[i + 1]
+      const len = b.readUInt16BE(i + 2)
+      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) return { width: b.readUInt16BE(i + 7), height: b.readUInt16BE(i + 5) }
+      i += 2 + len
+    }
+  }
+  return null
+}
+
 const rehypeNoteTweaks = (imports, baseDir) => () => (tree) => {
   const walk = (node) => {
     if (!node.children) return
@@ -64,6 +93,9 @@ const rehypeNoteTweaks = (imports, baseDir) => () => (tree) => {
         if (src && !/^(?:[a-z]+:|\/)/i.test(src)) {
           props.src = IMG_TOKEN(imports.length)
           imports.push(resolve(baseDir, src))
+          // reserve the image's space so the text below does not jump when it loads
+          const size = imageSize(resolve(baseDir, src))
+          if (size) Object.assign(props, size)
         }
         props.loading = 'lazy'
         props.decoding = 'async'
