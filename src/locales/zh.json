@@ -565,58 +565,6 @@
       }
     }
   },
-  "perceptron": {
-    "canvas_title": "决策边界（sign(w·x + b)）",
-    "reset": "重置",
-    "play": "播放",
-    "pause": "暂停",
-    "step": "单步",
-    "weights": "权重与偏置",
-    "misclassified": "错分数",
-    "step_count": "步",
-    "separated": "✓ 已线性分开——0 错分",
-    "current_step": "当前样本",
-    "step_correct": "样本 #{{idx}} 分类正确（目标 {{target}}）——权重不更新。",
-    "step_wrong": "样本 #{{idx}} 分错（预测 {{pred}}，目标 {{target}}）——更新 w += η·y·x，b += η·y。",
-    "lr": "学习率",
-    "advice": "感知机是错误驱动的：只在分错时才更新，按 <1>\\delta = y - \\hat{y}</1> 推动边界。仅当数据 <3>线性可分</3> 时才保证收敛。注意偏置技巧：把 <5>[w, b]</5> 合并成一个权重向量、并给输入补一个常数 1。"
-  },
-  "pytorch": {
-    "autograd_title": "自动求导：计算图",
-    "autograd_subtitle": "拖动输入——前向算出数值，反向按链式法则填充梯度：",
-    "autograd_hint": "每个节点存 data（前向）与 .grad = ∂L/∂节点（反向）。ReLU 只在输入为正时传梯度——把 a·b+c 调到 < 0，看所有梯度归零。",
-    "forward": "前向",
-    "backward": "反向",
-    "cheatsheet_title": "PyTorch 速查表 (Lab9)",
-    "train_loop_title": "标准训练循环",
-    "train_loop_hint": "神圣三连：zero_grad → backward → step。忘了 zero_grad() 梯度会跨 batch 累加。",
-    "cnn_title": "CNN 定义 (Lab8/9)",
-    "cnn_hint": "Conv → Pool → Conv → Pool → Flatten → Dense。逐层尺寸见「卷积核实验室」的 CNN 标签页。",
-    "group": {
-      "tensor": "张量",
-      "autograd": "自动求导",
-      "nn": "网络层 (nn)",
-      "train": "训练"
-    },
-    "api": {
-      "tensor": "创建张量；requires_grad 开启自动求导追踪。",
-      "create": "区间、全 0 / 全 1 张量的快捷构造。",
-      "reshape": "重塑形状；-1 自动推断维度，常用于 Dense 前展平。",
-      "device": "把模型/张量搬到 GPU 或 CPU。",
-      "requires_grad": "追踪该张量上的运算以计算梯度。",
-      "backward": "执行反向传播；为每个叶子张量填充 .grad。",
-      "grad": "累积的梯度 ∂loss/∂张量。",
-      "conv": "2D 卷积层（输入通道, 输出通道, 核大小）。",
-      "pool": "最大池化——对空间维度下采样。",
-      "linear": "全连接层（输入特征数, 输出特征数）。",
-      "relu": "ReLU 激活；Dropout 随机置零做正则化。",
-      "loss": "Softmax + 交叉熵二合一；传入原始 logits。",
-      "optim": "对模型参数做随机梯度下降。",
-      "zero_grad": "在 backward 前清零梯度——否则会累加。",
-      "step": "对参数执行一次梯度下降更新。"
-    },
-    "advice": "最常见的 bug：忘记 <1>optimizer.zero_grad()</1>。PyTorch 会把梯度*累加*到 .grad，不清零的话每个 batch 的梯度会叠在上一个上。<3>顺序固定</3>：每轮都是 zero_grad → backward → step。"
-  },
   "numpy_api": {
     "title": "NumPy 实时演示",
     "subtitle": "{{n}} 个可运行的 API。把鼠标放到结果的任意格子上，就能看到它由哪些输入格子算出。",
