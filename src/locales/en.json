@@ -3936,21 +3936,30 @@
       "prev": "Previous step",
       "next": "Next step",
       "real": {
-        "title": "Run in real Python",
-        "engine": "Pyodide · CPython running in your browser",
-        "what": "The step-by-step views come from KnowCS's own interpreter. This runs the same code with the real NumPy, pandas and matplotlib (scikit-learn, SciPy and OpenCV work too), so you can check the output.",
         "size": "The first run downloads Python and the libraries your code imports: about 7 MB for Python alone, 10 MB with NumPy, 20 MB with pandas and matplotlib, 37 MB with scikit-learn. Your browser keeps them for next time.",
-        "run": "Run in real Python",
-        "rerun": "Run again",
         "stop": "Stop",
         "phase_runtime": "Downloading Python…",
         "phase_packages": "Downloading {{names}}…",
         "phase_running": "Running…",
         "took": "{{ms}} ms",
-        "stale": "The code has changed since this run.",
         "failed": "Couldn't download Python from {{host}}. Check your connection, then try again.",
         "stopped": "Stopped.",
-        "figure": "Figure {{n}}, drawn by real matplotlib"
+        "figure": "Figure {{n}}, drawn by real matplotlib",
+        "output": "Output · real Python",
+        "timeout": "Stopped after {{s}} s. Is there an endless loop?",
+        "see_figures": "No printed output; the figures are below."
+      },
+      "engine": {
+        "label": "Engine",
+        "mini": "Step-through",
+        "mini_sub": "minipy · draws every step",
+        "real": "Real Python",
+        "real_cold": "Pyodide · loads when chosen",
+        "real_loading": "Pyodide · loading…",
+        "real_ready": "Pyodide · ready",
+        "real_failed": "Pyodide · couldn't download",
+        "unavailable": "No browser build of {{name}}",
+        "steps_off": "Step-by-step views need the Step-through engine. Real Python runs the code as is and shows its output and figures."
       }
     },
     "view": {

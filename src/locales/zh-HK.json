@@ -3936,21 +3936,30 @@
       "prev": "上一步",
       "next": "下一步",
       "real": {
-        "title": "用真實 Python 執行",
-        "engine": "Pyodide · 在瀏覽器裏執行的 CPython",
-        "what": "逐步可視化來自 KnowCS 自帶的解釋器。這裏用真正的 NumPy、pandas 和 matplotlib（也支持 scikit-learn、SciPy、OpenCV）執行同一段程式碼，方便核對輸出。",
         "size": "首次執行要下載 Python 和程式碼導入的庫：只有 Python 約 7 MB，加 NumPy 約 10 MB，加 pandas 和 matplotlib 約 20 MB，加 scikit-learn 約 37 MB。瀏覽器會緩存，下次直接使用。",
-        "run": "用真實 Python 執行",
-        "rerun": "再執行一次",
         "stop": "停止",
         "phase_runtime": "正在下載 Python…",
         "phase_packages": "正在下載 {{names}}…",
         "phase_running": "執行中…",
         "took": "{{ms}} 毫秒",
-        "stale": "這次執行之後程式碼已經改過。",
         "failed": "無法從 {{host}} 下載 Python。請檢查網絡後重試。",
         "stopped": "已停止。",
-        "figure": "圖 {{n}}，由真實 matplotlib 繪製"
+        "figure": "圖 {{n}}，由真實 matplotlib 繪製",
+        "output": "輸出 · 真實 Python",
+        "timeout": "執行超過 {{s}} 秒，已停止。是不是有死循環？",
+        "see_figures": "沒有打印輸出；圖在下方。"
+      },
+      "engine": {
+        "label": "執行引擎",
+        "mini": "逐步演示",
+        "mini_sub": "minipy · 畫出每一步",
+        "real": "真實 Python",
+        "real_cold": "Pyodide · 選中後加載",
+        "real_loading": "Pyodide · 加載中…",
+        "real_ready": "Pyodide · 已就緒",
+        "real_failed": "Pyodide · 下載失敗",
+        "unavailable": "{{name}} 沒有瀏覽器版本",
+        "steps_off": "逐步可視化需要「逐步演示」引擎。真實 Python 按原樣執行程式碼，顯示輸出和圖。"
       }
     },
     "view": {
