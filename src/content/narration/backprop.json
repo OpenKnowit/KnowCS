@@ -6,11 +6,11 @@
     "setup": [
       {"text": "This is lecture 6’s 2-2-1 network for XOR: six weights, three biases, all starting at the lecture’s values.", "say": "This is lecture 6’s two-two-one network for XOR: six weights, three biases, all starting at the lecture’s values."},
       "The learning rate is 0.5 and every neuron uses the sigmoid.",
-      {"text": "First sample: input (0, 0), target T = 0.", "say": "First sample: input zero, zero, and target T equals 0."}
+      {"text": "First sample: input (0, 0), target T = 0.", "say": "First sample: input zero zero, and target T equals 0."}
     ],
     "forward": [
       {"text": "Signals flow left to right. Each neuron adds up weight times input, adds θ, and applies the sigmoid.", "say": "Signals flow left to right. Each neuron adds up weight times input, adds theta, and applies the sigmoid."},
-      {"text": "With input (0, 0) both hidden sums are zero, and σ(0) is exactly 0.5.", "say": "With input zero, zero, both hidden sums are zero, and the sigmoid of zero is exactly 0.5."},
+      {"text": "With input (0, 0) both hidden sums are zero, and σ(0) is exactly 0.5.", "say": "With input zero zero, both hidden sums are zero, and the sigmoid of zero is exactly 0.5."},
       {"text": "The output neuron gets 0.86 × 0.5 − 1.38 × 0.5 = −0.26, so O = σ(−0.26) ≈ 0.4354.", "say": "The output neuron gets 0.86 times 0.5, minus 1.38 times 0.5, which is minus 0.26. So O is the sigmoid of minus 0.26, about 0.4354."},
       {"text": "We wanted 0. The error is E = ½(T − O)².", "say": "We wanted 0. The error E is one half of T minus O, squared."}
     ],
@@ -34,7 +34,7 @@
     ],
     "update_hidden": [
       {"text": "Same rule for the first layer: w ← w − η δj x.", "say": "Same rule for the first layer: w becomes w minus eta times delta j times x."},
-      {"text": "But this input is (0, 0). Every x is zero, so w₁ to w₄ do not change at all.", "say": "But this input is zero, zero. Every x is zero, so w 1 to w 4 do not change at all."},
+      {"text": "But this input is (0, 0). Every x is zero, so w₁ to w₄ do not change at all.", "say": "But this input is zero zero. Every x is zero, so w 1 to w 4 do not change at all."},
       {"text": "Only the biases move. Over the next three samples the other weights get their turn.", "say": "Only the biases move. Over the next three samples the other weights get their turn. Before we go on: if both hidden neurons started with identical weights, would they ever become different?"}
     ],
     "train": [

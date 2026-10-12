@@ -15,9 +15,9 @@
     ],
     "proof": [
       {"text": "Write down what each point demands from w₁, w₂ and b.", "say": "Write down what each point demands from w 1, w 2 and b."},
-      {"text": "(0,0) must give 0, so b ≤ 0. The two blue points need w₁ + b > 0 and w₂ + b > 0.", "say": "Zero, zero must give 0, so b is at most zero. The two blue points need w 1 plus b greater than zero, and w 2 plus b greater than zero."},
+      {"text": "(0,0) must give 0, so b ≤ 0. The two blue points need w₁ + b > 0 and w₂ + b > 0.", "say": "Zero zero must give 0, so b is at most zero. The two blue points need w 1 plus b greater than zero, and w 2 plus b greater than zero."},
       {"text": "Add those two: w₁ + w₂ + 2b > 0, so w₁ + w₂ + b > −b, which is at least 0.", "say": "Add those two: w 1 plus w 2 plus 2 b is greater than zero. So w 1 plus w 2 plus b is greater than minus b, which is at least zero."},
-      {"text": "But (1,1) must give 0, so w₁ + w₂ + b ≤ 0. Contradiction. This is the full-mark answer to 2025 Spring Q7(c).", "say": "But one, one must give 0, so w 1 plus w 2 plus b is at most zero. Contradiction. This is the full-mark answer to 2025 Spring, question 7 c."}
+      {"text": "But (1,1) must give 0, so w₁ + w₂ + b ≤ 0. Contradiction. This is the full-mark answer to 2025 Spring Q7(c).", "say": "But one one must give 0, so w 1 plus w 2 plus b is at most zero. Contradiction. This is the full-mark answer to 2025 Spring, question 7 c."}
     ],
     "idea": [
       "If no line fits the points, change the points. That is exactly what a hidden layer does.",
@@ -32,7 +32,7 @@
     "squash": [
       {"text": "Now the activation. σ squeezes every number into the range 0 to 1.", "say": "Now the activation. The sigmoid squeezes every number into the range 0 to 1."},
       "Applied to both coordinates, it squashes the stretched plane into the unit square. The grid lines bend.",
-      {"text": "The red point (1,1) is pushed to the top-right corner, (0,0) to the bottom-left edge, and both blue points end up near the bottom right.", "say": "The red point one, one is pushed to the top-right corner, zero, zero to the bottom-left edge, and both blue points end up near the bottom right."}
+      {"text": "The red point (1,1) is pushed to the top-right corner, (0,0) to the bottom-left edge, and both blue points end up near the bottom right.", "say": "The red point one one is pushed to the top-right corner, zero zero to the bottom-left edge, and both blue points end up near the bottom right."}
     ],
     "separate": [
       "Here are the four points in hidden space, with their new coordinates.",
@@ -47,7 +47,7 @@
     ],
     "exam": [
       {"text": "Exams often want the weights by hand with step activations. One standard answer: h₁ = OR, h₂ = NAND, output = AND.", "say": "Exams often want the weights by hand with step activations. One standard answer: h 1 is OR, h 2 is NAND, and the output is AND."},
-      {"text": "Check the table row by row: only (0,1) and (1,0) make both hidden units fire.", "say": "Check the table row by row: only zero, one and one, zero make both hidden units fire."},
+      {"text": "Check the table row by row: only (0,1) and (1,0) make both hidden units fire.", "say": "Check the table row by row: only zero one and one zero make both hidden units fire."},
       {"text": "And a classic trap: stack linear layers and you get W₂W₁x — still one linear function, still one line. The non-linearity is the whole point.", "say": "And a classic trap: stack linear layers and you get W 2 times W 1 times x — still one linear function, still one line. The non-linearity is the whole point."}
     ],
     "recap": [
