@@ -35,3 +35,6 @@ work/
 # Manim render output
 manim/media/
 manim/__pycache__/
+
+# Local secrets (Gemini API key) — never committed
+.env
