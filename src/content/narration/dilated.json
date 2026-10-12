@@ -16,7 +16,7 @@
     ],
     "shift": [
       "The given code does not slide the window. It loops over the nine kernel cells instead.",
-      {"text": "Kernel cell (i, j) reads rows i·d + r·S and columns j·d + c·S: one strided slice of the padded input.", "say": "Kernel cell i, j reads rows i d plus r S, and columns j d plus c S: one strided slice of the padded input."},
+      {"text": "Kernel cell (i, j) reads rows i·d + r·S and columns j·d + c·S: one strided slice of the padded input.", "say": "Kernel cell i j reads rows i times d plus r times S, and columns j times d plus c times S: one strided slice of the padded input."},
       {"text": "Multiply that slice by kernel[i][j] and add it to the output. The test kernel has ones on its diagonal, so three slices add up.", "say": "Multiply that slice by the kernel value at i, j, and add it to the output. The test kernel has ones on its diagonal, so three slices add up."},
       "After the third slice the output is exactly the matrix printed in the paper."
     ],

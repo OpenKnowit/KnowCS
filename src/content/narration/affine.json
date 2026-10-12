@@ -10,7 +10,7 @@
     ],
     "translate": [
       "Translation adds tx to every x and ty to every y.",
-      {"text": "In M that is the identity on the left and (tx, ty) in the last column — the column the 1 multiplies.", "say": "In M that is the identity on the left and t x, t y in the last column — the column the 1 multiplies."},
+      {"text": "In M that is the identity on the left and (tx, ty) in the last column — the column the 1 multiplies.", "say": "In M that is the identity on the left, and t x and t y in the last column — the column the 1 multiplies."},
       {"text": "cv2.warpAffine fills the pixels nothing moved into with 0.", "say": "OpenCV's warpAffine fills the pixels nothing moved into with zero."}
     ],
     "reflect": [
@@ -79,7 +79,7 @@
       "平行线和中点在所有仿射变换下都保留；距离和角度只有部分变换保留。所以「可能保持距离和角度」为真。"
     ],
     "global": [
-      "翻转是点运算吗？每个输出像素都从别的位置复制值，所以不是——这就是 Final 2022 那道判断题为假的原因。",
+      {"text": "翻转是点运算吗？每个输出像素都从别的位置复制值，所以不是——这就是 Final 2022 那道判断题为假的原因。", "say": "翻转是点运算吗？每个输出像素都从别的位置复制值，所以不是。这就是二零二二年期末那道判断题为假的原因。"},
       {"text": "那至少是局部运算吗？3 × 3 卷积核只能够到一格之外，而翻转后的边缘像素需要另一侧的值。", "say": "那至少是局部运算吗？3 乘 3 的卷积核只能够到一格之外，而翻转后的边缘像素需要另一侧的值。"},
       {"text": "64 × 64 图像上最远 63 格，所以没有 3 × 3 卷积核能实现翻转。另外，因为没有像素值改变，直方图保持不变。", "say": "64 乘 64 的图像上最远 63 格，所以没有 3 乘 3 的卷积核能实现翻转。另外，因为没有像素值改变，直方图保持不变。"}
     ],

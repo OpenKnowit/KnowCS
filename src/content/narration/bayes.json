@@ -26,7 +26,7 @@
     "formula": [
       "Bayes’ rule is exactly this counting, written with probabilities.",
       "The numerator is the infected positives. The denominator is every positive — the total probability of a positive result.",
-      "Plug in the lecture’s numbers: 0.00099 over 0.05094, about 0.0194. Write the denominator out in full — that is where exam marks are."
+      {"text": "Plug in the lecture’s numbers: 0.00099 over 0.05094, about 0.0194. Write the denominator out in full — that is where exam marks are.", "say": "Plug in the lecture’s numbers: zero point zero zero zero nine nine, over zero point zero five zero nine four, about zero point zero one nine four. Write the denominator out in full — that is where exam marks are."}
     ],
     "again": [
       "What if you take the test a second time, and it is positive again?",
@@ -70,7 +70,7 @@
     "test": [
       "现在给所有人做检测。",
       "10 个感染者：10 的 99% 是 9.9，约 10 个阳性。",
-      "9,990 个健康人：其中 5% 会误报阳性，约 500 人。",
+      {"text": "9,990 个健康人：其中 5% 会误报阳性，约 500 人。", "say": "九千九百九十个健康人：其中百分之五会误报阳性，约五百人。"},
       "检测本身很好。问题在于健康人太多了，犯错的机会也多得多。"
     ],
     "gather": [
@@ -81,7 +81,7 @@
     "formula": [
       "贝叶斯公式就是把刚才的计数用概率写出来。",
       "分子是感染且阳性的人；分母是所有阳性的人 —— 也就是阳性结果的全概率。",
-      "代入课件数字：0.00099 除以 0.05094，约 0.0194。把分母完整写出来 —— 分数就在这里。"
+      {"text": "代入课件数字：0.00099 除以 0.05094，约 0.0194。把分母完整写出来 —— 分数就在这里。", "say": "代入课件数字：零点零零零九九，除以零点零五零九四，约等于零点零一九四。把分母完整写出来，分数就在这里。"}
     ],
     "again": [
       "如果你再测一次，结果还是阳性呢？",
@@ -105,7 +105,7 @@
       {"text": "再也没有 0 了。考试特别喜欢让你用 α = 1 填这张表。", "say": "再也没有 0 了。考试特别喜欢让你用 alpha 等于 1 填这张表。"}
     ],
     "recap": [
-      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，把百分比换成 10,000 人里的人数：10 个真阳性对 500 个假阳性。第二，阳性时感染的概率，等于感染时阳性的概率乘以先验，再除以阳性的总概率，而分母要把两种阳性来源加起来。第三，朴素贝叶斯把似然相乘；一个 0 会否决整个类别，所以用计数加 alpha、除以 N 加 m 乘 alpha 来平滑。"},
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，把百分比换成一万人里的人数：10 个真阳性对 500 个假阳性。第二，阳性时感染的概率，等于感染时阳性的概率乘以先验，再除以阳性的总概率，而分母要把两种阳性来源加起来。第三，朴素贝叶斯把似然相乘；一个 0 会否决整个类别，所以用计数加 alpha、除以 N 加 m 乘 alpha 来平滑。"},
       "然后去试试基础比率页面，以及打开平滑的朴素贝叶斯表。"
     ]
   },

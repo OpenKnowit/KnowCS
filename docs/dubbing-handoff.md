@@ -84,6 +84,8 @@ python3 -I scripts/tts/narrate.py build <完成的集>
 - 2026-10-12 用 `gemini-3.8-flash-lite-tts` 试录 perceptron（3 语 × 2 段，额度与 flash 分开）：英文无误；普通话一处把 z 念成 c；粤语明显较差（「階躍」→「截躍」、「輸出」→「衰出」、「指向」→「指將」）。结论：继续用 flash。试录片段在 lite 的缓存里，不影响正式音轨。英文讲稿里「one, one」这类坐标会被念出 comma，已改成「one one」。
 - 同日又用 lite 试录了 xor 英文版：一次请求 270 秒、32 句，全部切对，听辨无实质问题。因此改为每集一次请求，中英文 16 集共 32 次。
 - 用户决定：先录完所有课的中文和英文，粤语之后再录（KNN 粤语那 3 句的重录也一并推后）。
+- **2026-10-12 晚，按用户要求先用 lite 录完 16 集中英文并已上线**（KNN 仍是 flash 三语）。听辨从 84 处降到可接受：长段时间锚点偶发离谱 → 加了 `checked_starts` 校验后重切；lite 念错的数字改在朗读文本里写成汉字读法（「零点零零零九九」「九千九百九十」「一万」「二零二二年」「COMP 二二一一」），「t x, t y」「i, j」去掉逗号；alphabeta 英文整集一次会漏句，改为按场景录（`--chunk 0`）。剩余标记均为 Here's / 近义字 / 「np 点 convolve」之类。粤语页面除 KNN 外暂无配音（manifest 404，播放器保持原样）。
+- flash 批量任务（`batch.sh`）仍在等额度，录好后只会 build 到本地，**不会自动上传**；是否用 flash 版替换线上的 lite 版由用户决定。
 - 批量任务：`work/dubbing/batch.sh`（nohup 后台，日志 `work/dubbing/batch.log`，每小时重试，完成后自动 `qa`（→ `qa-all.log`）和 `build`；停止：`pkill -f work/dubbing/batch.sh`）。上传到服务器仍需手动。
 - ponder 停住时，下方字幕已是下一场景的第一句（原版行为，配音版沿用）。
 

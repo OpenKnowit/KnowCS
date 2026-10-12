@@ -12,6 +12,7 @@
 - **feat**：配音时字幕显示讲稿：en / zh 仍是站点字幕（只在朗读文本里把公式、单位、坐标改成口语，并念出 ponder 问题和 recap 要点）；粤语显示口语粤语稿（用户决定）。17 集 × 3 语讲稿入库 `src/content/narration/`，测试检查每条字幕一句、en / zh 与站点字幕一致、朗读文本无难读符号。
 - **tooling**：`scripts/tts/narrate.py`：`gen` 按场景一次请求再按停顿切分（比逐句省约 3 倍配额，语调连贯；改过的句子单独重录），片段按内容缓存；`build` 拼成 AAC 48k 单声道（约 1.2 MB / 3 分钟）并写 manifest；`qa` 用 gemini-3.8-flash 按场景听辨。`timings.mjs` 用 Vite SSR 导出各集场景时长。
 - **deploy**：音频不进 Git、不进 dist：服务器 `knowcs/audio/` 共享目录，每个 release 内 `audio -> ../../audio` 软链接（`deploy/README.md`）；dev / preview 由 Vite 中间件从 `work/dubbing/out/audio` 提供（支持 Range）。Service Worker 不缓存 `/audio/`。
+- **content**：同日晚按用户要求，先用 `gemini-3.8-flash-lite-tts`（额度另计）录完其余 16 集的中英文并上线（每集每语一次请求，按听辨模型报的行起始时间切分，偏差过大时校验重取）；粤语暂缓。KNN 保持 flash 三语。
 - **limit**：Tier 1 TTS 每天 100 次请求。KNN 已完成（约 3 分钟 / 语言，原视频 95 秒）；其余 16 集约需 405 次请求，按 `docs/dubbing-handoff.md` 第 4 节分 4–5 天生成。测试 668 → 692。
 
 ### 2026-10-12 — 题目与答案全面核对（Desmond 反馈「请检查题目是否正确」）
