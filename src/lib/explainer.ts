@@ -69,6 +69,26 @@ export const locate = (tl: Timeline, scenes: readonly TimedScene[], t: number): 
   return { i, p: scenes[i].dur ? clamp01((x - tl.starts[i]) / scenes[i].dur) : 1 }
 }
 
+/** Piecewise-linear map through the knots xs[i] → ys[i] (xs ascending), clamped at both ends. */
+export const piecewise = (xs: readonly number[], ys: readonly number[], x: number): number => {
+  if (x <= xs[0]) return ys[0]
+  for (let j = 1; j < xs.length; j++) {
+    if (x <= xs[j]) return xs[j] === xs[j - 1] ? ys[j] : lerp(ys[j - 1], ys[j], (x - xs[j - 1]) / (xs[j] - xs[j - 1]))
+  }
+  return ys[ys.length - 1]
+}
+
+/**
+ * Re-time a scene for narration. seg[k] is how long caption k is spoken (ms); the scene becomes their sum, and
+ * `warp` maps the new progress q onto the original p, so caption k's stretch of animation plays exactly while
+ * line k is read: knots q = start of each line, p = the original cue.
+ */
+export const narratedTiming = (cues: readonly number[], seg: readonly number[]): { dur: number; cues: number[]; warp: { q: number[]; p: number[] } } => {
+  const dur = seg.reduce((a, b) => a + b, 0)
+  const starts = seg.map((_, k) => seg.slice(0, k).reduce((a, b) => a + b, 0) / dur)
+  return { dur, cues: starts, warp: { q: [...starts, 1], p: [...cues, 1] } }
+}
+
 /** Index of the caption showing at scene progress p. */
 export const cueAt = (cues: readonly number[], p: number): number => {
   let k = 0

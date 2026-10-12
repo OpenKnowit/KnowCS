@@ -1,0 +1,140 @@
+{
+  "en": {
+    "title": [
+      "Lecture 2 ends by asking: what if blood pressure and fever are numbers, not categories? Three papers have asked exactly that."
+    ],
+    "problem": [
+      "With categories we counted. But blood pressure is a number.",
+      "A new patient has blood pressure 66. In data like this, nobody has exactly 66.",
+      "Counting would give zero — and one zero wipes out the whole naive Bayes product."
+    ],
+    "bell": [
+      "Instead, assume the values in each class follow a Gaussian.",
+      {"text": "Its shape is fixed by two numbers from the training data: the mean μ…", "say": "Its shape is fixed by two numbers from the training data: the mean, mu…"},
+      {"text": "…and the standard deviation σ.", "say": "…and the standard deviation, sigma."},
+      "We fit one such curve for every class and every continuous feature."
+    ],
+    "bp": [
+      {"text": "Lecture 2’s numbers: for Z = Yes, μ = 73 and σ = 6.2; for Z = No, μ = 75 and σ = 7.9.", "say": "Lecture 2’s numbers: for Z is Yes, the mean is 73 and sigma is 6.2; for Z is No, the mean is 75 and sigma is 7.9."},
+      "Draw a line at 66 and read where it meets each curve.",
+      "Those heights — 0.0340 for Yes, 0.0264 for No — replace the counted probabilities."
+    ],
+    "fever": [
+      {"text": "Fever: Yes is N(79, 10.2), No is N(86, 9.7).", "say": "Fever: Yes is a normal curve with mean 79 and sigma 10.2; No has mean 86 and sigma 9.7."},
+      "At 97 the No curve is much higher: 0.0216 against 0.0082.",
+      "So fever pulls strongly towards No."
+    ],
+    "combine": [
+      "Now the usual naive Bayes product, mixing curve heights for numbers and counts for categories.",
+      "Prior, two Gaussian likelihoods, two counted likelihoods — for each class.",
+      "Normalise: about 17% Yes and 83% No.",
+      "The class with the larger product wins: No."
+    ],
+    "density": [
+      {"text": "One more thing. Make σ small and watch the peak.", "say": "One more thing. Make sigma small and watch the peak."},
+      "The curve’s height climbs above 1. A density is not a probability; only the area under it is.",
+      {"text": "That does not matter for naive Bayes: we only compare products between classes.", "say": "That does not matter for naive Bayes: we only compare products between classes. Before we go on: if one class has a much smaller sigma, does that automatically make its likelihoods larger?"}
+    ],
+    "sigma": [
+      {"text": "Computing σ yourself? Check the divisor.", "say": "Computing sigma yourself? Check the divisor."},
+      {"text": "With n − 1 these three temperatures give 0.656; dividing by n gives 0.535.", "say": "With n minus 1, these three temperatures give 0.656; dividing by n gives 0.535."},
+      {"text": "COMP2211 papers print the n − 1 formula. Use it, and show the working.", "say": "COMP2211 papers print the n minus 1 formula. Use it, and show the working."}
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: for a continuous feature, replace counting with each class’s Gaussian density. Two: each class needs its own mean and sigma per feature; the likelihood is the curve height at the observed value. Three: multiply with the prior and any counted likelihoods, then compare classes — densities may exceed 1."},
+      "Then try the Gaussian naive Bayes page with your own data."
+    ]
+  },
+  "zh": {
+    "title": [
+      "第 2 讲最后问：如果血压和发烧是数值而不是类别怎么办？有三份试卷正是这么问的。"
+    ],
+    "problem": [
+      "对类别我们靠计数。但血压是一个数。",
+      "新病人血压 66。在这样的数据里，没有人正好是 66。",
+      "计数会得到 0 —— 而一个 0 就会抹掉整个朴素贝叶斯乘积。"
+    ],
+    "bell": [
+      "改为假设每个类别内的数值服从高斯分布。",
+      {"text": "它的形状由训练数据中的两个数决定：均值 μ……", "say": "它的形状由训练数据中的两个数决定：均值 mu……"},
+      {"text": "……和标准差 σ。", "say": "……和标准差 sigma。"},
+      "每个类别、每个连续特征都拟合一条这样的曲线。"
+    ],
+    "bp": [
+      {"text": "第 2 讲的数字：Z = Yes 时 μ = 73、σ = 6.2；Z = No 时 μ = 75、σ = 7.9。", "say": "第 2 讲的数字：Z 为 Yes 时，均值 73、sigma 6.2；Z 为 No 时，均值 75、sigma 7.9。"},
+      "在 66 处画一条线，读出它与每条曲线的交点。",
+      {"text": "这些高度 —— Yes 为 0.0340，No 为 0.0264 —— 代替了计数得到的概率。", "say": "这些高度，Yes 为 0.0340，No 为 0.0264，代替了计数得到的概率。"}
+    ],
+    "fever": [
+      {"text": "发烧：Yes 为 N(79, 10.2)，No 为 N(86, 9.7)。", "say": "发烧：Yes 是均值 79、sigma 10.2 的正态分布，No 是均值 86、sigma 9.7。"},
+      "在 97 处 No 曲线高得多：0.0216 对 0.0082。",
+      "所以发烧强烈指向 No。"
+    ],
+    "combine": [
+      "现在照常做朴素贝叶斯乘积：数值特征用曲线高度，类别特征用计数。",
+      "每个类别：先验、两个高斯似然、两个计数似然。",
+      "归一化：约 17% Yes、83% No。",
+      "乘积较大的类别胜出：No。"
+    ],
+    "density": [
+      {"text": "还有一点。把 σ 调小，看峰值。", "say": "还有一点。把 sigma 调小，看峰值。"},
+      "曲线高度超过了 1。概率密度不是概率，只有曲线下的面积才是。",
+      {"text": "这对朴素贝叶斯没影响：我们只比较各类别的乘积。", "say": "这对朴素贝叶斯没影响：我们只比较各类别的乘积。先停下来想一想：如果某个类别的 sigma 小得多，它的似然就一定更大吗？"}
+    ],
+    "sigma": [
+      {"text": "自己算 σ 时，注意分母。", "say": "自己算 sigma 时，注意分母。"},
+      {"text": "这三个体温用 n − 1 得 0.656；除以 n 得 0.535。", "say": "这三个体温用 n 减 1 得 0.656；除以 n 得 0.535。"},
+      {"text": "COMP2211 试卷印的是 n − 1 的公式。照它算，并写出过程。", "say": "COMP2211 试卷印的是 n 减 1 的公式。照它算，并写出过程。"}
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，连续特征用各类别的高斯密度代替计数。第二，每个类别、每个特征都有自己的均值和 sigma；似然就是曲线在观测值处的高度。第三，与先验及计数似然相乘后比较各类别，密度可以大于 1。"},
+      "然后去高斯朴素贝叶斯页面用你自己的数据试试。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "第 2 講最後問：如果血壓同發燒係數值，唔係類別，咁點算？有三份試卷就正正係咁問。"
+    ],
+    "problem": [
+      "類別嘅話，我哋靠點數。但係血壓係一個數。",
+      "新病人血壓係 66。喺呢類數據入面，冇人啱啱好係 66。",
+      "點數就會得到 0，而一個 0 就會清零成個樸素貝葉斯乘積。"
+    ],
+    "bell": [
+      "所以改為假設每個類別入面嘅數值服從高斯分佈。",
+      {"text": "佢嘅形狀由訓練數據入面兩個數決定：平均值 μ……", "say": "佢嘅形狀由訓練數據入面兩個數決定：平均值 mu……"},
+      {"text": "……同標準差 σ。", "say": "……同標準差 sigma。"},
+      "每個類別、每個連續特徵，都擬合一條咁樣嘅曲線。"
+    ],
+    "bp": [
+      {"text": "第 2 講嘅數字：Z = Yes 嘅時候 μ = 73、σ = 6.2；Z = No 嘅時候 μ = 75、σ = 7.9。", "say": "第 2 講嘅數字：Z 係 Yes 嘅時候，平均值 73、sigma 6.2；Z 係 No 嘅時候，平均值 75、sigma 7.9。"},
+      "喺 66 嗰度畫一條線，讀出佢同每條曲線相交嘅位置。",
+      "呢啲高度，Yes 係 0.0340，No 係 0.0264，代替咗點數得出嚟嘅概率。"
+    ],
+    "fever": [
+      {"text": "發燒：Yes 係 N(79, 10.2)，No 係 N(86, 9.7)。", "say": "發燒：Yes 係平均值 79、sigma 10.2 嘅正態分佈，No 係平均值 86、sigma 9.7。"},
+      "喺 97 嗰度，No 條曲線高好多：0.0216 對 0.0082。",
+      "所以發燒好強烈咁指向 No。"
+    ],
+    "combine": [
+      "而家照舊做樸素貝葉斯乘積：數值特徵用曲線高度，類別特徵用點數。",
+      "每個類別：先驗、兩個高斯似然、兩個點數似然。",
+      "歸一化：大約 17% Yes、83% No。",
+      "乘積大啲嗰個類別贏：No。"
+    ],
+    "density": [
+      {"text": "仲有一樣嘢。將 σ 較細，睇吓個峰。", "say": "仲有一樣嘢。將 sigma 較細，睇吓個峰。"},
+      "條曲線嘅高度超過咗 1。概率密度唔係概率，曲線下面嘅面積先係。",
+      {"text": "呢樣對樸素貝葉斯冇影響：我哋只係比較各個類別嘅乘積。", "say": "呢樣對樸素貝葉斯冇影響：我哋只係比較各個類別嘅乘積。停一停諗吓先：如果某個類別嘅 sigma 細好多，佢嘅似然係咪一定大啲？"}
+    ],
+    "sigma": [
+      {"text": "自己計 σ 嘅時候，留意個分母。", "say": "自己計 sigma 嘅時候，留意個分母。"},
+      {"text": "呢三個體溫用 n − 1 計得 0.656；除 n 就得 0.535。", "say": "呢三個體溫用 n 減 1 計得 0.656；除 n 就得 0.535。"},
+      {"text": "COMP2211 嘅試卷印嘅係 n − 1 嘅公式。跟住佢計，同埋寫出過程。", "say": "COMP2211 嘅試卷印嘅係 n 減 1 嘅公式。跟住佢計，同埋寫出過程。"}
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，連續特徵用每個類別嘅高斯密度代替點數。第二，每個類別、每個特徵都有自己嘅平均值同 sigma；似然就係曲線喺觀測值嗰度嘅高度。第三，同先驗同點數似然乘埋之後比較各個類別，密度可以大過 1。"},
+      "之後去高斯樸素貝葉斯頁面，用你自己嘅數據試吓。"
+    ]
+  }
+}

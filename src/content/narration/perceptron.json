@@ -1,0 +1,131 @@
+{
+  "en": {
+    "title": [
+      "Four midterms ask you to fill in a perceptron table by hand. Here is the picture behind every row of it."
+    ],
+    "neuron": [
+      {"text": "Inputs come in, each multiplied by a weight. The neuron adds them up, plus a bias θ.", "say": "Inputs come in, each multiplied by a weight. The neuron adds them up, plus a bias, theta."},
+      "Then a step function: output 1 if the sum is at least 0, otherwise 0.",
+      "So the whole neuron is a yes/no decision about which side of a line a point is on."
+    ],
+    "geometry": [
+      {"text": "Set z to zero and you get a line: w₁x₁ + w₂x₂ + θ = 0.", "say": "Set z to zero and you get a line: w 1 x 1, plus w 2 x 2, plus theta, equals zero."},
+      "The weight vector points across the line, towards the side that outputs 1. Turn w and the line turns with it.",
+      {"text": "θ slides the line back and forth without turning it.", "say": "Theta slides the line back and forth without turning it."}
+    ],
+    "rule": [
+      {"text": "The perceptron learns from one sample at a time: Δw = η(T − O)x, Δθ = η(T − O).", "say": "The perceptron learns from one sample at a time: the change in w is eta times T minus O, times x, and the change in theta is eta times T minus O."},
+      {"text": "If the output is right, T − O = 0 and nothing moves.", "say": "If the output is right, T minus O is zero and nothing moves."},
+      "If it should have fired but did not, x is added to w: the line swings towards including that point.",
+      "If it fired but should not have, x is subtracted: the line swings away.",
+      {"text": "Only mistakes move the line.", "say": "Only mistakes move the line. Before we go on: if a sample sits at x equals zero, zero, which part of the neuron can the rule still change?"}
+    ],
+    "run": [
+      {"text": "Lecture 5’s example: learn AND, starting from w = (0.1, 0.5), θ = −0.8, η = 0.2.", "say": "Lecture 5’s example: learn AND, starting from w equals 0.1 and 0.5, theta equals minus 0.8, and eta equals 0.2."},
+      "Each row: compute z, compare O with T, and update only when they differ. The dashed line is where the boundary was before the update.",
+      {"text": "Watch the shaded side shrink until only (1, 1) is inside it.", "say": "Watch the shaded side shrink until only one, one is inside it."},
+      "One full epoch with no mistakes: the perceptron has converged."
+    ],
+    "xor": [
+      "Now XOR. No straight line separates its classes.",
+      "Every epoch still has mistakes, and every mistake drags the line somewhere else.",
+      "The perceptron convergence theorem only promises to stop when a separating line exists. For XOR you need a hidden layer."
+    ],
+    "traps": [
+      "Three details decide whether your table gets full marks.",
+      {"text": "First: is the step “z ≥ 0” or “z > 0”? Papers differ, and rows that land exactly on z = 0 flip.", "say": "First: is the step “z at least zero”, or “z greater than zero”? Papers differ, and rows that land exactly on z equals zero flip."},
+      {"text": "Second: with outputs ±1 a mistake gives T − O = ±2, so every update doubles.", "say": "Second: with outputs of plus or minus 1, a mistake gives T minus O equal to plus or minus 2, so every update doubles."},
+      "Third: converged means a whole epoch without an update — not one correct row."
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: a perceptron is one line, w 1 x 1 plus w 2 x 2 plus theta equals zero, with w pointing to the side that outputs 1. Two: update only on mistakes: the change in w is eta times T minus O, times x, and the change in theta is eta times T minus O. Three: it converges exactly when the data are linearly separable; XOR never converges."},
+      "Then fill in the perceptron table yourself, with Quiz mode on."
+    ]
+  },
+  "zh": {
+    "title": [
+      "有四份期中卷要你手填感知机表格。下面是表中每一行背后的画面。"
+    ],
+    "neuron": [
+      {"text": "输入进来，各乘一个权重。神经元把它们加起来，再加上偏置 θ。", "say": "输入进来，各乘一个权重。神经元把它们加起来，再加上偏置 theta。"},
+      "然后过阶跃函数：和至少为 0 就输出 1，否则输出 0。",
+      "所以整个神经元就是在判断一个点落在直线的哪一侧。"
+    ],
+    "geometry": [
+      {"text": "令 z 为 0，就得到一条直线：w₁x₁ + w₂x₂ + θ = 0。", "say": "令 z 为 0，就得到一条直线：w1 x1 加 w2 x2 加 theta 等于 0。"},
+      "权重向量垂直穿过这条线，指向输出 1 的一侧。转动 w，直线随之转动。",
+      {"text": "θ 让直线前后平移而不转动。", "say": "theta 让直线前后平移而不转动。"}
+    ],
+    "rule": [
+      {"text": "感知机每次从一个样本学习：Δw = η(T − O)x，Δθ = η(T − O)。", "say": "感知机每次从一个样本学习：w 的变化量等于 eta 乘 T 减 O 再乘 x，theta 的变化量等于 eta 乘 T 减 O。"},
+      {"text": "输出正确时，T − O = 0，什么都不动。", "say": "输出正确时，T 减 O 等于 0，什么都不动。"},
+      "本该激活却没有时，w 加上 x：直线转向把这个点包进来。",
+      "激活了却不该激活时，w 减去 x：直线转离它。",
+      {"text": "只有犯错才会移动直线。", "say": "只有犯错才会移动直线。先停下来想一想：如果样本在 x 等于 0、0，学习规则还能改变神经元的哪一部分？"}
+    ],
+    "run": [
+      {"text": "第 5 讲例题：学习 AND，从 w = (0.1, 0.5)、θ = −0.8、η = 0.2 开始。", "say": "第 5 讲例题：学习 AND，从 w 等于 0.1 和 0.5、theta 等于负 0.8、eta 等于 0.2 开始。"},
+      "每一行：算 z，比较 O 和 T，只有不同时才更新。虚线是更新前边界的位置。",
+      {"text": "看阴影一侧逐渐缩小，直到只剩 (1, 1) 在里面。", "say": "看阴影一侧逐渐缩小，直到只剩 1、1 在里面。"},
+      "完整一轮没有任何错误：感知机已收敛。"
+    ],
+    "xor": [
+      "现在换成 XOR。没有直线能把它的两类分开。",
+      "每一轮都还有错误，每次错误都把直线拖到别处。",
+      "感知机收敛定理只保证在存在分隔直线时会停。XOR 需要隐藏层。"
+    ],
+    "traps": [
+      "三个细节决定你的表格能不能拿满分。",
+      {"text": "第一：阶跃是 “z ≥ 0” 还是 “z > 0”？各卷不同，正好落在 z = 0 的行会翻转。", "say": "第一：阶跃是 z 大于等于 0，还是 z 大于 0？各卷不同，正好落在 z 等于 0 的行会翻转。"},
+      {"text": "第二：输出为 ±1 时，一次错误给出 T − O = ±2，每次更新都翻倍。", "say": "第二：输出为正负 1 时，一次错误给出 T 减 O 等于正负 2，每次更新都翻倍。"},
+      "第三：收敛指的是一整轮都没有更新 —— 而不是某一行正确。"
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，感知机就是一条直线：w1 x1 加 w2 x2 加 theta 等于 0，w 指向输出 1 的一侧。第二，只在犯错时更新：w 的变化量是 eta 乘 T 减 O 再乘 x，theta 的变化量是 eta 乘 T 减 O。第三，数据线性可分时它一定收敛；XOR 永远不会收敛。"},
+      "然后开着「自测」模式自己填一遍感知机表格。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "有四份期中卷要你人手填感知機表格。以下就係表入面每一行背後嘅畫面。"
+    ],
+    "neuron": [
+      {"text": "啲輸入入嚟，每個乘一個權重。神經元將佢哋加埋，再加個偏置 θ。", "say": "啲輸入入嚟，每個乘一個權重。神經元將佢哋加埋，再加個偏置 theta。"},
+      "然後過階躍函數：個和最少係 0 就輸出 1，否則輸出 0。",
+      "所以成個神經元，其實就係判斷一個點喺條直線邊一邊。"
+    ],
+    "geometry": [
+      {"text": "將 z 設做 0，就得到一條直線：w₁x₁ + w₂x₂ + θ = 0。", "say": "將 z 設做 0，就得到一條直線：w1 x1 加 w2 x2 加 theta 等於 0。"},
+      "權重向量垂直穿過呢條線，指向輸出 1 嗰邊。轉 w，條直線就跟住轉。",
+      {"text": "θ 令條直線前後平移，但唔會轉。", "say": "theta 令條直線前後平移，但唔會轉。"}
+    ],
+    "rule": [
+      {"text": "感知機每次由一個樣本學：Δw = η(T − O)x，Δθ = η(T − O)。", "say": "感知機每次由一個樣本學：w 嘅變化等於 eta 乘 T 減 O 再乘 x，theta 嘅變化等於 eta 乘 T 減 O。"},
+      {"text": "輸出啱嘅時候，T − O = 0，乜都唔郁。", "say": "輸出啱嘅時候，T 減 O 等於 0，乜都唔郁。"},
+      "應該激活但冇激活：w 加上 x，條直線轉過去將呢個點包埋入嚟。",
+      "激活咗但唔應該：w 減去 x，條直線轉走。",
+      {"text": "只有出錯先會郁條直線。", "say": "只有出錯先會郁條直線。停一停諗吓先：如果個樣本喺 x 等於 0、0，學習規則仲可以改變神經元邊一部分？"}
+    ],
+    "run": [
+      {"text": "第 5 講嘅例題：學 AND，由 w = (0.1, 0.5)、θ = −0.8、η = 0.2 開始。", "say": "第 5 講嘅例題：學 AND，由 w 等於 0.1 同 0.5、theta 等於負 0.8、eta 等於 0.2 開始。"},
+      "每一行：計 z，比較 O 同 T，唔同先更新。虛線係更新之前邊界嘅位置。",
+      {"text": "睇住陰影嗰邊慢慢縮細，直至淨返 (1, 1) 喺入面。", "say": "睇住陰影嗰邊慢慢縮細，直至淨返 1、1 喺入面。"},
+      "完整一輪冇任何錯誤：感知機已經收斂。"
+    ],
+    "xor": [
+      "而家換做 XOR。冇任何直線分得開佢嘅兩類。",
+      "每一輪都仲有錯，每次出錯都將條直線拖去第二度。",
+      "感知機收斂定理只係保證有分隔直線嘅時候會停。XOR 就要隱藏層。"
+    ],
+    "traps": [
+      "三個細節，決定你張表攞唔攞到滿分。",
+      {"text": "第一：階躍係 “z ≥ 0” 定係 “z > 0”？每份卷唔同，啱啱好落喺 z = 0 嗰啲行就會反轉。", "say": "第一：階躍係 z 大過或者等於 0，定係 z 大過 0？每份卷唔同，啱啱好落喺 z 等於 0 嗰啲行就會反轉。"},
+      {"text": "第二：輸出係 ±1 嘅時候，錯一次就係 T − O = ±2，每次更新都會加倍。", "say": "第二：輸出係正負 1 嘅時候，錯一次就係 T 減 O 等於正負 2，每次更新都會加倍。"},
+      "第三：收斂即係成輪都冇更新過，唔係某一行啱咗。"
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，感知機就係一條直線：w1 x1 加 w2 x2 加 theta 等於 0，w 指向輸出 1 嗰邊。第二，出錯先更新：w 嘅變化係 eta 乘 T 減 O 再乘 x，theta 嘅變化係 eta 乘 T 減 O。第三，數據線性可分嘅時候佢一定收斂；XOR 永遠都唔會收斂。"},
+      "之後開住「自測」模式，自己填一次感知機表格。"
+    ]
+  }
+}

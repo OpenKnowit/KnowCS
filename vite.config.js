@@ -1,6 +1,6 @@
 // KnowCS: a multi-page site. Every page in src/lib/sitemap.ts gets its own HTML file, generated into site/
 // (gitignored) when the config loads; all pages share one entry script that renders the right page.
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { copyFileSync, createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
@@ -166,9 +166,45 @@ function preloadStrings() {
   }
 }
 
+/**
+ * Narration tracks (scripts/tts/narrate.py) are not part of the build: production serves them from a shared
+ * directory beside the releases (deploy/README.md). Locally, dev and preview serve /audio/ from the generated
+ * folder, with Range support so the player can seek.
+ */
+function narrationAudio() {
+  const dir = resolve(process.env.KNOWCS_AUDIO_DIR || "work/dubbing/out/audio")
+  const types = { ".json": "application/json; charset=utf-8", ".m4a": "audio/mp4" }
+  const serve = (req, res, next) => {
+    const path = decodeURIComponent((req.url || "").split("?")[0])
+    const file = resolve(dir, "." + path)
+    if (!file.startsWith(dir + "/") || !existsSync(file) || !statSync(file).isFile()) return next()
+    const size = statSync(file).size
+    const type = types[file.slice(file.lastIndexOf("."))] || "application/octet-stream"
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || "")
+    res.setHeader("Accept-Ranges", "bytes")
+    res.setHeader("Content-Type", type)
+    if (range) {
+      const start = range[1] ? Number(range[1]) : size - Number(range[2])
+      const end = range[1] && range[2] ? Math.min(size - 1, Number(range[2])) : size - 1
+      res.statusCode = 206
+      res.setHeader("Content-Range", `bytes ${start}-${end}/${size}`)
+      res.setHeader("Content-Length", end - start + 1)
+      createReadStream(file, { start, end }).pipe(res)
+    } else {
+      res.setHeader("Content-Length", size)
+      createReadStream(file).pipe(res)
+    }
+  }
+  return {
+    name: "knowcs:narration-audio",
+    configureServer: (server) => void server.middlewares.use("/audio", serve),
+    configurePreviewServer: (server) => void server.middlewares.use("/audio", serve),
+  }
+}
+
 export default defineConfig({
   root: ROOT,
-  plugins: [katexFontSlim(), markdownHtml(), rawHk(), localeSplit(), preloadStrings(), react()],
+  plugins: [katexFontSlim(), markdownHtml(), rawHk(), localeSplit(), preloadStrings(), narrationAudio(), react()],
   build: {
     outDir: resolve("dist"),
     emptyOutDir: true,

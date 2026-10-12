@@ -1,0 +1,143 @@
+{
+  "en": {
+    "title": [
+      {"text": "Translate, flip, rotate: lecture 7 does all of them with one 2 × 3 matrix. Here is why that works, and what the finals ask about it.", "say": "Translate, flip, rotate: lecture 7 does all of them with one two-by-three matrix. Here is why that works, and what the finals ask about it."}
+    ],
+    "coords": [
+      {"text": "First, the coordinates. x counts columns to the right, y counts rows downward, and (0, 0) is the top-left pixel.", "say": "First, the coordinates. x counts columns to the right, y counts rows downward, and zero, zero is the top-left pixel."},
+      "So “up” on screen means a smaller y. Keep that in mind — it decides which way a rotation turns.",
+      {"text": "Every transform in the lecture has the same shape: multiply [x, y, 1] by a 2 × 3 matrix M. The extra 1 is what lets a matrix also shift.", "say": "Every transform in the lecture has the same shape: multiply the vector x, y, 1 by a two-by-three matrix M. The extra 1 is what lets a matrix also shift."}
+    ],
+    "translate": [
+      "Translation adds tx to every x and ty to every y.",
+      {"text": "In M that is the identity on the left and (tx, ty) in the last column — the column the 1 multiplies.", "say": "In M that is the identity on the left and t x, t y in the last column — the column the 1 multiplies."},
+      {"text": "cv2.warpAffine fills the pixels nothing moved into with 0.", "say": "OpenCV's warpAffine fills the pixels nothing moved into with zero."}
+    ],
+    "reflect": [
+      {"text": "Reflection along the x-axis. Step one: y becomes −y, so the picture flips over row 0 and lands above the frame.", "say": "Reflection along the x-axis. Step one: y becomes minus y, so the picture flips over row zero and lands above the frame."},
+      {"text": "Step two: add rows − 1 to slide it back in. The top row and the bottom row have swapped.", "say": "Step two: add rows minus 1 to slide it back in. The top row and the bottom row have swapped."},
+      {"text": "So “reflect along the x-axis” turns the picture upside down: M = [[1, 0, 0], [0, −1, rows − 1]].", "say": "So “reflect along the x-axis” turns the picture upside down. The rows of M are 1, 0, 0, and 0, minus 1, rows minus 1."},
+      "Before we go on: which matrix mirrors the picture left to right instead?"
+    ],
+    "rotate": [
+      {"text": "Answer: x becomes −x + (cols − 1), so M = [[−1, 0, cols − 1], [0, 1, 0]] — reflection along the y-axis.", "say": "Answer: x becomes minus x plus cols minus 1. So the rows of M are minus 1, 0, cols minus 1, and 0, 1, 0 — reflection along the y-axis."},
+      "Rotation about the centre is three moves. First shift the centre to the origin…",
+      "…then rotate about the origin. With y pointing down, a positive angle turns counter-clockwise on screen…",
+      {"text": "…and shift back. Multiply the three and you get exactly the lecture’s matrix — the one cv2.getRotationMatrix2D returns.", "say": "…and shift back. Multiply the three and you get exactly the lecture’s matrix — the one OpenCV's getRotationMatrix2D returns."}
+    ],
+    "survive": [
+      "What does an affine map keep? Watch a grid and a right triangle. A rotation keeps every length and every angle.",
+      "A shear keeps lines straight and parallel lines parallel, but lengths and angles change.",
+      "Uniform scaling keeps the angles but not the lengths.",
+      "Parallel lines and midpoints survive every affine map; distances and angles only some of them. So “may preserve distances and angles” is true."
+    ],
+    "global": [
+      "Is a flip a point operation? Each output pixel copies its value from somewhere else, so no — that is why Final 2022’s statement is false.",
+      {"text": "Is it at least local? A 3 × 3 kernel only reaches one pixel away, but the edge pixels of a flip need values from the far side.", "say": "Is it at least local? A three-by-three kernel only reaches one pixel away, but the edge pixels of a flip need values from the far side."},
+      {"text": "On a 64 × 64 image that is up to 63 pixels, so no 3 × 3 kernel can flip it. And since no value changes, the histogram stays the same.", "say": "On a 64 by 64 image that is up to 63 pixels, so no three-by-three kernel can flip it. And since no value changes, the histogram stays the same."}
+    ],
+    "augment": [
+      "Flips and rotations are also the classic data augmentations. Mirror a cat: still a cat.",
+      "Mirror a handwritten 2: not a digit any more. That is the Final 2022 answer — a horizontal flip helps cats vs dogs, not digits.",
+      {"text": "Rotate a 6 by 180° and it reads as a 9. An augmentation must never change the label.", "say": "Rotate a 6 by 180 degrees and it reads as a 9. An augmentation must never change the label."}
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: every transform multiplies x, y, 1 by a matrix M, and the last column shifts. In image coordinates, y points down. Two: reflecting along the x-axis turns the image upside down: y becomes minus y plus rows minus 1. Rotation is shift, rotate, shift back. Three: affine maps keep parallel lines, not always distances or angles. They are not point operations, and a flip is global."},
+      "Then try every transform yourself on the practice page."
+    ]
+  },
+  "zh": {
+    "title": [
+      {"text": "平移、翻转、旋转：第 7 讲全部用一个 2 × 3 矩阵完成。看看为什么可行，以及期末怎么考。", "say": "平移、翻转、旋转：第 7 讲全部用一个 2 乘 3 的矩阵完成。看看为什么可行，以及期末怎么考。"}
+    ],
+    "coords": [
+      {"text": "先看坐标。x 向右数列，y 向下数行，(0, 0) 是左上角像素。", "say": "先看坐标。x 向右数列，y 向下数行，坐标 0、0 是左上角像素。"},
+      "所以屏幕上的「上」意味着 y 更小。记住这一点——它决定了旋转往哪个方向转。",
+      {"text": "讲义里每个变换形式都一样：用 2 × 3 矩阵 M 乘以 [x, y, 1]。多出来的 1 让矩阵也能做平移。", "say": "讲义里每个变换形式都一样：用 2 乘 3 的矩阵 M 乘以向量 x、y、1。多出来的 1 让矩阵也能做平移。"}
+    ],
+    "translate": [
+      "平移给每个 x 加上 tx，每个 y 加上 ty。",
+      {"text": "在 M 里就是左边单位矩阵、最后一列放 (tx, ty)——与 1 相乘的那一列。", "say": "在 M 里就是左边单位矩阵、最后一列放 tx 和 ty，也就是与 1 相乘的那一列。"},
+      {"text": "cv2.warpAffine 把没有像素移入的位置填为 0。", "say": "OpenCV 的 warpAffine 把没有像素移入的位置填为 0。"}
+    ],
+    "reflect": [
+      {"text": "沿 x 轴反射。第一步：y 变成 −y，图像绕第 0 行翻过去，落到画框上方。", "say": "沿 x 轴反射。第一步：y 变成负 y，图像绕第 0 行翻过去，落到画框上方。"},
+      {"text": "第二步：加上 rows − 1，把它移回画框。最上面一行和最下面一行互换了。", "say": "第二步：加上 rows 减 1，把它移回画框。最上面一行和最下面一行互换了。"},
+      {"text": "所以「沿 x 轴反射」是上下颠倒：M = [[1, 0, 0], [0, −1, rows − 1]]。", "say": "所以「沿 x 轴反射」是上下颠倒。M 的第一行是 1、0、0，第二行是 0、负 1、rows 减 1。"},
+      "继续之前想一想：哪个矩阵是左右镜像？"
+    ],
+    "rotate": [
+      {"text": "答案：x 变成 −x + (cols − 1)，所以 M = [[−1, 0, cols − 1], [0, 1, 0]]——沿 y 轴反射。", "say": "答案：x 变成负 x 加上 cols 减 1。所以 M 的第一行是负 1、0、cols 减 1，第二行是 0、1、0，也就是沿 y 轴反射。"},
+      "绕中心旋转分三步。先把中心移到原点……",
+      "……再绕原点旋转。y 轴朝下，所以正角度在屏幕上是逆时针……",
+      {"text": "……最后移回去。三步相乘，正好得到讲义里的矩阵——也就是 cv2.getRotationMatrix2D 返回的那个。", "say": "……最后移回去。三步相乘，正好得到讲义里的矩阵，也就是 OpenCV 的 getRotationMatrix2D 返回的那个。"}
+    ],
+    "survive": [
+      "仿射变换保留什么？看网格和一个直角三角形。旋转保留所有长度和角度。",
+      "剪切保持直线仍是直线、平行线仍然平行，但长度和角度都变了。",
+      "等比缩放保留角度，不保留长度。",
+      "平行线和中点在所有仿射变换下都保留；距离和角度只有部分变换保留。所以「可能保持距离和角度」为真。"
+    ],
+    "global": [
+      "翻转是点运算吗？每个输出像素都从别的位置复制值，所以不是——这就是 Final 2022 那道判断题为假的原因。",
+      {"text": "那至少是局部运算吗？3 × 3 卷积核只能够到一格之外，而翻转后的边缘像素需要另一侧的值。", "say": "那至少是局部运算吗？3 乘 3 的卷积核只能够到一格之外，而翻转后的边缘像素需要另一侧的值。"},
+      {"text": "64 × 64 图像上最远 63 格，所以没有 3 × 3 卷积核能实现翻转。另外，因为没有像素值改变，直方图保持不变。", "say": "64 乘 64 的图像上最远 63 格，所以没有 3 乘 3 的卷积核能实现翻转。另外，因为没有像素值改变，直方图保持不变。"}
+    ],
+    "augment": [
+      "翻转和旋转也是经典的数据增强。把猫镜像一下：还是猫。",
+      "把手写的 2 镜像一下：已经不是数字了。这正是 Final 2022 的答案——水平翻转对猫狗分类有用，对数字没用。",
+      {"text": "把 6 旋转 180°，看起来就成了 9。数据增强绝不能改变标签。", "say": "把 6 旋转 180 度，看起来就成了 9。数据增强绝不能改变标签。"}
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，每个变换都是用矩阵 M 乘以 x、y、1，最后一列负责平移；图像坐标里 y 朝下。第二，沿 x 轴反射是上下颠倒：y 变成负 y 加上 rows 减 1。旋转就是平移、旋转、再平移回去。第三，仿射变换保持平行线，不一定保持距离和角度；它不是点运算，翻转是全局运算。"},
+      "然后到练习页亲手试试每种变换。"
+    ]
+  },
+  "yue": {
+    "title": [
+      {"text": "平移、翻轉、旋轉：第 7 講用一個 2 × 3 矩陣就全部搞掂。睇吓點解得，同埋期末會點考。", "say": "平移、翻轉、旋轉：第 7 講用一個 2 乘 3 嘅矩陣就全部搞掂。睇吓點解得，同埋期末會點考。"}
+    ],
+    "coords": [
+      {"text": "首先睇座標。x 向右數第幾列，y 向下數第幾行，(0, 0) 就係左上角嗰粒像素。", "say": "首先睇座標。x 向右數第幾列，y 向下數第幾行，座標 0、0 就係左上角嗰粒像素。"},
+      "所以喺螢幕上面「向上」，即係 y 細咗。記住呢一點，佢決定咗旋轉會向邊個方向轉。",
+      {"text": "講義入面每個變換都係同一個樣：用 2 × 3 矩陣 M 乘 [x, y, 1]。多出嚟嗰個 1，令矩陣都可以做平移。", "say": "講義入面每個變換都係同一個樣：用 2 乘 3 嘅矩陣 M 乘向量 x、y、1。多出嚟嗰個 1，令矩陣都可以做平移。"}
+    ],
+    "translate": [
+      "平移就係每個 x 加 tx，每個 y 加 ty。",
+      {"text": "喺 M 入面，左邊係單位矩陣，最後一列放 (tx, ty)，即係同個 1 相乘嗰一列。", "say": "喺 M 入面，左邊係單位矩陣，最後一列放 tx 同 ty，即係同個 1 相乘嗰一列。"},
+      {"text": "cv2.warpAffine 會將冇像素移入嘅位置填做 0。", "say": "OpenCV 嘅 warpAffine 會將冇像素移入嘅位置填做 0。"}
+    ],
+    "reflect": [
+      {"text": "沿 x 軸反射。第一步：y 變成 −y，成幅圖沿住第 0 行反轉，走咗去畫框上面。", "say": "沿 x 軸反射。第一步：y 變成負 y，成幅圖沿住第 0 行反轉，走咗去畫框上面。"},
+      {"text": "第二步：加返 rows − 1，將佢移返入畫框。最頂嗰行同最底嗰行對調咗。", "say": "第二步：加返 rows 減 1，將佢移返入畫框。最頂嗰行同最底嗰行對調咗。"},
+      {"text": "所以「沿 x 軸反射」即係上下倒轉：M = [[1, 0, 0], [0, −1, rows − 1]]。", "say": "所以「沿 x 軸反射」即係上下倒轉。M 嘅第一行係 1、0、0，第二行係 0、負 1、rows 減 1。"},
+      "繼續之前諗一諗：邊個矩陣先係左右鏡像？"
+    ],
+    "rotate": [
+      {"text": "答案：x 變成 −x + (cols − 1)，所以 M = [[−1, 0, cols − 1], [0, 1, 0]]，即係沿 y 軸反射。", "say": "答案：x 變成負 x 加 cols 減 1。所以 M 嘅第一行係負 1、0、cols 減 1，第二行係 0、1、0，即係沿 y 軸反射。"},
+      "繞住中心旋轉分三步。首先將中心移去原點……",
+      "……然後繞住原點旋轉。因為 y 軸向下，正嘅角度喺螢幕上係逆時針……",
+      {"text": "……最後移返轉頭。三步乘埋一齊，就正正係講義嗰個矩陣，即係 cv2.getRotationMatrix2D 返回嗰個。", "say": "……最後移返轉頭。三步乘埋一齊，就正正係講義嗰個矩陣，即係 OpenCV 嘅 getRotationMatrix2D 返回嗰個。"}
+    ],
+    "survive": [
+      "仿射變換會保留啲乜嘢？睇吓個網格同一個直角三角形。旋轉會保留所有長度同角度。",
+      "剪切會保持直線仲係直線、平行線仲係平行，但係長度同角度都變咗。",
+      "等比例縮放保留角度，但唔保留長度。",
+      "平行線同中點喺所有仿射變換之下都會保留；距離同角度就只有部分變換先保留。所以「可能保持距離同角度」係啱嘅。"
+    ],
+    "global": [
+      "翻轉係唔係點運算？每個輸出像素都係由第二個位置抄個值過嚟，所以唔係。呢個就係 Final 2022 嗰題判斷題係錯嘅原因。",
+      {"text": "咁最少係唔係局部運算？3 × 3 嘅卷積核只可以掂到隔籬一格，但係翻轉之後，邊緣嘅像素要用到另一邊嘅值。", "say": "咁最少係唔係局部運算？3 乘 3 嘅卷積核只可以掂到隔籬一格，但係翻轉之後，邊緣嘅像素要用到另一邊嘅值。"},
+      {"text": "64 × 64 嘅圖最遠要隔 63 格，所以冇任何 3 × 3 卷積核做到翻轉。仲有，因為冇像素值改變，直方圖保持不變。", "say": "64 乘 64 嘅圖最遠要隔 63 格，所以冇任何 3 乘 3 嘅卷積核做到翻轉。仲有，因為冇像素值改變，直方圖保持不變。"}
+    ],
+    "augment": [
+      "翻轉同旋轉亦都係經典嘅數據增強。將隻貓鏡像：都仲係貓。",
+      "將手寫嘅 2 鏡像：就唔再係數字喇。呢個就係 Final 2022 嘅答案：水平翻轉對分貓狗有用，對數字就冇用。",
+      {"text": "將 6 轉 180°，睇落就變咗 9。數據增強絕對唔可以改變標籤。", "say": "將 6 轉 180 度，睇落就變咗 9。數據增強絕對唔可以改變標籤。"}
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，每個變換都係用矩陣 M 乘 x、y、1，最後一列負責平移；圖像座標入面 y 係向下嘅。第二，沿 x 軸反射即係上下倒轉：y 變成負 y 加 rows 減 1。旋轉就係平移、旋轉、再平移返轉頭。第三，仿射變換保持平行線，但唔一定保持距離同角度；佢唔係點運算，而翻轉係全局運算。"},
+      "之後去練習頁，親手試吓每種變換。"
+    ]
+  }
+}

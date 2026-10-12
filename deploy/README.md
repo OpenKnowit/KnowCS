@@ -24,6 +24,16 @@ The playground's "Run in real Python" card downloads Pyodide from jsDelivr by de
 from elsewhere (a self-hosted copy of the Pyodide `full/` directory, or COS + CDN), build with
 `VITE_PYODIDE_BASE=https://…/full/ npm run build`. The host must send CORS headers for `.mjs`, `.wasm` and wheels.
 
+## Narration audio (/audio/)
+
+The explainer voice-overs are not part of `dist/` and not in Git. They live in one shared directory,
+`/opt/1panel/www/sites/knowcs/audio/<episode>/<lang>.json` + `<lang>.<hash>.m4a`, generated locally into
+`work/dubbing/out/audio/` by `scripts/tts/narrate.py` (see its docstring). Every release links to it:
+`ln -s ../../audio releases/<timestamp>/audio` (create the link before switching `current`, and leave it out of the
+SHA-256 comparison). To publish new or changed tracks, upload the episode folders into `audio/` (old `.m4a` files can
+stay; the manifests name the current ones). An episode or language without a manifest simply plays silent. The service
+worker does not cache `/audio/`; Nginx serves it under `location /` with Range support and `no-cache`.
+
 ## HTTPS and configuration
 
 The virtual host is `/opt/1panel/www/conf.d/knowcs.online.conf` (template in this directory).

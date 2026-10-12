@@ -1,0 +1,164 @@
+{
+  "en": {
+    "title": [
+      "Every final asks you to push numbers through a small network and update its weights by hand. Let us do it once, slowly, and see why each factor is there."
+    ],
+    "setup": [
+      {"text": "This is lecture 6’s 2-2-1 network for XOR: six weights, three biases, all starting at the lecture’s values.", "say": "This is lecture 6’s two-two-one network for XOR: six weights, three biases, all starting at the lecture’s values."},
+      "The learning rate is 0.5 and every neuron uses the sigmoid.",
+      {"text": "First sample: input (0, 0), target T = 0.", "say": "First sample: input zero, zero, and target T equals 0."}
+    ],
+    "forward": [
+      {"text": "Signals flow left to right. Each neuron adds up weight times input, adds θ, and applies the sigmoid.", "say": "Signals flow left to right. Each neuron adds up weight times input, adds theta, and applies the sigmoid."},
+      {"text": "With input (0, 0) both hidden sums are zero, and σ(0) is exactly 0.5.", "say": "With input zero, zero, both hidden sums are zero, and the sigmoid of zero is exactly 0.5."},
+      {"text": "The output neuron gets 0.86 × 0.5 − 1.38 × 0.5 = −0.26, so O = σ(−0.26) ≈ 0.4354.", "say": "The output neuron gets 0.86 times 0.5, minus 1.38 times 0.5, which is minus 0.26. So O is the sigmoid of minus 0.26, about 0.4354."},
+      {"text": "We wanted 0. The error is E = ½(T − O)².", "say": "We wanted 0. The error E is one half of T minus O, squared."}
+    ],
+    "chain": [
+      {"text": "To fix w₅ we need to know how E changes when w₅ changes. The chain rule splits that into three simpler questions.", "say": "To fix w 5 we need to know how E changes when w 5 changes. The chain rule splits that into three simpler questions."},
+      {"text": "How does E change with O? That is O − T: how wrong we are.", "say": "How does E change with O? That is O minus T: how wrong we are."},
+      {"text": "How does O change with its input z? For the sigmoid that is O(1 − O): the slope of the curve.", "say": "How does O change with its input z? For the sigmoid that is O times one minus O: the slope of the curve."},
+      {"text": "How does z change with w₅? By h₁, the signal travelling along w₅.", "say": "How does z change with w 5? By h 1, the signal travelling along w 5."},
+      {"text": "The first two factors do not depend on which weight we are fixing. Together they are δk = 0.107022.", "say": "The first two factors do not depend on which weight we are fixing. Together they are delta k, equal to 0.107022."}
+    ],
+    "update_out": [
+      {"text": "The update rule: subtract η times δ times whatever flows into that weight.", "say": "The update rule: subtract eta times delta times whatever flows into that weight."},
+      {"text": "For w₅ that input is h₁ = 0.5: w₅ becomes 0.833244 (the lecture rounds δk first and prints 0.833245 — both get the mark).", "say": "For w 5 that input is h 1, which is 0.5. So w 5 becomes 0.833244. The lecture rounds delta k first and prints 0.833245 — both get the mark."},
+      {"text": "w₆ and θ₃ move the same way — θ’s input is always 1.", "say": "w 6 and theta 3 move the same way — theta’s input is always 1."}
+    ],
+    "hidden": [
+      "Hidden neurons have no target. Their share of the error comes back through the weights.",
+      {"text": "Each δj multiplies δk by the weight it travelled along, then by the sigmoid slope h(1 − h).", "say": "Each hidden delta multiplies delta k by the weight it travelled along, then by the sigmoid slope, h times one minus h."},
+      {"text": "δj1 = 0.023010 and δj2 = −0.036923. h₂ fed the output through a negative weight, so its blame has the opposite sign.", "say": "Delta j 1 is 0.023010, and delta j 2 is minus 0.036923. h 2 fed the output through a negative weight, so its blame has the opposite sign."},
+      {"text": "One exam detail: these deltas use w₅ and w₆ from before the update.", "say": "One exam detail: these deltas use w 5 and w 6 from before the update."}
+    ],
+    "update_hidden": [
+      {"text": "Same rule for the first layer: w ← w − η δj x.", "say": "Same rule for the first layer: w becomes w minus eta times delta j times x."},
+      {"text": "But this input is (0, 0). Every x is zero, so w₁ to w₄ do not change at all.", "say": "But this input is zero, zero. Every x is zero, so w 1 to w 4 do not change at all."},
+      {"text": "Only the biases move. Over the next three samples the other weights get their turn.", "say": "Only the biases move. Over the next three samples the other weights get their turn. Before we go on: if both hidden neurons started with identical weights, would they ever become different?"}
+    ],
+    "train": [
+      "That was one step for one sample. An epoch runs all four samples; then repeat.",
+      "The loss falls slowly at first, then quickly once the hidden layer finds a useful shape.",
+      "After 10,000 epochs the network gives outputs close to 0, 1, 1, 0: XOR, learned."
+    ],
+    "rate": [
+      {"text": "η scales every step. Here is the same descent on a simple bowl with three learning rates.", "say": "Eta scales every step. Here is the same descent on a simple bowl with three learning rates."},
+      "Too small and you creep towards the bottom.",
+      "About right and you land in a few steps.",
+      "Too large and each step overshoots further than the last. Exams ask exactly this trade-off."
+    ],
+    "recap": [
+      {"text": "Three formulas cover every backprop question in this course.", "say": "Three formulas cover every backprop question in this course. One: at the output, delta k is O minus T, times O times one minus O. In the hidden layer, delta j is O j times one minus O j, times delta k, times the old weight w j k. Two: the update is w minus eta times delta times the input of that weight; a bias’s input is 1. Three: zero inputs give zero updates; an eta too large overshoots, too small crawls."},
+      "Then open the XOR page and run these steps yourself, with Quiz mode on."
+    ]
+  },
+  "zh": {
+    "title": [
+      "每份期末卷都要你手算一个小网络的前向传播并更新权重。我们慢慢做一遍，看清每个因子为什么在那里。"
+    ],
+    "setup": [
+      "这是第 6 讲用于 XOR 的 2-2-1 网络：六个权重、三个偏置，初值都取课件的数字。",
+      "学习率 0.5，所有神经元都用 sigmoid。",
+      {"text": "第一个样本：输入 (0, 0)，目标 T = 0。", "say": "第一个样本：输入 0、0，目标 T 等于 0。"}
+    ],
+    "forward": [
+      {"text": "信号从左往右流。每个神经元把权重乘输入加起来，加上 θ，再过 sigmoid。", "say": "信号从左往右流。每个神经元把权重乘输入加起来，加上 theta，再过 sigmoid。"},
+      {"text": "输入是 (0, 0)，两个隐藏层的和都是 0，σ(0) 正好是 0.5。", "say": "输入是 0、0，两个隐藏层的和都是 0，sigmoid 在 0 处正好是 0.5。"},
+      {"text": "输出神经元得到 0.86 × 0.5 − 1.38 × 0.5 = −0.26，所以 O = σ(−0.26) ≈ 0.4354。", "say": "输出神经元得到 0.86 乘 0.5，减去 1.38 乘 0.5，等于负 0.26。所以 O 等于 sigmoid 负 0.26，约 0.4354。"},
+      {"text": "我们想要的是 0。误差 E = ½(T − O)²。", "say": "我们想要的是 0。误差 E 等于二分之一乘以 T 减 O 的平方。"}
+    ],
+    "chain": [
+      {"text": "要修正 w₅，得知道 w₅ 变化时 E 怎么变。链式法则把它拆成三个更简单的问题。", "say": "要修正 w5，得知道 w5 变化时 E 怎么变。链式法则把它拆成三个更简单的问题。"},
+      {"text": "E 随 O 怎么变？是 O − T：我们错了多少。", "say": "E 随 O 怎么变？是 O 减 T：我们错了多少。"},
+      {"text": "O 随它的输入 z 怎么变？sigmoid 的答案是 O(1 − O)：曲线的斜率。", "say": "O 随它的输入 z 怎么变？sigmoid 的答案是 O 乘以 1 减 O：曲线的斜率。"},
+      {"text": "z 随 w₅ 怎么变？是 h₁，也就是沿 w₅ 传过来的信号。", "say": "z 随 w5 怎么变？是 h1，也就是沿 w5 传过来的信号。"},
+      {"text": "前两个因子与具体修正哪个权重无关，合起来就是 δk = 0.107022。", "say": "前两个因子与具体修正哪个权重无关，合起来就是 delta k，等于 0.107022。"}
+    ],
+    "update_out": [
+      {"text": "更新规则：减去 η 乘 δ 再乘流入该权重的输入。", "say": "更新规则：减去 eta 乘 delta，再乘流入该权重的输入。"},
+      {"text": "w₅ 的输入是 h₁ = 0.5：w₅ 变成 0.833244（课件先把 δk 四舍五入，印的是 0.833245 —— 两者都给分）。", "say": "w5 的输入是 h1，等于 0.5：w5 变成 0.833244。课件先把 delta k 四舍五入，印的是 0.833245，两者都给分。"},
+      {"text": "w₆ 和 θ₃ 同理更新 —— θ 的输入永远是 1。", "say": "w6 和 theta 3 同理更新，theta 的输入永远是 1。"}
+    ],
+    "hidden": [
+      "隐藏神经元没有目标值。它们分到的误差要通过权重传回来。",
+      {"text": "每个 δj 等于 δk 乘以它经过的那条边的权重，再乘 sigmoid 斜率 h(1 − h)。", "say": "每个隐藏层的 delta，等于 delta k 乘以它经过的那条边的权重，再乘 sigmoid 斜率 h 乘以 1 减 h。"},
+      {"text": "δj1 = 0.023010，δj2 = −0.036923。h₂ 通过负权重连到输出，所以它分到的误差符号相反。", "say": "delta j1 等于 0.023010，delta j2 等于负 0.036923。h2 通过负权重连到输出，所以它分到的误差符号相反。"},
+      {"text": "一个考试细节：这些 δ 用的是更新之前的 w₅、w₆。", "say": "一个考试细节：这些 delta 用的是更新之前的 w5、w6。"}
+    ],
+    "update_hidden": [
+      {"text": "第一层用同样的规则：w ← w − η δj x。", "say": "第一层用同样的规则：w 更新为 w 减 eta 乘 delta j 乘 x。"},
+      {"text": "但这次输入是 (0, 0)。所有 x 都是 0，所以 w₁ 到 w₄ 完全不变。", "say": "但这次输入是 0、0。所有 x 都是 0，所以 w1 到 w4 完全不变。"},
+      {"text": "只有偏置会动。接下来的三个样本会轮到其他权重。", "say": "只有偏置会动。接下来的三个样本会轮到其他权重。先停下来想一想：如果两个隐藏神经元的初始权重完全相同，它们以后还会变得不同吗？"}
+    ],
+    "train": [
+      "这只是一个样本的一步。一轮要跑完四个样本，然后不断重复。",
+      "损失一开始降得很慢，隐藏层找到有用的形状后就迅速下降。",
+      "10,000 轮之后，网络输出接近 0、1、1、0：学会了 XOR。"
+    ],
+    "rate": [
+      {"text": "η 缩放每一步。这里在一个简单的碗形函数上，用三个学习率做同样的下降。", "say": "eta 缩放每一步。这里在一个简单的碗形函数上，用三个学习率做同样的下降。"},
+      "太小，就慢慢挪向谷底。",
+      "刚好，几步就到。",
+      "太大，每一步都比上一步冲得更远。考试问的正是这个取舍。"
+    ],
+    "recap": [
+      {"text": "三条公式覆盖本课所有反向传播题。", "say": "三条公式覆盖本课所有反向传播题。第一，输出层的 delta k 等于 O 减 T，乘以 O 乘 1 减 O。隐藏层的 delta j 等于 Oj 乘 1 减 Oj，乘 delta k，再乘旧的权重 wjk。第二，更新：w 减去 eta 乘 delta 乘该权重的输入；偏置的输入是 1。第三，输入为 0 则更新为 0；eta 太大会冲过头，太小会爬得很慢。"},
+      "然后打开 XOR 页面，开着「自测」模式亲手走一遍这些步骤。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "每份期末卷都要你人手計一個細網絡嘅前向傳播，再更新權重。我哋慢慢做一次，睇清楚每個因子點解喺度。"
+    ],
+    "setup": [
+      "呢個係第 6 講用嚟做 XOR 嘅 2-2-1 網絡：六個權重、三個偏置，初始值全部跟課件。",
+      "學習率係 0.5，所有神經元都用 sigmoid。",
+      {"text": "第一個樣本：輸入 (0, 0)，目標 T = 0。", "say": "第一個樣本：輸入 0、0，目標 T 等於 0。"}
+    ],
+    "forward": [
+      {"text": "訊號由左向右流。每個神經元將權重乘輸入加埋，再加 θ，然後過 sigmoid。", "say": "訊號由左向右流。每個神經元將權重乘輸入加埋，再加 theta，然後過 sigmoid。"},
+      {"text": "輸入係 (0, 0)，兩個隱藏層嘅和都係 0，σ(0) 啱啱好係 0.5。", "say": "輸入係 0、0，兩個隱藏層嘅和都係 0，sigmoid 喺 0 嘅值啱啱好係 0.5。"},
+      {"text": "輸出神經元得到 0.86 × 0.5 − 1.38 × 0.5 = −0.26，所以 O = σ(−0.26) ≈ 0.4354。", "say": "輸出神經元得到 0.86 乘 0.5，減 1.38 乘 0.5，等於負 0.26。所以 O 等於 sigmoid 負 0.26，大約 0.4354。"},
+      {"text": "我哋想要嘅係 0。誤差 E = ½(T − O)²。", "say": "我哋想要嘅係 0。誤差 E 等於二分之一乘 T 減 O 嘅平方。"}
+    ],
+    "chain": [
+      {"text": "要修正 w₅，就要知道 w₅ 變嘅時候 E 點變。鏈式法則將佢拆做三條簡單啲嘅問題。", "say": "要修正 w5，就要知道 w5 變嘅時候 E 點變。鏈式法則將佢拆做三條簡單啲嘅問題。"},
+      {"text": "E 跟 O 點變？係 O − T：我哋錯咗幾多。", "say": "E 跟 O 點變？係 O 減 T：我哋錯咗幾多。"},
+      {"text": "O 跟佢嘅輸入 z 點變？sigmoid 嘅答案係 O(1 − O)：條曲線嘅斜率。", "say": "O 跟佢嘅輸入 z 點變？sigmoid 嘅答案係 O 乘 1 減 O：條曲線嘅斜率。"},
+      {"text": "z 跟 w₅ 點變？係 h₁，即係沿住 w₅ 傳過嚟嘅訊號。", "say": "z 跟 w5 點變？係 h1，即係沿住 w5 傳過嚟嘅訊號。"},
+      {"text": "頭兩個因子同修正邊個權重冇關係，合埋就係 δk = 0.107022。", "say": "頭兩個因子同修正邊個權重冇關係，合埋就係 delta k，等於 0.107022。"}
+    ],
+    "update_out": [
+      {"text": "更新規則：減去 η 乘 δ，再乘流入嗰個權重嘅輸入。", "say": "更新規則：減去 eta 乘 delta，再乘流入嗰個權重嘅輸入。"},
+      {"text": "w₅ 嘅輸入係 h₁ = 0.5：w₅ 變成 0.833244（課件先將 δk 四捨五入，印咗 0.833245，兩個都俾分）。", "say": "w5 嘅輸入係 h1，等於 0.5：w5 變成 0.833244。課件先將 delta k 四捨五入，印咗 0.833245，兩個都俾分。"},
+      {"text": "w₆ 同 θ₃ 都係咁更新，θ 嘅輸入永遠係 1。", "say": "w6 同 theta 3 都係咁更新，theta 嘅輸入永遠係 1。"}
+    ],
+    "hidden": [
+      "隱藏神經元冇目標值。佢哋分到嘅誤差，要經權重傳返嚟。",
+      {"text": "每個 δj 等於 δk 乘佢經過嗰條邊嘅權重，再乘 sigmoid 斜率 h(1 − h)。", "say": "每個隱藏層嘅 delta，等於 delta k 乘佢經過嗰條邊嘅權重，再乘 sigmoid 斜率 h 乘 1 減 h。"},
+      {"text": "δj1 = 0.023010，δj2 = −0.036923。h₂ 經負權重連去輸出，所以佢分到嘅誤差符號相反。", "say": "delta j1 等於 0.023010，delta j2 等於負 0.036923。h2 經負權重連去輸出，所以佢分到嘅誤差符號相反。"},
+      {"text": "一個考試細節：呢啲 δ 用嘅係更新之前嘅 w₅ 同 w₆。", "say": "一個考試細節：呢啲 delta 用嘅係更新之前嘅 w5 同 w6。"}
+    ],
+    "update_hidden": [
+      {"text": "第一層用同一條規則：w ← w − η δj x。", "say": "第一層用同一條規則：w 更新做 w 減 eta 乘 delta j 乘 x。"},
+      {"text": "但係今次輸入係 (0, 0)。所有 x 都係 0，所以 w₁ 到 w₄ 完全唔變。", "say": "但係今次輸入係 0、0。所有 x 都係 0，所以 w1 到 w4 完全唔變。"},
+      {"text": "得偏置會郁。之後三個樣本就會輪到其他權重。", "say": "得偏置會郁。之後三個樣本就會輪到其他權重。停一停諗吓先：如果兩個隱藏神經元嘅初始權重一模一樣，佢哋之後會唔會變得唔同？"}
+    ],
+    "train": [
+      "呢個只係一個樣本嘅一步。一輪要行晒四個樣本，然後不斷重複。",
+      "損失一開始跌得好慢，到隱藏層搵到有用嘅形狀之後，就跌得好快。",
+      "10,000 輪之後，網絡輸出接近 0、1、1、0：學識咗 XOR。"
+    ],
+    "rate": [
+      {"text": "η 會縮放每一步。呢度喺一個簡單嘅碗形函數上面，用三個學習率做同樣嘅下降。", "say": "eta 會縮放每一步。呢度喺一個簡單嘅碗形函數上面，用三個學習率做同樣嘅下降。"},
+      "太細，就慢慢咁行向谷底。",
+      "啱啱好，幾步就到。",
+      "太大，每一步都衝得比上一步更遠。考試問嘅正正就係呢個取捨。"
+    ],
+    "recap": [
+      {"text": "三條公式，搞掂呢科所有反向傳播題。", "say": "三條公式，搞掂呢科所有反向傳播題。第一，輸出層嘅 delta k 等於 O 減 T，乘 O 乘 1 減 O。隱藏層嘅 delta j 等於 Oj 乘 1 減 Oj，乘 delta k，再乘舊嘅權重 wjk。第二，更新：w 減 eta 乘 delta 乘嗰個權重嘅輸入；偏置嘅輸入係 1。第三，輸入係 0 就唔會更新；eta 太大會衝過龍，太細會爬得好慢。"},
+      "之後打開 XOR 頁面，開住「自測」模式，親手行一次呢啲步驟。"
+    ]
+  }
+}

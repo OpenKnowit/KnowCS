@@ -1,0 +1,110 @@
+{
+  "en": {
+    "title": [
+      {"text": "KNN shows up in seven of the nine papers: compute distances, pick the k closest, vote — and standardize first.", "say": "KNN shows up in seven of the nine past papers: compute distances, pick the k closest, vote — and standardize first."}
+    ],
+    "data": [
+      {"text": "Lecture 3: eighteen customers, their height, weight and T-shirt size.", "say": "Lecture 3: eighteen customers, with their height, weight and T-shirt size."},
+      {"text": "A new customer arrives: 161 cm, 61 kg. We have to guess the size.", "say": "A new customer arrives: 161 centimetres, 61 kilograms. We have to guess the size."},
+      "KNN does not build a model in advance. It only needs the data and a distance."
+    ],
+    "distance": [
+      "Measure the straight-line distance from the new customer to every stored customer.",
+      {"text": "Sort them. The closest is (160, 60), only 1.41 away.", "say": "Then sort them. The closest is the customer at 160 centimetres and 60 kilograms — only 1.41 away."}
+    ],
+    "vote": [
+      {"text": "With k = 1 we copy the single closest customer: M.", "say": "With k equals 1, we copy the single closest customer: M."},
+      {"text": "With k = 3, three neighbours vote. With k = 5, the lecture’s choice, the vote is 4 M against 1 L.", "say": "With k equals 3, three neighbours vote. With k equals 5, the choice used in the lecture, the vote is 4 M against 1 L."},
+      "Here every k says M. The neighbourhood is mostly medium.",
+      {"text": "The yellow ring is the radius that just reaches the k-th neighbour.", "say": "The yellow ring is the radius that just reaches the k-th neighbour. Before we go on: with two classes, why do people prefer an odd k?"}
+    ],
+    "scale": [
+      "Height is in centimetres and weight in kilograms. Which one matters more in the distance depends only on the units.",
+      {"text": "The fix is to measure each feature in standard deviations: subtract the mean, divide by the standard deviation.", "say": "The fix is to measure each feature in standard deviations: subtract the mean, then divide by the standard deviation."},
+      {"text": "Watch the plane stretch: height spreads 4.33 cm per unit, weight 2.63 kg per unit.", "say": "Watch the plane stretch: height spreads 4.33 centimetres per unit, weight 2.63 kilograms per unit."},
+      {"text": "In the new units the neighbourhood is a circle again — and the fifth neighbour is a different customer.", "say": "In the new units, the neighbourhood is a circle again — and the fifth neighbour is a different customer."},
+      "Exams give you the mean and standard deviation. Standardize the test point with the training statistics too."
+    ],
+    "boundary": [
+      {"text": "Colour every point of the plane by its prediction. With k = 1 the boundary follows every single customer.", "say": "Colour every point of the plane by its prediction. With k equals 1, the boundary follows every single customer."},
+      {"text": "With k = 15 it smooths out so much that the majority class takes over: less sensitive to one odd point, but blind to real structure.", "say": "With k equals 15, it smooths out so much that the majority class takes over: less sensitive to one odd point, but blind to real structure."},
+      "Small k overfits, large k underfits. Pick k with validation data."
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: compute the distance to every training point, take the k closest, and majority vote. Two: before measuring distance, standardize each feature with the training mean and standard deviation. Three: small k overfits, large k underfits; use an odd k for two classes."},
+      {"text": "Then move the test point yourself on the KNN page, with standardization on and off.", "say": "Then try it yourself on the KNN page: move the test point, with standardization on and off."}
+    ]
+  },
+  "zh": {
+    "title": [
+      {"text": "九份试卷里有七份考 KNN：算距离、挑最近的 k 个、投票 —— 还要先做标准化。", "say": "九份试卷里有七份考 KNN：算距离、挑最近的 k 个、投票，还要先做标准化。"}
+    ],
+    "data": [
+      {"text": "第 3 讲：十八位顾客的身高、体重和 T 恤尺码。", "say": "第三讲的例子：十八位顾客的身高、体重和 T 恤尺码。"},
+      {"text": "来了一位新顾客：161 cm，61 kg。我们要猜他的尺码。", "say": "来了一位新顾客，身高 161 厘米，体重 61 公斤。我们要猜他的尺码。"},
+      {"text": "KNN 不事先建立模型。它只需要数据和一个距离。", "say": "KNN 不事先建立模型，它只需要数据和一个距离。"}
+    ],
+    "distance": [
+      {"text": "量出新顾客到每位已存顾客的直线距离。", "say": "先量出新顾客到每一位已存顾客的直线距离。"},
+      {"text": "排序。最近的是 (160, 60)，距离只有 1.41。", "say": "然后排序。最近的是 160 厘米、60 公斤这位顾客，距离只有 1.41。"}
+    ],
+    "vote": [
+      {"text": "k = 1 时，直接照抄最近的那位顾客：M。", "say": "k 等于 1 时，直接照抄最近的那位顾客：M。"},
+      {"text": "k = 3 时，三个邻居投票。k = 5 是课件的选择，投票结果是 4 个 M 对 1 个 L。", "say": "k 等于 3 时，三个邻居投票。k 等于 5 是课件的选择，投票结果是 4 个 M 对 1 个 L。"},
+      "这里每个 k 都给出 M，附近大多是中码。",
+      {"text": "黄色圈的半径正好够到第 k 个邻居。", "say": "黄色圈的半径，正好够到第 k 个邻居。先停下来想一想：两类问题时，为什么大家偏爱奇数的 k？"}
+    ],
+    "scale": [
+      {"text": "身高以厘米计，体重以千克计。距离里哪个更重要，完全取决于单位。", "say": "身高以厘米计，体重以千克计。距离里哪个特征更重要，完全取决于单位。"},
+      {"text": "办法是把每个特征换成以标准差为单位：减去均值，除以标准差。", "say": "办法是把每个特征换成以标准差为单位：减去均值，再除以标准差。"},
+      {"text": "看平面被拉伸：身高每个单位 4.33 cm，体重每个单位 2.63 kg。", "say": "看平面被拉伸：身高每个单位是 4.33 厘米，体重每个单位是 2.63 千克。"},
+      {"text": "换成新单位后，邻域又是一个圆了 —— 而第五个邻居换了一位顾客。", "say": "换成新单位后，邻域又是一个圆了，而第五个邻居换了一位顾客。"},
+      {"text": "考试会给出均值和标准差。测试点也要用训练数据的统计量来标准化。", "say": "考试会给出均值和标准差。记住，测试点也要用训练数据的统计量来标准化。"}
+    ],
+    "boundary": [
+      {"text": "按预测结果给平面上每一点上色。k = 1 时，边界紧跟每一位顾客。", "say": "按预测结果，给平面上每一点上色。k 等于 1 时，边界紧跟每一位顾客。"},
+      {"text": "k = 15 时边界平滑到多数类占据了大部分平面：不受单个异常点影响，却也看不到真实结构。", "say": "k 等于 15 时，边界平滑到多数类占据了大部分平面：不受单个异常点影响，却也看不到真实的结构。"},
+      "k 小会过拟合，k 大会欠拟合。用验证数据来选 k。"
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，算出到每个训练点的距离，取最近的 k 个，多数投票。第二，量距离之前，用训练数据的均值和标准差，把每个特征标准化。第三，k 小过拟合，k 大欠拟合，两类问题用奇数 k。"},
+      {"text": "然后去 KNN 页面自己移动测试点，比较开关标准化的区别。", "say": "然后去 KNN 页面，自己移动测试点，比较开关标准化的区别。"}
+    ]
+  },
+  "yue": {
+    "title": [
+      "九份試卷入面有七份都考 KNN：計距離、揀最近嘅 k 個、投票，仲要記得先做標準化。"
+    ],
+    "data": [
+      "第三講嘅例子：十八位顧客嘅身高、體重同埋 T 恤尺碼。",
+      "而家嚟咗位新顧客，身高 161 厘米，體重 61 公斤。我哋要估吓佢著咩碼。",
+      "KNN 唔會預先建立模型，佢只需要數據同一個距離。"
+    ],
+    "distance": [
+      "首先量出新顧客同每一位已存顧客之間嘅直線距離。",
+      "然後排一排序。最近嗰位係 160 厘米、60 公斤，距離得 1.41。"
+    ],
+    "vote": [
+      "k 等於 1 嘅時候，就直接跟最近嗰位顧客：M。",
+      "k 等於 3，就由三個鄰居投票。k 等於 5 係課件揀嘅，投票結果係 4 個 M 對 1 個 L。",
+      "喺呢度，無論 k 係幾多都係 M，附近大部分都係中碼。",
+      "黃色個圈，半徑啱啱好掂到第 k 個鄰居。停一停諗吓先：兩類問題嘅時候，點解大家鍾意用單數嘅 k？"
+    ],
+    "scale": [
+      "身高用厘米計，體重用公斤計。距離入面邊個特徵影響大啲，完全取決於單位。",
+      "解決方法係將每個特徵轉做以標準差為單位：減咗平均值，再除以標準差。",
+      "睇吓個平面點樣被拉闊：身高每個單位係 4.33 厘米，體重每個單位係 2.63 公斤。",
+      "換咗新單位之後，鄰域又變返做一個圓形，而第五個鄰居亦都換咗另一位顧客。",
+      "考試會提供平均值同標準差。記住，測試點都要用訓練數據嘅統計量嚟做標準化。"
+    ],
+    "boundary": [
+      "根據預測結果，將平面上每一點填上顏色。k 等於 1 嘅時候，邊界會貼住每一位顧客。",
+      "k 等於 15 嘅時候，邊界平滑到多數類佔咗大部分平面：唔會俾單一個異常點影響，但係亦都睇唔到真正嘅結構。",
+      "k 細會過擬合，k 大會擬合不足。要用驗證數據嚟揀 k。"
+    ],
+    "recap": [
+      "帶入試場嘅三樣嘢。第一，計出同每個訓練點嘅距離，揀最近嘅 k 個，少數服從多數。第二，量距離之前，用訓練數據嘅平均值同標準差，將每個特徵標準化。第三，k 細會過擬合，k 大會擬合不足，兩類問題用單數 k。",
+      "之後去 KNN 頁面，自己郁吓個測試點，比較吓開同關標準化有咩分別。"
+    ]
+  }
+}

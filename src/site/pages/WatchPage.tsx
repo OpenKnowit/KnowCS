@@ -8,6 +8,7 @@ import { Player, PlayerSkeleton, capKey } from '../watch/Player'
 import { EpisodeCard, lengthOf, readWatched } from '../watch/EpisodeCard'
 import type { Episode } from '../watch/Player'
 import { useEpisode } from '../watch/useEpisode'
+import { useNarration } from '../watch/narration'
 import { usePaperLabel } from '../ui'
 
 function Gallery() {
@@ -50,7 +51,7 @@ function Transcript({ episode, now, onSeek }: { episode: Episode; now: number; o
               <span className="font-mono text-xs font-bold text-blue-600">{fmtClock(tl.starts[i])}</span>
               <b className="text-[14px] text-slate-900">{t(`watch.${episode.id}.scenes.${s.id}.title`)}</b>
             </span>
-            <span className="mt-1 block text-[13px] leading-relaxed text-slate-600">{s.cues.map((_, k) => t(capKey(episode.id, s.id, k))).join(' ')}</span>
+            <span className="mt-1 block text-[13px] leading-relaxed text-slate-600">{s.cues.map((_, k) => s.lines?.[k] ?? t(capKey(episode.id, s.id, k))).join(' ')}</span>
           </button>
         </li>
       ))}
@@ -61,7 +62,7 @@ function Transcript({ episode, now, onSeek }: { episode: Episode; now: number; o
 function EpisodePage({ info }: { info: EpisodeInfo }) {
   const { t } = useTranslation()
   const paper = usePaperLabel()
-  const ep = useEpisode(info.id)
+  const { episode: ep, voice } = useNarration(useEpisode(info.id))
   const [now, setNow] = useState(0)
   const [shown, setShown] = useState(false)
   const seek = useRef<((t: number) => void) | null>(null)
@@ -91,7 +92,7 @@ function EpisodePage({ info }: { info: EpisodeInfo }) {
       </div>
 
       <div className="mt-5">
-        {ep ? <Player episode={ep} onTime={setNow} seekRef={seek} /> : <PlayerSkeleton />}
+        {ep ? <Player episode={ep} onTime={setNow} seekRef={seek} voice={voice} /> : <PlayerSkeleton />}
         <p className="mt-2 hidden text-center text-xs text-slate-500 sm:block">{t('watch.ui.keys')}</p>
         <p className="mt-2 text-center text-xs font-semibold text-slate-500 sm:hidden">{t('watch.ui.rotate')}</p>
       </div>

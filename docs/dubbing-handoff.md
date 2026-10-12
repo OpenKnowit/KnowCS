@@ -1,6 +1,6 @@
 # 交接：讲解视频（/watch/）三语配音
 
-> 2026-10-12 写。上一个 session 已经验证了 Gemini TTS 可用，选定了音色，并用 KNN 一集做了整节试配。下一个 session 的任务是**把配音接入 /watch/ 播放器**，再推广到全部 17 集。
+> 2026-10-12 写，同日第二个 session 更新：播放器已接入，KNN 已上线，17 集讲稿已写好；其余音频受每日 100 次限额约束，按第 4 节分批生成。
 
 ## 1. 已定决策（用户确认过，不要再改）
 
@@ -43,86 +43,52 @@
 - **耗时**：生成速度约为音频时长的一半（20 秒音频大约要等 10 秒）。
 - `gemini-2.5-flash` 已不对新用户开放。要做听辨或转写，用 `gemini-3.8-flash`。
 
-## 3. 现有成果：`work/dubbing/`
+## 3. 现状（2026-10-12 第二个 session 之后）
 
-这个目录在 gitignore 里，只存在于本机。
+已接入播放器并上线 KNN 一集；其余 16 集的讲稿已写好，音频受每日限额约束，正在分批生成。
 
-```
-work/dubbing/
-  samples/           7 个候选音色 × 三语的试听样本（选音色时用的）
-  knn/
-    script.json      KNN 三语讲稿（按场景）+ 音色 + style + 视频原场景时长
-    gen.py           按 script.json 逐场景生成：python3 -I gen.py [zh yue en]（已存在的文件会跳过）
-    gen_voice.py     换音色重配一种语言：python3 -I gen_voice.py en Charon → 输出到 en-Charon/
-    qa.py            用 gemini-3.8-flash 听辨每段并对照讲稿 → qa-results.txt
-    zh/ yue/ en/     最终选定音色的逐场景 WAV（en/ 是 Charon）
-    en-Sadaltager/ en-Iapetus/   落选的英文音色
-    knn-{zh,yue,en}.m4a   整节拼接版（场景之间加 0.7 秒静音，AAC 96k，每个约 3 MB / 3 分钟）
-```
+**用户已确认的决定**：配音开启时字幕显示讲稿（粤语为口语稿，en/zh 仍显示站点原字幕，只有朗读文本不同）；默认开，控制栏有开关（M 键），选择记在 `knowcs-voice`；音频**不进 Git**，放服务器共享目录，每个 release 软链接过去；先上线 KNN 验证，其余后台生成。
 
-运行方式：
+| 部分 | 位置 |
+|---|---|
+| 讲稿（17 集 × 3 语，入库） | `src/content/narration/<ep>.json`：`{lang: {scene: [每条字幕一句]}}`；一句可写成 `{"text": 字幕, "say": 朗读文本}` |
+| 生成 / 构建 / 听辨 | `scripts/tts/narrate.py gen|build|qa <ep…|all> [--lang] [--per-line]`；`scripts/tts/timings.mjs` 导出各场景 dur/cues |
+| 片段缓存（不入库） | `work/dubbing/clips/<lang>/<sha1(模型|音色|style|朗读文本)>.wav`，改一句只重录那一句 |
+| 构建产物（不入库） | `work/dubbing/out/audio/<ep>/<lang>.json` + `<lang>.<hash>.m4a`（AAC 48k 单声道，约 1.2 MB / 3 分钟） |
+| 播放器 | `src/site/watch/narration.ts`（读 manifest、重排时间、`remapTime`）、`Player.tsx`（音频即时钟、倍速、拖动、ponder、开关）、`WatchPage.tsx` |
+| 本地预览 | `vite.config.js` 的 `narrationAudio()` 在 dev/preview 下从 `work/dubbing/out/audio` 提供 `/audio/`（支持 Range） |
+| 测试 | `src/site/watch/narration.test.ts`：每条字幕一句、en/zh 字幕与站点一致、朗读文本不含 `= × − ² σ ₁ [ ]` 等难读符号 |
+
+**时间对齐**：每条字幕的段长 = 300 ms（场景首句）+ 片段时长（去掉首尾静音）+ 450 ms，且不短于原视频该段；播放器用分段线性映射把每段动画对到原来的 cue 区间（`narratedTiming` / `piecewise`），所以每句话说的时候画面正演到它对应的部分。manifest 与代码里场景 id 或字幕条数对不上时，该集自动退回无声原版。
+
+**生成方式**：`gen` 对整场景都缺的情况一次请求读完整个场景（各句用空行隔开），再按停顿切分（`split()`：在所有停顿里选与各句预期时长比例最吻合、且停顿较长的切点）。比逐句请求省约 3 倍配额、语调也更连贯；某句改动后只单独重录那一句。切分偏差 > 45% 会打印 `!! check the cuts`，用 `qa` 听辨核对。
+
+## 4. 配额（最大的限制）
+
+Tier 1 的 `gemini-3.8-flash-tts` **每天 100 次请求**（429 提示 "limit: 100 requests per day"，约在香港时间早上重置）。按场景生成，16 集约 405 次，约 4–5 天；`gen` 碰到日限额会直接退出（不空耗重试）。批量命令（每天跑一次即可，已生成的会跳过）：
 
 ```
 cd /Users/charles/repo/KnowCS && set -a && source .env && set +a
-SSL_CERT_FILE=/etc/ssl/cert.pem python3 -I work/dubbing/knn/gen.py zh
+SSL_CERT_FILE=/etc/ssl/cert.pem python3 -I scripts/tts/narrate.py gen perceptron kmeans bayes xor backprop cnn evaluate broadcast gaussian imagenp otsu affine alphabeta dilated autograd ethics
+SSL_CERT_FILE=/etc/ssl/cert.pem python3 -I scripts/tts/narrate.py qa  <同上>
+python3 -I scripts/tts/narrate.py build <完成的集>
 ```
 
-**讲稿来源**：
-- **en 和 zh**：基本照用 `src/locales/{en,zh}.json` 里 `watch.knn.scenes.*.c*` 的字幕，只做了口语化改写：单位写全（cm → 厘米 / centimetres）、`k = 1` → 「k 等于 1」/「k equals 1」。
-- **ponder 问题**：拼在 vote 场景的末尾念出来。
-- **recap**：把 `watch.knn.recap.1–3` 三条要点也念了。
-- **yue**：现有的 `zh-HK` 字幕是书面中文，所以重写了一份**口语粤语稿**（嘅、咗、啲、俾），不是照念字幕。
+升级到更高 tier 可以一次做完。听辨用的 `gemini-3.8-flash` 是另一份配额。
 
-## 4. 关键发现：配音比视频长一倍
+## 5. 已知问题
 
-视频的场景时长是按「读字幕」的速度设计的。念出来以后，KNN 一集从 95 秒变成约 180 秒：
+- KNN 讲稿已按上一版 QA 修正：坐标改成「160 centimetres and 60 kilograms」，「the lecture's choice」改为「the choice used in the lecture」，粤语「欠擬合」改为「擬合不足」，「俾埋…你」改为「提供」。
+- KNN 英文 boundary 第 3 句和 recap 两句来自上一版整场景录音的切分（当天配额用完），其余为逐句录音。
+- ponder 停住时，下方字幕已是下一场景的第一句（原版行为，配音版沿用）。
 
-| 场景 | 原 dur | zh | yue | en（Charon） |
-|---|---|---|---|---|
-| title | 5 s | 11.3 | 9.5 | 11.7 |
-| data | 12 s | 21.4 | 20.3 | 21.4 |
-| distance | 15 s | 15.3 | 13.3 | 15.1 |
-| vote | 17 s | 29.8 | 30.4 | 31.0 |
-| scale | 19 s | 42.2 | 40.6 | 43.2 |
-| boundary | 15 s | 28.1 | 28.5 | 26.2 |
-| recap | 12 s | 26.9 | 31.2 | 32.0 |
+## 6. 发布
 
-好在所有场景的渲染都是进度 `p ∈ [0,1]` 的纯函数（`src/lib/explainer.ts`），**把某个场景的 `dur` 拉长，动画会自然放慢，不用改任何渲染代码**。
+见 `deploy/README.md` 的 “Narration audio”：本地 `build` 后把 `work/dubbing/out/audio/<ep>/` 传到服务器 `/opt/1panel/www/sites/knowcs/audio/<ep>/`；新 release 需要 `ln -s ../../audio releases/<ts>/audio`。只更新音频不需要发新 release。
 
-全部 17 集共 143 个场景、414 条字幕，视频原长约 33.5 分钟，配音后预计每种语言约 65 分钟。
+## 7. 待定
 
-## 5. 已知问题（接入前要修）
-
-由 `qa.py` 听辨发现。听辨模型本身也会出错，下面三条我已单独复查过：
-
-1. **英文把「160, 60」念成了「160 comma 60」**（distance 场景，Charon 和 Sadaltager 都这样）。坐标不要用逗号，改写成「160 centimetres and 60 kilograms」或「(160, 60)」→「160 by 60」。
-2. **英文把「the lecture's choice」念成了「the lecturer's choice」**（vote 场景）。改写成「the choice used in the lecture」。
-3. **粤语把「欠擬合」的「欠」(him3) 念成了「缺」(kyut3)**（recap 场景）。这是术语，必须修。可以试换说法（如「擬合不足」）重新生成，生成后再用 qa.py 复查。其他术语（過擬合、標準化）也建议抽查。
-4. 听辨还报告粤语 scale 场景把「俾埋…你」念成了「…嚟嘅」，**没有复查过**，修完上面几条后人工听一下 `knn/yue/scale.wav`。
-
-总体而言，zh 7 段全部正确；en 除上面两处外正确；yue 除上面两处外，其余差异都是加了助词（可以忽略）。
-
-## 6. 接入播放器：现状和建议
-
-**现状（相关代码）**：
-- `src/site/watch/Player.tsx`：基于 `requestAnimationFrame` 的时钟（`tRef`），支持倍速（`SPEEDS`）、拖动（`seek`）、章节跳转（`chapter`）、ponder 暂停（`stopBetween`），字幕取 `capKey(ep, scene, cue)`。
-- `src/lib/explainer.ts`：`TimedScene { dur, cues, ponder }`，`timeline()` 和 `locate()` 把时间换算成场景和进度。
-- `src/site/watch/episodes/<id>.tsx`：每集的 `scenes` 数组，`dur` 和 `cues`（字幕切换点，场景内的进度比例）是写死的。
-- `src/site/watch/useEpisode.ts`：按集懒加载代码和语言包；`src/lib/lang.ts` 定义站点语言为 `en` / `zh` / `zh-HK`。
-- **静态资源**：Vite 的 root 是生成出来的 `site/`，`site/public/` 由 `vite.config.js` 第 113–142 行生成和拷贝（sw.js、图标等）。音频文件要走同样的拷贝流程，或者另找放置方式。`src/sw/sw.js` 是 service worker，要决定音频缓不缓存。
-
-**建议方案**（下一个 session 可以调整）：
-1. **按字幕（cue）粒度生成音频**，不按场景：每条字幕一个音频文件。好处是字幕和语音能精确对齐：场景 `dur` = 各条音频时长之和 + 留白，`cues` 由累计时长算出来。代价是请求数从 143×3 增加到 414×3（约 1,240 次，按每分钟 10 次限流约需 2 小时），而且句与句之间的语调会略微不连贯。只按场景生成就只能按字数比例估算字幕切换点。
-2. **配音时长表做成构建产物**：生成脚本输出 `<ep>.<lang>.json`，里面是每条音频的毫秒时长。播放器加载后用它覆盖 `dur` 和 `cues`；没有配音的集保持原有时长。
-3. **音频同步**：播放时按当前 cue 播放对应的音频；倍速时设 `audio.playbackRate = speed`；拖动、章节跳转、ponder 暂停、全屏都要同步暂停或定位音频。需要一个静音开关。没开配音的时候，行为要和现在完全一样。
-4. **体积**：AAC 96k 下一集一种语言约 3 MB，17 集 × 3 种语言约 150 MB。建议用 Opus 或 AAC 单声道 32–48 kbps，人声足够清晰，体积可以降到四分之一左右。
-5. **讲稿管理**：讲稿（尤其是和字幕不同的粤语口语稿）应该进版本库。建议放在 `src/content/narration/<ep>.json` 之类的位置，脚本放 `scripts/tts/`。`.env` 必须保持在 gitignore 里。
-
-## 7. 需要问用户的问题
-
-- **粤语模式下的字幕**：语音是口语粤语，而 `zh-HK` 字幕是书面中文，两者对不上。是把字幕换成口语稿、保留书面字幕，还是两种都提供？
-- **默认是否自动播放配音**（还是用户点了才开），以及音频文件放在哪里（随 dist 发布，还是放 CDN 或对象存储）。
-- 先只做 KNN 一集上线验证，还是 17 集一起做。
+- 全部 17 集生成、QA、上线后，考虑字幕跟读到句子级（目前一条字幕一段，recap 的三条要点只在朗读文本里）。
 
 ## 8. 其它
 

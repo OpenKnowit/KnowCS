@@ -1,0 +1,131 @@
+{
+  "en": {
+    "title": [
+      "Every midterm has a NumPy question, and most of them come down to one idea: broadcasting."
+    ],
+    "shape": [
+      {"text": "This array has 2 rows and 3 columns: shape (2, 3).", "say": "This array has 2 rows and 3 columns: shape 2 by 3."},
+      "Axis 0 runs down the rows, axis 1 across the columns.",
+      "Arithmetic on arrays is element by element."
+    ],
+    "same": [
+      "When the shapes match, each element pairs with the element in the same place.",
+      {"text": "Two (2, 3) arrays give a (2, 3) result.", "say": "Two arrays of shape 2 by 3 give a 2 by 3 result."}
+    ],
+    "stretch": [
+      {"text": "Now a column of shape (3, 1) and a row of shape (1, 4).", "say": "Now a column of shape 3 by 1 and a row of shape 1 by 4."},
+      "Line the shapes up from the right and compare each axis: they must be equal, or one of them must be 1.",
+      "Each length-1 axis is stretched: the column copies itself sideways, the row copies itself downwards.",
+      {"text": "Now both are (3, 4), and they add element by element.", "say": "Now both are 3 by 4, and they add element by element."}
+    ],
+    "mismatch": [
+      {"text": "A (2, 3) array plus a vector of length 2.", "say": "A 2 by 3 array plus a vector of length 2."},
+      {"text": "Align from the right: 3 against 2. Neither is 1 — ValueError.", "say": "Align from the right: 3 against 2. Neither is 1 — ValueError. Before we go on: how could you change b so that each row of a gets its own number from b?"}
+    ],
+    "fix": [
+      {"text": "Insert a new axis: b[:, None] has shape (2, 1).", "say": "Insert a new axis: b indexed with colon, None has shape 2 by 1."},
+      "Now the last axis is 3 against 1, so b stretches across each row. Each row gets its own value."
+    ],
+    "pairwise": [
+      "The 2022 Spring midterm: distances from 2 test points to 4 training points.",
+      {"text": "Give the test points a middle axis and the training points a first axis: (2, 1, 2) and (1, 4, 2). Broadcasting produces every difference: (2, 4, 2).", "say": "Give the test points a middle axis and the training points a first axis: 2 by 1 by 2, and 1 by 4 by 2. Broadcasting produces every difference: 2 by 4 by 2."},
+      {"text": "Square and sum along the last axis — the coordinates — to get a (2, 4) table of squared distances.", "say": "Square and sum along the last axis — the coordinates — to get a 2 by 4 table of squared distances."},
+      "Take the square root, and argsort each row to find the nearest neighbours."
+    ],
+    "expand": [
+      {"text": "Expand the square: ‖x − y‖² = ‖x‖² + ‖y‖² − 2x·y.", "say": "Expand the square: the squared distance between x and y is the squared norm of x, plus the squared norm of y, minus 2 x dot y."},
+      {"text": "Each term broadcasts to (2, 4): a column of test norms, a row of training norms, and a matrix product.", "say": "Each term broadcasts to 2 by 4: a column of test norms, a row of training norms, and a matrix product."},
+      "Same numbers, but no three-dimensional array in memory."
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: compare shapes from the right: each axis must be equal or 1, and length-1 axes stretch. Two: use None, or np dot newaxis, to add an axis so the shapes line up. Three: for pairwise distances, subtract Y with a new first axis from X with a new middle axis, square, sum over the last axis, and take the square root."},
+      "Then try it in the NumPy playground, where every call shows its shapes."
+    ]
+  },
+  "zh": {
+    "title": [
+      "每份期中卷都有一道 NumPy 题，大多数都归结为一个概念：广播。"
+    ],
+    "shape": [
+      {"text": "这个数组有 2 行 3 列：形状 (2, 3)。", "say": "这个数组有 2 行 3 列：形状是 2 乘 3。"},
+      "axis 0 沿着行往下，axis 1 沿着列往右。",
+      "数组运算是逐元素进行的。"
+    ],
+    "same": [
+      "形状一致时，每个元素和同一位置的元素配对。",
+      {"text": "两个 (2, 3) 数组得到一个 (2, 3) 的结果。", "say": "两个 2 乘 3 的数组得到一个 2 乘 3 的结果。"}
+    ],
+    "stretch": [
+      {"text": "现在是一列 (3, 1) 和一行 (1, 4)。", "say": "现在是形状 3 乘 1 的一列，和形状 1 乘 4 的一行。"},
+      "把形状从右边对齐，逐轴比较：必须相等，或者其中一个是 1。",
+      "每个长度为 1 的轴都会被拉伸：列向右复制，行向下复制。",
+      {"text": "现在两者都是 (3, 4)，可以逐元素相加。", "say": "现在两者都是 3 乘 4，可以逐元素相加。"}
+    ],
+    "mismatch": [
+      {"text": "一个 (2, 3) 数组加上长度为 2 的向量。", "say": "一个 2 乘 3 的数组加上长度为 2 的向量。"},
+      {"text": "从右对齐：3 对 2。都不是 1 —— ValueError。", "say": "从右对齐：3 对 2。都不是 1，所以报 ValueError。先停下来想一想：怎样改动 b，才能让 a 的每一行各自加上 b 里的一个数？"}
+    ],
+    "fix": [
+      {"text": "插入一个新轴：b[:, None] 的形状是 (2, 1)。", "say": "插入一个新轴：b 加上 None 索引之后，形状是 2 乘 1。"},
+      "现在最后一轴是 3 对 1，b 沿每一行拉伸。每一行都得到自己的值。"
+    ],
+    "pairwise": [
+      "2022 春期中：2 个测试点到 4 个训练点的距离。",
+      {"text": "给测试点加一个中间轴、给训练点加一个首轴：(2, 1, 2) 和 (1, 4, 2)。广播得到所有差值：(2, 4, 2)。", "say": "给测试点加一个中间轴、给训练点加一个首轴：2 乘 1 乘 2，和 1 乘 4 乘 2。广播得到所有差值：2 乘 4 乘 2。"},
+      {"text": "平方后沿最后一轴 —— 坐标轴 —— 求和，得到 (2, 4) 的平方距离表。", "say": "平方后沿最后一轴，也就是坐标轴求和，得到 2 乘 4 的平方距离表。"},
+      "开平方，再对每一行 argsort 找出最近邻。"
+    ],
+    "expand": [
+      {"text": "把平方展开：‖x − y‖² = ‖x‖² + ‖y‖² − 2x·y。", "say": "把平方展开：x 减 y 的范数平方，等于 x 的范数平方，加 y 的范数平方，减 2 倍 x 点乘 y。"},
+      {"text": "每一项都广播成 (2, 4)：一列测试点范数、一行训练点范数，以及一次矩阵乘法。", "say": "每一项都广播成 2 乘 4：一列测试点范数、一行训练点范数，以及一次矩阵乘法。"},
+      "数字相同，但内存里没有三维数组。"
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，从右往左比较形状：每个轴必须相等或为 1；长度为 1 的轴会被拉伸。第二，用 None，也就是 np.newaxis 加轴，让形状对齐。第三，两两距离：给 X 加中间轴、给 Y 加首轴后相减，平方，沿最后一轴求和，再开平方。"},
+      "然后去 NumPy 实验台试试，每次调用都会显示形状。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "每份期中卷都有一題 NumPy，大部分都係考同一個概念：廣播。"
+    ],
+    "shape": [
+      {"text": "呢個陣列有 2 行 3 列：形狀係 (2, 3)。", "say": "呢個陣列有 2 行 3 列：形狀係 2 乘 3。"},
+      "axis 0 沿住行向下，axis 1 沿住列向右。",
+      "陣列運算係逐個元素做嘅。"
+    ],
+    "same": [
+      "形狀一樣嘅時候，每個元素同同一個位置嘅元素配對。",
+      {"text": "兩個 (2, 3) 陣列，得到一個 (2, 3) 嘅結果。", "say": "兩個 2 乘 3 嘅陣列，得到一個 2 乘 3 嘅結果。"}
+    ],
+    "stretch": [
+      {"text": "而家係一列 (3, 1) 同一行 (1, 4)。", "say": "而家係形狀 3 乘 1 嘅一列，同形狀 1 乘 4 嘅一行。"},
+      "將啲形狀由右邊對齊，逐條軸比較：一定要相等，或者其中一個係 1。",
+      "每條長度係 1 嘅軸都會被拉長：嗰列向右複製，嗰行向下複製。",
+      {"text": "而家兩個都係 (3, 4)，可以逐個元素相加。", "say": "而家兩個都係 3 乘 4，可以逐個元素相加。"}
+    ],
+    "mismatch": [
+      {"text": "一個 (2, 3) 陣列，加一個長度係 2 嘅向量。", "say": "一個 2 乘 3 嘅陣列，加一個長度係 2 嘅向量。"},
+      {"text": "由右對齊：3 對 2。兩個都唔係 1，就會 ValueError。", "say": "由右對齊：3 對 2。兩個都唔係 1，就會 ValueError。停一停諗吓先：點樣改 b，先可以令 a 每一行各自加 b 入面嘅一個數？"}
+    ],
+    "fix": [
+      {"text": "插入一條新軸：b[:, None] 嘅形狀係 (2, 1)。", "say": "插入一條新軸：b 加咗 None 索引之後，形狀係 2 乘 1。"},
+      "而家最後一條軸係 3 對 1，b 會沿住每一行拉長。每一行都得到自己嘅值。"
+    ],
+    "pairwise": [
+      "2022 春季期中：2 個測試點同 4 個訓練點之間嘅距離。",
+      {"text": "幫測試點加一條中間軸，幫訓練點加一條第一軸：(2, 1, 2) 同 (1, 4, 2)。廣播會得出所有差值：(2, 4, 2)。", "say": "幫測試點加一條中間軸，幫訓練點加一條第一軸：2 乘 1 乘 2，同 1 乘 4 乘 2。廣播會得出所有差值：2 乘 4 乘 2。"},
+      {"text": "平方之後沿最後一條軸，即係座標軸加埋，得到一張 (2, 4) 嘅平方距離表。", "say": "平方之後沿最後一條軸，即係座標軸加埋，得到一張 2 乘 4 嘅平方距離表。"},
+      "開方，再對每一行做 argsort，搵出最近嘅鄰居。"
+    ],
+    "expand": [
+      {"text": "將個平方展開：‖x − y‖² = ‖x‖² + ‖y‖² − 2x·y。", "say": "將個平方展開：x 減 y 嘅範數平方，等於 x 嘅範數平方，加 y 嘅範數平方，減 2 倍 x 點乘 y。"},
+      {"text": "每一項都廣播成 (2, 4)：一列測試點範數、一行訓練點範數，同埋一次矩陣乘法。", "say": "每一項都廣播成 2 乘 4：一列測試點範數、一行訓練點範數，同埋一次矩陣乘法。"},
+      "數字一樣，但記憶體入面冇三維陣列。"
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，由右至左比較形狀：每條軸要相等或者係 1；長度係 1 嘅軸會被拉長。第二，用 None，即係 np.newaxis 加軸，令啲形狀對齊。第三，兩兩距離：幫 X 加中間軸、幫 Y 加第一軸再相減，平方，沿最後一條軸加埋，再開方。"},
+      "之後去 NumPy 實驗台試吓，每次調用都會顯示形狀。"
+    ]
+  }
+}
