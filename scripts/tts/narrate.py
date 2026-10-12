@@ -175,9 +175,35 @@ def weight(text):
     return max(w, 1.0)
 
 
-def split(pcm, texts, floor=400, min_gap_ms=120):
-    """cut one recording of several lines into one piece per line, at pauses. Among all pauses, choose the cuts
-    whose positions best match each line's expected share of the speaking time, preferring longer pauses."""
+def line_starts(pcm, texts, lang):
+    """ask the listening model where each line starts (seconds). Pauses alone cannot tell a line break from a
+    sentence break, but these times (good to about half a second) can. None if the answer is unusable."""
+    with tempfile.TemporaryDirectory() as tmp:
+        wav = os.path.join(tmp, "t.wav")
+        write_wav(wav, pcm)
+        with open(wav, "rb") as f:
+            audio = base64.b64encode(f.read()).decode()
+    numbered = "\n".join(f"{k + 1}. {t}" for k, t in enumerate(texts))
+    prompt = (
+        f"The audio ({NAMES[lang]}) reads these {len(texts)} lines in order:\n{numbered}\n\n"
+        'For each line give the time in seconds (one decimal) where its FIRST word starts. Return JSON {"starts": [{"n": 1, "start": 0.0}, ...]}.'
+    )
+    body = {"contents": [{"parts": [{"inlineData": {"mimeType": "audio/wav", "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
+    try:
+        res = post(f"https://generativelanguage.googleapis.com/v1beta/models/{LISTENER}:generateContent", body)
+        st = sorted(json.loads(res["candidates"][0]["content"]["parts"][-1]["text"])["starts"], key=lambda x: x["n"])
+        starts = [float(x["start"]) for x in st]
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+    if len(starts) != len(texts) or any(b <= a for a, b in zip(starts, starts[1:])):
+        return None
+    return starts
+
+
+def split(pcm, texts, floor=400, min_gap_ms=120, starts=None):
+    """cut one recording of several lines into one piece per line, at pauses. With `starts` (from line_starts) each
+    cut goes to the pause just before the line's reported start; without, to where the line's share of the
+    speaking time says it should be. Longer pauses are preferred either way."""
     n = len(texts)
     if n == 1:
         return [pcm], 0.0
@@ -198,7 +224,11 @@ def split(pcm, texts, floor=400, min_gap_ms=120):
         raise ValueError(f"only {len(gaps)} pause(s) for {n} lines")
     ws = [weight(t) for t in texts]
     total = len(pcm)
-    expect = [total * sum(ws[: k + 1]) / sum(ws) for k in range(n - 1)]
+    if starts:
+        # the model reports starts a little late; the pause before a line ends just before it
+        expect = [(starts[k + 1] - 0.3) * RATE for k in range(n - 1)]
+    else:
+        expect = [total * sum(ws[: k + 1]) / sum(ws) for k in range(n - 1)]
     longest = max(g[1] for g in gaps)
     # dynamic programming over (cut number, gap index)
     INF = float("inf")
@@ -206,7 +236,7 @@ def split(pcm, texts, floor=400, min_gap_ms=120):
     back = [[-1] * len(gaps) for _ in range(n - 1)]
     for k in range(n - 1):
         for g, (pos, ms) in enumerate(gaps):
-            c = ((pos - expect[k]) / total) ** 2 * 40 + (1 - ms / longest) * 0.5
+            c = ((pos - expect[k]) / RATE) ** 2 + (1 - ms / longest) * 0.3 if starts else ((pos - expect[k]) / total) ** 2 * 40 + (1 - ms / longest) * 0.5
             if k == 0:
                 cost[k][g] = c
             else:
@@ -238,51 +268,111 @@ def write_wav(path, pcm):
     os.replace(path + ".part", path)
 
 
-def save_scene(lang, lines, blob, label):
-    """split one recording of a whole scene into its lines' clips"""
+SECONDS_PER_WEIGHT = 0.27  # measured on the KNN clips; about the same in all three languages
+
+
+def save_take(lang, lines, blob, label):
+    """split one recording of several lines into their clips"""
     with tempfile.NamedTemporaryFile(suffix=".wav") as f:
         f.write(blob)
         f.flush()
         pcm = read_pcm(f.name)
-    pieces, worst = split(pcm, [say_of(l) for l in lines])
+    # keep the whole take: if a cut turns out wrong it can be cut again without a new request (recut)
+    write_wav(take_path(lang, lines), pcm)
+    cut_take(lang, lines, pcm, label)
+
+
+def take_path(lang, lines):
+    key = hashlib.sha1("|".join(os.path.basename(clip_path(lang, l)) for l in lines).encode()).hexdigest()[:16]
+    return os.path.join(WORK, "takes", lang, f"{key}.wav")
+
+
+def cut_take(lang, lines, pcm, label):
+    texts = [say_of(l) for l in lines]
+    starts = line_starts(pcm, texts, lang)
+    if starts is None:
+        print(f"  {label}: no line times from the listener, cutting by length only", flush=True)
+    pieces, worst = split(pcm, texts, starts=starts)
     for line, piece in zip(lines, pieces):
         write_wav(clip_path(lang, line), trim(piece))
     flag = "  !! check the cuts" if worst > 0.45 else ""
     print(f"  {label}: {len(pcm) / RATE:.1f}s → " + " + ".join(f"{len(trim(p)) / RATE:.1f}" for p in pieces) + f" (off by up to {worst:.0%}){flag}", flush=True)
 
 
+def chunks(scenes, seconds):
+    """group consecutive scenes into takes of about `seconds` of speech (a scene is never split across takes)"""
+    out, cur, t = [], [], 0.0
+    for scene, lines in scenes:
+        est = sum(weight(say_of(l)) for l in lines) * SECONDS_PER_WEIGHT
+        if cur and t + est > seconds:
+            out.append(cur)
+            cur, t = [], 0.0
+        cur.append((scene, lines))
+        t += est
+    if cur:
+        out.append(cur)
+    return out
+
+
+def cmd_recut(args):
+    """cut the saved takes again (after a change to split()), without new requests"""
+    for ep in episodes(args):
+        script = load_script(ep)
+        for lang in args.langs:
+            for group in chunks(list(script[lang].items()), args.chunk):
+                lines = [l for _, ls in group for l in ls]
+                path = take_path(lang, lines)
+                if os.path.exists(path):
+                    cut_take(lang, lines, read_pcm(path), f"{ep}/{lang}/" + "+".join(sc for sc, _ in group))
+
+
 def cmd_gen(args):
-    """a scene whose lines are all missing is recorded in one request and cut at the pauses (one request per scene
-    keeps the intonation joined up and saves quota); a line edited later is recorded on its own"""
+    """scenes whose lines are all missing are recorded together, about --chunk seconds per request, and cut at the
+    pauses: far fewer requests than one per line, and the intonation runs on naturally. If a take cannot be cut,
+    its scenes are recorded one by one, then line by line. A line edited later is recorded on its own."""
     last = [0.0]
 
     def pace():
         time.sleep(max(0.0, MIN_SPACING_S - (time.time() - last[0])))
         last[0] = time.time()
 
+    def take(lang, group):
+        lines = [l for _, ls in group for l in ls]
+        label = "+".join(sc for sc, _ in group)
+        if len(lines) > 1 or len(group) > 1:
+            pace()
+            try:
+                save_take(lang, lines, tts("\n\n".join(say_of(l) for l in lines), lang), label)
+                return
+            except ValueError as e:
+                print(f"  {label}: {e}", flush=True)
+            if len(group) > 1:
+                for g in group:
+                    take(lang, [g])
+                return
+        for line in lines:
+            pace()
+            out = clip_path(lang, line)
+            with tempfile.NamedTemporaryFile(suffix=".wav") as f:
+                f.write(tts(say_of(line), lang))
+                f.flush()
+                write_wav(out, trim(read_pcm(f.name)))
+            print(f"  {label} (one line): {clip_ms(out) / 1000:.1f}s", flush=True)
+
     for ep in episodes(args):
         script = load_script(ep)
         for lang in args.langs:
             scenes = list(script[lang].items())
-            todo = [(s, ls) for s, ls in scenes if any(not os.path.exists(clip_path(lang, l)) for l in ls)]
-            print(f"{ep}/{lang}: {len(todo)} scene(s) to record", flush=True)
-            for scene, lines in todo:
-                missing = [l for l in lines if not os.path.exists(clip_path(lang, l))]
-                if len(missing) == len(lines) and not args.per_line:
-                    pace()
-                    try:
-                        save_scene(lang, lines, tts("\n\n".join(say_of(l) for l in lines), lang), scene)
-                        continue
-                    except ValueError as e:
-                        print(f"  {scene}: {e}; recording line by line instead", flush=True)
-                for line in missing:
-                    pace()
-                    out = clip_path(lang, line)
-                    with tempfile.NamedTemporaryFile(suffix=".wav") as f:
-                        f.write(tts(say_of(line), lang))
-                        f.flush()
-                        write_wav(out, trim(read_pcm(f.name)))
-                    print(f"  {scene} (one line): {clip_ms(out) / 1000:.1f}s", flush=True)
+            whole = [(sc, ls) for sc, ls in scenes if all(not os.path.exists(clip_path(lang, l)) for l in ls)]
+            part = [(sc, [l for l in ls if not os.path.exists(clip_path(lang, l))]) for sc, ls in scenes if (sc, ls) not in whole]
+            part = [(sc, ls) for sc, ls in part if ls]
+            groups = chunks(whole, args.chunk) if args.chunk > 0 else [[w] for w in whole]
+            print(f"{ep}/{lang}: {len(groups)} take(s) for {len(whole)} scene(s), {sum(len(ls) for _, ls in part)} single line(s)", flush=True)
+            for g in groups:
+                take(lang, g)
+            for sc, ls in part:
+                for l in ls:
+                    take(lang, [(sc, [l])])
 
 
 # ---------------------------------------------------------------- build
@@ -371,8 +461,11 @@ def cmd_build(args):
 def qa_scene(lang, scene, lines):
     """listen to one scene (its clips joined) and compare every line with its script; cached by the clips' content"""
     paths = [clip_path(lang, l) for l in lines]
-    key = hashlib.sha1("|".join(os.path.basename(p) for p in paths).encode()).hexdigest()[:16]
-    cache = os.path.join(QA, f"{key}.{lang}.json")
+    h = hashlib.sha1()
+    for p in paths:  # by content: a clip cut again is listened to again
+        with open(p, "rb") as f:
+            h.update(f.read())
+    cache = os.path.join(QA, f"{h.hexdigest()[:16]}.{lang}.json")
     if os.path.exists(cache):
         with open(cache, encoding="utf-8") as f:
             return json.load(f)
@@ -436,18 +529,21 @@ def cmd_qa(args):
 
 
 def main():
+    global MODEL
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["gen", "build", "qa"])
+    ap.add_argument("cmd", choices=["gen", "recut", "build", "qa"])
     ap.add_argument("ids", nargs="+", help="episode ids, or all")
     ap.add_argument("--lang", default=",".join(LANGS))
     ap.add_argument("-v", "--verbose", action="store_true")
-    ap.add_argument("--per-line", action="store_true", help="gen: one request per line instead of per scene")
+    ap.add_argument("--chunk", type=float, default=120, help="gen: seconds of speech per request (0: one scene per request)")
+    ap.add_argument("--model", default=MODEL, help=f"TTS model (default {MODEL}); clips are cached per model")
     ap.add_argument("--jobs", type=int, default=4, help="qa: scenes checked in parallel")
     args = ap.parse_args()
     args.langs = [x for x in args.lang.split(",") if x]
+    MODEL = args.model
     if any(x not in LANGS for x in args.langs):
         sys.exit(f"--lang takes {LANGS}")
-    {"gen": cmd_gen, "build": cmd_build, "qa": cmd_qa}[args.cmd](args)
+    {"gen": cmd_gen, "recut": cmd_recut, "build": cmd_build, "qa": cmd_qa}[args.cmd](args)
 
 
 if __name__ == "__main__":

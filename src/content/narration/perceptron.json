@@ -18,12 +18,12 @@
       {"text": "If the output is right, T − O = 0 and nothing moves.", "say": "If the output is right, T minus O is zero and nothing moves."},
       "If it should have fired but did not, x is added to w: the line swings towards including that point.",
       "If it fired but should not have, x is subtracted: the line swings away.",
-      {"text": "Only mistakes move the line.", "say": "Only mistakes move the line. Before we go on: if a sample sits at x equals zero, zero, which part of the neuron can the rule still change?"}
+      {"text": "Only mistakes move the line.", "say": "Only mistakes move the line. Before we go on: if a sample sits at x equals zero zero, which part of the neuron can the rule still change?"}
     ],
     "run": [
       {"text": "Lecture 5’s example: learn AND, starting from w = (0.1, 0.5), θ = −0.8, η = 0.2.", "say": "Lecture 5’s example: learn AND, starting from w equals 0.1 and 0.5, theta equals minus 0.8, and eta equals 0.2."},
       "Each row: compute z, compare O with T, and update only when they differ. The dashed line is where the boundary was before the update.",
-      {"text": "Watch the shaded side shrink until only (1, 1) is inside it.", "say": "Watch the shaded side shrink until only one, one is inside it."},
+      {"text": "Watch the shaded side shrink until only (1, 1) is inside it.", "say": "Watch the shaded side shrink until only one one is inside it."},
       "One full epoch with no mistakes: the perceptron has converged."
     ],
     "xor": [
