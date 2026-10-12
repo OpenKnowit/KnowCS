@@ -245,6 +245,9 @@ export const BackpropModule = () => {
               <p className="font-bold text-xs text-slate-400 uppercase mb-2">{t('backprop_module.step3_title')}</p>
               <Latex displayMode formula="\Delta w_{xk} = \eta \cdot \delta_k \cdot O_x" className="text-green-700" />
               <Latex displayMode formula={`\\begin{aligned} \\Delta w_{ik} &= ${f(params.eta, 2)} \\times ${p(tr.delta, 4)} \\times ${f(params.oi, 2)} \\\\ &= ${f(tr.dwik, 4)} \\\\[4pt] \\Delta w_{jk} &= ${f(params.eta, 2)} \\times ${p(tr.delta, 4)} \\times ${f(params.oj, 2)} \\\\ &= ${f(tr.dwjk, 4)} \\end{aligned}`} className="text-green-700" />
+              <p className="text-xs text-gray-600 mt-2">
+                <Trans i18nKey="backprop_module.course_sign" components={{ 1: <Latex formula="\delta_k = (O_k - T_k)\,O_k(1 - O_k)" />, 3: <Latex formula="w \leftarrow w - \eta\,\delta_k\,O_x" /> }} />
+              </p>
             </div>
             <SeniorAdvice content={
               <Trans i18nKey="backprop_module.advice" components={{

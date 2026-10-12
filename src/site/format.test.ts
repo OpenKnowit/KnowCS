@@ -9,6 +9,16 @@ describe('answerMatches', () => {
     expect(answerMatches('C1', 'c1')).toBe(true)
   })
 
+  it('ignores spacing in text answers', () => {
+    expect(answerMatches('torch.size([2,2])', 'torch.Size([2, 2])')).toBe(true)
+    expect(answerMatches('torch.Size([2, 3])', 'torch.Size([2, 2])')).toBe(false)
+  })
+
+  it('grades a tail density that 4 decimals would round to 0', () => {
+    expect(answerMatches('0.000018', '0.000018')).toBe(true)
+    expect(answerMatches('0', '0.000018')).toBe(false)
+  })
+
   it('grades tiny values relatively', () => {
     expect(answerMatches('0', '5.3e-7')).toBe(false)
     expect(answerMatches('5.3e-7', '5.342e-7')).toBe(true)

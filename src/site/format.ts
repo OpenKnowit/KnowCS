@@ -27,7 +27,8 @@ export function parseAnswer(s: string): number | string {
   const frac = t.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/)
   if (frac) return Number(frac[1]) / Number(frac[2])
   if (t !== '' && !Number.isNaN(Number(t))) return Number(t)
-  return t.toLowerCase()
+  // spacing is not part of the answer: "torch.Size([2,2])" = "torch.Size([2, 2])"
+  return t.toLowerCase().replace(/\s+/g, '')
 }
 
 export function answerMatches(given: string, expected: string): boolean {

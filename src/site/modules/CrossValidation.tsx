@@ -93,6 +93,11 @@ export default function CrossValidation() {
           </div>
         </Card>
 
+        {/* Final 2024 Q3(b) has 6 patients but grades a real 3-NN vote, where the exam assumption does not hold */}
+        {classes === 2 && per === 3 && (
+          <Note tone="warn" title={t('lab.cv.knn_title')}>{t('lab.cv.knn_note')}</Note>
+        )}
+
         <Card step={2} title={t('lab.cv.rounds')}>
           <div className="grid gap-2">
             {res.folds.map((f) => (
