@@ -535,7 +535,7 @@ def main():
     ap.add_argument("ids", nargs="+", help="episode ids, or all")
     ap.add_argument("--lang", default=",".join(LANGS))
     ap.add_argument("-v", "--verbose", action="store_true")
-    ap.add_argument("--chunk", type=float, default=120, help="gen: seconds of speech per request (0: one scene per request)")
+    ap.add_argument("--chunk", type=float, default=330, help="gen: seconds of speech per request (0: one scene per request)")
     ap.add_argument("--model", default=MODEL, help=f"TTS model (default {MODEL}); clips are cached per model")
     ap.add_argument("--jobs", type=int, default=4, help="qa: scenes checked in parallel")
     args = ap.parse_args()
