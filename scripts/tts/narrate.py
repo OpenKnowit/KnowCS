@@ -200,6 +200,35 @@ def line_starts(pcm, texts, lang):
     return starts
 
 
+def checked_starts(pcm, texts, lang, label, tries=3):
+    """line times from the listener, checked against where the lines' lengths put them. The listener is usually
+    right to half a second but now and then returns nonsense for a long take: ask again, and replace any time still
+    far from the estimate by the estimate."""
+    total = len(pcm) / RATE
+    ws = [weight(t) for t in texts]
+    est = [total * sum(ws[:k]) / sum(ws) for k in range(len(texts))]
+    limit = max(8.0, 0.08 * total)
+    best = None
+    for _ in range(tries):
+        st = line_starts(pcm, texts, lang)
+        if st is None:
+            continue
+        bad = sum(abs(a - b) > limit for a, b in zip(st, est))
+        if best is None or bad < best[0]:
+            best = (bad, st)
+        if bad == 0:
+            break
+    if best is None:
+        print(f"  {label}: no line times from the listener, cutting by length only", flush=True)
+        return None
+    bad, st = best
+    if bad:
+        print(f"  {label}: {bad} line time(s) far from the estimate, using the estimate there", flush=True)
+        st = [a if abs(a - b) <= limit else b for a, b in zip(st, est)]
+        st = [max(st[: k + 1]) for k in range(len(st))]  # keep them in order
+    return st
+
+
 def split(pcm, texts, floor=400, min_gap_ms=120, starts=None):
     """cut one recording of several lines into one piece per line, at pauses. With `starts` (from line_starts) each
     cut goes to the pause just before the line's reported start; without, to where the line's share of the
@@ -289,9 +318,7 @@ def take_path(lang, lines):
 
 def cut_take(lang, lines, pcm, label):
     texts = [say_of(l) for l in lines]
-    starts = line_starts(pcm, texts, lang)
-    if starts is None:
-        print(f"  {label}: no line times from the listener, cutting by length only", flush=True)
+    starts = checked_starts(pcm, texts, lang, label) if len(texts) > 1 else None
     pieces, worst = split(pcm, texts, starts=starts)
     for line, piece in zip(lines, pieces):
         write_wav(clip_path(lang, line), trim(piece))
