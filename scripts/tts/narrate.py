@@ -195,7 +195,7 @@ def split(pcm, texts, floor=400, min_gap_ms=120):
         else:
             i += 1
     if len(gaps) < n - 1:
-        sys.exit(f"only {len(gaps)} pause(s) for {n} lines")
+        raise ValueError(f"only {len(gaps)} pause(s) for {n} lines")
     ws = [weight(t) for t in texts]
     total = len(pcm)
     expect = [total * sum(ws[: k + 1]) / sum(ws) for k in range(n - 1)]
@@ -216,7 +216,7 @@ def split(pcm, texts, floor=400, min_gap_ms=120):
                     back[k][g] = best
     g = min(range(len(gaps)), key=lambda h: cost[n - 2][h])
     if cost[n - 2][g] == INF:
-        sys.exit("could not place the cuts")
+        raise ValueError("could not place the cuts")
     cuts = []
     for k in range(n - 2, -1, -1):
         cuts.append(gaps[g][0])
@@ -270,16 +270,19 @@ def cmd_gen(args):
                 missing = [l for l in lines if not os.path.exists(clip_path(lang, l))]
                 if len(missing) == len(lines) and not args.per_line:
                     pace()
-                    save_scene(lang, lines, tts("\n\n".join(say_of(l) for l in lines), lang), scene)
-                else:
-                    for line in missing:
-                        pace()
-                        out = clip_path(lang, line)
-                        with tempfile.NamedTemporaryFile(suffix=".wav") as f:
-                            f.write(tts(say_of(line), lang))
-                            f.flush()
-                            write_wav(out, trim(read_pcm(f.name)))
-                        print(f"  {scene} (one line): {clip_ms(out) / 1000:.1f}s", flush=True)
+                    try:
+                        save_scene(lang, lines, tts("\n\n".join(say_of(l) for l in lines), lang), scene)
+                        continue
+                    except ValueError as e:
+                        print(f"  {scene}: {e}; recording line by line instead", flush=True)
+                for line in missing:
+                    pace()
+                    out = clip_path(lang, line)
+                    with tempfile.NamedTemporaryFile(suffix=".wav") as f:
+                        f.write(tts(say_of(line), lang))
+                        f.flush()
+                        write_wav(out, trim(read_pcm(f.name)))
+                    print(f"  {scene} (one line): {clip_ms(out) / 1000:.1f}s", flush=True)
 
 
 # ---------------------------------------------------------------- build
