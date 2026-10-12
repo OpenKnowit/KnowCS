@@ -80,6 +80,8 @@ python3 -I scripts/tts/narrate.py build <完成的集>
 
 - KNN 讲稿已按上一版 QA 修正：坐标改成「160 centimetres and 60 kilograms」，「the lecture's choice」改为「the choice used in the lecture」，粤语「欠擬合」改为「擬合不足」，「俾埋…你」改为「提供」。
 - KNN 英文 boundary 第 3 句和 recap 两句来自上一版整场景录音的切分（当天配额用完），其余为逐句录音。
+- KNN 上线版听辨（`qa knn`）：zh、en 全部通过；yue 7 处被标记，多为近义替换（入面→入邊、拉闊→拉開），可接受；「擬合」的「擬」两处读音不稳。粤语讲稿已改用课堂常说的 overfit / underfit（`尺碼`→`碼數`，gaussian 的「擬合一條曲線」→「fit 一條曲線」），这 3 句等配额重置后由批量任务重录，再 `build knn` 并上传。
+- 批量任务：`work/dubbing/batch.sh`（nohup 后台，日志 `work/dubbing/batch.log`，每小时重试，完成后自动 `qa`（→ `qa-all.log`）和 `build`；停止：`pkill -f work/dubbing/batch.sh`）。上传到服务器仍需手动。
 - ponder 停住时，下方字幕已是下一场景的第一句（原版行为，配音版沿用）。
 
 ## 6. 发布
