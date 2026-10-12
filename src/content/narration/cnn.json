@@ -1,0 +1,134 @@
+{
+  "en": {
+    "title": [
+      "Every final has a table to fill in: the output shape and parameter count of each layer. All of it comes from one picture — a window sliding over an image."
+    ],
+    "slide": [
+      {"text": "A 7 × 7 image and a 3 × 3 kernel. Put the kernel on the top-left corner.", "say": "A 7 by 7 image and a 3 by 3 kernel. Put the kernel on the top-left corner."},
+      "Multiply each pair of numbers, add them up: that is one output value. Then slide one step and repeat.",
+      "When the window has visited every position it can, the output is complete — and it is smaller than the image."
+    ],
+    "size": [
+      "Look at a single row. A window of width 3 can start at positions 1 to 5 in a row of 7.",
+      {"text": "So the output width is N − K + 1 = 5.", "say": "So the output width is N minus K plus 1, which is 5."},
+      {"text": "Add padding P on both sides and jump S cells at a time, and you get the formula on every exam: ⌊(N − K + 2P) / S⌋ + 1.", "say": "Add padding P on both sides and jump S cells at a time, and you get the formula on every exam: N minus K plus 2 P, over S, rounded down, plus 1."}
+    ],
+    "padding": [
+      "Put a ring of zeros around the image. Now the window can be centred on the edge pixels too.",
+      {"text": "With P = 1 and a 3 × 3 kernel, the output is 7 × 7 again — the same size as the input.", "say": "With P equal to 1 and a 3 by 3 kernel, the output is 7 by 7 again — the same size as the input."}
+    ],
+    "stride": [
+      "Stride 3: the window jumps three cells at a time.",
+      {"text": "7 − 3 = 4, and 4 / 3 is not a whole number. Round down: two positions, a 2 × 2 output.", "say": "7 minus 3 is 4, and 4 over 3 is not a whole number. Round down: two positions, a 2 by 2 output."},
+      {"text": "The last row and column are never looked at. Exams floor the result; they call it “does not fit”.", "say": "The last row and column are never looked at. Exams floor the result; they call it “does not fit”. Before we go on: how much padding would make a 3 by 3 kernel with stride 3 fit a 7 by 7 image exactly?"}
+    ],
+    "channels": [
+      {"text": "Real images have channels. Lecture 8’s example: 32 × 32 × 3, ten 5 × 5 filters, stride 1, padding 2.", "say": "Real images have channels. Lecture 8’s example: 32 by 32 by 3, ten 5 by 5 filters, stride 1, padding 2."},
+      {"text": "A filter always reaches through the full depth of its input, so each one is 5 × 5 × 3.", "say": "A filter always reaches through the full depth of its input, so each one is 5 by 5 by 3."},
+      {"text": "Each filter produces one 32 × 32 map. Ten filters give a 32 × 32 × 10 output.", "say": "Each filter produces one 32 by 32 map. Ten filters give a 32 by 32 by 10 output."},
+      {"text": "Parameters: each filter has 5·5·3 weights plus one bias — 760 in total, whatever the image size.", "say": "Parameters: each filter has 5 times 5 times 3 weights plus one bias — 760 in total, whatever the image size."}
+    ],
+    "sharing": [
+      {"text": "A dense layer producing the same 32 × 32 × 10 output needs a weight for every input–output pair.", "say": "A dense layer producing the same 32 by 32 by 10 output needs a weight for every input–output pair."},
+      "That is over 31 million weights, against 760.",
+      "The kernel is shared across positions and only looks locally. That is the whole reason CNNs scale to images."
+    ],
+    "stack": [
+      {"text": "Now a full stack from the 2022 final: 224 × 224 × 3 in, 1000 classes out.", "say": "Now a full stack from the 2022 final: 224 by 224 by 3 in, 1000 classes out."},
+      "Each layer’s shape comes from the same formula; pooling and global pooling have no parameters; only conv and dense layers do.",
+      "About two million parameters in total. Flatten the image into a dense layer instead and you need 150 million."
+    ],
+    "recap": [
+      {"text": "Three rules fill in the whole shape table.", "say": "Three rules fill in the whole shape table. One: the output size is N minus K plus 2 P, over S, rounded down, plus 1. Padding “same” keeps N over S. Two: conv parameters are K times K times the input channels, plus 1, times the number of filters — the image size does not matter. Three: pooling, flatten and dropout have no parameters; a dense layer has inputs plus 1, times units."},
+      "Then build your own stack on the CNN shapes page and check every number."
+    ]
+  },
+  "zh": {
+    "title": [
+      "每份期末卷都有一张要填的表：每一层的输出形状和参数个数。它们全都来自同一幅画面 —— 一个在图像上滑动的窗口。"
+    ],
+    "slide": [
+      {"text": "一张 7 × 7 的图像，一个 3 × 3 的卷积核。把卷积核放在左上角。", "say": "一张 7 乘 7 的图像，一个 3 乘 3 的卷积核。把卷积核放在左上角。"},
+      "对应的数两两相乘再加起来，就是一个输出值。然后滑一步，重复。",
+      "窗口走遍所有能放的位置后，输出就完成了 —— 而且比图像小。"
+    ],
+    "size": [
+      "只看一行。宽为 3 的窗口在长度为 7 的一行里，可以从第 1 到第 5 个位置开始。",
+      {"text": "所以输出宽度是 N − K + 1 = 5。", "say": "所以输出宽度是 N 减 K 加 1，等于 5。"},
+      {"text": "两边各加 P 层填充、每次跳 S 格，就得到每次考试都会用的公式：⌊(N − K + 2P) / S⌋ + 1。", "say": "两边各加 P 层填充、每次跳 S 格，就得到每次考试都会用的公式：N 减 K 加 2P，除以 S，向下取整，再加 1。"}
+    ],
+    "padding": [
+      "在图像外围加一圈 0。现在窗口也能以边缘像素为中心了。",
+      {"text": "P = 1、卷积核 3 × 3 时，输出又是 7 × 7 —— 与输入一样大。", "say": "P 等于 1、卷积核 3 乘 3 时，输出又是 7 乘 7，与输入一样大。"}
+    ],
+    "stride": [
+      "步长 3：窗口每次跳三格。",
+      {"text": "7 − 3 = 4，4 / 3 不是整数。向下取整：两个位置，输出 2 × 2。", "say": "7 减 3 等于 4，4 除以 3 不是整数。向下取整：两个位置，输出 2 乘 2。"},
+      {"text": "最后一行和最后一列从来没被看过。考试取下整，并称之为“放不下”。", "say": "最后一行和最后一列从来没被看过。考试取下整，并称之为“放不下”。先停下来想一想：要加多少填充，3 乘 3 卷积核、步长 3 才能正好放进 7 乘 7 的图像？"}
+    ],
+    "channels": [
+      {"text": "真实图像有通道。第 8 讲的例子：32 × 32 × 3，十个 5 × 5 卷积核，步长 1，填充 2。", "say": "真实图像有通道。第 8 讲的例子：32 乘 32 乘 3，十个 5 乘 5 卷积核，步长 1，填充 2。"},
+      {"text": "卷积核总是贯穿输入的全部深度，所以每个都是 5 × 5 × 3。", "say": "卷积核总是贯穿输入的全部深度，所以每个都是 5 乘 5 乘 3。"},
+      {"text": "每个卷积核产生一张 32 × 32 的图。十个卷积核给出 32 × 32 × 10 的输出。", "say": "每个卷积核产生一张 32 乘 32 的图。十个卷积核给出 32 乘 32 乘 10 的输出。"},
+      {"text": "参数：每个卷积核有 5·5·3 个权重加 1 个偏置 —— 共 760 个，与图像尺寸无关。", "say": "参数：每个卷积核有 5 乘 5 乘 3 个权重加 1 个偏置，共 760 个，与图像尺寸无关。"}
+    ],
+    "sharing": [
+      {"text": "要得到同样 32 × 32 × 10 输出的全连接层，每一对输入、输出之间都需要一个权重。", "say": "要得到同样 32 乘 32 乘 10 输出的全连接层，每一对输入、输出之间都需要一个权重。"},
+      "那是三千一百多万个权重，对比 760 个。",
+      "卷积核在各个位置共享，而且只看局部。这正是 CNN 能处理图像的根本原因。"
+    ],
+    "stack": [
+      {"text": "现在看 2022 期末的完整网络：输入 224 × 224 × 3，输出 1000 类。", "say": "现在看 2022 期末的完整网络：输入 224 乘 224 乘 3，输出 1000 类。"},
+      "每一层的形状都用同一个公式算；池化和全局池化没有参数，只有卷积层和全连接层有。",
+      "总共约两百万个参数。如果把图像展平后接全连接层，则需要一亿五千万个。"
+    ],
+    "recap": [
+      {"text": "三条规则填满整张形状表。", "say": "三条规则填满整张形状表。第一，输出尺寸是 N 减 K 加 2P，除以 S，向下取整，再加 1。padding 为 same 时，是 N 除以 S 向上取整。第二，卷积层参数是 K 乘 K 乘输入通道数再加 1，乘以卷积核个数，与图像尺寸无关。第三，池化、展平、Dropout 没有参数；全连接层是输入数加 1，乘以单元数。"},
+      "然后去 CNN 形状页面搭你自己的网络，核对每一个数字。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "每份期末卷都有一張表要填：每一層嘅輸出形狀同參數數目。全部都嚟自同一個畫面：一個喺圖像上面滑動嘅窗口。"
+    ],
+    "slide": [
+      {"text": "一張 7 × 7 嘅圖像，一個 3 × 3 嘅卷積核。將卷積核放喺左上角。", "say": "一張 7 乘 7 嘅圖像，一個 3 乘 3 嘅卷積核。將卷積核放喺左上角。"},
+      "對應嘅數兩兩相乘再加埋，就係一個輸出值。然後滑一步，再嚟過。",
+      "個窗口行勻晒所有放得落嘅位置之後，輸出就完成，而且仲細過原本張圖。"
+    ],
+    "size": [
+      "淨係睇一行。闊度係 3 嘅窗口，喺長度係 7 嘅一行入面，可以由第 1 到第 5 個位置開始。",
+      {"text": "所以輸出闊度係 N − K + 1 = 5。", "say": "所以輸出闊度係 N 減 K 加 1，等於 5。"},
+      {"text": "兩邊各加 P 層填充，每次跳 S 格，就得到次次考試都用嘅公式：⌊(N − K + 2P) / S⌋ + 1。", "say": "兩邊各加 P 層填充，每次跳 S 格，就得到次次考試都用嘅公式：N 減 K 加 2P，除 S，向下取整，再加 1。"}
+    ],
+    "padding": [
+      "喺圖像外面圍一圈 0。咁窗口都可以用邊緣嘅像素做中心。",
+      {"text": "P = 1、卷積核係 3 × 3 嘅時候，輸出又係 7 × 7，同輸入一樣大。", "say": "P 等於 1、卷積核係 3 乘 3 嘅時候，輸出又係 7 乘 7，同輸入一樣大。"}
+    ],
+    "stride": [
+      "步長 3：窗口每次跳三格。",
+      {"text": "7 − 3 = 4，4 / 3 唔係整數。向下取整：兩個位置，輸出係 2 × 2。", "say": "7 減 3 等於 4，4 除 3 唔係整數。向下取整：兩個位置，輸出係 2 乘 2。"},
+      {"text": "最後一行同最後一列從來都冇被睇過。考試會向下取整，叫呢個做「放唔落」。", "say": "最後一行同最後一列從來都冇被睇過。考試會向下取整，叫呢個做「放唔落」。停一停諗吓先：要加幾多填充，3 乘 3 卷積核、步長 3 先可以啱啱好放入 7 乘 7 嘅圖像？"}
+    ],
+    "channels": [
+      {"text": "真實嘅圖像有通道。第 8 講嘅例子：32 × 32 × 3，十個 5 × 5 卷積核，步長 1，填充 2。", "say": "真實嘅圖像有通道。第 8 講嘅例子：32 乘 32 乘 3，十個 5 乘 5 卷積核，步長 1，填充 2。"},
+      {"text": "卷積核一定會貫穿輸入嘅全部深度，所以每個都係 5 × 5 × 3。", "say": "卷積核一定會貫穿輸入嘅全部深度，所以每個都係 5 乘 5 乘 3。"},
+      {"text": "每個卷積核產生一張 32 × 32 嘅圖。十個卷積核就得到 32 × 32 × 10 嘅輸出。", "say": "每個卷積核產生一張 32 乘 32 嘅圖。十個卷積核就得到 32 乘 32 乘 10 嘅輸出。"},
+      {"text": "參數：每個卷積核有 5·5·3 個權重加 1 個偏置，總共 760 個，同圖像大細冇關。", "say": "參數：每個卷積核有 5 乘 5 乘 3 個權重加 1 個偏置，總共 760 個，同圖像大細冇關。"}
+    ],
+    "sharing": [
+      {"text": "如果用全連接層得到同樣 32 × 32 × 10 嘅輸出，每一對輸入同輸出之間都要一個權重。", "say": "如果用全連接層得到同樣 32 乘 32 乘 10 嘅輸出，每一對輸入同輸出之間都要一個權重。"},
+      "嗰個係三千一百幾萬個權重，對比 760 個。",
+      "卷積核喺唔同位置共用，而且只睇局部。呢個正正就係 CNN 可以處理圖像嘅根本原因。"
+    ],
+    "stack": [
+      {"text": "而家睇 2022 期末嘅完整網絡：輸入 224 × 224 × 3，輸出 1000 類。", "say": "而家睇 2022 期末嘅完整網絡：輸入 224 乘 224 乘 3，輸出 1000 類。"},
+      "每一層嘅形狀都用同一條公式計；池化同全局池化冇參數，得卷積層同全連接層先有。",
+      "總共大約兩百萬個參數。如果將張圖展平再接全連接層，就要一億五千萬個。"
+    ],
+    "recap": [
+      {"text": "三條規則，填滿成張形狀表。", "say": "三條規則，填滿成張形狀表。第一，輸出尺寸係 N 減 K 加 2P，除 S，向下取整，再加 1。padding 係 same 嘅時候，就係 N 除 S 向上取整。第二，卷積層參數係 K 乘 K 乘輸入通道數再加 1，再乘卷積核數目，同圖像大細冇關。第三，池化、展平同 Dropout 冇參數；全連接層係輸入數加 1，乘單元數。"},
+      "之後去 CNN 形狀頁面砌你自己嘅網絡，核對每一個數字。"
+    ]
+  }
+}

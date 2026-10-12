@@ -1,0 +1,170 @@
+{
+  "en": {
+    "title": [
+      "Exam after exam asks the same question: why can a single perceptron not learn XOR, and what does a hidden layer change?"
+    ],
+    "points": [
+      {"text": "XOR has just four inputs. It outputs 1 when exactly one of x₁, x₂ is 1 — blue — and 0 otherwise — red.", "say": "XOR has just four inputs. It outputs 1 when exactly one of x 1 and x 2 is 1 — blue — and 0 otherwise — red."},
+      "Put them on the plane: the blue points sit on one diagonal, the red points on the other.",
+      {"text": "A single neuron computes step(w₁x₁ + w₂x₂ + b). Its boundary w₁x₁ + w₂x₂ + b = 0 is one straight line.", "say": "A single neuron computes a step of w 1 x 1, plus w 2 x 2, plus b. Its boundary, where that sum equals zero, is one straight line."}
+    ],
+    "lines": [
+      "So let us try lines. Every position, every angle.",
+      "Some get two points right, many get three. Watch the best score.",
+      {"text": "It never reaches four. Three out of four is the best any straight line can do.", "say": "It never reaches four. Three out of four is the best any straight line can do. Before the next chapter: can you prove no line works, using only four inequalities?"}
+    ],
+    "proof": [
+      {"text": "Write down what each point demands from w₁, w₂ and b.", "say": "Write down what each point demands from w 1, w 2 and b."},
+      {"text": "(0,0) must give 0, so b ≤ 0. The two blue points need w₁ + b > 0 and w₂ + b > 0.", "say": "Zero, zero must give 0, so b is at most zero. The two blue points need w 1 plus b greater than zero, and w 2 plus b greater than zero."},
+      {"text": "Add those two: w₁ + w₂ + 2b > 0, so w₁ + w₂ + b > −b, which is at least 0.", "say": "Add those two: w 1 plus w 2 plus 2 b is greater than zero. So w 1 plus w 2 plus b is greater than minus b, which is at least zero."},
+      {"text": "But (1,1) must give 0, so w₁ + w₂ + b ≤ 0. Contradiction. This is the full-mark answer to 2025 Spring Q7(c).", "say": "But one, one must give 0, so w 1 plus w 2 plus b is at most zero. Contradiction. This is the full-mark answer to 2025 Spring, question 7 c."}
+    ],
+    "idea": [
+      "If no line fits the points, change the points. That is exactly what a hidden layer does.",
+      "Each hidden neuron computes a new coordinate. The output neuron then draws its line in that new space, not in the original one."
+    ],
+    "stretch": [
+      {"text": "First the weights: z = 3(Wx + c). Watch the whole grid move with it.", "say": "First the weights: z equals 3 times W x plus c. Watch the whole grid move with it."},
+      "A linear map can stretch, shear and shift the plane…",
+      "…but straight lines stay straight and parallel lines stay parallel.",
+      "So the points are still not separable. A linear step alone changes nothing — which is why the activation matters."
+    ],
+    "squash": [
+      {"text": "Now the activation. σ squeezes every number into the range 0 to 1.", "say": "Now the activation. The sigmoid squeezes every number into the range 0 to 1."},
+      "Applied to both coordinates, it squashes the stretched plane into the unit square. The grid lines bend.",
+      {"text": "The red point (1,1) is pushed to the top-right corner, (0,0) to the bottom-left edge, and both blue points end up near the bottom right.", "say": "The red point one, one is pushed to the top-right corner, zero, zero to the bottom-left edge, and both blue points end up near the bottom right."}
+    ],
+    "separate": [
+      "Here are the four points in hidden space, with their new coordinates.",
+      {"text": "The output neuron draws one straight line: y = step(h₁ − h₂ − 0.4).", "say": "The output neuron draws one straight line: y is the step of h 1 minus h 2 minus 0.4."},
+      "Both blue points are on one side, both red points on the other. XOR solved.",
+      {"text": "Look at the corners: h₁ behaves like OR, h₂ like AND, and the output says “OR but not AND” — which is XOR.", "say": "Look at the corners: h 1 behaves like OR, h 2 like AND, and the output says “OR but not AND” — which is XOR. Before we go on: why does the activation have to be non-linear? What would happen to the bent grid without the sigmoid?"}
+    ],
+    "pullback": [
+      "Let us carry that straight line back through the network: undo the squash…",
+      "…undo the stretch, and colour every input by the network’s answer.",
+      "The straight line in hidden space becomes a curved band in the input plane. That non-linear boundary is what a single neuron could never draw."
+    ],
+    "exam": [
+      {"text": "Exams often want the weights by hand with step activations. One standard answer: h₁ = OR, h₂ = NAND, output = AND.", "say": "Exams often want the weights by hand with step activations. One standard answer: h 1 is OR, h 2 is NAND, and the output is AND."},
+      {"text": "Check the table row by row: only (0,1) and (1,0) make both hidden units fire.", "say": "Check the table row by row: only zero, one and one, zero make both hidden units fire."},
+      {"text": "And a classic trap: stack linear layers and you get W₂W₁x — still one linear function, still one line. The non-linearity is the whole point.", "say": "And a classic trap: stack linear layers and you get W 2 times W 1 times x — still one linear function, still one line. The non-linearity is the whole point."}
+    ],
+    "recap": [
+      {"text": "Three things to remember for the exam.", "say": "Three things to remember for the exam. One: one neuron is one straight line, and XOR’s four inequalities contradict each other. Two: a hidden layer moves the points: a linear map, then a non-linear squash. Three: in hidden space one line separates them; pulled back, it is a curved boundary."},
+      "Next: try the XOR page, where you can train this network with backpropagation step by step."
+    ]
+  },
+  "zh": {
+    "title": [
+      "一份又一份试卷都在问同一个问题：为什么单个感知机学不会 XOR？隐藏层又改变了什么？"
+    ],
+    "points": [
+      {"text": "XOR 只有四种输入。x₁、x₂ 恰好一个为 1 时输出 1（蓝色），否则输出 0（红色）。", "say": "XOR 只有四种输入。x1、x2 恰好一个为 1 时输出 1，也就是蓝色，否则输出 0，也就是红色。"},
+      "把它们画在平面上：蓝点在一条对角线上，红点在另一条对角线上。",
+      {"text": "单个神经元计算 step(w₁x₁ + w₂x₂ + b)。它的边界 w₁x₁ + w₂x₂ + b = 0 是一条直线。", "say": "单个神经元计算 w1 x1 加 w2 x2 加 b，再取阶跃。它的边界，也就是这个和等于 0 的地方，是一条直线。"}
+    ],
+    "lines": [
+      "那就来试直线吧，每个位置、每个角度都试。",
+      "有的分对两个点，很多分对三个。盯住最好成绩。",
+      {"text": "它永远到不了四个。任何直线最多只能分对四个中的三个。", "say": "它永远到不了四个。任何直线最多只能分对四个中的三个。进入下一章之前：你能只用四个不等式证明没有直线能做到吗？"}
+    ],
+    "proof": [
+      {"text": "写下每个点对 w₁、w₂、b 的要求。", "say": "写下每个点对 w1、w2、b 的要求。"},
+      {"text": "(0,0) 要输出 0，所以 b ≤ 0。两个蓝点要求 w₁ + b > 0 且 w₂ + b > 0。", "say": "点 0、0 要输出 0，所以 b 小于等于 0。两个蓝点要求 w1 加 b 大于 0，并且 w2 加 b 大于 0。"},
+      {"text": "两式相加：w₁ + w₂ + 2b > 0，所以 w₁ + w₂ + b > −b，而 −b 至少为 0。", "say": "两式相加：w1 加 w2 加 2b 大于 0，所以 w1 加 w2 加 b 大于负 b，而负 b 至少为 0。"},
+      {"text": "但 (1,1) 要输出 0，需要 w₁ + w₂ + b ≤ 0。矛盾。这就是 2025 春 Q7(c) 的满分答案。", "say": "但点 1、1 要输出 0，需要 w1 加 w2 加 b 小于等于 0。矛盾。这就是 2025 年春季第 7 题 c 小题的满分答案。"}
+    ],
+    "idea": [
+      "如果没有直线能分开这些点，那就改变这些点。这正是隐藏层做的事。",
+      "每个隐藏神经元算出一个新坐标。输出神经元在这个新空间里画直线，而不是在原来的空间里。"
+    ],
+    "stretch": [
+      {"text": "先看权重：z = 3(Wx + c)。看整张网格跟着一起变。", "say": "先看权重：z 等于 3 乘以 Wx 加 c。看整张网格跟着一起变。"},
+      "线性变换可以拉伸、错切、平移整个平面……",
+      "……但直线仍是直线，平行线仍然平行。",
+      "所以这些点还是分不开。只有线性这一步，什么都没改变 —— 这就是激活函数的意义所在。"
+    ],
+    "squash": [
+      {"text": "现在轮到激活函数。σ 把任何数都压到 0 到 1 之间。", "say": "现在轮到激活函数。sigmoid 把任何数都压到 0 到 1 之间。"},
+      "对两个坐标都做一遍，被拉伸的平面就被挤进单位正方形，网格线也弯了。",
+      {"text": "红点 (1,1) 被推到右上角，(0,0) 被推到左下边缘，两个蓝点都落在右下附近。", "say": "红点 1、1 被推到右上角，0、0 被推到左下边缘，两个蓝点都落在右下附近。"}
+    ],
+    "separate": [
+      "这是四个点在隐藏空间里的位置和新坐标。",
+      {"text": "输出神经元画一条直线：y = step(h₁ − h₂ − 0.4)。", "say": "输出神经元画一条直线：y 等于 h1 减 h2 减 0.4 的阶跃。"},
+      "两个蓝点在一侧，两个红点在另一侧。XOR 解决了。",
+      {"text": "看四个角：h₁ 像 OR，h₂ 像 AND，输出就是“OR 但不是 AND” —— 也就是 XOR。", "say": "看四个角：h1 像 OR，h2 像 AND，输出就是“OR 但不是 AND”，也就是 XOR。先停下来想一想：为什么激活函数必须是非线性的？没有 sigmoid，那张弯曲的网格会怎样？"}
+    ],
+    "pullback": [
+      "把这条直线沿网络倒推回去：先撤销挤压……",
+      "……再撤销拉伸，然后按网络的输出给每个输入点上色。",
+      "隐藏空间里的直线，在输入平面里变成一条弯曲的带。这条非线性边界，单个神经元永远画不出来。"
+    ],
+    "exam": [
+      {"text": "考试常要求用阶跃激活手动给出权重。一种标准答案：h₁ = OR，h₂ = NAND，输出 = AND。", "say": "考试常要求用阶跃激活手动给出权重。一种标准答案：h1 是 OR，h2 是 NAND，输出是 AND。"},
+      {"text": "逐行核对：只有 (0,1) 和 (1,0) 能让两个隐藏单元同时为 1。", "say": "逐行核对：只有 0、1 和 1、0 能让两个隐藏单元同时为 1。"},
+      {"text": "还有一个经典陷阱：叠加线性层得到的是 W₂W₁x —— 仍是一个线性函数、仍是一条直线。关键就在非线性。", "say": "还有一个经典陷阱：叠加线性层得到的是 W2 乘 W1 乘 x，仍是一个线性函数、仍是一条直线。关键就在非线性。"}
+    ],
+    "recap": [
+      {"text": "考试要记住三件事。", "say": "考试要记住三件事。第一，一个神经元就是一条直线，XOR 的四个不等式互相矛盾。第二，隐藏层移动这些点：先线性变换，再非线性挤压。第三，在隐藏空间里一条直线就能分开；拉回输入平面，它是一条弯曲的边界。"},
+      "接下来去 XOR 页面，用反向传播一步步亲手训练这个网络。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "一份又一份試卷都問緊同一條問題：點解單一個感知機學唔識 XOR？隱藏層又改變咗啲乜？"
+    ],
+    "points": [
+      {"text": "XOR 得四種輸入。x₁、x₂ 啱啱好得一個係 1 嘅時候輸出 1，即係藍色；否則輸出 0，即係紅色。", "say": "XOR 得四種輸入。x1、x2 啱啱好得一個係 1 嘅時候輸出 1，即係藍色；否則輸出 0，即係紅色。"},
+      "將佢哋畫喺平面上：藍點喺一條對角線，紅點喺另一條對角線。",
+      {"text": "單一個神經元計 step(w₁x₁ + w₂x₂ + b)。佢嘅邊界 w₁x₁ + w₂x₂ + b = 0 係一條直線。", "say": "單一個神經元計 w1 x1 加 w2 x2 加 b，再攞階躍。佢嘅邊界，即係呢個和等於 0 嘅位置，係一條直線。"}
+    ],
+    "lines": [
+      "咁就試吓直線啦，每個位置、每個角度都試。",
+      "有啲分啱兩個點，好多分啱三個。留意住最好嘅成績。",
+      {"text": "佢永遠去唔到四個。任何直線最多都係分啱四個入面嘅三個。", "say": "佢永遠去唔到四個。任何直線最多都係分啱四個入面嘅三個。入下一章之前：你可唔可以淨係用四條不等式，證明冇直線做得到？"}
+    ],
+    "proof": [
+      {"text": "寫低每個點對 w₁、w₂ 同 b 有咩要求。", "say": "寫低每個點對 w1、w2 同 b 有咩要求。"},
+      {"text": "(0,0) 要輸出 0，所以 b ≤ 0。兩個藍點要求 w₁ + b > 0 同埋 w₂ + b > 0。", "say": "點 0、0 要輸出 0，所以 b 細過或者等於 0。兩個藍點要求 w1 加 b 大過 0，同埋 w2 加 b 大過 0。"},
+      {"text": "兩條加埋：w₁ + w₂ + 2b > 0，所以 w₁ + w₂ + b > −b，而 −b 最少係 0。", "say": "兩條加埋：w1 加 w2 加 2b 大過 0，所以 w1 加 w2 加 b 大過負 b，而負 b 最少係 0。"},
+      {"text": "但係 (1,1) 要輸出 0，即係 w₁ + w₂ + b ≤ 0。矛盾。呢個就係 2025 春 Q7(c) 嘅滿分答案。", "say": "但係點 1、1 要輸出 0，即係 w1 加 w2 加 b 細過或者等於 0。矛盾。呢個就係 2025 年春季第 7 題 c 部分嘅滿分答案。"}
+    ],
+    "idea": [
+      "如果冇直線分得開呢啲點，咁就改變呢啲點。隱藏層做嘅正正就係呢樣嘢。",
+      "每個隱藏神經元計出一個新座標。輸出神經元喺呢個新空間度畫直線，而唔係喺原本嘅空間。"
+    ],
+    "stretch": [
+      {"text": "首先睇權重：z = 3(Wx + c)。睇住成個網格跟住一齊郁。", "say": "首先睇權重：z 等於 3 乘 Wx 加 c。睇住成個網格跟住一齊郁。"},
+      "線性變換可以拉伸、錯切、平移成個平面……",
+      "……但係直線仲係直線，平行線仲係平行。",
+      "所以呢啲點仲係分唔開。淨係得線性呢一步，乜都冇改變，呢個就係激活函數嘅意義。"
+    ],
+    "squash": [
+      {"text": "而家到激活函數。σ 將任何數都壓落 0 到 1 之間。", "say": "而家到激活函數。sigmoid 將任何數都壓落 0 到 1 之間。"},
+      "兩個座標都做一次，拉伸咗嘅平面就被擠入單位正方形，網格線都彎埋。",
+      {"text": "紅點 (1,1) 被推去右上角，(0,0) 被推去左下邊，兩個藍點都落喺右下附近。", "say": "紅點 1、1 被推去右上角，0、0 被推去左下邊，兩個藍點都落喺右下附近。"}
+    ],
+    "separate": [
+      "呢度係四個點喺隱藏空間嘅位置同新座標。",
+      {"text": "輸出神經元畫一條直線：y = step(h₁ − h₂ − 0.4)。", "say": "輸出神經元畫一條直線：y 等於 h1 減 h2 減 0.4 嘅階躍。"},
+      "兩個藍點喺一邊，兩個紅點喺另一邊。XOR 解決咗。",
+      {"text": "睇吓四個角：h₁ 好似 OR，h₂ 好似 AND，輸出就係「OR 但唔係 AND」，即係 XOR。", "say": "睇吓四個角：h1 好似 OR，h2 好似 AND，輸出就係「OR 但唔係 AND」，即係 XOR。停一停諗吓先：點解激活函數一定要係非線性？如果冇 sigmoid，嗰個彎咗嘅網格會變成點？"}
+    ],
+    "pullback": [
+      "將呢條直線沿住網絡倒推返去：首先撤銷擠壓……",
+      "……再撤銷拉伸，然後按網絡嘅輸出幫每個輸入點填色。",
+      "隱藏空間入面嘅直線，喺輸入平面變成一條彎彎哋嘅帶。呢條非線性邊界，單一個神經元永遠都畫唔到。"
+    ],
+    "exam": [
+      {"text": "考試成日要你用階躍激活，人手寫出權重。一個標準答案：h₁ = OR，h₂ = NAND，輸出 = AND。", "say": "考試成日要你用階躍激活，人手寫出權重。一個標準答案：h1 係 OR，h2 係 NAND，輸出係 AND。"},
+      {"text": "逐行核對：淨係 (0,1) 同 (1,0) 會令兩個隱藏單元同時係 1。", "say": "逐行核對：淨係 0、1 同 1、0 會令兩個隱藏單元同時係 1。"},
+      {"text": "仲有一個經典陷阱：疊幾層線性層，得到嘅係 W₂W₁x，都係一個線性函數、都係一條直線。重點就係非線性。", "say": "仲有一個經典陷阱：疊幾層線性層，得到嘅係 W2 乘 W1 乘 x，都係一個線性函數、都係一條直線。重點就係非線性。"}
+    ],
+    "recap": [
+      {"text": "考試要記住三樣嘢。", "say": "考試要記住三樣嘢。第一，一個神經元就係一條直線，XOR 嘅四條不等式互相矛盾。第二，隱藏層會移動啲點：先做線性變換，再做非線性擠壓。第三，喺隱藏空間一條直線就分得開；拉返去輸入平面，佢就係一條彎嘅邊界。"},
+      "跟住去 XOR 頁面，用反向傳播一步一步親手訓練呢個網絡。"
+    ]
+  }
+}

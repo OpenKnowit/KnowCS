@@ -1,0 +1,122 @@
+{
+  "en": {
+    "title": [
+      "Image processing questions in the finals keep coming back to one picture: the grey-level histogram."
+    ],
+    "hist": [
+      "Here is a small picture of coins on a table, 1,728 pixels.",
+      "Now let every pixel fall into the column for its brightness.",
+      "Two humps: the darker table and the brighter coins. Where the pixels were is gone; only how bright they are remains."
+    ],
+    "stretch": [
+      "A point operation changes each pixel using only its own value — so you can see its effect on the histogram directly.",
+      "Here the image is squeezed into grey levels 90 to 160. Contrast stretching maps the darkest to 0 and the brightest to 255.",
+      "The histogram keeps its shape and spreads out."
+    ],
+    "threshold": [
+      "Thresholding turns every pixel into black or white: 255 if it is brighter than T, 0 otherwise.",
+      "Slide T and watch the coins appear and disappear.",
+      {"text": "The right T is somewhere between the two humps. Can we find it automatically?", "say": "The right T is somewhere between the two humps. Can we find it automatically? Before we go on: if you had to choose T from the histogram alone, where would you put it — and why?"}
+    ],
+    "otsu": [
+      "Lecture 7’s Otsu method: start with T at the mean brightness.",
+      {"text": "Split the pixels at T and average each side: μ1 for the dark side, μ2 for the bright side.", "say": "Split the pixels at T and average each side: mu 1 for the dark side, mu 2 for the bright side."},
+      "Move T to the midpoint of the two means, then split again. Repeat until T stops moving.",
+      "The final T falls between the humps, and the coins come out cleanly."
+    ],
+    "table": [
+      {"text": "The exam version: this 3×3 image with T₀ = 100 and one iteration.", "say": "The exam version: this 3 by 3 image, with T zero equal to 100, and one iteration."},
+      {"text": "Pixels ≤ 100 average to 21, pixels above to 128, so the new T is 74.5 — and the bottom row becomes 255.", "say": "Pixels at or below 100 average to 21, pixels above to 128, so the new T is 74.5 — and the bottom row becomes 255."},
+      "The advantage the marking scheme wants: T is chosen automatically, so the result is reproducible."
+    ],
+    "flip": [
+      "Another favourite: match images to their histograms.",
+      "Flipping the image moves pixels around without changing any value. The histogram stays exactly the same.",
+      "Stretching spreads it, thresholding leaves two bars, a flip changes nothing."
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: a histogram counts pixels per grey level; it ignores position. Two: point operations act on each pixel’s value alone: stretching spreads the histogram, thresholding leaves two bars, and a flip leaves it unchanged. Three: for Otsu, start T at the mean, or the given value; set T to the average of mu 1 and mu 2; and repeat until it is stable."},
+      "Then try the histogram and Otsu page with your own images."
+    ]
+  },
+  "zh": {
+    "title": [
+      "期末的图像处理题总绕回同一幅图：灰度直方图。"
+    ],
+    "hist": [
+      "这是一张桌上硬币的小图，共 1,728 个像素。",
+      "现在让每个像素落进它亮度对应的那一列。",
+      "两个峰：较暗的桌面和较亮的硬币。像素原来在哪里已经消失，只剩下它们有多亮。"
+    ],
+    "stretch": [
+      "点运算只根据像素自身的值改变它 —— 所以直接在直方图上就能看出效果。",
+      "这里图像被挤在灰度 90 到 160 之间。对比度拉伸把最暗映射到 0、最亮映射到 255。",
+      "直方图形状不变，只是铺开了。"
+    ],
+    "threshold": [
+      "阈值处理把每个像素变成黑或白：比 T 亮就是 255，否则为 0。",
+      "滑动 T，看硬币出现又消失。",
+      {"text": "合适的 T 在两个峰之间。能不能自动找到它？", "say": "合适的 T 在两个峰之间。能不能自动找到它？先停下来想一想：如果只能根据直方图选 T，你会放在哪里？为什么？"}
+    ],
+    "otsu": [
+      "第 7 讲的 Otsu 方法：从平均亮度开始设 T。",
+      {"text": "在 T 处把像素分成两边，各自求平均：暗的一边为 μ1，亮的一边为 μ2。", "say": "在 T 处把像素分成两边，各自求平均：暗的一边为 mu1，亮的一边为 mu2。"},
+      "把 T 移到两个均值的中点，再分一次。重复直到 T 不再移动。",
+      "最终的 T 落在两个峰之间，硬币被干净地分了出来。"
+    ],
+    "table": [
+      {"text": "考试版本：这张 3×3 图像，T₀ = 100，迭代一次。", "say": "考试版本：这张 3 乘 3 的图像，初始 T 等于 100，迭代一次。"},
+      {"text": "≤ 100 的像素平均为 21，大于 100 的平均为 128，所以新的 T 是 74.5 —— 最下面一行变成 255。", "say": "小于等于 100 的像素平均为 21，大于 100 的平均为 128，所以新的 T 是 74.5，最下面一行变成 255。"},
+      "评分标准要的优点：T 自动选出，所以结果可复现。"
+    ],
+    "flip": [
+      "另一道常考题：把图像和直方图配对。",
+      "翻转图像只移动像素，不改变任何值。直方图完全一样。",
+      "拉伸会把它铺开，阈值处理只剩两根柱，翻转什么都不变。"
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，直方图统计每个灰度的像素个数；它不管位置。第二，点运算只看每个像素自己的值：拉伸铺开直方图，阈值处理只留两根柱，翻转不改变直方图。第三，Otsu：初始 T 取均值或题目给定的值，再把 T 设为 mu1 和 mu2 的平均，重复直到稳定。"},
+      "然后去直方图与 Otsu 页面用你自己的图像试试。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "期末嘅圖像處理題，成日都返返去同一幅圖：灰度直方圖。"
+    ],
+    "hist": [
+      "呢度係一張枱面上有啲硬幣嘅細圖，總共 1,728 個像素。",
+      "而家將每個像素放落佢亮度對應嗰一列。",
+      "兩個峰：暗啲嘅枱面，同光啲嘅硬幣。像素原本喺邊度已經冇咗，淨返佢哋有幾光。"
+    ],
+    "stretch": [
+      "點運算只係根據像素自己嘅值去改變佢，所以喺直方圖上面就可以直接睇到效果。",
+      "呢度張圖被擠喺灰度 90 到 160 之間。對比度拉伸將最暗映射去 0，最光映射去 255。",
+      "直方圖嘅形狀唔變，只係攤開咗。"
+    ],
+    "threshold": [
+      "閾值處理將每個像素變成黑或者白：光過 T 就係 255，否則係 0。",
+      "拉吓 T，睇住啲硬幣出現又消失。",
+      {"text": "啱嘅 T 喺兩個峰中間。可唔可以自動搵出嚟？", "say": "啱嘅 T 喺兩個峰中間。可唔可以自動搵出嚟？停一停諗吓先：如果淨係睇直方圖揀 T，你會放喺邊？點解？"}
+    ],
+    "otsu": [
+      "第 7 講嘅 Otsu 方法：由平均亮度開始設 T。",
+      {"text": "喺 T 嗰度將像素分做兩邊，各自攞平均：暗嗰邊係 μ1，光嗰邊係 μ2。", "say": "喺 T 嗰度將像素分做兩邊，各自攞平均：暗嗰邊係 mu1，光嗰邊係 mu2。"},
+      "將 T 移去兩個平均值嘅中點，再分一次。重複到 T 唔再郁為止。",
+      "最後嘅 T 落喺兩個峰中間，啲硬幣就乾乾淨淨咁分咗出嚟。"
+    ],
+    "table": [
+      {"text": "考試版本：呢張 3×3 嘅圖，T₀ = 100，迭代一次。", "say": "考試版本：呢張 3 乘 3 嘅圖，初始 T 等於 100，迭代一次。"},
+      {"text": "≤ 100 嘅像素平均係 21，大過 100 嘅平均係 128，所以新嘅 T 係 74.5，最底嗰行變成 255。", "say": "細過或者等於 100 嘅像素平均係 21，大過 100 嘅平均係 128，所以新嘅 T 係 74.5，最底嗰行變成 255。"},
+      "評分標準要嘅優點：T 係自動揀出嚟，所以結果可以重複。"
+    ],
+    "flip": [
+      "另一題常考嘅：將圖像同直方圖配對。",
+      "翻轉圖像只係搬像素，唔會改變任何值。直方圖完全一樣。",
+      "拉伸會攤開佢，閾值處理淨返兩條柱，翻轉就乜都唔變。"
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，直方圖數每個灰度有幾多個像素；佢唔理位置。第二，點運算只睇每個像素自己嘅值：拉伸攤開直方圖，閾值處理淨返兩條柱，翻轉唔會改變直方圖。第三，Otsu：初始 T 用平均值或者題目俾嘅值，再將 T 設做 mu1 同 mu2 嘅平均，重複到穩定為止。"},
+      "之後去直方圖同 Otsu 頁面，用你自己嘅圖試吓。"
+    ]
+  }
+}

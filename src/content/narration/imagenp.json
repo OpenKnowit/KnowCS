@@ -1,0 +1,95 @@
+{
+  "en": {
+    "title": [
+      "The 2024 final asked for two image operations with no explicit loops. Both are broadcasting in disguise."
+    ],
+    "mask": [
+      "Keep the pixels within distance 100 of a centre, zero the rest.",
+      "np.arange gives every x and every y. Subtract the centre, and broadcast a row against a column: the distance of every pixel, at once.",
+      {"text": "Compare with the radius — boundary included, so ≤ — to get the mask.", "say": "Compare with the radius — boundary included, so less than or equal — to get the mask."},
+      {"text": "Multiply the image by the mask. True counts as 1, False as 0.", "say": "Multiply the image by the mask. True counts as 1, False as 0. Before we go on: why does y dist need a new axis, colon, None, but x dist does not?"}
+    ],
+    "separable": [
+      {"text": "The 3×3 blur averages nine neighbours. But that matrix is an outer product of two thirds-vectors.", "say": "The 3 by 3 blur averages nine neighbours. But that matrix is an outer product of two thirds-vectors."},
+      "So blurring is a horizontal 3-tap average followed by a vertical one.",
+      {"text": "The question gives v = blur_filter.sum(0) for exactly this reason.", "say": "The question gives v, the blur filter summed over axis 0, for exactly this reason."}
+    ],
+    "flatten": [
+      "np.convolve only works on 1-D arrays. So pad every row with a zero at each end…",
+      "…and flatten the whole image into one long strip.",
+      "One convolution slides along the strip. Windows centred on a real pixel see its row neighbours — or a padding zero at the edge, which is exactly zero padding.",
+      "Windows centred on a padding zero straddle two rows. Put one 0 back at each end, reshape, and cut off the first and last column: those bad values disappear."
+    ],
+    "result": [
+      "That is one horizontal pass.",
+      "Transpose, run the same function, transpose back: the vertical pass.",
+      {"text": "The result is the 3×3 zero-padded mean blur, and the code has no loops.", "say": "The result is the 3 by 3 zero-padded mean blur, and the code has no loops."}
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: for the circle mask, the distance is the square root of x dist squared plus y dist, with a new axis, squared; then multiply the image by distance at most r. Two: a 3 by 3 box blur is a horizontal 3-tap pass, then the same on the transpose. Three: the flatten trick: pad the rows, flatten, np dot convolve with valid, pad the ends, reshape, and drop the pad columns."},
+      "Then try broadcasting shapes yourself in the NumPy playground."
+    ]
+  },
+  "zh": {
+    "title": [
+      "2024 期末要求不用显式循环完成两种图像操作。两者本质上都是广播。"
+    ],
+    "mask": [
+      "保留离中心 100 以内的像素，其余置零。",
+      "np.arange 给出所有 x 和所有 y。减去中心，再让一行与一列广播：一次算出每个像素的距离。",
+      {"text": "与半径比较 —— 包括边界，所以用 ≤ —— 得到掩码。", "say": "与半径比较，包括边界，所以用小于等于，得到掩码。"},
+      {"text": "图像乘以掩码。True 当作 1，False 当作 0。", "say": "图像乘以掩码。True 当作 1，False 当作 0。先停下来想一想：为什么 y_dist 需要加上冒号、None 的新轴，而 x_dist 不需要？"}
+    ],
+    "separable": [
+      {"text": "3×3 模糊对九个邻居取平均。但这个矩阵是两个三分之一向量的外积。", "say": "3 乘 3 模糊对九个邻居取平均。但这个矩阵是两个三分之一向量的外积。"},
+      {"text": "所以模糊 = 水平方向 3 点平均，再接竖直方向 3 点平均。", "say": "所以模糊就是水平方向 3 点平均，再接竖直方向 3 点平均。"},
+      {"text": "题目给出 v = blur_filter.sum(0) 正是这个原因。", "say": "题目给出 v 等于 blur_filter 沿 axis 0 求和，正是这个原因。"}
+    ],
+    "flatten": [
+      "np.convolve 只能处理一维数组。所以先在每一行两端各补一个 0……",
+      "……再把整张图展平成一条长带。",
+      "一次卷积沿着长带滑过。以真实像素为中心的窗口看到的是同一行的邻居 —— 在边缘则是一个填充 0，这正是零填充。",
+      "以填充 0 为中心的窗口横跨两行。两端各补回一个 0，reshape，再切掉第一列和最后一列：这些错误值就消失了。"
+    ],
+    "result": [
+      "这是一次水平方向的处理。",
+      "转置，调用同一个函数，再转置回来：就是竖直方向的处理。",
+      {"text": "结果就是零填充的 3×3 均值模糊，而且代码里没有循环。", "say": "结果就是零填充的 3 乘 3 均值模糊，而且代码里没有循环。"}
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，圆形掩码：距离等于 x_dist 的平方，加上加了新轴的 y_dist 的平方，再开方；然后图像乘以距离小于等于 r。第二，3 乘 3 方框模糊，就是水平 3 点处理，再对转置做同样处理。第三，展平技巧：每行补 0、展平、用 valid 模式做 np.convolve、两端补 0、reshape、去掉填充列。"},
+      "然后去 NumPy 实验台亲手试试广播形状。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "2024 期末要你唔用明確嘅迴圈，做兩種圖像操作。兩樣其實都係廣播。"
+    ],
+    "mask": [
+      "保留離中心 100 以內嘅像素，其餘設做 0。",
+      "np.arange 俾出所有 x 同所有 y。減咗中心，再用一行同一列廣播：一次過計出每個像素嘅距離。",
+      {"text": "同半徑比較，包埋邊界，所以用 ≤，就得到遮罩。", "say": "同半徑比較，包埋邊界，所以用細過或者等於，就得到遮罩。"},
+      {"text": "圖像乘遮罩。True 當 1，False 當 0。", "say": "圖像乘遮罩。True 當 1，False 當 0。停一停諗吓先：點解 y_dist 要加冒號、None 嘅新軸，但 x_dist 唔使？"}
+    ],
+    "separable": [
+      {"text": "3×3 模糊將九個鄰居攞平均。但呢個矩陣係兩個三分之一向量嘅外積。", "say": "3 乘 3 模糊將九個鄰居攞平均。但呢個矩陣係兩個三分之一向量嘅外積。"},
+      "所以模糊就係水平方向 3 點平均，再接垂直方向 3 點平均。",
+      {"text": "題目俾 v = blur_filter.sum(0)，就係呢個原因。", "say": "題目俾 v 等於 blur_filter 沿 axis 0 加埋，就係呢個原因。"}
+    ],
+    "flatten": [
+      "np.convolve 只可以處理一維陣列。所以首先喺每一行兩頭各補一個 0……",
+      "……再將成張圖展平做一條長帶。",
+      "一次卷積沿住條長帶滑過去。以真實像素做中心嘅窗口，睇到嘅係同一行嘅鄰居；喺邊緣就係一個填充嘅 0，正正就係零填充。",
+      "以填充 0 做中心嘅窗口會橫跨兩行。兩頭各補返一個 0，reshape，再切走第一列同最後一列：啲錯嘅值就消失咗。"
+    ],
+    "result": [
+      "呢個係一次水平方向嘅處理。",
+      "轉置，用同一個函數，再轉置返轉頭：就係垂直方向嘅處理。",
+      {"text": "結果就係零填充嘅 3×3 平均模糊，而且程式碼入面冇迴圈。", "say": "結果就係零填充嘅 3 乘 3 平均模糊，而且程式碼入面冇迴圈。"}
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，圓形遮罩：距離等於 x_dist 嘅平方，加上加咗新軸嘅 y_dist 嘅平方，再開方；然後圖像乘距離細過或者等於 r。第二，3 乘 3 方框模糊，就係水平 3 點處理，再對轉置做一次。第三，展平技巧：每行補 0、展平、用 valid 模式做 np.convolve、兩頭補 0、reshape、再切走填充嘅列。"},
+      "之後去 NumPy 實驗台，親手試吓廣播嘅形狀。"
+    ]
+  }
+}

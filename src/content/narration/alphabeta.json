@@ -1,0 +1,113 @@
+{
+  "en": {
+    "title": [
+      {"text": "Every final asks you to run alpha-beta by hand: which nodes get pruned, and what are α and β along the way. Let us watch it happen.", "say": "Every final asks you to run alpha-beta by hand: which nodes get pruned, and what are alpha and beta along the way. Let us watch it happen."}
+    ],
+    "tree": [
+      "Two players take turns. MAX wants the score high, MIN wants it low.",
+      "Triangles pointing up are MAX’s turns, pointing down are MIN’s.",
+      "The leaves are scores of finished positions, from MAX’s point of view."
+    ],
+    "minimax": [
+      "Minimax fills the tree from the bottom up.",
+      "Each MAX node takes the largest child value; each MIN node the smallest.",
+      {"text": "The root gets 7: with best play from both sides, that is the score.", "say": "The root gets 7: with best play from both sides, that is the score. Before we go on: Minimax looked at all 8 leaves. Can you spot one whose value cannot possibly change the answer?"}
+    ],
+    "search": [
+      "Alpha-beta searches the same tree depth-first, left to right, carrying two numbers down.",
+      {"text": "α is the best score MAX is already guaranteed on this path; β is the best MIN is guaranteed. They start at −∞ and +∞.", "say": "Alpha is the best score MAX is already guaranteed on this path; beta is the best MIN is guaranteed. They start at minus infinity and plus infinity."},
+      {"text": "At E, the first leaf is 8. E is a MAX node, so it is worth at least 8 — but B, above it, already has 7 and will take the smaller. α ≥ β: skip E’s second leaf.", "say": "At E, the first leaf is 8. E is a MAX node, so it is worth at least 8 — but B, above it, already has 7 and will take the smaller. Alpha is at least beta: skip E’s second leaf."},
+      {"text": "B returns 7, so the root’s α becomes 7. Now C: its first child F is worth only 2.", "say": "B returns 7, so the root’s alpha becomes 7. Now C: its first child F is worth only 2."},
+      {"text": "C is a MIN node, so it is worth at most 2. α = 7 ≥ β = 2: the whole subtree G is cut. Only 5 of 8 leaves were evaluated.", "say": "C is a MIN node, so it is worth at most 2. Alpha, 7, is at least beta, 2: the whole subtree G is cut. Only 5 of 8 leaves were evaluated."}
+    ],
+    "why": [
+      "Look at the second cut more slowly.",
+      "The root can already guarantee 7 by moving to B.",
+      "C is a MIN node that has found 2, so its value is at most 2, whatever G contains.",
+      {"text": "MAX will never pick C. Whatever is under G, the root value stays 7. That is the rule: cut when α ≥ β.", "say": "MAX will never pick C. Whatever is under G, the root value stays 7. That is the rule: cut when alpha is greater than or equal to beta."}
+    ],
+    "order": [
+      "With this order, alpha-beta evaluated 5 leaves.",
+      "Rearrange the same eight values badly and it has to look at all 8 — but the answer is still 7.",
+      "So pruning saves work without changing the result, and checking the best moves first saves the most."
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: in minimax, MAX nodes take the largest child and MIN nodes the smallest, filled from the leaves up. Two: alpha-beta passes alpha, MAX’s guarantee, and beta, MIN’s guarantee, down the tree, and cuts the remaining children when alpha is at least beta. Three: pruning never changes the root value; good move order prunes more."},
+      "Then run your own leaf values on the alpha-beta page, step by step."
+    ]
+  },
+  "zh": {
+    "title": [
+      {"text": "每份期末卷都要你手动跑一遍 α-β 剪枝：哪些节点被剪掉、沿途的 α 和 β 是多少。我们来看它是怎么发生的。", "say": "每份期末卷都要你手动跑一遍 alpha-beta 剪枝：哪些节点被剪掉、沿途的 alpha 和 beta 是多少。我们来看它是怎么发生的。"}
+    ],
+    "tree": [
+      "两名玩家轮流行动。MAX 想让分数高，MIN 想让分数低。",
+      "尖朝上的三角形是 MAX 的回合，尖朝下的是 MIN 的回合。",
+      "叶子是终局局面的得分，站在 MAX 的角度。"
+    ],
+    "minimax": [
+      "极小化极大从下往上填满整棵树。",
+      "每个 MAX 节点取子节点的最大值，每个 MIN 节点取最小值。",
+      {"text": "根节点得到 7：双方都下最好的棋时，这就是最终得分。", "say": "根节点得到 7：双方都下最好的棋时，这就是最终得分。先停下来想一想：极小化极大看了全部 8 片叶子。你能找出一片无论取什么值都不可能改变答案的叶子吗？"}
+    ],
+    "search": [
+      {"text": "α-β 剪枝以深度优先、从左到右的顺序搜索同一棵树，并向下传递两个数。", "say": "alpha-beta 剪枝以深度优先、从左到右的顺序搜索同一棵树，并向下传递两个数。"},
+      {"text": "α 是这条路径上 MAX 已经能保证的最好分数；β 是 MIN 已经能保证的。初始为 −∞ 和 +∞。", "say": "alpha 是这条路径上 MAX 已经能保证的最好分数；beta 是 MIN 已经能保证的。初始为负无穷和正无穷。"},
+      {"text": "在 E，第一片叶子是 8。E 是 MAX 节点，所以至少值 8 —— 但它上面的 B 已经有 7，并且会取较小者。α ≥ β：跳过 E 的第二片叶子。", "say": "在 E，第一片叶子是 8。E 是 MAX 节点，所以至少值 8，但它上面的 B 已经有 7，并且会取较小者。alpha 大于等于 beta：跳过 E 的第二片叶子。"},
+      {"text": "B 返回 7，所以根节点的 α 变成 7。接着看 C：它的第一个子节点 F 只值 2。", "say": "B 返回 7，所以根节点的 alpha 变成 7。接着看 C：它的第一个子节点 F 只值 2。"},
+      {"text": "C 是 MIN 节点，所以至多值 2。α = 7 ≥ β = 2：整棵子树 G 被剪掉。8 片叶子只评估了 5 片。", "say": "C 是 MIN 节点，所以至多值 2。alpha 等于 7，大于等于 beta 等于 2：整棵子树 G 被剪掉。8 片叶子只评估了 5 片。"}
+    ],
+    "why": [
+      "把第二次剪枝放慢来看。",
+      "根节点走 B 已经能保证 7。",
+      "C 是 MIN 节点，已经找到 2，所以不管 G 里有什么，它的值至多是 2。",
+      {"text": "MAX 绝不会选 C。无论 G 下面是什么，根节点的值都是 7。规则就是：α ≥ β 时剪枝。", "say": "MAX 绝不会选 C。无论 G 下面是什么，根节点的值都是 7。规则就是：alpha 大于等于 beta 时剪枝。"}
+    ],
+    "order": [
+      {"text": "按这个顺序，α-β 只评估了 5 片叶子。", "say": "按这个顺序，alpha-beta 只评估了 5 片叶子。"},
+      "把同样的八个值排成糟糕的顺序，它就得看全部 8 片 —— 但答案仍然是 7。",
+      "所以剪枝节省工作量而不改变结果，先检查最好的走法省得最多。"
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，极小化极大：MAX 节点取子节点最大值，MIN 节点取最小值，从叶子往上填。第二，alpha-beta 向下传递 alpha，也就是 MAX 的保证，和 beta，也就是 MIN 的保证，一旦 alpha 大于等于 beta，就剪掉剩下的子节点。第三，剪枝从不改变根节点值；好的走法顺序剪得更多。"},
+      {"text": "然后去 α-β 页面换上你自己的叶子值，一步步跑一遍。", "say": "然后去 alpha-beta 页面换上你自己的叶子值，一步步跑一遍。"}
+    ]
+  },
+  "yue": {
+    "title": [
+      {"text": "每份期末卷都要你人手行一次 α-β 剪枝：邊啲節點被剪走，沿途嘅 α 同 β 係幾多。我哋睇吓佢點樣發生。", "say": "每份期末卷都要你人手行一次 alpha-beta 剪枝：邊啲節點被剪走，沿途嘅 alpha 同 beta 係幾多。我哋睇吓佢點樣發生。"}
+    ],
+    "tree": [
+      "兩個玩家輪流行動。MAX 想個分數高，MIN 想個分數低。",
+      "尖向上嘅三角形係 MAX 嘅回合，尖向下嘅係 MIN 嘅回合。",
+      "啲葉子係終局嘅分數，企喺 MAX 嘅角度睇。"
+    ],
+    "minimax": [
+      "極小化極大由下而上填滿成棵樹。",
+      "每個 MAX 節點揀子節點嘅最大值，每個 MIN 節點揀最細值。",
+      {"text": "根節點得到 7：雙方都行最好嘅棋，呢個就係最終分數。", "say": "根節點得到 7：雙方都行最好嘅棋，呢個就係最終分數。停一停諗吓先：極小化極大睇晒全部 8 片葉。你搵唔搵到一片，無論係咩值都冇可能改變答案？"}
+    ],
+    "search": [
+      {"text": "α-β 剪枝用深度優先、由左至右嘅次序搜索同一棵樹，向下傳兩個數。", "say": "alpha-beta 剪枝用深度優先、由左至右嘅次序搜索同一棵樹，向下傳兩個數。"},
+      {"text": "α 係呢條路上 MAX 已經保證到嘅最好分數；β 係 MIN 已經保證到嘅。一開始係 −∞ 同 +∞。", "say": "alpha 係呢條路上 MAX 已經保證到嘅最好分數；beta 係 MIN 已經保證到嘅。一開始係負無限同正無限。"},
+      {"text": "去到 E，第一片葉係 8。E 係 MAX 節點，所以最少值 8，但佢上面嘅 B 已經有 7，而且會揀細嗰個。α ≥ β：跳過 E 嘅第二片葉。", "say": "去到 E，第一片葉係 8。E 係 MAX 節點，所以最少值 8，但佢上面嘅 B 已經有 7，而且會揀細嗰個。alpha 大過或者等於 beta：跳過 E 嘅第二片葉。"},
+      {"text": "B 返回 7，所以根節點嘅 α 變成 7。跟住睇 C：佢第一個子節點 F 只係值 2。", "say": "B 返回 7，所以根節點嘅 alpha 變成 7。跟住睇 C：佢第一個子節點 F 只係值 2。"},
+      {"text": "C 係 MIN 節點，所以最多值 2。α = 7 ≥ β = 2：成棵子樹 G 被剪走。8 片葉只評估咗 5 片。", "say": "C 係 MIN 節點，所以最多值 2。alpha 係 7，大過 beta 嘅 2：成棵子樹 G 被剪走。8 片葉只評估咗 5 片。"}
+    ],
+    "why": [
+      "將第二次剪枝放慢嚟睇。",
+      "根節點行 B，已經保證到 7。",
+      "C 係 MIN 節點，已經搵到 2，所以無論 G 入面有乜，佢嘅值最多都係 2。",
+      {"text": "MAX 永遠唔會揀 C。G 下面係乜都好，根節點嘅值都係 7。規則就係：α ≥ β 就剪。", "say": "MAX 永遠唔會揀 C。G 下面係乜都好，根節點嘅值都係 7。規則就係：alpha 大過或者等於 beta 就剪。"}
+    ],
+    "order": [
+      {"text": "跟呢個次序，α-β 只評估咗 5 片葉。", "say": "跟呢個次序，alpha-beta 只評估咗 5 片葉。"},
+      "將同樣嘅八個值排成一個差嘅次序，佢就要睇晒 8 片，但答案仍然係 7。",
+      "所以剪枝慳到工夫，又唔會改變結果；先檢查最好嘅走法就慳得最多。"
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，極小化極大：MAX 節點揀子節點最大值，MIN 節點揀最細值，由葉子向上填。第二，alpha-beta 向下傳 alpha，即係 MAX 嘅保證，同 beta，即係 MIN 嘅保證，一到 alpha 大過或者等於 beta，就剪走剩低嘅子節點。第三，剪枝永遠唔會改變根節點嘅值；走法次序好，就剪得多啲。"},
+      {"text": "之後去 α-β 頁面換上你自己嘅葉子值，一步一步行一次。", "say": "之後去 alpha-beta 頁面換上你自己嘅葉子值，一步一步行一次。"}
+    ]
+  }
+}

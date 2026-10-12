@@ -1,0 +1,113 @@
+{
+  "en": {
+    "title": [
+      "The 2024 final introduced something the lectures only mention: dilated convolution. Here is the whole idea, then the code."
+    ],
+    "dilation": [
+      {"text": "An ordinary 3×3 kernel reads a 3×3 patch.", "say": "An ordinary 3 by 3 kernel reads a 3 by 3 patch."},
+      {"text": "With dilation 2, leave one pixel between taps. Same nine weights, but they now cover a 5×5 area.", "say": "With dilation 2, leave one pixel between taps. Same nine weights, but they now cover a 5 by 5 area."},
+      "That is the point: a wider view without more parameters."
+    ],
+    "formula": [
+      {"text": "The effective kernel size is d(k − 1) + 1: here 5.", "say": "The effective kernel size is d times k minus 1, plus 1: here 5."},
+      {"text": "“Same” padding needs d(k − 1)/2 zeros on each side: here 2.", "say": "“Same” padding needs d times k minus 1, over 2, zeros on each side: here 2."},
+      {"text": "Then the usual output formula, with k_eff instead of k: for the test, a 10×10 input with stride 2 gives 5×5.", "say": "Then the usual output formula, with the effective kernel size instead of k: for the test, a 10 by 10 input with stride 2 gives 5 by 5."},
+      {"text": "That is TODO 1, 2 and 3.", "say": "That is TODO 1, 2 and 3. Before the next part: which padded rows does kernel row i read, for output rows 0, 1, 2, and so on?"}
+    ],
+    "shift": [
+      "The given code does not slide the window. It loops over the nine kernel cells instead.",
+      {"text": "Kernel cell (i, j) reads rows i·d + r·S and columns j·d + c·S: one strided slice of the padded input.", "say": "Kernel cell i, j reads rows i d plus r S, and columns j d plus c S: one strided slice of the padded input."},
+      {"text": "Multiply that slice by kernel[i][j] and add it to the output. The test kernel has ones on its diagonal, so three slices add up.", "say": "Multiply that slice by the kernel value at i, j, and add it to the output. The test kernel has ones on its diagonal, so three slices add up."},
+      "After the third slice the output is exactly the matrix printed in the paper."
+    ],
+    "todos": [
+      "So the six blanks are: the padding, the two output sizes…",
+      {"text": "…the row and column indices for each kernel cell, with np.arange…", "say": "…the row and column indices for each kernel cell, with np dot arange…"},
+      {"text": "…and the accumulation: kernel[i, j] times the slice picked by those indices.", "say": "…and the accumulation: the kernel value at i, j, times the slice picked by those indices."}
+    ],
+    "dropout": [
+      {"text": "Part (b) is one line: a random mask that keeps each value with probability 1 − p.", "say": "Part b is one line: a random mask that keeps each value with probability 1 minus p."},
+      {"text": "np.random.rand gives uniform numbers in [0, 1); comparing with p gives True with probability 1 − p.", "say": "np dot random dot rand gives uniform numbers from 0 up to 1; comparing with p gives True with probability 1 minus p."},
+      "Dropping random activations stops the network relying on any single one — regularisation.",
+      "Only during training. At test time every neuron is used."
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: dilation spreads the kernel: the effective size is d times k minus 1, plus 1 — same parameters, wider view. Two: same padding is d times k minus 1, over 2; the output is N plus twice the padding minus the effective size, over S, rounded down, plus 1. Three: shift and add: for each kernel cell, add the kernel value times the strided slice of the input it reads."},
+      "Then revisit convolution and output sizes on the practice pages."
+    ]
+  },
+  "zh": {
+    "title": [
+      "2024 期末考出了课件里只是提到的东西：空洞卷积。先讲清概念，再写代码。"
+    ],
+    "dilation": [
+      {"text": "普通的 3×3 卷积核读取 3×3 的区域。", "say": "普通的 3 乘 3 卷积核读取 3 乘 3 的区域。"},
+      {"text": "空洞率为 2 时，相邻采样点之间隔一个像素。同样九个权重，现在覆盖 5×5。", "say": "空洞率为 2 时，相邻采样点之间隔一个像素。同样九个权重，现在覆盖 5 乘 5。"},
+      "这就是重点：视野更宽，参数不变。"
+    ],
+    "formula": [
+      {"text": "有效卷积核大小是 d(k − 1) + 1：这里是 5。", "say": "有效卷积核大小是 d 乘 k 减 1，再加 1：这里是 5。"},
+      {"text": "“same” 填充每边需要 d(k − 1)/2 个 0：这里是 2。", "say": "same 填充每边需要 d 乘 k 减 1，再除以 2 个 0：这里是 2。"},
+      {"text": "再用常规输出公式，把 k 换成 k_eff：测试中 10×10 输入、步长 2，得到 5×5。", "say": "再用常规输出公式，把 k 换成有效卷积核大小：测试中 10 乘 10 输入、步长 2，得到 5 乘 5。"},
+      {"text": "这就是 TODO 1、2、3。", "say": "这就是 TODO 1、2、3。进入下一部分前想一想：对于输出的第 0、1、2 等行，卷积核第 i 行会读取填充后的哪些行？"}
+    ],
+    "shift": [
+      "给出的代码不滑动窗口，而是遍历卷积核的九个格子。",
+      {"text": "卷积核格 (i, j) 读取第 i·d + r·S 行、第 j·d + c·S 列：填充后输入的一个跨步切片。", "say": "卷积核格 i、j 读取第 i 乘 d 加 r 乘 S 行、第 j 乘 d 加 c 乘 S 列：填充后输入的一个跨步切片。"},
+      {"text": "把这个切片乘以 kernel[i][j] 加到输出上。测试卷积核对角线为 1，所以累加三个切片。", "say": "把这个切片乘以 kernel 第 i、j 格的值，加到输出上。测试卷积核对角线为 1，所以累加三个切片。"},
+      "加完第三个切片，输出与试卷印出的矩阵完全一致。"
+    ],
+    "todos": [
+      "所以六个空分别是：填充量、两个输出尺寸……",
+      "……用 np.arange 写出每个卷积核格对应的行、列下标……",
+      {"text": "……以及累加：kernel[i, j] 乘以这些下标选出的切片。", "say": "……以及累加：kernel 第 i、j 格的值，乘以这些下标选出的切片。"}
+    ],
+    "dropout": [
+      {"text": "(b) 只有一行：一个以 1 − p 概率保留每个值的随机掩码。", "say": "b 小题只有一行：一个以 1 减 p 的概率保留每个值的随机掩码。"},
+      {"text": "np.random.rand 给出 [0, 1) 内的均匀随机数；与 p 比较，得到 True 的概率是 1 − p。", "say": "np.random.rand 给出 0 到 1 之间的均匀随机数；与 p 比较，得到 True 的概率是 1 减 p。"},
+      "随机丢弃激活值让网络无法依赖任何单个激活 —— 这是正则化。",
+      "只在训练时使用。测试时用上所有神经元。"
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，空洞把卷积核撑开：有效大小是 d 乘 k 减 1 再加 1，参数不变，视野更宽。第二，same 填充是 d 乘 k 减 1 再除以 2；输出是 N 加两倍填充减有效大小，除以 S，向下取整再加 1。第三，平移相加：对每个卷积核格，把它的值乘以它读取的跨步切片，加到输出上。"},
+      "然后去练习页面复习卷积和输出尺寸。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "2024 期末考咗一樣課件只係提過嘅嘢：空洞卷積。先講清楚概念，再寫程式碼。"
+    ],
+    "dilation": [
+      {"text": "普通嘅 3×3 卷積核讀一個 3×3 嘅區域。", "say": "普通嘅 3 乘 3 卷積核讀一個 3 乘 3 嘅區域。"},
+      {"text": "空洞率係 2 嘅時候，相鄰嘅採樣點之間隔一個像素。同樣係九個權重，但而家覆蓋 5×5。", "say": "空洞率係 2 嘅時候，相鄰嘅採樣點之間隔一個像素。同樣係九個權重，但而家覆蓋 5 乘 5。"},
+      "呢個就係重點：視野闊咗，參數唔變。"
+    ],
+    "formula": [
+      {"text": "有效卷積核大細係 d(k − 1) + 1：呢度係 5。", "say": "有效卷積核大細係 d 乘 k 減 1，再加 1：呢度係 5。"},
+      {"text": "「same」填充每邊要 d(k − 1)/2 個 0：呢度係 2。", "say": "same 填充每邊要 d 乘 k 減 1，再除 2 個 0：呢度係 2。"},
+      {"text": "再用平時嘅輸出公式，將 k 換做 k_eff：測試入面 10×10 輸入、步長 2，得到 5×5。", "say": "再用平時嘅輸出公式，將 k 換做有效卷積核大細：測試入面 10 乘 10 輸入、步長 2，得到 5 乘 5。"},
+      {"text": "呢個就係 TODO 1、2、3。", "say": "呢個就係 TODO 1、2、3。入下一部分之前諗一諗：輸出第 0、1、2 等等行，卷積核第 i 行會讀填充後嘅邊幾行？"}
+    ],
+    "shift": [
+      "題目俾嘅程式碼唔係滑動窗口，而係逐個行勻卷積核嘅九個格。",
+      {"text": "卷積核格 (i, j) 讀第 i·d + r·S 行、第 j·d + c·S 列：即係填充後輸入嘅一個跨步切片。", "say": "卷積核格 i、j 讀第 i 乘 d 加 r 乘 S 行、第 j 乘 d 加 c 乘 S 列：即係填充後輸入嘅一個跨步切片。"},
+      {"text": "將呢個切片乘 kernel[i][j]，加落輸出度。測試卷積核嘅對角線係 1，所以加埋三個切片。", "say": "將呢個切片乘 kernel 第 i、j 格嘅值，加落輸出度。測試卷積核嘅對角線係 1，所以加埋三個切片。"},
+      "加完第三個切片，輸出同試卷印出嚟嘅矩陣完全一樣。"
+    ],
+    "todos": [
+      "所以六個空分別係：填充量、兩個輸出尺寸……",
+      "……用 np.arange 寫出每個卷積核格對應嘅行同列下標……",
+      {"text": "……同埋累加：kernel[i, j] 乘呢啲下標揀出嚟嘅切片。", "say": "……同埋累加：kernel 第 i、j 格嘅值，乘呢啲下標揀出嚟嘅切片。"}
+    ],
+    "dropout": [
+      {"text": "(b) 得一行：一個以 1 − p 機率保留每個值嘅隨機遮罩。", "say": "b 部分得一行：一個以 1 減 p 機率保留每個值嘅隨機遮罩。"},
+      {"text": "np.random.rand 俾出 [0, 1) 之間嘅均勻隨機數；同 p 比較，得到 True 嘅機率係 1 − p。", "say": "np.random.rand 俾出 0 到 1 之間嘅均勻隨機數；同 p 比較，得到 True 嘅機率係 1 減 p。"},
+      "隨機掉走啲激活值，令網絡唔可以依賴任何一個激活，呢個就係正則化。",
+      "只係喺訓練嘅時候用。測試嘅時候用晒所有神經元。"
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，空洞將卷積核撐開：有效大細係 d 乘 k 減 1 再加 1，參數唔變，視野闊咗。第二，same 填充係 d 乘 k 減 1 再除 2；輸出係 N 加兩倍填充減有效大細，除 S，向下取整再加 1。第三，平移相加：每個卷積核格，將佢嘅值乘佢讀嘅跨步切片，加落輸出。"},
+      "之後去練習頁面溫習卷積同輸出尺寸。"
+    ]
+  }
+}

@@ -38,3 +38,6 @@ manim/__pycache__/
 
 # Local secrets (Gemini API key) — never committed
 .env
+
+# Python bytecode (scripts/tts)
+__pycache__/

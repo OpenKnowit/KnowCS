@@ -7,6 +7,13 @@
 
 ## 进展时间线
 
+### 2026-10-12 — 讲解视频三语配音（KNN 先上线，按用户要求）
+- **feat**：/watch/ 播放器支持配音。每集每种语言一条音轨（Gemini TTS：普通话 / 英文 Charon，粤语 Iapetus），manifest 记录每条字幕的朗读时长；播放器据此拉长场景，并把每段动画分段线性映射到原 cue 区间，句子说到哪画面演到哪。音频即时钟（缓冲时画面等待）；倍速、拖动、章节、ponder 暂停、全屏均同步；开关配音（控制栏按钮 / M 键，默认开，记在 `knowcs-voice`）时停在同一画面。没有配音的集或语言、或 manifest 与场景对不上时，行为与原来完全相同。
+- **feat**：配音时字幕显示讲稿：en / zh 仍是站点字幕（只在朗读文本里把公式、单位、坐标改成口语，并念出 ponder 问题和 recap 要点）；粤语显示口语粤语稿（用户决定）。17 集 × 3 语讲稿入库 `src/content/narration/`，测试检查每条字幕一句、en / zh 与站点字幕一致、朗读文本无难读符号。
+- **tooling**：`scripts/tts/narrate.py`：`gen` 按场景一次请求再按停顿切分（比逐句省约 3 倍配额，语调连贯；改过的句子单独重录），片段按内容缓存；`build` 拼成 AAC 48k 单声道（约 1.2 MB / 3 分钟）并写 manifest；`qa` 用 gemini-3.8-flash 按场景听辨。`timings.mjs` 用 Vite SSR 导出各集场景时长。
+- **deploy**：音频不进 Git、不进 dist：服务器 `knowcs/audio/` 共享目录，每个 release 内 `audio -> ../../audio` 软链接（`deploy/README.md`）；dev / preview 由 Vite 中间件从 `work/dubbing/out/audio` 提供（支持 Range）。Service Worker 不缓存 `/audio/`。
+- **limit**：Tier 1 TTS 每天 100 次请求。KNN 已完成（约 3 分钟 / 语言，原视频 95 秒）；其余 16 集约需 405 次请求，按 `docs/dubbing-handoff.md` 第 4 节分 4–5 天生成。测试 668 → 692。
+
 ### 2026-10-12 — 题目与答案全面核对（Desmond 反馈「请检查题目是否正确」）
 - **audit**：20 个练习页的预设逐个用 Python 独立重算（scikit-learn 指标、SciPy 卷积、OpenCV `warpAffine` 逐像素、NumPy K-Means / Otsu / 交叉验证 / 感知机分数精确计算、讲义 XOR 反向传播逐步），并与讲义（Spring 2026 版）和九份往年试卷原文、官方答案对照；58 道判断题、17 集视频中的数字与引用同样核对。绝大多数一致。
 - **fix**：反向传播视频字幕 δj1 / δj2 写成 0.023008 / −0.036922，改为 0.023010 / −0.036923（画面数值本来正确）；模型评估视频把 126 人疾病例子说成「第 3 讲的例子」，讲义无此例，改为「仿 2022 期末 Q3(a)」。

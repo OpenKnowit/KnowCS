@@ -1,10 +1,11 @@
 /* eslint-disable react-refresh/only-export-components -- explainer kit: components plus data and helpers */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
-import { Captions, CaptionsOff, ChevronLeft, ChevronRight, Maximize, Minimize, Pause, Play, RotateCcw } from 'lucide-react'
+import { Captions, CaptionsOff, ChevronLeft, ChevronRight, Maximize, Minimize, Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cueAt, fmtClock, locate, stopBetween, timeline } from '../../lib/explainer'
 import type { TimedScene } from '../../lib/explainer'
+import { remapTime } from './narration'
 import { C } from './stage'
 import { markWatched } from './watched'
 
@@ -12,14 +13,28 @@ export interface Scene extends TimedScene {
   id: string
   /** draws the stage at scene progress p ∈ [0, 1] */
   render: (p: number) => ReactNode
+  /** narrated scenes: the spoken lines, shown instead of the written captions */
+  lines?: readonly string[]
+  /** narrated scenes: knots from narrated progress q to the original p (see narratedTiming) */
+  warp?: { q: readonly number[]; p: readonly number[] }
 }
 
 export interface Episode {
   id: string
   scenes: Scene[]
+  /** URL of the narration track; its time is the episode's time */
+  audio?: string
 }
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2]
+
+// the narration track is an external object, not React state: set it through plain functions
+const setAudioTime = (a: HTMLAudioElement, ms: number) => {
+  a.currentTime = ms / 1000
+}
+const setAudioRate = (a: HTMLAudioElement, rate: number) => {
+  a.playbackRate = rate
+}
 
 /** Same parts and heights as the Player (stage, caption bar, controls), so nothing below moves when it loads. */
 export const PlayerSkeleton = () => (
@@ -44,7 +59,7 @@ export function Frame({ episode, t, className = '' }: { episode: Episode; t: num
   )
 }
 
-export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?: (t: number) => void; seekRef?: React.MutableRefObject<((t: number) => void) | null> }) {
+export function Player({ episode, onTime, seekRef, voice }: { episode: Episode; onTime?: (t: number) => void; seekRef?: React.MutableRefObject<((t: number) => void) | null>; voice?: { on: boolean; toggle: () => void } | null }) {
   const { t: tr } = useTranslation()
   const ep = episode.id
   const scenes = episode.scenes
@@ -66,6 +81,42 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
   // the ponder stop the viewer just continued from: never stop there twice in a row
   const ackRef = useRef<number | null>(null)
 
+  // the narration track. While it plays it is the clock: the picture follows the voice (and waits while it buffers)
+  const audio = useMemo(() => {
+    if (!episode.audio || typeof Audio === 'undefined') return null
+    const a = new Audio(episode.audio)
+    a.preload = 'auto'
+    return a
+  }, [episode.audio])
+  // set when the track cannot play (failed to load, or play() refused): the episode then runs on its own clock
+  const audioDead = useRef(false)
+  // between play() and its promise settling, a paused track is not a pause from outside
+  const starting = useRef(false)
+  useEffect(() => {
+    if (!audio) return
+    audioDead.current = false
+    const fail = () => void (audioDead.current = true)
+    audio.addEventListener('error', fail)
+    return () => {
+      audio.removeEventListener('error', fail)
+      audio.pause()
+      audio.removeAttribute('src')
+      audio.load()
+    }
+  }, [audio])
+
+  // a new timing for the same episode (voice switched, language changed): stay at the same moment of the animation
+  const [shown, setShown] = useState(scenes)
+  if (shown !== scenes) {
+    setShown(scenes)
+    setT(remapTime(shown, scenes, t))
+    setPonder(null)
+  }
+  useLayoutEffect(() => {
+    tRef.current = t
+    ackRef.current = null
+  }, [scenes]) // eslint-disable-line react-hooks/exhaustive-deps -- only when the timing changes: t was remapped in render
+
   const { i, p } = locate(tl, scenes, t)
   const scene = scenes[i]
   const cue = cueAt(scene.cues, p)
@@ -85,7 +136,18 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
       const dt = Math.min(100, now - last) * speed
       last = now
       const from = tRef.current
-      const to = Math.min(tl.total, from + dt)
+      let to = from + dt
+      if (audio && !audioDead.current && !audio.ended) {
+        if (audio.paused && !starting.current) {
+          // paused from outside (media keys, another app took the audio): pause the video too
+          setPlaying(false)
+          return
+        }
+        if (audio.readyState < 3 || audio.seeking) to = from
+        // follow the voice; small differences are smoothed by the frame clock
+        else if (Math.abs(to - audio.currentTime * 1000) > 150) to = audio.currentTime * 1000
+      }
+      to = Math.min(tl.total, to)
       const found = stopBetween(tl.stops, from, to)
       const stop = found !== null && found === ackRef.current ? null : found
       if (ackRef.current !== null && to > ackRef.current) ackRef.current = null
@@ -106,7 +168,28 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [playing, speed, tl])
+  }, [playing, speed, tl, audio])
+
+  useEffect(() => {
+    if (!audio) return
+    if (!playing) {
+      audio.pause()
+      return
+    }
+    setAudioTime(audio, tRef.current)
+    starting.current = true
+    audio.play().then(
+      () => void (starting.current = false),
+      (e: unknown) => {
+        starting.current = false
+        // AbortError: paused again before it started, which is fine. Anything else: play on without the voice
+        if (!(e instanceof DOMException && e.name === 'AbortError')) audioDead.current = true
+      },
+    )
+  }, [playing, audio])
+  useEffect(() => {
+    if (audio) setAudioRate(audio, speed)
+  }, [speed, audio])
 
   const seek = useCallback(
     (v: number) => {
@@ -115,8 +198,9 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
       ackRef.current = null
       tRef.current = next
       setT(next)
+      if (audio) setAudioTime(audio, next)
     },
-    [tl.total],
+    [tl.total, audio],
   )
   useEffect(() => {
     if (seekRef) seekRef.current = (v: number) => {
@@ -138,6 +222,7 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
       tRef.current = 0
       ackRef.current = null
       setT(0)
+      if (audio) setAudioTime(audio, 0)
       setPlaying(true)
     } else setPlaying(!playing)
   }
@@ -172,6 +257,7 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
     else if (k === 'l') chapter(1)
     else if (k === 'f') toggleFull()
     else if (k === 'c') setCaptions((c) => !c)
+    else if (k === 'm' && voice) voice.toggle()
     else return
     e.preventDefault()
   }
@@ -216,7 +302,7 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
 
       {captions && (
         <div className="flex min-h-[4.5rem] items-center justify-center border-t border-white/5 px-4 py-3 text-center sm:min-h-[5.25rem] sm:px-10" aria-live="polite">
-          <p className="max-w-4xl text-[15px] font-medium leading-snug text-slate-100 sm:text-lg">{tr(capKey(ep, scene.id, cue))}</p>
+          <p className="max-w-4xl text-[15px] font-medium leading-snug text-slate-100 sm:text-lg">{scene.lines?.[cue] ?? tr(capKey(ep, scene.id, cue))}</p>
         </div>
       )}
 
@@ -239,6 +325,11 @@ export function Player({ episode, onTime, seekRef }: { episode: Episode; onTime?
           <select id={`speed-${ep}`} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="rounded-md bg-white/10 px-1.5 py-1 font-mono text-xs text-slate-200 outline-none">
             {SPEEDS.map((s) => <option key={s} value={s} className="text-slate-900">{s}×</option>)}
           </select>
+          {voice && (
+            <button type="button" onClick={voice.toggle} aria-pressed={voice.on} className="grid h-8 w-8 place-items-center rounded-full hover:bg-white/10" aria-label={tr('watch.ui.narration')} title={tr('watch.ui.narration')}>
+              {voice.on ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </button>
+          )}
           <button type="button" onClick={() => setCaptions(!captions)} aria-pressed={captions} className="grid h-8 w-8 place-items-center rounded-full hover:bg-white/10" aria-label={tr('watch.ui.captions')}>
             {captions ? <Captions className="h-4 w-4" /> : <CaptionsOff className="h-4 w-4" />}
           </button>

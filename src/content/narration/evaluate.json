@@ -1,0 +1,116 @@
+{
+  "en": {
+    "title": [
+      "A number like “95% accurate” sounds good. Lecture 3 and several papers ask you to look behind it."
+    ],
+    "lazy": [
+      "A hundred patients; five are sick.",
+      "A model that simply says “healthy” to everyone is right 95 times out of 100.",
+      {"text": "And it found none of the sick patients. Accuracy alone can hide that.", "say": "And it found none of the sick patients. Accuracy alone can hide that. Before we go on: What single number would expose this model immediately?"}
+    ],
+    "matrix": [
+      {"text": "A disease screening in the style of Final 2022 Q3(a): 126 patients, 20 of them sick.", "say": "A disease screening in the style of Final 2022, question 3 a: 126 patients, 20 of them sick."},
+      "Sort every patient into a cell: what they really have, against what the model said.",
+      "True positives and true negatives on the diagonal; false negatives and false positives off it.",
+      "Accuracy is the diagonal over everything: 81%. Still looks fine."
+    ],
+    "pr": [
+      "Now look at one class at a time — here, “sick”.",
+      "Precision reads down the predicted-yes column: of the 8 flagged patients, only 2 are sick. 25%.",
+      "Recall reads across the actual-yes row: of the 20 sick patients, the model found 2. 10%.",
+      "Precision asks “can I trust a yes?”, recall asks “did I miss anyone?”."
+    ],
+    "f1": [
+      "F1 combines them with the harmonic mean.",
+      "Precision 1 with recall 0.02 averages to about one half, but F1 is about 0.04.",
+      "So a high F1 needs both numbers to be high. For our model F1 is 0.14 — it exposes what 81% accuracy hid."
+    ],
+    "cv": [
+      "D-fold cross-validation cuts the data into D parts; each part is the test set once.",
+      "But if the data are sorted by class and never shuffled, the first test fold holds classes 0 and 1 — and training sees only 2 and 3.",
+      "Swap the folds: the same thing happens. Every test sample is a class the model never saw: 0% accuracy.",
+      "Shuffle first and every fold contains every class.",
+      "Stratified folds guarantee it: each class is dealt evenly into every fold."
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: accuracy hides imbalance, so always look at the confusion matrix. Two: precision is TP over TP plus FP; recall is TP over TP plus FN; and F1 is 2 P R over P plus R. Three: shuffle, or stratify, before D-fold cross-validation, or whole classes go missing from training."},
+      "Then build your own confusion matrix and folds on the practice pages."
+    ]
+  },
+  "zh": {
+    "title": [
+      "“95% 准确”听起来很好。第 3 讲和好几份试卷都要你看清它背后是什么。"
+    ],
+    "lazy": [
+      "一百位病人，五位患病。",
+      "一个对所有人都说“健康”的模型，100 次里对了 95 次。",
+      {"text": "而它一个病人都没找出来。只看准确率会掩盖这一点。", "say": "而它一个病人都没找出来。只看准确率会掩盖这一点。先停下来想一想：哪一个数字能立刻揭穿这个模型？"}
+    ],
+    "matrix": [
+      {"text": "仿 2022 期末 Q3(a) 的疾病筛查例子：126 位病人，其中 20 位患病。", "say": "仿 2022 期末第 3 题 a 小题的疾病筛查例子：126 位病人，其中 20 位患病。"},
+      "把每位病人放进一个格子：真实情况对模型的判断。",
+      "真阳性和真阴性在对角线上；假阴性和假阳性在对角线外。",
+      "准确率是对角线除以总数：81%。看起来还是不错。"
+    ],
+    "pr": [
+      "现在一次只看一个类别 —— 这里是“患病”。",
+      "精确率看“预测为是”那一列：被标记的 8 人里只有 2 人真患病。25%。",
+      "召回率看“实际为是”那一行：20 位病人里模型找出了 2 位。10%。",
+      "精确率问“说是的能信吗？”，召回率问“有没有漏掉谁？”。"
+    ],
+    "f1": [
+      "F1 用调和平均把两者结合起来。",
+      "精确率 1、召回率 0.02，普通平均约为一半，而 F1 只有约 0.04。",
+      "所以 F1 要高，两个数都得高。我们这个模型的 F1 是 0.14 —— 揭穿了 81% 准确率所掩盖的问题。"
+    ],
+    "cv": [
+      "D 折交叉验证把数据切成 D 份，每份轮流当一次测试集。",
+      "但如果数据按类别排序又没打乱，第一个测试折装的是第 0、1 类 —— 训练只见过第 2、3 类。",
+      "交换两折，同样如此。每个测试样本都是模型没见过的类别：准确率 0%。",
+      "先打乱，每一折就都包含所有类别。",
+      "分层划分能保证这一点：每一类都均匀地分到每一折里。"
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，准确率会掩盖类别不平衡：一定要看混淆矩阵。第二，精确率等于 TP 除以 TP 加 FP，召回率等于 TP 除以 TP 加 FN，F1 等于 2PR 除以 P 加 R。第三，D 折交叉验证前要先打乱或分层，否则整类数据会从训练集中消失。"},
+      "然后去练习页面亲手做一个混淆矩阵和交叉验证划分。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "「95% 準確」聽落好好。第 3 講同好幾份試卷都要你睇清楚背後係乜。"
+    ],
+    "lazy": [
+      "一百個病人，五個有病。",
+      "一個對所有人都話「健康」嘅模型，100 次入面啱 95 次。",
+      {"text": "但係佢一個病人都搵唔到。淨係睇準確率會遮住呢一點。", "say": "但係佢一個病人都搵唔到。淨係睇準確率會遮住呢一點。停一停諗吓先：邊一個數字可以即刻揭穿呢個模型？"}
+    ],
+    "matrix": [
+      {"text": "仿 2022 期末 Q3(a) 嘅疾病篩查例子：126 個病人，當中 20 個有病。", "say": "仿 2022 期末第 3 題 a 部分嘅疾病篩查例子：126 個病人，當中 20 個有病。"},
+      "將每個病人放入一格：真實情況對住模型嘅判斷。",
+      "真陽性同真陰性喺對角線上；假陰性同假陽性喺對角線外面。",
+      "準確率就係對角線除總數：81%。睇落仲係唔錯。"
+    ],
+    "pr": [
+      "而家一次淨係睇一個類別，呢度係「有病」。",
+      "精確率睇「預測係」嗰一列：被標記嘅 8 個人入面，得 2 個真係有病。25%。",
+      "召回率睇「實際係」嗰一行：20 個病人入面，模型搵到 2 個。10%。",
+      "精確率問「佢話係，信唔信得過？」，召回率問「有冇漏咗人？」。"
+    ],
+    "f1": [
+      "F1 用調和平均將兩樣結合埋。",
+      "精確率 1、召回率 0.02，普通平均大約一半，但 F1 得大約 0.04。",
+      "所以 F1 要高，兩個數都要高。我哋呢個模型嘅 F1 係 0.14，揭穿咗 81% 準確率遮住嘅問題。"
+    ],
+    "cv": [
+      "D 折交叉驗證將數據切開 D 份，每份輪流做一次測試集。",
+      "但係如果數據按類別排好又冇打亂，第一個測試折裝住第 0 同第 1 類，訓練就只見過第 2 同第 3 類。",
+      "調轉兩折，都係一樣。每個測試樣本都係模型未見過嘅類別：準確率係 0%。",
+      "先打亂，每一折就會包含晒所有類別。",
+      "分層劃分保證到呢一點：每一類都平均分落每一折入面。"
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，準確率會遮住類別唔平衡：一定要睇混淆矩陣。第二，精確率等於 TP 除 TP 加 FP，召回率等於 TP 除 TP 加 FN，F1 等於 2PR 除 P 加 R。第三，做 D 折交叉驗證之前要先打亂或者分層，否則成類數據會喺訓練集消失。"},
+      "之後去練習頁面，親手整一個混淆矩陣同交叉驗證嘅劃分。"
+    ]
+  }
+}

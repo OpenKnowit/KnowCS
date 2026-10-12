@@ -1,0 +1,143 @@
+{
+  "en": {
+    "title": [
+      "K-Means appears in six of the nine past papers, almost always as a table you fill in round by round. Here is what that table is doing."
+    ],
+    "data": [
+      "Here are 36 points with no labels. We suspect there are groups.",
+      "K-Means needs one number from us: k, how many groups to look for.",
+      "Then it needs k starting centres. We place three deliberately badly, to watch the algorithm recover."
+    ],
+    "steps": [
+      "Step A, assign: measure the distance from each point to every centre, and give the point the colour of the nearest one.",
+      "The coloured regions show which centre is nearest everywhere on the plane.",
+      "Step B, update: move each centre to the average position of the points it just won.",
+      "That average is all the update step ever does."
+    ],
+    "iterate": [
+      "Now repeat: assign, update, assign, update.",
+      "Watch the SSE bars: the total squared distance from points to their centres, after each round.",
+      {"text": "In the last round no point changes cluster. Then the centres cannot move again — that is convergence.", "say": "In the last round no point changes cluster. Then the centres cannot move again — that is convergence. Before we go on: Will the SSE ever go up from one round to the next? Why, or why not?"}
+    ],
+    "why": [
+      "Everything K-Means does lowers one number, the SSE.",
+      "The assign step only moves a point to a closer centre.",
+      "The update step puts each centre at its group’s mean, the best place for squared distances.",
+      "SSE never rises and there are finitely many partitions, so K-Means always converges — but not necessarily to the best answer."
+    ],
+    "local": [
+      "Same points, three other starting centres.",
+      "It converges — at an SSE more than three times worse.",
+      "So “K-Means always converges” is true, but “to the optimal clustering” is false. A classic true/false question."
+    ],
+    "table": [
+      {"text": "On paper it looks like this. Lecture 4: four medicines, k = 2, starting at A and B.", "say": "On paper it looks like this. Lecture 4: four medicines, k equals 2, starting at A and B."},
+      "Fill the distance table, take the nearest centre, then average each cluster to get the new centres.",
+      "Round 2 uses the new centres. Same table, same steps.",
+      "Nobody changed cluster, so we stop. The sentence the marking scheme wants: the cluster assignment no longer changes."
+    ],
+    "elbow": [
+      {"text": "k is not learned. To choose it, run K-Means for k = 1, 2, 3 … and plot the best SSE.", "say": "k is not learned. To choose it, run K-Means for k equals 1, 2, 3, and so on, and plot the best SSE."},
+      "The curve falls steeply, then flattens. The bend — the elbow — is the k to choose.",
+      {"text": "Never choose the smallest SSE: k = n puts each point in its own cluster with SSE zero.", "say": "Never choose the smallest SSE: k equal to n puts each point in its own cluster with SSE zero."}
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: Assign to the nearest centre, move each centre to its cluster mean, repeat until no point changes. Two: SSE never increases, so it always converges — but possibly to a local minimum that depends on the seeds. Three: Choose k with the elbow method, not the smallest SSE."},
+      "Then fill in a table yourself on the K-Means by hand page, with Quiz mode on."
+    ]
+  },
+  "zh": {
+    "title": [
+      "九份往年试卷里有六份考 K-Means，几乎都是让你一轮一轮填表。下面看看这张表到底在做什么。"
+    ],
+    "data": [
+      "这里有 36 个没有标签的点。我们怀疑它们分成几组。",
+      "K-Means 只需要我们给一个数：k，要找几组。",
+      "然后需要 k 个初始中心。我们故意放得很差，看算法怎么自我纠正。"
+    ],
+    "steps": [
+      "第 A 步，分配：量出每个点到各个中心的距离，把点染成最近那个中心的颜色。",
+      "彩色区域显示平面上每一处离哪个中心最近。",
+      "第 B 步，更新：把每个中心移到它刚分到的那些点的平均位置。",
+      "更新这一步做的就只是求平均。"
+    ],
+    "iterate": [
+      "现在不断重复：分配、更新、分配、更新。",
+      "看 SSE 柱：每轮之后，点到各自中心的平方距离总和。",
+      {"text": "最后一轮没有任何点换簇，中心也就不会再动 —— 这就是收敛。", "say": "最后一轮没有任何点换簇，中心也就不会再动 —— 这就是收敛。先停下来想一想：SSE 会不会在某一轮之后变大？为什么？"}
+    ],
+    "why": [
+      "K-Means 做的每一件事都在降低同一个数：SSE。",
+      "分配这一步只会把点换到更近的中心。",
+      "更新这一步把中心放在组内均值，对平方距离来说这是最好的位置。",
+      "SSE 从不上升，而分组方式有限，所以 K-Means 一定收敛 —— 但不一定收敛到最好的答案。"
+    ],
+    "local": [
+      "同样的点，换三个初始中心。",
+      "它也收敛了 —— 但 SSE 差了三倍多。",
+      "所以“K-Means 一定收敛”是对的，而“收敛到最优聚类”是错的。经典判断题。"
+    ],
+    "table": [
+      {"text": "写在纸上是这样的。第 4 讲：四种药物，k = 2，从 A 和 B 开始。", "say": "写在纸上是这样的。第 4 讲：四种药物，k 等于 2，从 A 和 B 开始。"},
+      "填距离表，取最近的中心，再对每个簇求平均得到新中心。",
+      "第 2 轮用新的中心。同样的表，同样的步骤。",
+      "没有点换簇，所以停止。评分标准要的那句话：簇的分配不再改变。"
+    ],
+    "elbow": [
+      {"text": "k 不是学出来的。要选 k，就对 k = 1, 2, 3 … 分别运行 K-Means，画出最好的 SSE。", "say": "k 不是学出来的。要选 k，就对 k 等于 1、2、3 等分别运行 K-Means，画出最好的 SSE。"},
+      "曲线先陡降，然后变平。拐弯处 —— 肘部 —— 就是该选的 k。",
+      {"text": "永远不要选 SSE 最小的：k = n 时每个点自成一簇，SSE 为 0。", "say": "永远不要选 SSE 最小的：k 等于 n 时每个点自成一簇，SSE 为 0。"}
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，分给最近的中心，把中心移到簇均值，重复直到没有点换簇。第二，SSE 从不上升，所以一定收敛 —— 但可能停在取决于初始中心的局部最小值。第三，用肘部法选 k，而不是选 SSE 最小的。"},
+      "然后去「手算 K-Means」页面开着「自测」模式自己填一张表。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "九份往年試卷入面有六份考 K-Means，差唔多次次都係要你一輪一輪咁填表。我哋睇吓呢張表其實做緊乜。"
+    ],
+    "data": [
+      "呢度有 36 個冇標籤嘅點。我哋估佢哋分成幾組。",
+      "K-Means 只需要我哋俾一個數：k，即係要搵幾多組。",
+      "跟住要 k 個初始中心。我哋特登放得好差，睇吓個算法點樣自己執返好。"
+    ],
+    "steps": [
+      "第 A 步，分配：量出每個點同每個中心嘅距離，將個點填上最近嗰個中心嘅顏色。",
+      "啲彩色區域顯示平面上每一處離邊個中心最近。",
+      "第 B 步，更新：將每個中心移去佢啱啱分到嗰啲點嘅平均位置。",
+      "更新呢一步，做嘅就只係攞平均。"
+    ],
+    "iterate": [
+      "而家不斷重複：分配、更新、分配、更新。",
+      "睇住啲 SSE 柱：每輪之後，所有點同各自中心嘅平方距離總和。",
+      {"text": "最後一輪冇任何點轉簇，中心亦都唔會再郁，呢個就係收斂。", "say": "最後一輪冇任何點轉簇，中心亦都唔會再郁，呢個就係收斂。停一停諗吓先：SSE 會唔會喺某一輪之後變大？點解？"}
+    ],
+    "why": [
+      "K-Means 做嘅每一件事，都係降低同一個數：SSE。",
+      "分配呢一步，只會將點轉去更近嘅中心。",
+      "更新呢一步將中心放喺組內嘅平均值，對平方距離嚟講，呢個係最好嘅位置。",
+      "SSE 永遠唔會上升，而分組方法又有限，所以 K-Means 一定會收斂，但係唔一定收斂到最好嘅答案。"
+    ],
+    "local": [
+      "同樣嘅點，換三個初始中心。",
+      "佢都收斂咗，但係 SSE 差咗三倍幾。",
+      "所以「K-Means 一定收斂」係啱嘅，但「收斂到最優嘅聚類」就係錯嘅。經典判斷題。"
+    ],
+    "table": [
+      {"text": "寫喺紙上面就係咁。第 4 講：四種藥物，k = 2，由 A 同 B 開始。", "say": "寫喺紙上面就係咁。第 4 講：四種藥物，k 等於 2，由 A 同 B 開始。"},
+      "填距離表，揀最近嘅中心，再將每個簇攞平均，得到新嘅中心。",
+      "第 2 輪用新嘅中心。同一張表，同樣嘅步驟。",
+      "冇點轉簇，所以停。評分標準要嘅嗰句：簇嘅分配唔再改變。"
+    ],
+    "elbow": [
+      {"text": "k 唔係學出嚟嘅。要揀 k，就分別用 k = 1、2、3 … 行 K-Means，畫出最好嘅 SSE。", "say": "k 唔係學出嚟嘅。要揀 k，就分別用 k 等於 1、2、3 等等行 K-Means，畫出最好嘅 SSE。"},
+      "條曲線先係急跌，之後變平。轉彎嗰度，即係手肘，就係應該揀嘅 k。",
+      {"text": "千祈唔好揀 SSE 最細嗰個：k = n 嘅時候每個點自己一簇，SSE 係 0。", "say": "千祈唔好揀 SSE 最細嗰個：k 等於 n 嘅時候每個點自己一簇，SSE 係 0。"}
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，分俾最近嘅中心，將中心移去簇嘅平均值，重複到冇點轉簇為止。第二，SSE 永遠唔會上升，所以一定收斂，但可能停喺一個取決於初始中心嘅局部最小值。第三，用手肘法揀 k，唔好揀 SSE 最細嗰個。"},
+      "之後去「手計 K-Means」頁面，開住「自測」模式自己填一張表。"
+    ]
+  }
+}

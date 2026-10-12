@@ -1,0 +1,167 @@
+{
+  "en": {
+    "title": [
+      "This is the example from lecture 2, and some version of it appears in almost every paper."
+    ],
+    "question": [
+      "One person in a thousand carries a virus.",
+      "The test catches 99% of infected people, and clears 95% of healthy people.",
+      {"text": "You test positive. Most people guess 99%, or maybe 95%.", "say": "You test positive. Most people guess 99%, or maybe 95%. Before we go on: Make your own guess before we count. What is the chance you are infected?"}
+    ],
+    "crowd": [
+      "Forget percentages for a moment. Picture 10,000 people.",
+      "0.1% of them — just 10 people — have the virus."
+    ],
+    "test": [
+      "Now test everybody.",
+      "The 10 infected people: 99% of 10 is 9.9, so about 10 positive results.",
+      "The 9,990 healthy people: 5% of them get a false positive. That is about 500 people.",
+      "The test is good. The problem is that there are so many more healthy people to make mistakes on."
+    ],
+    "gather": [
+      "You tested positive, so you are one of these. Gather everyone with a positive result.",
+      "510 people: 10 infected, 500 healthy.",
+      "So your chance is 10 out of 510 — about 2%. The base rate, not the test, dominates."
+    ],
+    "formula": [
+      "Bayes’ rule is exactly this counting, written with probabilities.",
+      "The numerator is the infected positives. The denominator is every positive — the total probability of a positive result.",
+      "Plug in the lecture’s numbers: 0.00099 over 0.05094, about 0.0194. Write the denominator out in full — that is where exam marks are."
+    ],
+    "again": [
+      "What if you take the test a second time, and it is positive again?",
+      "Use 2% as the new prior. One more positive takes it to about 28%, a third to about 89%.",
+      "That is the idea behind repeat testing — and a favourite follow-up question."
+    ],
+    "naive": [
+      "Real problems have several symptoms. Lecture 2’s disease Z table has four.",
+      "Naive Bayes assumes the symptoms are independent given the class, so the likelihood is just a product.",
+      "Multiply prior and likelihoods for each class, straight from the counts in the table.",
+      {"text": "Z = No wins. Normalise only if the question asks for a probability.", "say": "Z is No wins. Normalise only if the question asks for a probability."}
+    ],
+    "zero": [
+      "Now change one symptom: this patient has low blood pressure.",
+      {"text": "In the training data, no patient with Z = No had low blood pressure.", "say": "In the training data, no patient with Z equal to No had low blood pressure."},
+      {"text": "So that factor is zero, and it wipes out the whole product — no matter what the other symptoms say.", "say": "So that factor is zero, and it wipes out the whole product — no matter what the other symptoms say. Before we go on: Without collecting more data, how could you stop one unseen combination from vetoing a class?"}
+    ],
+    "laplace": [
+      {"text": "Pretend you saw every value α more times than you did.", "say": "Pretend you saw every value alpha more times than you did."},
+      {"text": "Add α on top, and m·α at the bottom, where m is how many values the feature can take: 3 for blood pressure, 2 for diabetes.", "say": "Add alpha on top, and m times alpha at the bottom, where m is how many values the feature can take: 3 for blood pressure, 2 for diabetes."},
+      {"text": "Nothing is zero any more. Exams love to ask for exactly this table with α = 1.", "say": "Nothing is zero any more. Exams love to ask for exactly this table with alpha equal to 1."}
+    ],
+    "recap": [
+      {"text": "Three things to take into the exam.", "say": "Three things to take into the exam. One: turn percentages into counts out of 10,000: 10 true positives versus 500 false ones. Two: the probability of the virus given a positive is the probability of a positive given the virus, times the prior, over the probability of a positive — and that denominator adds both ways of testing positive. Three: naive Bayes multiplies likelihoods; one zero kills a class, so smooth with count plus alpha, over N plus m alpha."},
+      "Then try the base-rate page, and the naive Bayes table with smoothing switched on."
+    ]
+  },
+  "zh": {
+    "title": [
+      "这是第 2 讲的例子，几乎每份试卷都会出现它的某个变体。"
+    ],
+    "question": [
+      "每一千人中有一人携带某种病毒。",
+      "检测能查出 99% 的感染者，并让 95% 的健康人呈阴性。",
+      {"text": "你的结果是阳性。大多数人会猜 99%，或者 95%。", "say": "你的结果是阳性。大多数人会猜 99%，或者 95%。先别往下看，自己猜一个：你真的感染的概率是多少？"}
+    ],
+    "crowd": [
+      "先忘掉百分比，想象 10,000 个人。",
+      "其中 0.1% —— 只有 10 个人 —— 携带病毒。"
+    ],
+    "test": [
+      "现在给所有人做检测。",
+      "10 个感染者：10 的 99% 是 9.9，约 10 个阳性。",
+      "9,990 个健康人：其中 5% 会误报阳性，约 500 人。",
+      "检测本身很好。问题在于健康人太多了，犯错的机会也多得多。"
+    ],
+    "gather": [
+      "你是阳性，所以你就在这些人里面。把所有阳性的人聚到一起。",
+      "510 个人：10 个感染，500 个健康。",
+      "所以你的概率是 510 分之 10 —— 约 2%。起决定作用的是基础比率，而不是检测。"
+    ],
+    "formula": [
+      "贝叶斯公式就是把刚才的计数用概率写出来。",
+      "分子是感染且阳性的人；分母是所有阳性的人 —— 也就是阳性结果的全概率。",
+      "代入课件数字：0.00099 除以 0.05094，约 0.0194。把分母完整写出来 —— 分数就在这里。"
+    ],
+    "again": [
+      "如果你再测一次，结果还是阳性呢？",
+      "把 2% 当作新的先验。再一次阳性会升到约 28%，第三次约 89%。",
+      "这就是重复检测的道理 —— 也是常见的追问。"
+    ],
+    "naive": [
+      "真实问题往往有多个症状。第 2 讲的疾病 Z 表有四个。",
+      "朴素贝叶斯假设：给定类别时各症状相互独立，所以似然就是一个乘积。",
+      "对每个类别，把先验和各似然相乘，数字直接来自表中的计数。",
+      {"text": "Z = No 胜出。只有题目要概率时才需要归一化。", "say": "Z 等于 No 胜出。只有题目要概率时才需要归一化。"}
+    ],
+    "zero": [
+      "现在改一个症状：这位病人血压低。",
+      {"text": "训练数据里，Z = No 的病人没有一个血压低。", "say": "训练数据里，Z 等于 No 的病人没有一个血压低。"},
+      {"text": "所以这个因子为 0，它把整个乘积都抹掉了 —— 不管其他症状说什么。", "say": "所以这个因子为 0，它把整个乘积都抹掉了 —— 不管其他症状说什么。先停下来想一想：不收集更多数据的话，怎样才能不让一个没见过的组合一票否决整个类别？"}
+    ],
+    "laplace": [
+      {"text": "假装每个取值都比实际多见过 α 次。", "say": "假装每个取值都比实际多见过 alpha 次。"},
+      {"text": "分子加 α，分母加 m·α，m 是该特征可取值的个数：血压是 3，糖尿病是 2。", "say": "分子加 alpha，分母加 m 乘 alpha，m 是该特征可取值的个数：血压是 3，糖尿病是 2。"},
+      {"text": "再也没有 0 了。考试特别喜欢让你用 α = 1 填这张表。", "say": "再也没有 0 了。考试特别喜欢让你用 alpha 等于 1 填这张表。"}
+    ],
+    "recap": [
+      {"text": "带进考场的三件事。", "say": "带进考场的三件事。第一，把百分比换成 10,000 人里的人数：10 个真阳性对 500 个假阳性。第二，阳性时感染的概率，等于感染时阳性的概率乘以先验，再除以阳性的总概率，而分母要把两种阳性来源加起来。第三，朴素贝叶斯把似然相乘；一个 0 会否决整个类别，所以用计数加 alpha、除以 N 加 m 乘 alpha 来平滑。"},
+      "然后去试试基础比率页面，以及打开平滑的朴素贝叶斯表。"
+    ]
+  },
+  "yue": {
+    "title": [
+      "呢個係第 2 講嘅例子，差唔多每份試卷都會出佢嘅某個變體。"
+    ],
+    "question": [
+      "每一千個人入面，有一個帶住某種病毒。",
+      "個檢測可以搵出 99% 嘅感染者，同埋令 95% 嘅健康人係陰性。",
+      {"text": "你嘅結果係陽性。大部分人會估 99%，或者 95%。", "say": "你嘅結果係陽性。大部分人會估 99%，或者 95%。睇落去之前，自己估一個先：你真係感染咗嘅機會有幾大？"}
+    ],
+    "crowd": [
+      "暫時唔理住百分比，想像吓有 10,000 個人。",
+      "佢哋入面 0.1%，即係得 10 個人，帶住病毒。"
+    ],
+    "test": [
+      "而家幫所有人做檢測。",
+      "10 個感染者：10 嘅 99% 係 9.9，大約 10 個陽性。",
+      "9,990 個健康人：當中 5% 會誤報陽性，大約 500 人。",
+      "個檢測本身好好。問題係健康人多得太多，出錯嘅機會都多好多。"
+    ],
+    "gather": [
+      "你係陽性，所以你就喺呢班人入面。將所有陽性嘅人聚埋一齊。",
+      "510 個人：10 個感染，500 個健康。",
+      "所以你嘅機會係 510 分之 10，大約 2%。決定結果嘅係基礎比率，而唔係個檢測。"
+    ],
+    "formula": [
+      "貝葉斯公式，其實就係將頭先嘅點數用概率寫出嚟。",
+      "分子係感染又陽性嘅人；分母係所有陽性嘅人，即係陽性結果嘅全概率。",
+      "代入課件嘅數字：0.00099 除 0.05094，大約 0.0194。記得將分母完整寫出嚟，啲分數就喺度。"
+    ],
+    "again": [
+      "如果你再驗多一次，結果又係陽性呢？",
+      "將 2% 當做新嘅先驗。再陽性一次會升到大約 28%，第三次大約 89%。",
+      "呢個就係重複檢測嘅道理，亦都係常見嘅追問。"
+    ],
+    "naive": [
+      "真實嘅問題通常有幾個症狀。第 2 講嘅疾病 Z 表就有四個。",
+      "樸素貝葉斯假設：喺已知類別嘅情況下，各個症狀互相獨立，所以似然就係一個乘積。",
+      "每個類別都將先驗同各個似然乘埋，啲數字直接嚟自表入面嘅點數。",
+      {"text": "Z = No 贏。題目要概率先需要歸一化。", "say": "Z 等於 No 贏。題目要概率先需要歸一化。"}
+    ],
+    "zero": [
+      "而家改一個症狀：呢位病人血壓低。",
+      {"text": "喺訓練數據入面，Z = No 嘅病人冇一個係血壓低。", "say": "喺訓練數據入面，Z 等於 No 嘅病人冇一個係血壓低。"},
+      {"text": "所以呢個因子係 0，佢會將成個乘積清零，唔理其他症狀點講。", "say": "所以呢個因子係 0，佢會將成個乘積清零，唔理其他症狀點講。停一停諗吓先：唔收集多啲數據嘅話，點樣先可以唔俾一個未見過嘅組合一票否決成個類別？"}
+    ],
+    "laplace": [
+      {"text": "假裝每個取值都比實際多見過 α 次。", "say": "假裝每個取值都比實際多見過 alpha 次。"},
+      {"text": "分子加 α，分母加 m·α，m 係呢個特徵有幾多個可能取值：血壓係 3，糖尿病係 2。", "say": "分子加 alpha，分母加 m 乘 alpha，m 係呢個特徵有幾多個可能取值：血壓係 3，糖尿病係 2。"},
+      {"text": "咁就再冇 0 喇。考試好鍾意叫你用 α = 1 填呢張表。", "say": "咁就再冇 0 喇。考試好鍾意叫你用 alpha 等於 1 填呢張表。"}
+    ],
+    "recap": [
+      {"text": "帶入試場嘅三樣嘢。", "say": "帶入試場嘅三樣嘢。第一，將百分比換做 10,000 人入面嘅人數：10 個真陽性對 500 個假陽性。第二，陽性時感染嘅概率，等於感染時陽性嘅概率乘先驗，再除陽性嘅總概率，而分母要將兩種陽性嘅來源加埋。第三，樸素貝葉斯將似然乘埋；一個 0 會否決成個類別，所以要用點數加 alpha、除 N 加 m 乘 alpha 嚟做平滑。"},
+      "之後去試吓基礎比率頁面，同埋開咗平滑嘅樸素貝葉斯表。"
+    ]
+  }
+}
