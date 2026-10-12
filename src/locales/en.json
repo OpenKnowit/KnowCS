@@ -279,6 +279,7 @@
     "step2_title": "Step 3: Define Error Signal",
     "step2_desc": "Let <1>\\delta_k = - \\frac{\\partial E}{\\partial net_k}</1>. Under MSE loss:",
     "step3_title": "Step 4: Weight Update Amount",
+    "course_sign": "The course writes the same update the other way round: <1></1> and <3></3>. This page uses δ = (T − O)·f′ and adds; both signs flip, so Δw is identical. In the exam, use the course’s version.",
     "advice": "Remember, backpropagation is essentially a process of 'finding the culprit'. Each layer weight <1>w_{jk}</1> is asking: How much of the error <3>E</3> am I responsible for? <5>\\delta_k</5> is the 'blame letter' passed back from the previous layer.",
     "apply_update": "Apply update",
     "reset": "Reset",
@@ -295,6 +296,7 @@
     "input_image": "Input Image",
     "kernel": "Kernel",
     "output_feature_map": "Output Feature Map",
+    "output_note": "Brightness = |Σ I·K| clipped to 0–255; the kernel is slid without flipping.",
     "advice": "A convolution kernel is essentially a local feature filter. When you use the <1>\\text{Laplacian}</1> operator, it is approximating the second derivative and can quickly capture 'sudden changes' in pixel brightness.",
     "cell_label": "Kernel cell row {{r}}, column {{c}}"
   },
@@ -1035,7 +1037,7 @@
         },
         "lecture": {
           "title": "Lecture 2: disease Z (continuous)",
-          "note": "μ and σ given; BP = 66, Fever = 97"
+          "note": "μ, σ given; BP = 66, Fever = 97 · numeric features only (the lecture adds Diabetes and Vomit: 17% / 83%)"
         },
         "bands": {
           "title": "Three classes: grade band",
@@ -1133,6 +1135,8 @@
       "reshuffle": "Reshuffle",
       "assumption_title": "Exam assumption.",
       "assumption": "A test sample is correct if its class appears anywhere in the training folds, and wrong otherwise. That is all you need to explain the 0% / 50% / 100% results.",
+      "knn_title": "Final 2024 Q3(b) is graded with a real 3-NN.",
+      "knn_note": "With only 3 patients per class, the majority of the 3 nearest training samples can belong to the other class even when the true class is in training. The official answers: 6 folds → 5/6 correct (uniform vote), 3 folds → about 50%, 2 folds → every prediction wrong. The bars here use the simpler “class seen in training” assumption, so they show 100% for 3 and 6 folds.",
       "cut": "{{n}} samples cut into {{d}} folds",
       "order_sorted": "x₀, x₁, … in the order given",
       "order_shuffled": "shuffled first",
@@ -1173,7 +1177,7 @@
         },
         "six": {
           "title": "6 patients, 2 classes",
-          "note": "Pattern of Final 2024 Q3(b) — folds of 2 and 3"
+          "note": "Final 2024 Q3(b) setting — folds of 2 and 3; see the 3-NN note"
         }
       }
     },
@@ -1739,8 +1743,8 @@
       "mlp": "MLP on raw pixels",
       "ratio": "Ratio",
       "ratio_d": "MLP ÷ this network",
-      "slip_title": "Spot the slip in the official answer.",
-      "slip": "The 2022 marking scheme printed 13 × 13 for layer 4, but ⌊(27 − 3 + 2·1) / 2⌋ + 1 = 14. Thirteen is what you get if you forget the padding. Layer 5 is 7 × 7 either way, and the parameter counts do not depend on it.",
+      "slip_title": "Spot the slip in a circulated answer.",
+      "slip": "One circulated version of the 2022 solution prints 13 × 13 for layer 4, but ⌊(27 − 3 + 2·1) / 2⌋ + 1 = 14 (the course’s released solution has 14). Thirteen is what you get if you forget the padding. Layer 5 is 7 × 7 either way, and the parameter counts do not depend on it.",
       "strip_title": "Where does the output size come from?",
       "strip_sub": "one row of the image",
       "rules_title": "Parameter rules.",
@@ -2165,7 +2169,7 @@
           "title": "Blame the hidden neurons",
           "c1": "Hidden neurons have no target. Their share of the error comes back through the weights.",
           "c2": "Each δj multiplies δk by the weight it travelled along, then by the sigmoid slope h(1 − h).",
-          "c3": "δj1 = 0.023008 and δj2 = −0.036922. h₂ fed the output through a negative weight, so its blame has the opposite sign.",
+          "c3": "δj1 = 0.023010 and δj2 = −0.036923. h₂ fed the output through a negative weight, so its blame has the opposite sign.",
           "c4": "One exam detail: these deltas use w₅ and w₆ from before the update."
         },
         "update_hidden": {
@@ -2297,7 +2301,7 @@
           "1": "Show the working for every layer: ⌊(N − K + 2P) / S⌋ + 1, then the parameter product. Marks are for the working.",
           "2": "A filter’s depth equals the input’s channel count. The number of filters becomes the output depth.",
           "3": "Explain the CNN–MLP gap with two phrases: parameter sharing and sparse (local) connections.",
-          "4": "If (N − K + 2P) is not divisible by S, floor — the last pixels are skipped. The 2022 marking scheme slipped here (13 × 13 instead of 14 × 14)."
+          "4": "If (N − K + 2P) is not divisible by S, floor — the last pixels are skipped. One circulated 2022 solution slipped here (13 × 13 instead of 14 × 14)."
         },
         "source": "Lecture 8 all-in-one example · same format in Final 2022 B Q1 and Final 2023 Q6",
         "q": "Input 32 × 32 × 3, ten 5 × 5 filters, stride 1, padding 2. What is the output shape, and how many parameters does the layer have?",
@@ -2705,7 +2709,7 @@
         },
         "matrix": {
           "title": "The confusion matrix",
-          "c1": "Lecture 3’s disease example: 126 patients, 20 of them sick.",
+          "c1": "A disease screening in the style of Final 2022 Q3(a): 126 patients, 20 of them sick.",
           "c2": "Sort every patient into a cell: what they really have, against what the model said.",
           "c3": "True positives and true negatives on the diagonal; false negatives and false positives off it.",
           "c4": "Accuracy is the diagonal over everything: 81%. Still looks fine."

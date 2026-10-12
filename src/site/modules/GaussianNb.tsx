@@ -52,6 +52,9 @@ Low, 55, 61`,
   },
 ]
 
+/** A likelihood as an answer: 4 decimals, or 3 significant figures when that would round a tail density to 0. */
+const density = (v: number): string => (v >= 0.001 || v === 0 || !Number.isFinite(v) ? fmt(v, 4) : String(Number(v.toPrecision(3))).replace('-', '−'))
+
 function Curves({ classes, j, x, likes, onPick }: { classes: GaussianClass[]; j: number; x: number; likes: number[]; onPick: (v: number) => void }) {
   const { t } = useTranslation()
   const W = 560, H = 230, L = 36, R = 14, T = 18, B = 46
@@ -253,7 +256,7 @@ export default function GaussianNb() {
                   <tr key={c.name}>
                     <td className="left"><Swatch color={PALETTE[k % PALETTE.length]} />{nm(c.name)}</td>
                     <td>{c.priorLabel}</td>
-                    {c.likelihoods.map((v, j) => <Ans key={j} k={`f${k}_${j}`} v={fmt(v, 4)} />)}
+                    {c.likelihoods.map((v, j) => <Ans key={j} k={`f${k}_${j}`} v={density(v)} />)}
                     <Ans k={`score${k}`} v={c.score.toExponential(3)} className={c === best ? 'win' : ''} />
                     <td className={c === best ? 'win' : ''}>{c.posterior > 0 && c.posterior < 0.0001 ? '< 0.01' : fmt(c.posterior * 100, 2)}%</td>
                   </tr>

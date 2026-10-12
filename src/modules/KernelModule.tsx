@@ -96,6 +96,7 @@ export const KernelModule = () => {
               })
             )}
           </div>
+          <p className="mt-2 max-w-[220px] text-center text-[11px] text-slate-500">{t('kernel_module.output_note')}</p>
         </div>
       </div>
       <SeniorAdvice content={
