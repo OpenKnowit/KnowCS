@@ -156,7 +156,8 @@ def tts(text, lang):
         "input": [{"type": "user_input", "content": [{"type": "text", "text": text, "annotations": [{"type": "speech_metadata", "style": STYLES[lang]}]}]}],
         "generation_config": {"speech_config": [{"voice": VOICES[lang]}]},
     }
-    data = find_audio(post("https://generativelanguage.googleapis.com/v1beta/interactions", body))
+    # a long take takes minutes to synthesise; timing out early would retry it, and every retry spends daily quota
+    data = find_audio(post("https://generativelanguage.googleapis.com/v1beta/interactions", body, timeout=600))
     if not data:
         sys.exit("no audio in the response")
     return base64.b64decode(data)
