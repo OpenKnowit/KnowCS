@@ -156,8 +156,8 @@ def tts(text, lang):
         "input": [{"type": "user_input", "content": [{"type": "text", "text": text, "annotations": [{"type": "speech_metadata", "style": STYLES[lang]}]}]}],
         "generation_config": {"speech_config": [{"voice": VOICES[lang]}]},
     }
-    # a long take takes minutes to synthesise; timing out early would retry it, and every retry spends daily quota
-    data = find_audio(post("https://generativelanguage.googleapis.com/v1beta/interactions", body, timeout=600))
+    # a long take can take over ten minutes to synthesise; timing out early would retry it, and every retry spends daily quota
+    data = find_audio(post("https://generativelanguage.googleapis.com/v1beta/interactions", body, timeout=1200))
     if not data:
         sys.exit("no audio in the response")
     return base64.b64decode(data)
@@ -179,17 +179,19 @@ def weight(text):
 def line_starts(pcm, texts, lang):
     """ask the listening model where each line starts (seconds). Pauses alone cannot tell a line break from a
     sentence break, but these times (good to about half a second) can. None if the answer is unusable."""
+    # sent as 64 kbps MP3: a long take as WAV is over 10 MB, which the proxy now and then fails to upload
     with tempfile.TemporaryDirectory() as tmp:
-        wav = os.path.join(tmp, "t.wav")
+        wav, mp3 = os.path.join(tmp, "t.wav"), os.path.join(tmp, "t.mp3")
         write_wav(wav, pcm)
-        with open(wav, "rb") as f:
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", wav, "-ac", "1", "-c:a", "libmp3lame", "-b:a", "64k", mp3], check=True)
+        with open(mp3, "rb") as f:
             audio = base64.b64encode(f.read()).decode()
     numbered = "\n".join(f"{k + 1}. {t}" for k, t in enumerate(texts))
     prompt = (
         f"The audio ({NAMES[lang]}) reads these {len(texts)} lines in order:\n{numbered}\n\n"
         'For each line give the time in seconds (one decimal) where its FIRST word starts. Return JSON {"starts": [{"n": 1, "start": 0.0}, ...]}.'
     )
-    body = {"contents": [{"parts": [{"inlineData": {"mimeType": "audio/wav", "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
+    body = {"contents": [{"parts": [{"inlineData": {"mimeType": "audio/mp3", "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
     try:
         res = post(f"https://generativelanguage.googleapis.com/v1beta/models/{LISTENER}:generateContent", body)
         st = sorted(json.loads(res["candidates"][0]["content"]["parts"][-1]["text"])["starts"], key=lambda x: x["n"])
@@ -368,6 +370,10 @@ def cmd_gen(args):
         lines = [l for _, ls in group for l in ls]
         label = "+".join(sc for sc, _ in group)
         if len(lines) > 1 or len(group) > 1:
+            if os.path.exists(take_path(lang, lines)):
+                # recorded before, but the cutting failed (say the listener could not be reached): no new request
+                cut_take(lang, lines, read_pcm(take_path(lang, lines)), label)
+                return
             pace()
             try:
                 save_take(lang, lines, tts("\n\n".join(say_of(l) for l in lines), lang), label)
@@ -514,7 +520,7 @@ def qa_scene(lang, scene, lines):
         "or letters read wrongly, symbols read aloud, wrong language. Ignore punctuation and Chinese character variants that sound the same. "
         'Return JSON {"lines": [{"n": 1, "transcript": "...", "issues": ["..."]}, ...]}. Be strict but do not invent issues.'
     )
-    body = {"contents": [{"parts": [{"inlineData": {"mimeType": "audio/wav", "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
+    body = {"contents": [{"parts": [{"inlineData": {"mimeType": "audio/mp3", "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
     res = post(f"https://generativelanguage.googleapis.com/v1beta/models/{LISTENER}:generateContent", body)
     try:
         r = json.loads(res["candidates"][0]["content"]["parts"][-1]["text"])["lines"]
