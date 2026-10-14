@@ -16,6 +16,7 @@ import array
 import base64
 import glob
 import hashlib
+import http.client
 import json
 import os
 import subprocess
@@ -76,7 +77,7 @@ def post(url, body, timeout=90):
                 sys.exit(f"daily quota used up: {msg}")
             print(f"    retry {i + 1}: HTTP {e.code} {msg[:160]}", flush=True)
             time.sleep(30 if e.code == 429 else 10)
-        except (urllib.error.URLError, OSError, json.JSONDecodeError) as e:
+        except (urllib.error.URLError, OSError, http.client.HTTPException, json.JSONDecodeError) as e:
             print(f"    retry {i + 1}: {e!r}"[:160], flush=True)
             time.sleep(10)
     raise Unreachable("gave up after 10 tries")
