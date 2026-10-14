@@ -19,6 +19,7 @@ import hashlib
 import http.client
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -185,18 +186,21 @@ def line_starts(pcm, texts, lang):
     """ask the listening model where each line starts (seconds). Pauses alone cannot tell a line break from a
     sentence break, but these times (good to about half a second) can. None if the answer is unusable."""
     # sent as 32 kbps MP3: a long take as WAV is over 10 MB, which the proxy now and then fails to upload
+    # (a machine without ffmpeg, on a better connection, sends the WAV)
+    mime = "audio/mp3" if shutil.which("ffmpeg") else "audio/wav"
     with tempfile.TemporaryDirectory() as tmp:
         wav, mp3 = os.path.join(tmp, "t.wav"), os.path.join(tmp, "t.mp3")
         write_wav(wav, pcm)
-        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", wav, "-ac", "1", "-ar", "16000", "-c:a", "libmp3lame", "-b:a", "32k", mp3], check=True)
-        with open(mp3, "rb") as f:
+        if mime == "audio/mp3":
+            subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", wav, "-ac", "1", "-ar", "16000", "-c:a", "libmp3lame", "-b:a", "32k", mp3], check=True)
+        with open(mp3 if mime == "audio/mp3" else wav, "rb") as f:
             audio = base64.b64encode(f.read()).decode()
     numbered = "\n".join(f"{k + 1}. {t}" for k, t in enumerate(texts))
     prompt = (
         f"The audio ({NAMES[lang]}) reads these {len(texts)} lines in order:\n{numbered}\n\n"
         'For each line give the time in seconds (one decimal) where its FIRST word starts. Return JSON {"starts": [{"n": 1, "start": 0.0}, ...]}.'
     )
-    body = {"contents": [{"parts": [{"inlineData": {"mimeType": "audio/mp3", "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
+    body = {"contents": [{"parts": [{"inlineData": {"mimeType": mime, "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
     try:
         res = post(f"https://generativelanguage.googleapis.com/v1beta/models/{LISTENER}:generateContent", body)
         st = sorted(json.loads(res["candidates"][0]["content"]["parts"][-1]["text"])["starts"], key=lambda x: x["n"])
@@ -533,7 +537,7 @@ def qa_scene(lang, scene, lines):
         "or letters read wrongly, symbols read aloud, wrong language. Ignore punctuation and Chinese character variants that sound the same. "
         'Return JSON {"lines": [{"n": 1, "transcript": "...", "issues": ["..."]}, ...]}. Be strict but do not invent issues.'
     )
-    body = {"contents": [{"parts": [{"inlineData": {"mimeType": "audio/mp3", "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
+    body = {"contents": [{"parts": [{"inlineData": {"mimeType": mime, "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
     res = post(f"https://generativelanguage.googleapis.com/v1beta/models/{LISTENER}:generateContent", body)
     try:
         r = json.loads(res["candidates"][0]["content"]["parts"][-1]["text"])["lines"]
