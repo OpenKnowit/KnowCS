@@ -57,6 +57,10 @@ def key():
     return k
 
 
+class Unreachable(SystemExit):
+    """the API could not be reached after all retries"""
+
+
 def post(url, body, timeout=90):
     """POST JSON with retries: the local proxy drops connections now and then, and 429 means wait"""
     for i in range(10):
@@ -75,7 +79,7 @@ def post(url, body, timeout=90):
         except (urllib.error.URLError, OSError, json.JSONDecodeError) as e:
             print(f"    retry {i + 1}: {e!r}"[:160], flush=True)
             time.sleep(10)
-    sys.exit("gave up after 10 tries")
+    raise Unreachable("gave up after 10 tries")
 
 
 def find_audio(o):
@@ -179,11 +183,11 @@ def weight(text):
 def line_starts(pcm, texts, lang):
     """ask the listening model where each line starts (seconds). Pauses alone cannot tell a line break from a
     sentence break, but these times (good to about half a second) can. None if the answer is unusable."""
-    # sent as 64 kbps MP3: a long take as WAV is over 10 MB, which the proxy now and then fails to upload
+    # sent as 32 kbps MP3: a long take as WAV is over 10 MB, which the proxy now and then fails to upload
     with tempfile.TemporaryDirectory() as tmp:
         wav, mp3 = os.path.join(tmp, "t.wav"), os.path.join(tmp, "t.mp3")
         write_wav(wav, pcm)
-        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", wav, "-ac", "1", "-c:a", "libmp3lame", "-b:a", "64k", mp3], check=True)
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", wav, "-ac", "1", "-ar", "16000", "-c:a", "libmp3lame", "-b:a", "32k", mp3], check=True)
         with open(mp3, "rb") as f:
             audio = base64.b64encode(f.read()).decode()
     numbered = "\n".join(f"{k + 1}. {t}" for k, t in enumerate(texts))
@@ -361,6 +365,7 @@ def cmd_gen(args):
     pauses: far fewer requests than one per line, and the intonation runs on naturally. If a take cannot be cut,
     its scenes are recorded one by one, then line by line. A line edited later is recorded on its own."""
     last = [0.0]
+    failed = []
 
     def pace():
         time.sleep(max(0.0, MIN_SPACING_S - (time.time() - last[0])))
@@ -403,10 +408,17 @@ def cmd_gen(args):
             groups = chunks(whole, args.chunk) if args.chunk > 0 else [[w] for w in whole]
             print(f"{ep}/{lang}: {len(groups)} take(s) for {len(whole)} scene(s), {sum(len(ls) for _, ls in part)} single line(s)", flush=True)
             for g in groups:
-                take(lang, g)
+                try:
+                    take(lang, g)
+                except Unreachable as e:
+                    # the take, if recorded, is kept and cut on the next run without a new request
+                    print(f"  {e}; moving on", flush=True)
+                    failed.append(f"{ep}/{lang}")
             for sc, ls in part:
                 for l in ls:
                     take(lang, [(sc, [l])])
+    if failed:
+        sys.exit(f"unfinished: {' '.join(failed)}")
 
 
 # ---------------------------------------------------------------- build
