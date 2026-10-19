@@ -537,7 +537,7 @@ def qa_scene(lang, scene, lines):
         "or letters read wrongly, symbols read aloud, wrong language. Ignore punctuation and Chinese character variants that sound the same. "
         'Return JSON {"lines": [{"n": 1, "transcript": "...", "issues": ["..."]}, ...]}. Be strict but do not invent issues.'
     )
-    body = {"contents": [{"parts": [{"inlineData": {"mimeType": mime, "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
+    body = {"contents": [{"parts": [{"inlineData": {"mimeType": "audio/wav", "data": audio}}, {"text": prompt}]}], "generationConfig": {"responseMimeType": "application/json"}}
     res = post(f"https://generativelanguage.googleapis.com/v1beta/models/{LISTENER}:generateContent", body)
     try:
         r = json.loads(res["candidates"][0]["content"]["parts"][-1]["text"])["lines"]
