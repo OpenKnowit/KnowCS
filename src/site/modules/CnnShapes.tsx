@@ -125,6 +125,7 @@ function StrideStrip() {
 // colours per layer kind: [front face, side face, outline]
 const KIND_COL: Record<string, [string, string, string]> = {
   input: ['#f1f5f9', '#cbd5e1', '#64748b'],
+  output: ['#f1f5f9', '#cbd5e1', '#64748b'],
   conv: ['#dbeafe', '#93c5fd', '#3b82f6'],
   pool: ['#ede9fe', '#c4b5fd', '#8b5cf6'],
   globalpool: ['#ccfbf1', '#5eead4', '#14b8a6'],
@@ -139,13 +140,13 @@ function Volumes({ input, infos, active, onPick }: { input: Shape; infos: LayerI
   const { t } = useTranslation()
   const base = 186
   let x = 0
-  const items = [{ s: input, kind: 'input', err: false }, ...infos.map((i) => ({ s: i.output, kind: i.layer.kind as string, err: !!i.error }))].map((it, i) => {
+  const items = [{ s: input, kind: 'input', err: false }, ...infos.map((i, j) => ({ s: i.output, kind: j === infos.length - 1 ? 'output' : (i.layer.kind as string), err: !!i.error }))].map((it, i) => {
     const flat = it.s.length === 1
     const h = flat ? clamp(26 + Math.log2(Math.max(1, it.s[0])) * 8, 26, 160) : clamp(22 + Math.log2(Math.max(1, it.s[0])) * 14, 22, 160)
     const d = flat ? 12 : clamp(6 + Math.log2(Math.max(1, it.s[2])) * 5, 6, 60)
     const skew = flat ? 0 : h * 0.35
     const label = it.s.join('×')
-    const name = i === 0 ? t('lab.cnn.input_name') : t(`lab.cnn.kinds.${it.kind}`)
+    const name = i === 0 ? t('lab.cnn.input_name') : it.kind === 'output' ? t('lab.cnn.output_name') : t(`lab.cnn.kinds.${it.kind}`)
     const slot = Math.max(d + skew, label.length * 7.8, name.length * 6.4) + 8
     const item = { ...it, flat, h, d, skew, label, name, x, slot }
     x += slot + 34
@@ -628,11 +629,15 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
         })}
         {marker(layers.length)}
         <div className={card(false)}>
-          {head(OUT, t('lab.cnn.output_name'), '#0f172a', out.join('×'))}
+          {head(OUT, t('lab.cnn.output_name'), KIND_COL.output[2], out.join('×'))}
           {!closed.has(OUT) &&
             (last?.kind === 'dense' ? (
               <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-                <NumberField label={t('lab.cnn.output_units')} value={st.head === 'regress' ? 1 : last.units} min={1} onChange={(v) => setLayers(layers.map((x, j) => (j === layers.length - 1 ? { ...last, units: Math.max(1, Math.round(v)) } : x)))} />
+                {st.head === 'regress' ? (
+                  <NumberField label={t('lab.cnn.output_units')} value={1} min={1} max={1} onChange={() => {}} />
+                ) : (
+                  <NumberField label={t('lab.cnn.output_units')} value={last.units} min={1} onChange={(v) => setLayers(layers.map((x, j) => (j === layers.length - 1 ? { ...last, units: Math.max(1, Math.round(v)) } : x)))} />
+                )}
               </div>
             ) : (
               <p className="mt-1 px-1 text-xs text-slate-500">{t('lab.cnn.output_no_dense')}</p>
@@ -697,6 +702,18 @@ export default function CnnShapes() {
     setSt(next)
     setPreset(null)
   }
+  // Regress means one sigmoid unit: the last Dense really becomes 1 unit (the drawing, table and output agree with the
+  // code), and Classify gives back the class count it had before
+  const [classUnits, setClassUnits] = useState<number | null>(null)
+  const switchHead = (h: Head) => {
+    if (h === st.head) return
+    const li = st.layers.length - 1
+    const last = st.layers[li]
+    if (last?.kind !== 'dense') return commit({ ...st, head: h })
+    if (h === 'regress') setClassUnits(last.units)
+    const units = h === 'regress' ? 1 : last.units === 1 && classUnits ? classUnits : last.units
+    commit({ ...st, head: h, layers: st.layers.map((x, j) => (j === li ? { ...last, units } : x)) })
+  }
   const undo = () => {
     if (!past.length) return
     setSt(past[past.length - 1])
@@ -745,10 +762,10 @@ export default function CnnShapes() {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <h2 className="text-[15px] font-extrabold">{t('lab.cnn.volumes_title')}</h2>
               <ul className="ml-auto flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
-                {(['input', ...new Set(st.layers.map((l) => l.kind))] as string[]).map((k) => (
+                {(['input', ...new Set(st.layers.slice(0, -1).map((l) => l.kind))] as string[]).map((k) => (
                   <li key={k} className="flex items-center gap-1.5">
                     <i className="h-2.5 w-2.5 rounded-[3px] border" style={{ background: KIND_COL[k][1], borderColor: KIND_COL[k][2] }} />
-                    {k === 'input' ? t('lab.cnn.input_name') : t(`lab.cnn.kinds.${k}`)}
+                    {k === 'input' ? `${t('lab.cnn.input_name').replace(/^./, (c) => c.toUpperCase())} / ${t('lab.cnn.output_name')}` : t(`lab.cnn.kinds.${k}`)}
                   </li>
                 ))}
               </ul>
@@ -771,7 +788,7 @@ export default function CnnShapes() {
             </div>
             {mode === 'code' ? (
               <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-                <CodePanel st={st} active={active} onParsed={(s) => commit(s)} onHead={(h) => commit({ ...st, head: h })} canUndo={past.length > 0} onUndo={undo} />
+                <CodePanel st={st} active={active} onParsed={(s) => commit(s)} onHead={switchHead} canUndo={past.length > 0} onUndo={undo} />
                 <ParamList st={st} infos={infos} active={active} setActive={setActive} />
               </div>
             ) : (
