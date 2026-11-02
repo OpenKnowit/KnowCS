@@ -165,7 +165,8 @@ export function dependents(e: Explain, operandCount: number): number[][][] {
   const out: number[][][] = Array.from({ length: operandCount }, () => [])
   e.sources.forEach((cells, o) =>
     cells.forEach(([k, f]) => {
-      ;(out[k][f] ??= []).push(o)
+      // some traces (np.isin) name an operand past the listed ones: give it a slot instead of throwing
+      ;((out[k] ??= [])[f] ??= []).push(o)
     }),
   )
   return out

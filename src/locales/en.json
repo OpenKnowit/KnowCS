@@ -961,7 +961,18 @@
       "var_name": "Name",
       "var_type": "Type",
       "var_shape": "Shape",
-      "var_value": "Value"
+      "var_value": "Value",
+      "gallery": "Example gallery",
+      "gallery_open": "Open the example gallery",
+      "kernel": "Kernel",
+      "kernel_mini": "minipy (in-page interpreter)",
+      "kernel_real": "Pyodide (CPython in a worker)",
+      "lines_one": "{{count}} line",
+      "lines_other": "{{count}} lines",
+      "resize": "Resize the code and results panes",
+      "traced_one": "{{count}} step traced",
+      "traced_other": "{{count}} steps traced",
+      "visual_failed": "This step cannot be drawn — the output below is still right."
     },
     "resources": {
       "tab_title": "Resources",
@@ -1034,6 +1045,10 @@
         "comp2211-notes": {
           "title": "COMP2211 notes on GitHub",
           "desc": "An outline of the whole COMP2211 course, with notes in Markdown."
+        },
+        "colab": {
+          "title": "Google Colab",
+          "desc": "Free Jupyter notebooks in the cloud with GPUs — for the PyTorch and Keras labs once a laptop is too slow."
         }
       }
     }

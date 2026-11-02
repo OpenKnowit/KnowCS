@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react'
 import i18n from '../../i18n'
 import { ensurePacks } from '../../i18nPacks'
 import type { RunResult } from '../../lib/minipy'
@@ -54,50 +53,54 @@ export interface LibSpec {
 export interface BenchProps {
   lib: LibId
   spec: LibSpec
+  /** the example to show; the workbench keeps its own edits until another example is picked */
+  entryId: string | null
   side: boolean
   onSide: (open: boolean) => void
-  onPickLib: (id: LibId) => void
+  onGallery: () => void
 }
 
-export type LoadedLib = { id: LibId; spec: LibSpec; Bench: ComponentType<BenchProps> }
-
 const SHARED = ['playground.ui', 'playground.view', 'playground.note']
+const memo = <T,>(f: () => Promise<T>): (() => Promise<T>) => {
+  let p: Promise<T> | null = null
+  return () => (p ??= f())
+}
 
-/** The library's examples, strings and runner, plus the workbench that shows them. */
-export function loadLib(id: LibId): Promise<LoadedLib> {
-  const bench = import('./Workbench')
+/** the workbench, sidebar and gallery (one chunk) */
+export const loadWorkbench = memo(() => import('./Workbench'))
+
+function buildSpec(id: LibId): Promise<LibSpec> {
   if (id === 'numpy') {
-    return Promise.all([ensurePacks(i18n, ['numpy_api', ...SHARED]), import('../../data/numpyApis'), import('../../lib/minipy'), bench]).then(([, d, py, m]) => ({
-      id,
-      Bench: m.default,
-      spec: {
-        entries: d.NUMPY_APIS.map((e) => ({ id: e.id, cat: e.cat, label: e.label, code: e.code, focus: e.match, focusFirst: true })),
-        cats: d.API_CATS,
-        start: d.NUMPY_APIS.find((e) => e.cat === 'reduce')!.id,
-        catKey: (c) => `numpy_api.cat.${c}`,
-        explainKey: (e) => `numpy_api.api.${e}`,
-        noteKey: 'numpy_api.sandbox_note',
-        run: (code) => py.runPython(code),
-        callApis: null,
-        debounce: 300,
-        realOk: true,
-      },
+    return Promise.all([ensurePacks(i18n, ['numpy_api', ...SHARED]), import('../../data/numpyApis'), import('../../lib/minipy')]).then(([, d, py]) => ({
+      entries: d.NUMPY_APIS.map((e) => ({ id: e.id, cat: e.cat, label: e.label, code: e.code, focus: e.match, focusFirst: true })),
+      cats: d.API_CATS,
+      start: d.NUMPY_APIS.find((e) => e.cat === 'reduce')!.id,
+      catKey: (c) => `numpy_api.cat.${c}`,
+      explainKey: (e) => `numpy_api.api.${e}`,
+      noteKey: 'numpy_api.sandbox_note',
+      run: (code) => py.runPython(code),
+      callApis: null,
+      debounce: 300,
+      realOk: true,
     }))
   }
-  return Promise.all([PLAYGROUND_LOADERS[id]!(), import('../../data/playgrounds/run'), import('../../lib/pyodide/config'), bench]).then(([config, r, py, m]) => ({
-    id,
-    Bench: m.default,
-    spec: {
-      entries: config.entries,
-      cats: config.cats,
-      start: config.entries[0].id,
-      catKey: (c) => `playground.${id}.cat.${c}`,
-      explainKey: (e) => `playground.${id}.e.${e}`,
-      noteKey: `playground.${id}.sandbox_note`,
-      run: (code) => r.runIn(config, code),
-      callApis: config.callApis,
-      debounce: config.debounce,
-      realOk: py.REAL_PYTHON_LIBS.has(id),
-    },
+  return Promise.all([PLAYGROUND_LOADERS[id]!(), import('../../data/playgrounds/run'), import('../../lib/pyodide/config')]).then(([config, r, py]) => ({
+    entries: config.entries,
+    cats: config.cats,
+    start: config.entries[0].id,
+    catKey: (c) => `playground.${id}.cat.${c}`,
+    explainKey: (e) => `playground.${id}.e.${e}`,
+    noteKey: `playground.${id}.sandbox_note`,
+    run: (code) => r.runIn(config, code),
+    callApis: config.callApis,
+    debounce: config.debounce,
+    realOk: py.REAL_PYTHON_LIBS.has(id),
   }))
+}
+
+const specs = new Map<LibId, Promise<LibSpec>>()
+/** a library's examples, strings and runner (loaded once per page) */
+export const loadSpec = (id: LibId): Promise<LibSpec> => {
+  if (!specs.has(id)) specs.set(id, buildSpec(id))
+  return specs.get(id)!
 }

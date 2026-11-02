@@ -64,7 +64,9 @@ function pageHtml(page) {
     <meta name="theme-color" content="#2563eb" />
     <link rel="icon" type="image/svg+xml" href="${FAVICON}" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />`
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>html{background:#f1f5f9}@view-transition{navigation:auto}</style>
+    <script type="speculationrules">{"prerender":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/audio/*"}}]},"eagerness":"moderate"}]}</script>`
   if (page.kind === "redirect") {
     return `<!doctype html>
 <html lang="en">

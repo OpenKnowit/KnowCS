@@ -1,48 +1,83 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { libFromHash, loadLib } from '../playground/libs'
-import type { LibId, LoadedLib } from '../playground/libs'
+import { LIBS, libFromHash, loadSpec, loadWorkbench } from '../playground/libs'
+import type { LibId } from '../playground/libs'
+import type { Specs } from '../playground/Workbench'
 
 // /playground/: one workbench for the library sandboxes (NumPy, matplotlib, pandas, PyTorch, Keras, TensorFlow).
-// The library sits in the URL hash; the workbench lists its examples on the left.
+// The library sits in the URL hash. The current one loads first, the rest right after, so switching never waits.
+
+type BenchModule = Awaited<ReturnType<typeof loadWorkbench>>
 
 export default function PlaygroundPage() {
   const { t } = useTranslation()
-  const [lib, setLib] = useState<LibId>(libFromHash)
-  const [loaded, setLoaded] = useState<LoadedLib | null>(null)
+  const [sel, setSel] = useState<{ lib: LibId; entry: string | null }>(() => ({ lib: libFromHash(), entry: null }))
+  const [specs, setSpecs] = useState<Specs>({})
+  const [mod, setMod] = useState<BenchModule | null>(null)
   const [side, setSide] = useState(true)
+  const [gallery, setGallery] = useState(false)
   useEffect(() => {
     document.title = `${t('site.playground.title')} · KnowCS`
   }, [t])
   useEffect(() => {
     let live = true
-    void loadLib(lib).then((l) => live && setLoaded(l))
+    void loadWorkbench().then((m) => live && setMod(m))
+    const first = libFromHash()
+    void loadSpec(first)
+      .then((s) => live && setSpecs((p) => ({ ...p, [first]: s })))
+      .then(async () => {
+        for (const l of LIBS) {
+          if (!live) return
+          if (l.id === first) continue
+          const s = await loadSpec(l.id)
+          if (live) setSpecs((p) => ({ ...p, [l.id]: s }))
+        }
+      })
     return () => {
       live = false
     }
-  }, [lib])
+  }, [])
   // back / forward and edited hashes switch the library too
   useEffect(() => {
-    const onHash = () => setLib(libFromHash())
+    const onHash = () => setSel({ lib: libFromHash(), entry: null })
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  const pick = (id: LibId) => {
-    setLib(id)
-    history.replaceState(null, '', id === 'numpy' ? window.location.pathname : `#${id}`)
-  }
-  const ready = loaded && loaded.id === lib ? loaded : null
+  const pick = useCallback((lib: LibId, entry: string | null) => {
+    setSel({ lib, entry })
+    void loadSpec(lib).then((s) => setSpecs((p) => (p[lib] ? p : { ...p, [lib]: s })))
+    history.replaceState(null, '', lib === 'numpy' ? window.location.pathname : `#${lib}`)
+  }, [])
+  const closeGallery = useCallback(() => setGallery(false), [])
+  // until a library has loaded, the previous one stays on screen (no blank flash in between)
+  const [shown, setShown] = useState(sel)
+  if (specs[sel.lib] && shown !== sel) setShown(sel)
+  const spec = specs[shown.lib]
 
   return (
     <main>
       <h1 className="sr-only">{t('site.playground.title')}</h1>
-      {ready ? (
-        <ready.Bench key={lib} lib={lib} spec={ready.spec} side={side} onSide={setSide} onPickLib={pick} />
-      ) : (
-        <div className="flex min-h-[620px] items-center justify-center border-t border-slate-200 bg-slate-50 text-sm text-slate-500 lg:h-[calc(100vh-67px)]" aria-busy="true">
-          {t('playground.ui.loading', { defaultValue: '…' })}
-        </div>
+      <div className="flex border-t border-slate-200 bg-slate-50 lg:h-[calc(100vh-67px)] lg:min-h-[620px]">
+        {mod && side && <mod.ExamplesSidebar lib={shown.lib} entryId={shown.entry} specs={specs} onPick={pick} onCollapse={() => setSide(false)} />}
+        {mod && spec ? (
+          <mod.default key={shown.lib} lib={shown.lib} spec={spec} entryId={shown.entry} side={side} onSide={setSide} onGallery={() => setGallery(true)} />
+        ) : (
+          <div className="flex min-h-[620px] flex-1 items-center justify-center text-sm text-slate-500" aria-busy="true">
+            {t('playground.ui.loading', { defaultValue: '…' })}
+          </div>
+        )}
+      </div>
+      {mod && gallery && (
+        <mod.Gallery
+          lib={shown.lib}
+          specs={specs}
+          onPick={(lib, entry) => {
+            pick(lib, entry)
+            setGallery(false)
+          }}
+          onClose={closeGallery}
+        />
       )}
     </main>
   )

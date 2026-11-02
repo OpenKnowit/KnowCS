@@ -961,7 +961,18 @@
       "var_name": "名称",
       "var_type": "类型",
       "var_shape": "形状",
-      "var_value": "值"
+      "var_value": "值",
+      "gallery": "示例图库",
+      "gallery_open": "打开示例图库",
+      "kernel": "内核",
+      "kernel_mini": "minipy（页内解释器）",
+      "kernel_real": "Pyodide（Worker 中的 CPython）",
+      "lines_one": "{{count}} 行",
+      "lines_other": "{{count}} 行",
+      "resize": "调整代码区和结果区的宽度",
+      "traced_one": "追踪了 {{count}} 步",
+      "traced_other": "追踪了 {{count}} 步",
+      "visual_failed": "这一步画不出来——下面的输出仍然是对的。"
     },
     "resources": {
       "tab_title": "资源",
@@ -1034,6 +1045,10 @@
         "comp2211-notes": {
           "title": "COMP2211 GitHub 笔记",
           "desc": "整门 COMP2211 的提纲与 Markdown 笔记。"
+        },
+        "colab": {
+          "title": "Google Colab",
+          "desc": "云端免费 Jupyter Notebook，带 GPU——笔记本电脑跑不动 PyTorch、Keras 时用它。"
         }
       }
     }

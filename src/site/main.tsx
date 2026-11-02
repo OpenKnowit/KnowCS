@@ -41,6 +41,15 @@ if (!moved && import.meta.env.PROD && 'serviceWorker' in navigator) {
 if (!moved) {
   // start this page's code and strings now, in parallel with the core strings
   preloadPage(page, id)
+  // real Python: once the page is up, download the runtime into its cache and start the worker, so the
+  // playground's first real run is quick (not while the page is only being prerendered, not on Save-Data)
+  const warmPython = () => {
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return
+    setTimeout(() => void import('../lib/pyodide/client').then((m) => m.warmReal()), 1500)
+  }
+  const afterLoad = () => (document.readyState === 'complete' ? warmPython() : window.addEventListener('load', warmPython, { once: true }))
+  if ((document as Document & { prerendering?: boolean }).prerendering) document.addEventListener('prerenderingchange', afterLoad, { once: true })
+  else afterLoad()
   // render once the current language's strings have loaded
   void i18nReady.then(() => {
     createRoot(document.getElementById('root')!).render(

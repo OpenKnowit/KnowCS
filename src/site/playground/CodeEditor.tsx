@@ -1,7 +1,8 @@
 import { useRef } from 'react'
 import type { KeyboardEvent } from 'react'
+import { highlightPython } from './pyHighlight'
 
-// --- 带行号的 Python 编辑框：Tab / Shift+Tab 缩进 4 格，回车保持缩进（冒号后多缩进一级），Ctrl/⌘+Enter 立即运行，Esc 离开编辑框 ---
+// --- 带行号、语法高亮的 Python 编辑框：Tab / Shift+Tab 缩进 4 格，回车保持缩进（冒号后多缩进一级），Ctrl/⌘+Enter 立即运行，Esc 离开编辑框 ---
 
 interface Props {
   value: string
@@ -77,19 +78,27 @@ export const CodeEditor = ({ value, onChange, onRun, errorLine, label, minRows =
           <div key={i} className={errorLine === i + 1 ? 'font-bold text-rose-400' : ''}>{i + 1}</div>
         ))}
       </div>
-      <textarea
-        ref={ref}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKey}
-        rows={Math.max(lines.length, minRows)}
-        wrap="off"
-        spellCheck={false}
-        autoCapitalize="off"
-        autoCorrect="off"
-        aria-label={label}
-        className="min-w-0 flex-1 resize-none overflow-x-auto whitespace-pre bg-transparent px-3 py-3 font-mono text-[12.5px] leading-6 text-slate-100 caret-sky-400 outline-none"
-      />
+      {/* the coloured copy sits under a transparent textarea: typing, selection and the caret stay native */}
+      <div className="min-w-0 flex-1 overflow-x-auto">
+        <div className="relative min-h-full w-max min-w-full" style={{ minHeight: `${minRows * 1.5 + 1.5}rem` }}>
+          <pre aria-hidden className="m-0 whitespace-pre px-3 py-3 font-mono text-[12.5px] leading-6 text-slate-100">
+            {highlightPython(value)}
+            {'\n'}
+          </pre>
+          <textarea
+            ref={ref}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={onKey}
+            wrap="off"
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            aria-label={label}
+            className="absolute inset-0 h-full w-full resize-none overflow-hidden whitespace-pre bg-transparent px-3 py-3 font-mono text-[12.5px] leading-6 text-transparent caret-sky-400 outline-none selection:bg-sky-400/30"
+          />
+        </div>
+      </div>
     </div>
   )
 }

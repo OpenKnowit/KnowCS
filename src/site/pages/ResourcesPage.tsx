@@ -20,6 +20,7 @@ const RESOURCES: Resource[] = [
   { id: 'comp2211', url: 'https://course.cse.ust.hk/comp2211/', cat: 'course', kind: 'login' },
   { id: 'comp1023', url: 'https://course.cse.ust.hk/comp2211/comp1023-videos.html', cat: 'course', kind: 'login' },
   { id: 'jupyterlite', url: 'https://jupyter.org/try-jupyter/lab/', cat: 'code', kind: 'web' },
+  { id: 'colab', url: 'https://colab.research.google.com/', cat: 'code', kind: 'web', preview: true },
   { id: 'visualgo', url: 'https://visualgo.net/en', cat: 'visualize', kind: 'web', preview: true },
   { id: 'programiz', url: 'https://www.programiz.com/python-programming/online-compiler/', cat: 'code', kind: 'web', preview: true },
   { id: 'tf-playground', url: 'https://playground.tensorflow.org/', cat: 'visualize', kind: 'web', preview: true },
@@ -85,10 +86,9 @@ export default function ResourcesPage() {
     (r) => (cat === 'all' || r.cat === cat) && (!query || `${t(`site.resources.items.${r.id}.title`)} ${t(`site.resources.items.${r.id}.desc`)} ${t(`site.resources.cats.${r.cat}`)} ${r.url}`.toLowerCase().includes(query)),
   )
   return (
-    <main className="mx-auto max-w-[1280px] px-4 pb-16 pt-8 sm:px-8 lg:pt-10">
-      <h1 className="text-[clamp(26px,2.8vw,30px)] font-extrabold tracking-tight text-slate-900">{t('site.resources.title')}</h1>
-      <p className="mt-1.5 max-w-3xl text-[15px] text-slate-600">{t('site.resources.lead')}</p>
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+    <main className="px-[clamp(1rem,7vw,10rem)] pb-16 pt-6 lg:pt-8">
+      <h1 className="sr-only">{t('site.resources.title')}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="flex h-[42px] w-full max-w-[420px] items-center gap-2.5 rounded-[10px] border border-slate-200 bg-white px-3.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
           <Search size={17} className="shrink-0 text-slate-500" aria-hidden />
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('site.resources.search')} aria-label={t('site.resources.search')} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-500" />

@@ -93,7 +93,7 @@ export default function HomePage() {
   const shown = MODULES.filter(matches)
 
   return (
-    <main className="mx-auto max-w-[1280px] px-4 pb-16 pt-8 sm:px-8 lg:pt-10">
+    <main className="px-[clamp(1rem,7vw,10rem)] pb-16 pt-6 lg:pt-8">
       <h1 className="text-[clamp(24px,2.6vw,30px)] font-extrabold tracking-tight text-slate-900">{t('site.home.title_full')}</h1>
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <label className="flex h-[42px] w-full max-w-[420px] items-center gap-2.5 rounded-[10px] border border-slate-200 bg-white px-3.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
@@ -106,14 +106,13 @@ export default function HomePage() {
 
       {shown.length === 0 && <p className="mt-10 text-center text-slate-500">{t('site.home.no_match', { q: q.trim() })}</p>}
 
-      {view === 'grid' ? (
-        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {/* both views stay mounted, so switching never reloads a thumbnail */}
+      <div className={`${view === 'grid' ? 'grid' : 'hidden'} mt-6 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
           {shown.map((m) => (
             <LabCard key={m.id} m={m} />
           ))}
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-4">
+      </div>
+      <div className={`${view === 'chapters' ? 'grid' : 'hidden'} mt-6 gap-4`}>
           {LECTURES.map((n) => {
             const labs = shown.filter((m) => m.lec === n)
             if (!labs.length) return null
@@ -134,8 +133,7 @@ export default function HomePage() {
               </section>
             )
           })}
-        </div>
-      )}
+      </div>
     </main>
   )
 }
