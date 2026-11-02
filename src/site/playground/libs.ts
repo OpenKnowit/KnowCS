@@ -3,7 +3,7 @@ import { ensurePacks } from '../../i18nPacks'
 import type { RunResult } from '../../lib/minipy'
 import { PLAYGROUND_LOADERS } from './loaders'
 
-// The libraries on /playground/, in lecture order. The chosen one sits in the URL hash (/playground/#keras).
+// The libraries on /playground/, in lecture order. The chosen one (and example) sits in the URL hash (/playground/#keras/cnn_summary).
 
 export const LIBS = [
   { id: 'numpy', name: 'NumPy', line: 'import numpy as np', color: '#0284c7' },
@@ -15,10 +15,21 @@ export const LIBS = [
 ] as const
 export type LibId = (typeof LIBS)[number]['id']
 
-export const libFromHash = (): LibId => {
+// The hash names the library and, optionally, one of its examples: #keras or #keras/cnn_summary
+const hashParts = (): { lib: string; entry: string | null } => {
   const h = typeof window === 'undefined' ? '' : window.location.hash.slice(1)
-  return LIBS.find((l) => l.id === h)?.id ?? 'numpy'
+  const at = h.indexOf('/')
+  if (at < 0) return { lib: h, entry: null }
+  try {
+    return { lib: h.slice(0, at), entry: decodeURIComponent(h.slice(at + 1)) || null }
+  } catch {
+    return { lib: h.slice(0, at), entry: null }
+  }
 }
+export const libFromHash = (): LibId => LIBS.find((l) => l.id === hashParts().lib)?.id ?? 'numpy'
+/** the example named in the hash (#keras/cnn_summary → cnn_summary); null = the library's first example */
+export const entryFromHash = (): string | null => (LIBS.some((l) => l.id === hashParts().lib) ? hashParts().entry : null)
+export const playgroundHash = (lib: LibId, entry: string | null): string => `#${lib}${entry ? `/${encodeURIComponent(entry)}` : ''}`
 
 /** one example in the workbench's list */
 export interface BenchEntry {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LIBS, libFromHash, loadSpec, loadWorkbench } from '../playground/libs'
+import { LIBS, entryFromHash, libFromHash, loadSpec, loadWorkbench, playgroundHash } from '../playground/libs'
 import type { LibId } from '../playground/libs'
 import type { Specs } from '../playground/Workbench'
 
@@ -11,7 +11,7 @@ type BenchModule = Awaited<ReturnType<typeof loadWorkbench>>
 
 export default function PlaygroundPage() {
   const { t } = useTranslation()
-  const [sel, setSel] = useState<{ lib: LibId; entry: string | null }>(() => ({ lib: libFromHash(), entry: null }))
+  const [sel, setSel] = useState<{ lib: LibId; entry: string | null }>(() => ({ lib: libFromHash(), entry: entryFromHash() }))
   const [specs, setSpecs] = useState<Specs>({})
   const [mod, setMod] = useState<BenchModule | null>(null)
   const [side, setSide] = useState(true)
@@ -48,7 +48,7 @@ export default function PlaygroundPage() {
   // back / forward and edited hashes switch the library too
   useEffect(() => {
     const onHash = () => {
-      setSel({ lib: libFromHash(), entry: null })
+      setSel({ lib: libFromHash(), entry: entryFromHash() })
       setSeed(null)
     }
     window.addEventListener('hashchange', onHash)
@@ -59,7 +59,8 @@ export default function PlaygroundPage() {
     setSel({ lib, entry })
     setSeed(null)
     void loadSpec(lib).then((s) => setSpecs((p) => (p[lib] ? p : { ...p, [lib]: s })))
-    history.replaceState(null, '', lib === 'numpy' ? window.location.pathname : `#${lib}`)
+    // the address names the example, so it can be shared: /playground/#keras/cnn_summary
+    history.replaceState(null, '', lib === 'numpy' && !entry ? window.location.pathname : playgroundHash(lib, entry))
   }, [])
   const closeGallery = useCallback(() => setGallery(false), [])
   // until a library has loaded, the previous one stays on screen (no blank flash in between)
