@@ -4108,7 +4108,9 @@
         "real_failed": "Pyodide · couldn't download",
         "unavailable": "No browser build of {{name}}",
         "steps_off": "Step-by-step views need the Step-through engine. Real Python runs the code as is and shows its output and figures."
-      }
+      },
+      "result": "Result",
+      "result_note": "The finished figure, as plt.show() draws it."
     },
     "view": {
       "figure_label": "Figure with {{n}} axes",

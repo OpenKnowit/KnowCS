@@ -4108,7 +4108,9 @@
         "real_failed": "Pyodide · 下载失败",
         "unavailable": "{{name}} 没有浏览器版本",
         "steps_off": "逐步可视化需要「逐步演示」引擎。真实 Python 按原样运行代码，显示输出和图。"
-      }
+      },
+      "result": "结果",
+      "result_note": "最终完成的图，和 plt.show() 画出来的一样。"
     },
     "view": {
       "figure_label": "包含 {{n}} 个子图的图",

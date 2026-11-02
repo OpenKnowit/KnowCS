@@ -4108,7 +4108,9 @@
         "real_failed": "Pyodide · 下載失敗",
         "unavailable": "{{name}} 沒有瀏覽器版本",
         "steps_off": "逐步可視化需要「逐步演示」引擎。真實 Python 按原樣執行程式碼，顯示輸出和圖。"
-      }
+      },
+      "result": "結果",
+      "result_note": "最終完成的圖，和 plt.show() 畫出來的一樣。"
     },
     "view": {
       "figure_label": "包含 {{n}} 個子圖的圖",

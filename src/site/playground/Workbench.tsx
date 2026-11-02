@@ -18,19 +18,21 @@ import type { BenchEntry, BenchProps, LibId, LibSpec } from './libs'
 // the traced step on the right with output / explanation / variables below it, and a status bar.
 // With real Python (Pyodide) there are no steps, so the whole right side is output.
 
-type Step = { kind: 'call'; seq: number; call: CallTrace } | { kind: 'event'; seq: number; ev: PyEvent }
+/** 'result' = the finished figure after the last step, drawn plainly (no highlight, nothing faded) */
+type Step = { kind: 'call'; seq: number; call: CallTrace } | { kind: 'event'; seq: number; ev: PyEvent } | { kind: 'result'; seq: number }
 type Tab = 'output' | 'explain' | 'vars'
 export type Specs = Partial<Record<LibId, LibSpec>>
 
-const stepLine = (s: Step) => (s.kind === 'call' ? s.call.line : s.ev.line)
-const stepApi = (s: Step) => (s.kind === 'call' ? s.call.api : s.ev.type)
-const stepKind = (s: Step): StepKind => (s.kind === 'call' ? 'call' : s.ev.type === 'note' ? 'call' : s.ev.type)
+const stepLine = (s: Step) => (s.kind === 'call' ? s.call.line : s.kind === 'event' ? s.ev.line : 0)
+const stepApi = (s: Step) => (s.kind === 'call' ? s.call.api : s.kind === 'event' ? s.ev.type : 'figure')
+const stepKind = (s: Step): StepKind => (s.kind === 'call' ? 'call' : s.kind === 'result' ? 'figure' : s.ev.type === 'note' ? 'call' : s.ev.type)
 const shorten = (code: string, n = 24) => {
   const one = code.replace(/\s+/g, ' ').trim()
   return one.length > n ? `${one.slice(0, n - 1)}…` : one
 }
 const stepLabel = (s: Step): string => {
   if (s.kind === 'call') return s.call.api.startsWith('op:') ? s.call.code : s.call.api.replace(/^ndarray\./, '.')
+  if (s.kind === 'result') return ''
   return shorten(s.ev.code || s.ev.type)
 }
 const entryOf = (spec: LibSpec, id: string | null) => spec.entries.find((e) => e.id === id) ?? spec.entries.find((e) => e.id === spec.start) ?? spec.entries[0]
@@ -310,10 +312,13 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
 
   const steps = useMemo<Step[]>(() => {
     const calls = spec.callApis ? result.calls.filter((c) => spec.callApis!.some((p) => c.api.startsWith(p))) : result.calls
-    return [
+    const list: Step[] = [
       ...calls.map((call): Step => ({ kind: 'call', seq: call.seq, call })),
       ...result.events.filter((ev) => ev.type !== 'note').map((ev): Step => ({ kind: 'event', seq: ev.seq, ev })),
     ].sort((a, b) => a.seq - b.seq)
+    // figures built call by call end with the finished picture, as plt.show() would draw it
+    if (list.some((x) => x.kind === 'event' && x.ev.type === 'figure') && result.displays.some((d) => d.type === 'figure')) list.push({ kind: 'result', seq: list[list.length - 1].seq + 1 })
+    return list
   }, [result, spec.callApis])
   const notes = result.events.filter((e): e is PyEvent & { type: 'note' } => e.type === 'note')
   const autoSeq = useMemo(() => {
@@ -326,6 +331,12 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
   const selected = steps[selIndex] ?? null
 
   const stripRef = useRef<HTMLDivElement>(null)
+  // keep the selected chip in view, also when it was chosen automatically (the last step, or Result)
+  useEffect(() => {
+    const strip = stripRef.current
+    const chip = strip?.querySelector<HTMLElement>(`[data-seq="${selectedSeq}"]`)
+    if (strip && chip) strip.scrollLeft = Math.max(0, chip.offsetLeft - strip.clientWidth / 2 + chip.offsetWidth / 2)
+  }, [selectedSeq])
   const go = (k: number) => {
     const s = steps[Math.max(0, Math.min(steps.length - 1, k))]
     if (!s) return
@@ -444,6 +455,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
 
   // ---------------------------------------------------------------- right, top: the traced step
   const figureStep = selected?.kind === 'event' && selected.ev.type === 'figure'
+  const resultStep = selected?.kind === 'result'
   const visual = (
     <section className="flex min-h-[22rem] flex-col lg:min-h-0 lg:flex-1" aria-label={t('site.playground.visual')}>
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-2.5">
@@ -474,22 +486,33 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
                 key={s.seq}
                 data-seq={s.seq}
                 type="button"
-                title={s.kind === 'call' ? s.call.code : s.ev.code}
+                title={s.kind === 'call' ? s.call.code : s.kind === 'event' ? s.ev.code : t('playground.ui.result_note')}
                 aria-pressed={on}
                 tabIndex={on || (selIndex < 0 && k === 0) ? 0 : -1}
                 onClick={() => go(k)}
                 className={`flex max-w-[13rem] shrink-0 items-center gap-1.5 rounded-lg border px-2 py-1 font-mono text-[11px] transition ${on ? `${K.on} text-white` : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'}`}
               >
                 <K.icon size={12} className={on ? 'text-white' : K.icon_} aria-hidden />
-                <span className={`rounded px-1 text-[10px] ${on ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>L{stepLine(s)}</span>
-                <span className="truncate">{stepLabel(s)}</span>
+                {s.kind === 'result' ? (
+                  <span className="truncate font-sans font-bold">{t('playground.ui.result')}</span>
+                ) : (
+                  <>
+                    <span className={`rounded px-1 text-[10px] ${on ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>L{stepLine(s)}</span>
+                    <span className="truncate">{stepLabel(s)}</span>
+                  </>
+                )}
               </button>
             )
           })}
         </div>
       )}
       <div data-visual-body className={`min-h-0 flex-1 space-y-4 overflow-auto p-4 transition-opacity ${stale ? 'opacity-60' : ''}`}>
-        {selected ? (
+        {resultStep ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white">{t('playground.ui.result')}</span>
+            <span className="text-[14px] text-slate-600">{t('playground.ui.result_note')}</span>
+          </div>
+        ) : selected ? (
           <VisualBoundary key={`${deferredRan}#${selected.seq}`} fallback={<p className="text-sm text-slate-500">{t('site.playground.visual_failed')}</p>}>
             <StepView step={selected.kind === 'call' ? { kind: 'call', call: selected.call } : { kind: 'event', ev: selected.ev }} />
           </VisualBoundary>
