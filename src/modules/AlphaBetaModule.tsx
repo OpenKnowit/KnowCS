@@ -207,7 +207,7 @@ export const AlphaBetaModule = () => {
               <svg viewBox="0 0 1000 470" className="mt-10 h-auto max-h-[460px] w-full" role="img" aria-label={t('alphabeta.tree_label')}>
                 <defs>
                   <marker id="ab-arrow" viewBox="0 0 10 10" refX="20" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#94a3b8" />
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b" />
                   </marker>
                 </defs>
                 {/* 边 */}
@@ -218,18 +218,18 @@ export const AlphaBetaModule = () => {
                   const isPruned = step.prunedEdges.includes(key)
                   const isActive = step.activeEdge === key
                   const isVisited = step.visited.includes(e.to) && !isPruned
-                  let stroke = '#cbd5e1'
+                  let stroke = '#94a3b8'
                   let width = 3
                   let dash = '0'
-                  if (isPruned) { stroke = '#f43f5e'; width = 2; dash = '6,5' }
+                  if (isPruned) { stroke = '#e11d48'; width = 2.5; dash = '6,5' }
                   else if (isActive) { stroke = '#2563eb'; width = 6 }
-                  else if (isVisited) { stroke = '#10b981'; width = 4 }
+                  else if (isVisited) { stroke = '#059669'; width = 4 }
                   return (
                     <g key={key}>
                       <line x1={p.x} y1={p.y} x2={c.x} y2={c.y} stroke={stroke} strokeWidth={width} strokeDasharray={dash} markerEnd="url(#ab-arrow)" />
                       {isPruned && (
                         <g transform={`translate(${(p.x + c.x) / 2}, ${(p.y + c.y) / 2})`}>
-                          <circle r={10} fill="#f43f5e" />
+                          <circle r={10} fill="#e11d48" />
                           <text textAnchor="middle" dy={3.5} fill="white" fontSize={10} fontWeight={900}>×</text>
                         </g>
                       )}
@@ -245,11 +245,11 @@ export const AlphaBetaModule = () => {
                   const isActive = step.nodeId === node.id
                   const isVisited = step.visited.includes(node.id)
                   let fill = '#ffffff'
-                  let stroke = '#94a3b8'
-                  let text = '#475569'
-                  if (isPruned) { fill = '#fff1f2'; stroke = '#fda4af'; text = '#e11d48' }
-                  else if (isActive) { fill = '#eff6ff'; stroke = '#2563eb'; text = '#1d4ed8' }
-                  else if (isVisited) { fill = '#ecfdf5'; stroke = '#10b981'; text = '#047857' }
+                  let stroke = '#64748b'
+                  let text = '#334155'
+                  if (isPruned) { fill = '#fff1f2'; stroke = '#e11d48'; text = '#be123c' }
+                  else if (isActive) { fill = '#2563eb'; stroke = '#1d4ed8'; text = '#ffffff' }
+                  else if (isVisited) { fill = '#d1fae5'; stroke = '#059669'; text = '#065f46' }
   
                   if (node.type === 'leaf') {
                     return (
@@ -258,9 +258,9 @@ export const AlphaBetaModule = () => {
                         const n = Number(nv)
                         if (nv !== null && Number.isFinite(n) && n >= 0 && n <= 20) setLeaf(node.id, Math.round(n))
                       }}>
-                        <circle cx={node.x} cy={node.y} r={22} fill={fill} stroke={stroke} strokeWidth={3} />
-                        <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#e11d48' : '#0f172a'}>{node.value}</text>
-                        <text x={node.x + 28} y={node.y + 4} fontSize={10} fontFamily="monospace" fill="#64748b" fontWeight={700}>{node.id}</text>
+                        <circle cx={node.x} cy={node.y} r={22} fill={fill} stroke={stroke} strokeWidth={3} strokeDasharray={isPruned ? '5,4' : undefined} />
+                        <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#be123c' : isActive ? '#ffffff' : '#0f172a'}>{node.value}</text>
+                        <text x={node.x + 28} y={node.y + 4} fontSize={11} fontFamily="monospace" fill="#475569" fontWeight={700}>{node.id}</text>
                       </g>
                     )
                   }
@@ -270,15 +270,15 @@ export const AlphaBetaModule = () => {
                     : `${node.x - 26},${node.y - 18} ${node.x + 26},${node.y - 18} ${node.x},${node.y + 26}`
                   return (
                     <g key={node.id}>
-                      <polygon points={points} fill={fill} stroke={stroke} strokeWidth={3} />
+                      <polygon points={points} fill={fill} stroke={stroke} strokeWidth={3} strokeLinejoin="round" strokeDasharray={isPruned ? '5,4' : undefined} />
                       <text x={node.x} y={node.y + (isMax ? 10 : -2)} textAnchor="middle" fontSize={9} fontWeight={800} fill={text}>{isMax ? '▲MAX' : '▼MIN'}</text>
                       <g transform={`translate(${node.x}, ${node.y + (isMax ? -40 : -34)})`}>
-                        <rect x={-52} y={-11} width={104} height={19} rx={6} fill="#f8fafc" stroke="#e2e8f0" />
-                        <text textAnchor="middle" dy={2} fontSize={9} fontFamily="monospace">
-                          <tspan fill="#059669">α:{fmt(a)}</tspan> <tspan fill="#d97706">β:{fmt(b)}</tspan>
+                        <rect x={-56} y={-12} width={112} height={21} rx={6} fill="#ffffff" stroke="#cbd5e1" />
+                        <text textAnchor="middle" dy={3} fontSize={10.5} fontWeight={700} fontFamily="monospace">
+                          <tspan fill="#047857">α:{fmt(a)}</tspan> <tspan fill="#b45309">β:{fmt(b)}</tspan>
                         </text>
                       </g>
-                      <text x={node.x + 32} y={node.y + 2} fontSize={10} fontFamily="monospace" fill="#64748b" fontWeight={700}>{node.id}</text>
+                      <text x={node.x + 32} y={node.y + 2} fontSize={11} fontFamily="monospace" fill="#475569" fontWeight={700}>{node.id}</text>
                       {value !== null && (
                         <g transform={`translate(${node.x}, ${node.y + (isMax ? 34 : 40)})`}>
                           <rect x={-15} y={-10} width={30} height={18} rx={5} fill="#10b981" />
