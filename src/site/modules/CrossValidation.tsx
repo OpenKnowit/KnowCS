@@ -38,7 +38,7 @@ export default function CrossValidation() {
   const custom = () => setPreset(null)
 
   return (
-    <LabPage id="cross-validation" quiz lead={t('lab.cv.lead')}>
+    <LabPage id="cross-validation" quiz>
       <Workspace
         controls={
           <>

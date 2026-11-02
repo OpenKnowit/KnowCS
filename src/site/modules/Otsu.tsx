@@ -146,7 +146,7 @@ export default function Otsu() {
   const bins = small ? 32 : 64
 
   return (
-    <LabPage id="otsu" quiz lead={t('lab.otsu.lead')}>
+    <LabPage id="otsu" quiz>
       <Workspace
         wide
         controls={

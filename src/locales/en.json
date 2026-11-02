@@ -791,7 +791,9 @@
       "open_labs": "Open the list of labs",
       "close": "Close",
       "filter_labs": "Filter labs",
-      "position": "{{n}} of {{total}}"
+      "position": "{{n}} of {{total}}",
+      "expand_all": "Expand all",
+      "collapse_all": "Collapse all"
     },
     "modules": {
       "numpy": {

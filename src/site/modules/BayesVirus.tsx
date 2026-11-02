@@ -128,7 +128,7 @@ export default function BayesVirus() {
   }
 
   return (
-    <LabPage id="bayes-virus" quiz lead={t('lab.bayes.lead')}>
+    <LabPage id="bayes-virus" quiz>
       <Workspace
         controls={
           <>

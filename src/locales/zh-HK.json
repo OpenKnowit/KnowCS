@@ -791,7 +791,9 @@
       "open_labs": "打開實驗列表",
       "close": "關閉",
       "filter_labs": "篩選實驗",
-      "position": "第 {{n}} / {{total}} 個"
+      "position": "第 {{n}} / {{total}} 個",
+      "expand_all": "全部展開",
+      "collapse_all": "全部收起"
     },
     "modules": {
       "numpy": {

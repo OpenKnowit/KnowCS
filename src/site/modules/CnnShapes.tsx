@@ -235,7 +235,7 @@ export default function CnnShapes() {
   }
 
   return (
-    <LabPage id="cnn-shapes" quiz lead={t('lab.cnn.lead')}>
+    <LabPage id="cnn-shapes" quiz>
       <Workspace
         wide
         controls={

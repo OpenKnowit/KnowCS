@@ -195,7 +195,7 @@ export default function Convolution() {
   const kstr = (v: number) => (Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : fmt(v, 3))
 
   return (
-    <LabPage id="convolution" quiz lead={t('lab.conv.lead')}>
+    <LabPage id="convolution" quiz>
       <Workspace wide controls={controls}>
         <Card step={1} title={t('lab.conv.slide_title')} sub={t('lab.conv.slide_sub')}>
           <div className="flex flex-wrap items-start gap-6">

@@ -176,7 +176,7 @@ export default function AffinePage() {
   const yes = (v: boolean) => <b className={v ? 'text-emerald-700' : 'text-rose-700'}>{v ? '✓' : '✗'}</b>
 
   return (
-    <LabPage id="affine" quiz lead={t('lab.affine.lead')}>
+    <LabPage id="affine" quiz>
       <Workspace
         wide
         controls={

@@ -242,7 +242,7 @@ export default function XorMlp() {
   const maxE = Math.max(1, history[history.length - 1].e)
 
   return (
-    <LabPage id="xor-mlp" quiz lead={t('lab.xor.lead')}>
+    <LabPage id="xor-mlp" quiz>
       <Workspace
         wide
         controls={

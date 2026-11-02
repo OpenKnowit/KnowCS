@@ -57,7 +57,7 @@ export default function Evaluation() {
   }
 
   return (
-    <LabPage id="evaluation" quiz lead={t('lab.eval.lead')}>
+    <LabPage id="evaluation" quiz>
       <Workspace
         controls={
           <>

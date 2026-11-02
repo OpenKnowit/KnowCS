@@ -143,7 +143,7 @@ export default function Perceptron() {
   const epochOf = (i: number) => parsed.run?.rows[i]?.epoch ?? 1
 
   return (
-    <LabPage id="perceptron" quiz lead={t('lab.perc.lead')}>
+    <LabPage id="perceptron" quiz>
       <Workspace
         wide
         controls={

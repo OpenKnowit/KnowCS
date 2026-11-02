@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- shared lab UI kit: components + one hook */
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ChevronRight, Menu, Search, Star, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronRight, ChevronsDownUp, ChevronsUpDown, Menu, Search, Star, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { answerMatches } from './format'
 import { LECTURES, MODULES, PAPERS, STARRED, moduleUrl, neighbours } from '../lib/sitemap'
@@ -79,11 +79,38 @@ export function usePaperLabel(): (id: string) => string {
   }
 }
 
-/** The list of labs that slides in from the left; the current lecture starts open. */
+const ALL_OPEN_KEY = 'knowcs-drawer-all-open'
+const readAllOpen = (): boolean => {
+  try {
+    return localStorage.getItem(ALL_OPEN_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+/** The list of labs that slides in from the left; the current lecture starts open (or every lecture, once asked for). */
 function LabsDrawer({ current, onClose }: { current: ModuleId; onClose: () => void }) {
   const { t } = useTranslation()
   const cur = MODULES.find((m) => m.id === current)!
-  const [openLec, setOpenLec] = useState<number | null>(cur.lec)
+  const [allOpen, setAllOpen] = useState(readAllOpen)
+  const [openLecs, setOpenLecs] = useState<Set<number>>(() => new Set(allOpen ? LECTURES : [cur.lec]))
+  const toggleAll = () => {
+    const next = !allOpen
+    setAllOpen(next)
+    setOpenLecs(new Set(next ? LECTURES : [cur.lec]))
+    try {
+      localStorage.setItem(ALL_OPEN_KEY, next ? '1' : '0')
+    } catch {
+      /* private mode: the choice lasts until the drawer closes */
+    }
+  }
+  const toggleLec = (n: number) =>
+    setOpenLecs((s) => {
+      const next = new Set(s)
+      if (next.has(n)) next.delete(n)
+      else next.add(n)
+      return next
+    })
   const [q, setQ] = useState('')
   const closeRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -103,8 +130,12 @@ function LabsDrawer({ current, onClose }: { current: ModuleId; onClose: () => vo
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t('site.ui.all_labs')}>
       <div className="absolute inset-0 bg-slate-900/35" onClick={onClose} aria-hidden />
       <nav id="labs-drawer" className="drawer-in absolute inset-y-0 left-0 flex w-[340px] max-w-[88vw] flex-col border-r border-slate-200 bg-white shadow-2xl shadow-slate-900/20">
-        <div className="flex items-center justify-between py-3 pl-5 pr-4">
+        <div className="flex items-center py-3 pl-5 pr-4">
           <b className="text-base font-extrabold text-slate-900">{t('site.ui.all_labs')}</b>
+          <button type="button" onClick={toggleAll} aria-pressed={allOpen} className="ml-auto mr-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+            {allOpen ? <ChevronsDownUp size={15} aria-hidden /> : <ChevronsUpDown size={15} aria-hidden />}
+            {t(allOpen ? 'site.ui.collapse_all' : 'site.ui.expand_all')}
+          </button>
           <button ref={closeRef} type="button" onClick={onClose} className={ICON_BTN} aria-label={t('site.ui.close')}>
             <X size={18} aria-hidden />
           </button>
@@ -117,10 +148,10 @@ function LabsDrawer({ current, onClose }: { current: ModuleId; onClose: () => vo
           {LECTURES.map((n) => {
             const labs = MODULES.filter((m) => m.lec === n && hit(m.id))
             if (!labs.length) return null
-            const open = query !== '' || openLec === n
+            const open = query !== '' || openLecs.has(n)
             return (
               <li key={n}>
-                <button type="button" onClick={() => setOpenLec(open && !query ? null : n)} aria-expanded={open} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50">
+                <button type="button" onClick={() => !query && toggleLec(n)} aria-expanded={open} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50">
                   <ChevronRight size={14} className={`shrink-0 text-slate-500 transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden />
                   <span className="w-7 font-mono text-[11px] font-bold text-slate-500">{t('site.lecture_short', { n })}</span>
                   <span className={`flex-1 text-[13px] ${n === cur.lec ? 'font-bold text-slate-900' : 'font-semibold text-slate-600'}`}>{t(`site.lectures.${n}`)}</span>
@@ -177,7 +208,7 @@ export function PageBar({ id, extra }: { id: ModuleId; extra?: ReactNode }) {
   return (
     <>
       <div className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1480px] items-center gap-3.5 px-4 py-2.5 sm:px-6">
+        <div className="flex items-center gap-3.5 px-4 py-2.5 sm:px-6">
           <button type="button" onClick={() => setDrawer(true)} className={ICON_BTN} aria-label={t('site.ui.open_labs')} aria-expanded={drawer} aria-controls="labs-drawer">
             <Menu size={18} aria-hidden />
           </button>
@@ -202,13 +233,7 @@ export function PageBar({ id, extra }: { id: ModuleId; extra?: ReactNode }) {
   )
 }
 
-/** One line under the bar saying what this page is for (the title lives in the bar). */
-export function ModuleHero({ id, lead }: { id: ModuleId; lead?: ReactNode }) {
-  const { t } = useTranslation()
-  return <p className="mb-5 max-w-3xl text-[15px] text-slate-600">{lead ?? t(`site.modules.${id}.blurb`)}</p>
-}
-
-export function LabPage({ id, lead, quiz = false, children }: { id: ModuleId; lead?: ReactNode; quiz?: boolean; children: ReactNode }) {
+export function LabPage({ id, quiz = false, children }: { id: ModuleId; quiz?: boolean; children: ReactNode }) {
   const { t } = useTranslation()
   const [quizOn, setQuizOn] = useState(false)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -228,8 +253,7 @@ export function LabPage({ id, lead, quiz = false, children }: { id: ModuleId; le
   return (
     <QuizCtx.Provider value={ctx}>
       <PageBar id={id} extra={toggle} />
-      <main className="mx-auto max-w-[1480px] px-4 pb-10 pt-5 sm:px-6">
-        <ModuleHero id={id} lead={lead} />
+      <main className="px-4 pb-10 pt-5 sm:px-6">
         {children}
       </main>
     </QuizCtx.Provider>

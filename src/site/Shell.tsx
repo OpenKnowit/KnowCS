@@ -133,7 +133,7 @@ export function Shell({ section, children }: { section: Section; children: React
       >
         {t('app.a11y.skip')}
       </a>
-      <header className="mx-auto flex max-w-[1480px] flex-wrap items-center gap-3 px-4 pb-2 pt-4 sm:px-6 print:hidden">
+      <header className="flex flex-wrap items-center gap-3 px-4 pb-2 pt-4 sm:px-6 print:hidden">
         <a href="/" className="flex min-w-0 flex-1 items-center gap-2.5 font-black tracking-tight text-slate-900 lg:flex-none">
           <SiteLogo />
           <span className="truncate text-lg">{t('app.title')}</span>

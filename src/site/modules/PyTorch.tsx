@@ -97,7 +97,7 @@ export default function PyTorchPage() {
   }
 
   return (
-    <LabPage id="pytorch" quiz lead={t('lab.pytorch.lead')}>
+    <LabPage id="pytorch" quiz>
       <div className="grid gap-5">
         <Card step={1} title={t('lab.pytorch.attr_title')} sub={t('lab.common.quiz_sub')}>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">

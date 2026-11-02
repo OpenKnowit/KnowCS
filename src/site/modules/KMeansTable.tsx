@@ -170,7 +170,7 @@ export default function KMeansTable() {
   const point = (c: number[]) => `(${c.map((v) => fmt(v, 2)).join(', ')})`
 
   return (
-    <LabPage id="kmeans-table" quiz lead={t('lab.km.lead')}>
+    <LabPage id="kmeans-table" quiz>
       <Workspace
         wide
         controls={

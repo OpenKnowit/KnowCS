@@ -145,7 +145,7 @@ export default function GaussianNb() {
   const setX = (j: number, v: number) => setTest(x.map((old, i) => (i === j ? v : old)))
 
   return (
-    <LabPage id="gaussian-nb" quiz lead={t('lab.gnb.lead')}>
+    <LabPage id="gaussian-nb" quiz>
       <Workspace
         controls={
           <>
