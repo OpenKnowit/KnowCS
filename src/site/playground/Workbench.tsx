@@ -1,6 +1,6 @@
 import { Component, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
-import { AlertTriangle, ChartArea, ChevronLeft, ChevronRight, FileCode, Info, LayoutGrid, NotebookText, PanelLeftClose, PanelLeftOpen, Play, RotateCcw, Search, Square, X } from 'lucide-react'
+import { AlertTriangle, ChartArea, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, FileCode, Info, LayoutGrid, NotebookText, PanelLeftClose, PanelLeftOpen, Play, RotateCcw, Search, Square, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { CallTrace } from '../../lib/minipy'
 import type { Display, PyEvent } from '../../lib/pyEvents'
@@ -107,10 +107,20 @@ export function ExamplesSidebar({ lib, entryId, specs, onPick, onCollapse }: Sid
     })
   const q = query.trim().toLowerCase()
   const current = spec ? entryOf(spec, entryId).id : null
+  // expand / collapse every library and group at once
+  const allCats = LIBS.flatMap((l) => (specs[l.id]?.cats ?? []).map((c) => `${l.id}:${c}`))
+  const allOpen = LIBS.every((l) => openLibs.has(l.id)) && allCats.every((c) => openCats.has(c))
+  const toggleAll = () => {
+    setOpenLibs(allOpen ? new Set() : new Set(LIBS.map((l) => l.id)))
+    setOpenCats(allOpen ? new Set() : new Set(allCats))
+  }
   return (
     <aside className="hidden w-[272px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex" aria-label={t('site.playground.examples')}>
       <div className="flex items-center justify-between py-3 pl-4 pr-3">
-        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">{t('site.playground.examples')}</span>
+        <span className="mr-auto text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">{t('site.playground.examples')}</span>
+        <button type="button" onClick={toggleAll} className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label={t(allOpen ? 'site.ui.collapse_all' : 'site.ui.expand_all')} title={t(allOpen ? 'site.ui.collapse_all' : 'site.ui.expand_all')}>
+          {allOpen ? <ChevronsDownUp size={16} aria-hidden /> : <ChevronsUpDown size={16} aria-hidden />}
+        </button>
         <button type="button" onClick={onCollapse} className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label={t('site.playground.hide_libs')} title={t('site.playground.hide_libs')}>
           <PanelLeftClose size={16} aria-hidden />
         </button>
