@@ -169,7 +169,15 @@ const ImageArtist = ({ a, X, Y, onPixel, labels }: { a: Artist & { kind: 'image'
   const top = Math.min(Y(y0), Y(y1))
   const w = Math.abs(X(x1) - X(x0))
   const h = Math.abs(Y(y1) - Y(y0))
-  const small = labels && a.rows * a.cols <= 64
+  // pixel values are written into the cells only when every one of them fits its cell: short forms (0.63, 41) at a
+  // readable size, otherwise none (hovering still shows each value)
+  const cellW = w / a.cols
+  const cellH = h / a.rows
+  const short = (v: number) => (Number.isInteger(v) ? String(v) : Math.abs(v) < 0.005 ? '0' : Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2).replace(/\.?0+$/, ''))
+  const texts = a.rgb ? [] : a.values.map(short)
+  const fontSize = Math.min(11, cellW * 0.32, cellH * 0.45)
+  const fits = texts.every((x) => x.length * fontSize * 0.62 <= cellW - 3)
+  const small = labels && a.rows * a.cols <= 64 && fontSize >= 7 && fits
   return (
     <g
       onMouseMove={(e) => {
@@ -183,13 +191,13 @@ const ImageArtist = ({ a, X, Y, onPixel, labels }: { a: Artist & { kind: 'image'
       onMouseLeave={() => onPixel(null)}
     >
       {url && <image href={url} x={left} y={top} width={w} height={h} preserveAspectRatio="none" style={{ imageRendering: 'pixelated' }} />}
-      {small && !a.rgb && a.values.map((v, i) => {
+      {small && !a.rgb && a.values.map((_, i) => {
         const r = Math.floor(i / a.cols)
         const c = i % a.cols
         const bright = parseInt(a.pixels[i].slice(1, 3), 16) * 0.3 + parseInt(a.pixels[i].slice(3, 5), 16) * 0.59 + parseInt(a.pixels[i].slice(5, 7), 16) * 0.11
         return (
-          <text key={i} x={left + ((c + 0.5) * w) / a.cols} y={top + ((r + 0.5) * h) / a.rows + 3.5} textAnchor="middle" fontSize={Math.min(11, (w / a.cols) * 0.32)} fill={bright > 140 ? '#0f172a' : '#f8fafc'} pointerEvents="none">
-            {fmt(v)}
+          <text key={i} x={left + ((c + 0.5) * w) / a.cols} y={top + ((r + 0.5) * h) / a.rows + 3.5} textAnchor="middle" fontSize={fontSize} fill={bright > 140 ? '#0f172a' : '#f8fafc'} pointerEvents="none">
+            {texts[i]}
           </text>
         )
       })}
