@@ -9,6 +9,8 @@ interface Props {
   onChange: (v: string) => void
   onRun: () => void
   errorLine?: number
+  /** 1-based lines to mark (e.g. the code of the layer picked elsewhere on the page) */
+  marks?: number[]
   label: string
   minRows?: number
   /** grow to fill the column (full-screen mode) */
@@ -17,7 +19,7 @@ interface Props {
 
 const INDENT = '    '
 
-export const CodeEditor = ({ value, onChange, onRun, errorLine, label, minRows = 6, tall }: Props) => {
+export const CodeEditor = ({ value, onChange, onRun, errorLine, marks, label, minRows = 6, tall }: Props) => {
   const ref = useRef<HTMLTextAreaElement>(null)
   const lines = value.split('\n')
 
@@ -75,13 +77,16 @@ export const CodeEditor = ({ value, onChange, onRun, errorLine, label, minRows =
     <div className={`flex overflow-hidden rounded-xl border border-slate-800 bg-slate-900 ${tall ? 'min-h-[18rem] flex-1' : ''}`}>
       <div aria-hidden className="select-none border-r border-slate-700/60 py-3 pl-3 pr-2 text-right font-mono text-[12.5px] leading-6 text-slate-500">
         {lines.map((_, i) => (
-          <div key={i} className={errorLine === i + 1 ? 'font-bold text-rose-400' : ''}>{i + 1}</div>
+          <div key={i} className={errorLine === i + 1 ? 'font-bold text-rose-400' : marks?.includes(i + 1) ? 'font-bold text-sky-300' : ''}>{i + 1}</div>
         ))}
       </div>
       {/* the coloured copy sits under a transparent textarea: typing, selection and the caret stay native */}
       <div className="min-w-0 flex-1 overflow-x-auto">
         <div className="relative min-h-full w-max min-w-full" style={{ minHeight: `${minRows * 1.5 + 1.5}rem` }}>
-          <pre aria-hidden className="m-0 whitespace-pre px-3 py-3 font-mono text-[12.5px] leading-6 text-slate-100">
+          {marks?.map((l) => (
+            <div key={l} aria-hidden className="pointer-events-none absolute inset-x-0 border-l-2 border-sky-400 bg-sky-400/15" style={{ top: 12 + (l - 1) * 24, height: 24 }} />
+          ))}
+          <pre aria-hidden className="relative m-0 whitespace-pre px-3 py-3 font-mono text-[12.5px] leading-6 text-slate-100">
             {highlightPython(value)}
             {'\n'}
           </pre>

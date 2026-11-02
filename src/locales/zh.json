@@ -1881,8 +1881,6 @@
       "torch_note": "这是第 9 讲的写法：层定义在 __init__，forward 里用 F.relu，用 x.view(x.size(0), -1) 展平。PyTorch 通道在前，(batch, C, H, W)；nn.Conv2d 必须写出 in_channels——即上一层的通道数。",
       "output_name": "输出",
       "run_playground": "在实验场运行",
-      "reset_code": "重置",
-      "reset_hint": "按左侧各层重新生成代码",
       "code_synced": "可以直接改代码，左侧各层会跟着变。",
       "code_bad": "第 {{line}} 行：{{msg}}各层保持上一次能读懂的版本。",
       "parse": {
@@ -1891,6 +1889,25 @@
         "unknown": "这一层没有在 __init__ 里定义。",
         "pad_alone": "ZeroPadding2D 后面必须紧跟 Conv2D 或池化层。",
         "bad_args": "这些参数不是有效的数字。"
+      },
+      "undo": "撤销",
+      "undo_hint": "撤销上一步改动（Ctrl/⌘+Z）",
+      "mode": "视图",
+      "mode_code": "代码",
+      "mode_table": "计算表",
+      "add_at": "位置",
+      "add_end": "末尾",
+      "output_units": "单元数（类别数）",
+      "output_no_dense": "最后一层不是 Dense，输出就是它的形状。",
+      "guide_title": "各层的作用",
+      "guide": {
+        "conv": "用卷积核在图像上滑动；filters 就是输出通道数。参数 (k·k·C_in + 1) × filters。",
+        "pool": "缩小高和宽（取最大或平均），通道数不变，没有参数。stride 默认等于 size。",
+        "globalpool": "每个通道压成一个数：h × w × c → c。这样后面的 Dense 就不受图像尺寸影响。",
+        "flatten": "把 h × w × c 展开成长度 h·w·c 的向量，没有参数。",
+        "dense": "每个输入连到每个单元。参数 (输入数 + 1) × units。输入必须是一维的。",
+        "dropout": "训练时随机关掉一部分数值；形状和参数都不变。",
+        "order": "常见顺序：Conv / Pool 若干块 → Flatten 或全局池化 → Dense → 最后一个 Dense（每类一个单元）。"
       }
     },
     "pytorch": {

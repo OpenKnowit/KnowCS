@@ -18,7 +18,7 @@ const STACKS: [Shape, Layer[]][] = [
 describe('parseKeras', () => {
   it.each(STACKS)('reads back what kerasCode writes (%j)', (input, layers) => {
     const r = parseKeras(kerasCode(input, layers)!.join('\n'))
-    expect(r).toEqual({ ok: true, input, layers, head: 'classify' })
+    expect(r).toMatchObject({ ok: true, input, layers, head: 'classify' })
   })
   it('reads the hand-written exam style, positional arguments and a sigmoid head', () => {
     const r = parseKeras(`from keras.models import Sequential
@@ -29,7 +29,7 @@ model.add(Conv2D(64, (7, 7), strides=(2, 2), activation='relu'))
 model.add(MaxPooling2D((3, 3), strides=2))
 model.add(GlobalAveragePooling2D())
 model.add(Dense(units=1, activation='sigmoid'))`)
-    expect(r).toEqual({ ok: true, input: [224, 224, 3], layers: [conv(64, 7, 2, 3), pool(3, 2), { kind: 'globalpool', op: 'avg' }, dense(1)], head: 'regress' })
+    expect(r).toEqual({ ok: true, input: [224, 224, 3], layers: [conv(64, 7, 2, 3), pool(3, 2), { kind: 'globalpool', op: 'avg' }, dense(1)], head: 'regress', lines: [[4, 5], [6], [7], [8]] })
   })
   it('names the line it cannot use', () => {
     expect(parseKeras('model.add(Conv2D(filters=8, kernel_size=3, input_shape=(8, 8, 1)))\nmodel.add(ZeroPadding2D(1))\nmodel.add(Flatten())')).toEqual({ ok: false, error: 'pad_alone', line: 2 })
@@ -39,8 +39,12 @@ model.add(Dense(units=1, activation='sigmoid'))`)
 })
 
 describe('parseTorch', () => {
+  it('maps each layer to its __init__ line and its forward line', () => {
+    const r = parseTorch(torchCode([8, 8, 1], [conv(4, 3, 1, 1), pool(2), { kind: 'flatten' }, dense(3)])!.join('\n'))
+    expect(r.ok && r.lines).toEqual([[8, 13], [9, 14], [15], [10, 16]])
+  })
   it.each(STACKS.filter(([, l]) => !l.some((x) => x.kind === 'conv' && x.pad === 'same')))('reads back what torchCode writes (%j)', (input, layers) => {
     const r = parseTorch(torchCode(input, layers)!.join('\n'))
-    expect(r).toEqual({ ok: true, input, layers, head: 'classify' })
+    expect(r).toMatchObject({ ok: true, input, layers, head: 'classify' })
   })
 })

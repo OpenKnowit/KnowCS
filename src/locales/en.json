@@ -1881,8 +1881,6 @@
       "torch_note": "This is lecture 9’s style: layers in __init__, F.relu in forward, x.view(x.size(0), -1) to flatten. PyTorch is channels-first, (batch, C, H, W), and nn.Conv2d needs in_channels spelled out — the previous layer’s channels.",
       "output_name": "Output",
       "run_playground": "Run in Playground",
-      "reset_code": "Reset",
-      "reset_hint": "Rewrite the code from the layers",
       "code_synced": "Edit the code — the layers follow it.",
       "code_bad": "Line {{line}}: {{msg}} The layers keep their last working version.",
       "parse": {
@@ -1891,6 +1889,25 @@
         "unknown": "this layer is not defined in __init__.",
         "pad_alone": "ZeroPadding2D must come right before a Conv2D or pooling layer.",
         "bad_args": "these arguments are not valid numbers."
+      },
+      "undo": "Undo",
+      "undo_hint": "Undo the last change (Ctrl/⌘+Z)",
+      "mode": "View",
+      "mode_code": "Code",
+      "mode_table": "Calculation table",
+      "add_at": "at",
+      "add_end": "end",
+      "output_units": "units (classes)",
+      "output_no_dense": "The last layer is not Dense, so the output is its shape.",
+      "guide_title": "Which layer does what",
+      "guide": {
+        "conv": "slides filters over the image; filters = output channels. Params (k·k·C_in + 1) × filters.",
+        "pool": "shrinks height and width (max or average), channels unchanged, no params. Stride defaults to the size.",
+        "globalpool": "one number per channel: h × w × c → c. Lets the next Dense layer ignore the image size.",
+        "flatten": "unrolls h × w × c into one vector of h·w·c numbers, no params.",
+        "dense": "every input to every unit. Params (inputs + 1) × units. Needs a flat input.",
+        "dropout": "switches off a fraction of values while training; shape and params unchanged.",
+        "order": "Usual order: Conv / Pool blocks → Flatten or Global pool → Dense → the last Dense (one unit per class)."
       }
     },
     "pytorch": {

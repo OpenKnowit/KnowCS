@@ -7,7 +7,8 @@ import type { Layer, Padding, Shape } from './cnnShapes'
 import type { Head } from './keras'
 
 export type ParseError = 'empty' | 'no_input' | 'unknown' | 'pad_alone' | 'bad_args'
-export type Parsed = { ok: true; input: Shape; layers: Layer[]; head: Head } | { ok: false; error: ParseError; line: number }
+/** lines: for each layer, the 1-based code lines that make it (a ZeroPadding2D line belongs to the layer it pads) */
+export type Parsed = { ok: true; input: Shape; layers: Layer[]; head: Head; lines: number[][] } | { ok: false; error: ParseError; line: number }
 
 interface Call {
   name: string
@@ -81,9 +82,12 @@ export function parseKeras(code: string): Parsed {
   let input: Shape | null = null
   let pending: { p: number; line: number } | null = null
   const layers: Layer[] = []
+  const lines: number[][] = []
   let head: Head = 'classify'
   const fail = (error: ParseError, line: number): Parsed => ({ ok: false, error, line })
   for (const c of calls) {
+    const at = layers.length
+    const padLine = pending?.line
     const shape = c.kw.input_shape ?? (c.name === 'Input' || c.name === 'InputLayer' ? (c.kw.shape ?? c.args[0]) : undefined)
     if (shape && !input) {
       const s = ints(shape)
@@ -105,7 +109,7 @@ export function parseKeras(code: string): Parsed {
         const p = firstInt(c.kw.padding ?? c.args[0] ?? '1')
         if (!(p >= 0)) return fail('bad_args', c.line)
         pending = { p, line: c.line }
-        break
+        continue
       }
       case 'Conv2D': {
         const filters = firstInt(c.kw.filters ?? c.args[0])
@@ -146,11 +150,12 @@ export function parseKeras(code: string): Parsed {
         break
       }
     }
+    if (layers.length > at) lines.push(padLine !== undefined ? [padLine, c.line] : [c.line])
   }
   if (pending) return fail('pad_alone', (pending as { line: number }).line)
   if (!layers.length) return fail('empty', 1)
   if (!input) return fail('no_input', calls[0]?.line ?? 1)
-  return { ok: true, input, layers, head }
+  return { ok: true, input, layers, head, lines }
 }
 
 const TORCH = ['Conv2d', 'MaxPool2d', 'AvgPool2d', 'AdaptiveAvgPool2d', 'AdaptiveMaxPool2d', 'Linear', 'Dropout']
@@ -172,6 +177,7 @@ export function parseTorch(code: string): Parsed {
   const input: Shape | null = dims.length >= 3 ? [dims[dims.length - 2], dims[dims.length - 1], dims[dims.length - 3]] : null
   if (fwdAt < 0) return fail('empty', 1)
   const layers: Layer[] = []
+  const spans: number[][] = []
   let head: Head = 'classify'
   for (let i = fwdAt + 1; i < lines.length; i++) {
     const raw = lines[i]
@@ -183,6 +189,7 @@ export function parseTorch(code: string): Parsed {
     for (const name of used) {
       const c = defs.get(name)
       if (!c) return fail('unknown', i + 1)
+      spans.push([c.line, i + 1])
       switch (c.name) {
         case 'Conv2d': {
           const filters = firstInt(c.kw.out_channels ?? c.args[1])
@@ -222,9 +229,12 @@ export function parseTorch(code: string): Parsed {
         }
       }
     }
-    if (!flatDone && /\.view\s*\(|\.reshape\s*\(|torch\.flatten\s*\(|\.flatten\s*\(/.test(l)) layers.push({ kind: 'flatten' })
+    if (!flatDone && /\.view\s*\(|\.reshape\s*\(|torch\.flatten\s*\(|\.flatten\s*\(/.test(l)) {
+      layers.push({ kind: 'flatten' })
+      spans.push([i + 1])
+    }
   }
   if (!layers.length) return fail('empty', fwdAt + 1)
   if (!input) return fail('no_input', fwdAt + 1)
-  return { ok: true, input, layers, head }
+  return { ok: true, input, layers, head, lines: spans }
 }
