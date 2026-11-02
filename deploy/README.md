@@ -47,3 +47,18 @@ Back up the virtual host before configuration changes; always run `nginx -t` bef
 Check HTTPS 200 (home, a module page, `/notes/numpy/`), HTTP-to-HTTPS redirect, gzip, browser console,
 the served HTML SHA-256 and that `/lab/home-a.html` redirects. Confirm existing sites still respond.
 To roll back content, atomically repoint `current` to the retained prior release.
+
+## Preview site: dev.knowcs.online
+
+The `dev` branch is published to https://dev.knowcs.online (same server, same OpenResty container), first release
+`20261102-1403`. DNS: an A record `dev` → `129.226.210.66`.
+
+- Files: `/opt/1panel/www/sites/knowcs-dev/` with the same `releases/<timestamp>/` + `current` layout as production;
+  each release links `audio` to production's narration audio (`ln -s ../../../knowcs/audio releases/<ts>/audio`).
+- Virtual host: `/opt/1panel/www/conf.d/dev.knowcs.online.conf` (template: `dev.knowcs.online.conf` here). It adds
+  `X-Robots-Tag: noindex, nofollow`, so the preview stays out of search results.
+- HTTPS: Certbot webroot `/opt/1panel/www/sites/knowcs-dev/acme`, certificate `/etc/letsencrypt/live/dev.knowcs.online/`;
+  the deploy hook `/etc/letsencrypt/renewal-hooks/deploy/knowcs-dev.sh` (template: `knowcs-dev-renew.sh`) copies it into
+  `ssl/` and reloads OpenResty.
+- Publishing is the same as production with `knowcs-dev` in place of `knowcs`. SSH to the server drops now and then:
+  run long commands (Certbot) with `nohup … &` and poll their log.
