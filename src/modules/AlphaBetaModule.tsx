@@ -137,34 +137,33 @@ export const AlphaBetaModule = () => {
     return { evaluated: AB_LEAF_IDS.length - prunedLeaves, prunedLeaves, total: AB_LEAF_IDS.length }
   }, [steps])
 
-  const mathBoxClass = step.type === 'prune' ? 'border-rose-500/60 bg-rose-950/40' : step.type === 'leaf_eval' || step.type === 'update' ? 'border-emerald-500/40 bg-emerald-950/30' : 'border-slate-800 bg-slate-950'
-  const panel = 'rounded-2xl border border-slate-800 bg-slate-900 shadow-xl'
-  const heading = 'flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-300'
+  const mathBoxClass = step.type === 'prune' ? 'border-rose-300 bg-rose-50' : step.type === 'leaf_eval' || step.type === 'update' ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50'
+  const panel = 'rounded-[20px] border border-slate-200 bg-white'
+  const heading = 'flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-700'
   const STEP_TONE: Record<AbStep['type'], string> = {
-    enter: 'bg-indigo-500/20 text-indigo-300',
-    traverse: 'bg-slate-700 text-slate-200',
-    leaf_eval: 'bg-emerald-500/20 text-emerald-300',
-    update: 'bg-emerald-500/20 text-emerald-300',
-    prune: 'bg-rose-500/25 text-rose-300',
-    exit: 'bg-amber-500/20 text-amber-300',
+    enter: 'bg-blue-100 text-blue-700',
+    traverse: 'bg-slate-100 text-slate-600',
+    leaf_eval: 'bg-emerald-100 text-emerald-700',
+    update: 'bg-emerald-100 text-emerald-700',
+    prune: 'bg-rose-100 text-rose-700',
+    exit: 'bg-amber-100 text-amber-800',
   }
 
   return (
     <div className="space-y-8">
-      {/* the dark board runs edge to edge under the page bar (cancels the page padding: px-4 / sm:px-6, pt-5) */}
-      <div className="-mx-4 -mt-5 space-y-5 bg-slate-950 px-4 py-5 text-slate-100 sm:-mx-6 sm:px-6 sm:py-6">
+      <div className="space-y-5">
         {/* header: title + state legend */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl border border-indigo-500/30 bg-indigo-600/20 p-2.5 text-indigo-300"><GitBranch size={22} aria-hidden /></div>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-2.5 text-blue-600"><GitBranch size={22} aria-hidden /></div>
             <div>
-              <p className="bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-lg font-extrabold tracking-tight text-transparent">{t('alphabeta.header_title')}</p>
-              <p className="text-xs text-slate-400">{t('alphabeta.header_sub')}</p>
+              <p className="text-lg font-extrabold tracking-tight text-slate-900">{t('alphabeta.header_title')}</p>
+              <p className="text-xs text-slate-500">{t('alphabeta.header_sub')}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            {[['bg-emerald-500', 'visited'], ['bg-indigo-500', 'active'], ['bg-rose-500', 'pruned']].map(([c, k]) => (
-              <span key={k} className="flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-800/80 px-3 py-1.5"><span className={`h-2.5 w-2.5 rounded-full ${c}`} />{t(`alphabeta.legend.${k}`)}</span>
+            {[['bg-emerald-500', 'visited'], ['bg-blue-500', 'active'], ['bg-rose-500', 'pruned']].map(([c, k]) => (
+              <span key={k} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-700"><span className={`h-2.5 w-2.5 rounded-full ${c}`} />{t(`alphabeta.legend.${k}`)}</span>
             ))}
           </div>
         </div>
@@ -174,14 +173,14 @@ export const AlphaBetaModule = () => {
           <section className="flex min-w-0 flex-col gap-5 lg:col-span-8">
             <div className={`${panel} flex flex-wrap items-center justify-between gap-4 p-4`}>
               <div className="flex flex-col gap-1.5">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400"><Layers size={14} aria-hidden /> {t('alphabeta.presets_label')}</span>
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500"><Layers size={14} aria-hidden /> {t('alphabeta.presets_label')}</span>
                 <div className="flex flex-wrap gap-2">
                   {(['user', 'beta', 'alpha'] as const).map((key) => (
                     <button
                       key={key}
                       onClick={() => applyPreset(key)}
                       aria-pressed={preset === key}
-                      className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${preset === key ? 'border-indigo-500 bg-indigo-600/25 text-indigo-200 shadow-md' : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700/60'}`}
+                      className={`rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition ${preset === key ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}
                     >
                       {t(`alphabeta.preset.${key}`)}
                     </button>
@@ -189,26 +188,26 @@ export const AlphaBetaModule = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={randomize} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700">
-                  <Shuffle size={14} className="text-indigo-400" aria-hidden /> {t('alphabeta.randomize')}
+                <button onClick={randomize} className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400">
+                  <Shuffle size={14} className="text-blue-600" aria-hidden /> {t('alphabeta.randomize')}
                 </button>
-                <button onClick={() => applyPreset(preset === 'custom' ? 'user' : preset)} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700">
-                  <RotateCcw size={14} className="text-slate-400" aria-hidden /> {t('alphabeta.reset')}
+                <button onClick={() => applyPreset(preset === 'custom' ? 'user' : preset)} className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400">
+                  <RotateCcw size={14} className="text-slate-500" aria-hidden /> {t('alphabeta.reset')}
                 </button>
               </div>
             </div>
 
-            <div className={`${panel} relative min-h-[360px] overflow-hidden rounded-3xl p-4 shadow-2xl`}>
-              <div className="absolute left-4 top-4 z-10 rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-1 text-[11px] font-semibold text-slate-400 backdrop-blur">{t('alphabeta.canvas_label')}</div>
-              <div className="absolute right-4 top-4 z-10 flex flex-col gap-2 rounded-xl border border-slate-800/80 bg-slate-950/70 p-3 text-[11px] text-slate-300 backdrop-blur">
-                <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-indigo-500" />{t('alphabeta.layers.max')}</span>
+            <div className={`${panel} relative min-h-[360px] overflow-hidden p-4`}>
+              <div className="absolute left-4 top-4 z-10 rounded-lg border border-slate-200 bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-500 backdrop-blur">{t('alphabeta.canvas_label')}</div>
+              <div className="absolute right-4 top-4 z-10 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white/90 p-3 text-[11px] text-slate-600 backdrop-blur">
+                <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-blue-500" />{t('alphabeta.layers.max')}</span>
                 <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-amber-500" />{t('alphabeta.layers.min')}</span>
                 <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-emerald-500" />{t('alphabeta.layers.leaf')}</span>
               </div>
               <svg viewBox="0 0 1000 470" className="mt-10 h-auto max-h-[460px] w-full" role="img" aria-label={t('alphabeta.tree_label')}>
                 <defs>
                   <marker id="ab-arrow" viewBox="0 0 10 10" refX="20" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" />
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#94a3b8" />
                   </marker>
                 </defs>
                 {/* 边 */}
@@ -219,11 +218,11 @@ export const AlphaBetaModule = () => {
                   const isPruned = step.prunedEdges.includes(key)
                   const isActive = step.activeEdge === key
                   const isVisited = step.visited.includes(e.to) && !isPruned
-                  let stroke = '#334155'
+                  let stroke = '#cbd5e1'
                   let width = 3
                   let dash = '0'
                   if (isPruned) { stroke = '#f43f5e'; width = 2; dash = '6,5' }
-                  else if (isActive) { stroke = '#818cf8'; width = 6 }
+                  else if (isActive) { stroke = '#2563eb'; width = 6 }
                   else if (isVisited) { stroke = '#10b981'; width = 4 }
                   return (
                     <g key={key}>
@@ -245,12 +244,12 @@ export const AlphaBetaModule = () => {
                   const isPruned = step.prunedNodes.includes(node.id)
                   const isActive = step.nodeId === node.id
                   const isVisited = step.visited.includes(node.id)
-                  let fill = '#0f172a'
-                  let stroke = '#334155'
-                  let text = '#94a3b8'
-                  if (isPruned) { fill = '#1f0a12'; stroke = '#7f1d1d'; text = '#9f1239' }
-                  else if (isActive) { fill = '#1e1b4b'; stroke = '#6366f1'; text = '#c7d2fe' }
-                  else if (isVisited) { fill = '#052e2b'; stroke = '#10b981'; text = '#a7f3d0' }
+                  let fill = '#ffffff'
+                  let stroke = '#94a3b8'
+                  let text = '#475569'
+                  if (isPruned) { fill = '#fff1f2'; stroke = '#fda4af'; text = '#e11d48' }
+                  else if (isActive) { fill = '#eff6ff'; stroke = '#2563eb'; text = '#1d4ed8' }
+                  else if (isVisited) { fill = '#ecfdf5'; stroke = '#10b981'; text = '#047857' }
   
                   if (node.type === 'leaf') {
                     return (
@@ -260,7 +259,7 @@ export const AlphaBetaModule = () => {
                         if (nv !== null && Number.isFinite(n) && n >= 0 && n <= 20) setLeaf(node.id, Math.round(n))
                       }}>
                         <circle cx={node.x} cy={node.y} r={22} fill={fill} stroke={stroke} strokeWidth={3} />
-                        <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#9f1239' : '#f1f5f9'}>{node.value}</text>
+                        <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#e11d48' : '#0f172a'}>{node.value}</text>
                         <text x={node.x + 28} y={node.y + 4} fontSize={10} fontFamily="monospace" fill="#64748b" fontWeight={700}>{node.id}</text>
                       </g>
                     )
@@ -274,9 +273,9 @@ export const AlphaBetaModule = () => {
                       <polygon points={points} fill={fill} stroke={stroke} strokeWidth={3} />
                       <text x={node.x} y={node.y + (isMax ? 10 : -2)} textAnchor="middle" fontSize={9} fontWeight={800} fill={text}>{isMax ? '▲MAX' : '▼MIN'}</text>
                       <g transform={`translate(${node.x}, ${node.y + (isMax ? -40 : -34)})`}>
-                        <rect x={-52} y={-11} width={104} height={19} rx={6} fill="#020617" stroke="#1e293b" />
+                        <rect x={-52} y={-11} width={104} height={19} rx={6} fill="#f8fafc" stroke="#e2e8f0" />
                         <text textAnchor="middle" dy={2} fontSize={9} fontFamily="monospace">
-                          <tspan fill="#34d399">α:{fmt(a)}</tspan> <tspan fill="#fbbf24">β:{fmt(b)}</tspan>
+                          <tspan fill="#059669">α:{fmt(a)}</tspan> <tspan fill="#d97706">β:{fmt(b)}</tspan>
                         </text>
                       </g>
                       <text x={node.x + 32} y={node.y + 2} fontSize={10} fontFamily="monospace" fill="#64748b" fontWeight={700}>{node.id}</text>
@@ -295,42 +294,42 @@ export const AlphaBetaModule = () => {
 
           {/* right: control deck + live explanation */}
           <section className="flex min-w-0 flex-col gap-5 lg:col-span-4">
-            <div className="flex flex-col gap-5 rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 p-5 shadow-xl">
-              <h3 className={heading}><Play size={15} className="text-indigo-400" aria-hidden /> {t('alphabeta.control')}</h3>
+            <div className="flex flex-col gap-5 rounded-[20px] border border-slate-200 bg-white p-5">
+              <h3 className={heading}><Play size={15} className="text-blue-600" aria-hidden /> {t('alphabeta.control')}</h3>
               <div className="grid grid-cols-4 gap-2">
-                <button onClick={() => { setStepIdx(0); setPlaying(false) }} className="flex items-center justify-center rounded-xl bg-slate-800 p-3 text-slate-200 transition hover:scale-105 hover:bg-slate-700" title={t('alphabeta.first')} aria-label={t('alphabeta.first')}><ChevronsLeft size={18} /></button>
-                <button onClick={() => { setStepIdx((i) => Math.max(0, i - 1)); setPlaying(false) }} className="flex items-center justify-center rounded-xl bg-slate-800 p-3 text-slate-200 transition hover:scale-105 hover:bg-slate-700" title={t('alphabeta.prev')} aria-label={t('alphabeta.prev')}><ChevronLeft size={18} /></button>
-                <button onClick={() => { if (safeIdx >= steps.length - 1) setStepIdx(0); setPlaying((p) => !p) }} className="flex items-center justify-center rounded-xl bg-indigo-600 p-3 text-white shadow-lg shadow-indigo-600/25 transition hover:scale-105 hover:bg-indigo-500" title={t('alphabeta.play')} aria-label={t('alphabeta.play')}>{playing ? <Pause size={18} /> : <Play size={18} className="fill-white" />}</button>
-                <button onClick={() => { setStepIdx((i) => Math.min(steps.length - 1, i + 1)); setPlaying(false) }} className="flex items-center justify-center rounded-xl bg-slate-800 p-3 text-slate-200 transition hover:scale-105 hover:bg-slate-700" title={t('alphabeta.next')} aria-label={t('alphabeta.next')}><ChevronRight size={18} /></button>
+                <button onClick={() => { setStepIdx(0); setPlaying(false) }} className="flex items-center justify-center rounded-xl bg-slate-100 p-3 text-slate-700 transition hover:scale-105 hover:bg-slate-200" title={t('alphabeta.first')} aria-label={t('alphabeta.first')}><ChevronsLeft size={18} /></button>
+                <button onClick={() => { setStepIdx((i) => Math.max(0, i - 1)); setPlaying(false) }} className="flex items-center justify-center rounded-xl bg-slate-100 p-3 text-slate-700 transition hover:scale-105 hover:bg-slate-200" title={t('alphabeta.prev')} aria-label={t('alphabeta.prev')}><ChevronLeft size={18} /></button>
+                <button onClick={() => { if (safeIdx >= steps.length - 1) setStepIdx(0); setPlaying((p) => !p) }} className="flex items-center justify-center rounded-xl bg-blue-600 p-3 text-white shadow-lg shadow-blue-600/25 transition hover:scale-105 hover:bg-blue-700" title={t('alphabeta.play')} aria-label={t('alphabeta.play')}>{playing ? <Pause size={18} /> : <Play size={18} className="fill-white" />}</button>
+                <button onClick={() => { setStepIdx((i) => Math.min(steps.length - 1, i + 1)); setPlaying(false) }} className="flex items-center justify-center rounded-xl bg-slate-100 p-3 text-slate-700 transition hover:scale-105 hover:bg-slate-200" title={t('alphabeta.next')} aria-label={t('alphabeta.next')}><ChevronRight size={18} /></button>
               </div>
-              <div className="flex flex-col gap-4 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+              <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between text-xs text-slate-400"><span>{t('alphabeta.progress')}</span><span className="font-mono font-bold text-indigo-300">{safeIdx + 1} / {steps.length}</span></div>
-                  <input type="range" min={0} max={steps.length - 1} value={safeIdx} aria-label={t('alphabeta.progress')} onChange={(e) => { setStepIdx(parseInt(e.target.value)); setPlaying(false) }} className="w-full cursor-pointer accent-indigo-500" />
+                  <div className="flex justify-between text-xs text-slate-500"><span>{t('alphabeta.progress')}</span><span className="font-mono font-bold text-blue-700">{safeIdx + 1} / {steps.length}</span></div>
+                  <input type="range" min={0} max={steps.length - 1} value={safeIdx} aria-label={t('alphabeta.progress')} onChange={(e) => { setStepIdx(parseInt(e.target.value)); setPlaying(false) }} className="w-full cursor-pointer accent-blue-600" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between text-xs text-slate-400"><span>{t('alphabeta.speed')}</span><span className="font-mono text-slate-300">{(speed / 1000).toFixed(1)}s</span></div>
-                  <input type="range" min={200} max={2400} step={200} value={speed} aria-label={t('alphabeta.speed')} onChange={(e) => setSpeed(parseInt(e.target.value))} className="w-full cursor-pointer accent-indigo-500" />
+                  <div className="flex justify-between text-xs text-slate-500"><span>{t('alphabeta.speed')}</span><span className="font-mono text-slate-600">{(speed / 1000).toFixed(1)}s</span></div>
+                  <input type="range" min={200} max={2400} step={200} value={speed} aria-label={t('alphabeta.speed')} onChange={(e) => setSpeed(parseInt(e.target.value))} className="w-full cursor-pointer accent-blue-600" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 border-t border-slate-800 pt-4 text-center">
-                <div><p className="text-[10px] uppercase text-slate-400">{t('alphabeta.evaluated')}</p><p className="text-xl font-black text-emerald-400">{counts.evaluated}/{counts.total}</p></div>
-                <div><p className="text-[10px] uppercase text-slate-400">{t('alphabeta.pruned')}</p><p className="text-xl font-black text-rose-400">{counts.prunedLeaves}</p></div>
+              <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-4 text-center">
+                <div><p className="text-[10px] uppercase text-slate-500">{t('alphabeta.evaluated')}</p><p className="text-xl font-black text-emerald-600">{counts.evaluated}/{counts.total}</p></div>
+                <div><p className="text-[10px] uppercase text-slate-500">{t('alphabeta.pruned')}</p><p className="text-xl font-black text-rose-600">{counts.prunedLeaves}</p></div>
               </div>
             </div>
 
-            <div className="flex min-h-[260px] flex-1 flex-col rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
-              <h3 className={`${heading} border-b border-slate-800 pb-3`}><FileText size={15} className="text-emerald-400" aria-hidden /> {t('alphabeta.detail')}</h3>
+            <div className="flex min-h-[260px] flex-1 flex-col rounded-[20px] border border-slate-200 bg-white p-5">
+              <h3 className={`${heading} border-b border-slate-200 pb-3`}><FileText size={15} className="text-emerald-600" aria-hidden /> {t('alphabeta.detail')}</h3>
               <div className="flex flex-1 flex-col justify-between gap-4 pt-4">
-                <p className="text-sm leading-relaxed text-slate-200" aria-live="polite">{explanation}</p>
+                <p className="text-sm leading-relaxed text-slate-700" aria-live="polite">{explanation}</p>
                 <div className={`flex flex-col gap-2 rounded-xl border p-3.5 transition-colors ${mathBoxClass}`}>
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-slate-400">{t('alphabeta.range_label')}</div>
+                  <div className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{t('alphabeta.range_label')}</div>
                   <div className="flex items-center justify-around font-mono text-xs">
-                    <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-400">α ({t('alphabeta.lower')})</span><span className="text-base font-bold text-emerald-400">{fmt(step.alpha)}</span></div>
+                    <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-500">α ({t('alphabeta.lower')})</span><span className="text-base font-bold text-emerald-600">{fmt(step.alpha)}</span></div>
                     <div className="text-lg text-slate-500" aria-hidden>|</div>
-                    <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-400">β ({t('alphabeta.upper')})</span><span className="text-base font-bold text-amber-400">{fmt(step.beta)}</span></div>
+                    <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-500">β ({t('alphabeta.upper')})</span><span className="text-base font-bold text-amber-600">{fmt(step.beta)}</span></div>
                   </div>
-                  <div className="mt-1 border-t border-slate-800 pt-2 text-center text-xs font-semibold italic text-slate-300">{formula}</div>
+                  <div className="mt-1 border-t border-slate-200 pt-2 text-center text-xs font-semibold italic text-slate-600">{formula}</div>
                 </div>
               </div>
             </div>
@@ -338,25 +337,25 @@ export const AlphaBetaModule = () => {
         </div>
 
         {/* leaf value sandbox, full width */}
-        <section className={`${panel} flex flex-col gap-4 rounded-3xl p-5`}>
-          <h3 className={`${heading} flex-wrap justify-between border-b border-slate-800 pb-3`}>
-            <span className="flex items-center gap-2"><SlidersHorizontal size={15} className="text-purple-400" aria-hidden /> {t('alphabeta.sandbox')}</span>
-            <span className="text-xs font-normal normal-case tracking-normal text-slate-400">{t('alphabeta.sandbox_hint')}</span>
+        <section className={`${panel} flex flex-col gap-4 p-5`}>
+          <h3 className={`${heading} flex-wrap justify-between border-b border-slate-200 pb-3`}>
+            <span className="flex items-center gap-2"><SlidersHorizontal size={15} className="text-violet-600" aria-hidden /> {t('alphabeta.sandbox')}</span>
+            <span className="text-xs font-normal normal-case tracking-normal text-slate-500">{t('alphabeta.sandbox_hint')}</span>
           </h3>
           <div className="grid grid-cols-4 gap-4 md:grid-cols-8">
             {AB_LEAF_IDS.map((id) => (
               <div key={id} className="flex flex-col items-center gap-1.5">
-                <span className="font-mono text-[11px] font-bold text-slate-400">{id}</span>
-                <input type="range" min={0} max={20} value={leaves[id]} onChange={(e) => setLeaf(id, parseInt(e.target.value))} aria-label={t('alphabeta.leaf_label', { id })} className="w-full cursor-pointer accent-indigo-500" />
-                <span className="text-sm font-black text-indigo-300">{leaves[id]}</span>
+                <span className="font-mono text-[11px] font-bold text-slate-500">{id}</span>
+                <input type="range" min={0} max={20} value={leaves[id]} onChange={(e) => setLeaf(id, parseInt(e.target.value))} aria-label={t('alphabeta.leaf_label', { id })} className="w-full cursor-pointer accent-blue-600" />
+                <span className="text-sm font-black text-blue-700">{leaves[id]}</span>
               </div>
             ))}
           </div>
         </section>
 
         {/* step trace: click any step to jump there */}
-        <section className={`${panel} flex h-[260px] flex-col gap-3 rounded-3xl p-5`}>
-          <h3 className={`${heading} border-b border-slate-800 pb-2`}><ListOrdered size={15} className="text-indigo-400" aria-hidden /> {t('alphabeta.timeline')}</h3>
+        <section className={`${panel} flex h-[260px] flex-col gap-3 p-5`}>
+          <h3 className={`${heading} border-b border-slate-200 pb-2`}><ListOrdered size={15} className="text-blue-600" aria-hidden /> {t('alphabeta.timeline')}</h3>
           <ol ref={listRef} className="relative flex flex-1 flex-col gap-1 overflow-y-auto pr-2">
             {steps.map((s, k) => (
               <li key={k} data-step={k}>
@@ -364,7 +363,7 @@ export const AlphaBetaModule = () => {
                   type="button"
                   onClick={() => { setStepIdx(k); setPlaying(false) }}
                   aria-current={k === safeIdx ? 'step' : undefined}
-                  className={`flex w-full items-start gap-3 rounded-lg px-2.5 py-1.5 text-left text-xs transition ${k === safeIdx ? 'bg-indigo-600/25 ring-1 ring-indigo-500/60' : k < safeIdx ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-300 hover:bg-slate-800'}`}
+                  className={`flex w-full items-start gap-3 rounded-lg px-2.5 py-1.5 text-left text-xs transition ${k === safeIdx ? 'bg-blue-50 ring-1 ring-blue-300' : k < safeIdx ? 'text-slate-500 hover:bg-slate-50' : 'text-slate-700 hover:bg-slate-50'}`}
                 >
                   <span className="w-7 shrink-0 pt-0.5 text-right font-mono text-[10px] text-slate-500">{k + 1}</span>
                   <span className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase ${STEP_TONE[s.type]}`}>{t(`alphabeta.step_type.${s.type}`)}</span>
