@@ -268,12 +268,12 @@ export function Gallery({ lib, specs, onPick, onClose }: GalleryProps) {
 
 // ---------------------------------------------------------------- the workbench
 
-export default function Workbench({ lib, spec, entryId, side, onSide, onGallery }: BenchProps) {
+export default function Workbench({ lib, spec, entryId, side, onSide, onGallery, seed }: BenchProps) {
   const { t } = useTranslation()
   const current = LIBS.find((l) => l.id === lib)!
   const entry = entryOf(spec, entryId)
-  const [code, setCode] = useState(entry.code)
-  const [ran, setRan] = useState(entry.code)
+  const [code, setCode] = useState(seed ?? entry.code)
+  const [ran, setRan] = useState(seed ?? entry.code)
   const [picked, setPicked] = useState<{ code: string; seq: number } | null>(null)
   const [tab, setTab] = useState<Tab>('output')
   const [split, setSplit] = useState(readSplit)

@@ -147,3 +147,15 @@ print(pred.tolist(), losses[-1] < losses[0] / 10)`)
     expect(r.stdout).toBe('[0, 1, 1, 0] True\n')
   })
 })
+
+describe('global pooling', () => {
+  it('AdaptiveAvgPool2d(1) / AdaptiveMaxPool2d(1) squeeze each map to 1 × 1', () => {
+    const r = run(`import torch
+import torch.nn as nn
+x = torch.arange(32.).view(1, 2, 4, 4)
+print(nn.AdaptiveAvgPool2d(1)(x).view(-1))
+print(nn.AdaptiveMaxPool2d((1, 1))(x).shape)`)
+    expect(r.error).toBeNull()
+    expect(r.stdout).toBe('tensor([ 7.5000, 23.5000])\ntorch.Size([1, 2, 1, 1])\n')
+  })
+})

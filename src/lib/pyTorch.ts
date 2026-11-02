@@ -1343,6 +1343,18 @@ const build = (h: Host): Record<string, Value> => {
       const st = k.stride ?? a[1]
       return new Pool2d('avg', ks, st && st.k !== 'none' ? pair(h, st, 1) : ks, pair(h, k.padding ?? a[2], 0))
     }),
+    // global pooling as the CNN lab writes it: AdaptiveAvgPool2d(1) squeezes each channel's map to one number
+    ...Object.fromEntries((['avg', 'max'] as const).map((mode) => {
+      const name = mode === 'avg' ? 'AdaptiveAvgPool2d' : 'AdaptiveMaxPool2d'
+      return [name, layerType(name, (a, k) => {
+        const o = pair(h, k.output_size ?? a[0], 1)
+        if (o[0] !== 1 || o[1] !== 1) throw h.err('NotImplementedError', `${name} supports output_size=1 only in this sandbox`)
+        return new Activation(name, (x) => {
+          const hw: [number, number] = [x.shape[x.ndim - 2], x.shape[x.ndim - 1]]
+          return C.pool2d(E, x, hw, hw, [0, 0], mode)
+        }, 'output_size=1')
+      })]
+    })),
     ReLU: act('ReLU', (x) => C.unary(E, 'relu', x)),
     Sigmoid: act('Sigmoid', (x) => C.unary(E, 'sigmoid', x)),
     Tanh: act('Tanh', (x) => C.unary(E, 'tanh', x)),

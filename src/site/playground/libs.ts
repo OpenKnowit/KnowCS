@@ -58,6 +58,8 @@ export interface BenchProps {
   side: boolean
   onSide: (open: boolean) => void
   onGallery: () => void
+  /** code handed over in the URL (/playground/?code=…#keras, e.g. from a lab's "Run in Playground"), shown instead of the example */
+  seed?: string | null
 }
 
 const SHARED = ['playground.ui', 'playground.view', 'playground.note']

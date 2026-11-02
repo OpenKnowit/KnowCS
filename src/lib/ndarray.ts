@@ -643,8 +643,9 @@ const fmtFloatRaw = (v: number): string => {
 const needsScientific = (values: number[]): boolean => {
   const abs = values.filter((v) => Number.isFinite(v) && v !== 0).map(Math.abs)
   if (!abs.length) return false
-  const max = Math.max(...abs)
-  const min = Math.min(...abs)
+  // loops, not Math.max(...abs): large arrays have more elements than the call stack takes arguments
+  const max = abs.reduce((m, x) => (x > m ? x : m), -Infinity)
+  const min = abs.reduce((m, x) => (x < m ? x : m), Infinity)
   return max >= 1e8 || min < 1e-4 || max / min > 1000
 }
 

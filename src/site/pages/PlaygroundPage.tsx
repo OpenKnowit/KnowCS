@@ -16,6 +16,14 @@ export default function PlaygroundPage() {
   const [mod, setMod] = useState<BenchModule | null>(null)
   const [side, setSide] = useState(true)
   const [gallery, setGallery] = useState(false)
+  // code handed over by a lab page (?code=…): opened once in its library, then dropped from the address bar
+  const [seed, setSeed] = useState<{ lib: LibId; code: string } | null>(() => {
+    const code = new URLSearchParams(window.location.search).get('code')
+    return code ? { lib: libFromHash(), code } : null
+  })
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('code')) history.replaceState(null, '', window.location.pathname + window.location.hash)
+  }, [])
   useEffect(() => {
     document.title = `${t('site.playground.title')} · KnowCS`
   }, [t])
@@ -39,13 +47,17 @@ export default function PlaygroundPage() {
   }, [])
   // back / forward and edited hashes switch the library too
   useEffect(() => {
-    const onHash = () => setSel({ lib: libFromHash(), entry: null })
+    const onHash = () => {
+      setSel({ lib: libFromHash(), entry: null })
+      setSeed(null)
+    }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
   const pick = useCallback((lib: LibId, entry: string | null) => {
     setSel({ lib, entry })
+    setSeed(null)
     void loadSpec(lib).then((s) => setSpecs((p) => (p[lib] ? p : { ...p, [lib]: s })))
     history.replaceState(null, '', lib === 'numpy' ? window.location.pathname : `#${lib}`)
   }, [])
@@ -61,7 +73,7 @@ export default function PlaygroundPage() {
       <div className="flex border-t border-slate-200 bg-slate-50 lg:h-[calc(100vh-67px)] lg:min-h-[620px]">
         {mod && side && <mod.ExamplesSidebar lib={shown.lib} entryId={shown.entry} specs={specs} onPick={pick} onCollapse={() => setSide(false)} />}
         {mod && spec ? (
-          <mod.default key={shown.lib} lib={shown.lib} spec={spec} entryId={shown.entry} side={side} onSide={setSide} onGallery={() => setGallery(true)} />
+          <mod.default key={shown.lib} lib={shown.lib} spec={spec} entryId={shown.entry} side={side} onSide={setSide} onGallery={() => setGallery(true)} seed={seed?.lib === shown.lib ? seed.code : null} />
         ) : (
           <div className="flex min-h-[620px] flex-1 items-center justify-center text-sm text-slate-500" aria-busy="true">
             {t('playground.ui.loading', { defaultValue: '…' })}

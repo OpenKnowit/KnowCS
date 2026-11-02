@@ -939,6 +939,10 @@ export function backward(E: Engine, root: TT, gradOut: number[] | null, retainGr
 
 // ---------------------------------------------------------------- printing (torch._tensor_str)
 
+// loops, not Math.max(...xs): a 224 × 224 image has more elements than the call stack takes arguments
+const maxOf = (xs: number[]) => xs.reduce((m, x) => (x > m ? x : m), -Infinity)
+const minOf = (xs: number[]) => xs.reduce((m, x) => (x < m ? x : m), Infinity)
+
 const fmtE = (v: number) => v.toExponential(4).replace(/e([+-])(\d)$/, 'e$10$2')
 
 /** element strings, padded to one width, as PyTorch prints them */
@@ -946,7 +950,7 @@ export function formatElements(values: number[], dtype: TDType): string[] {
   if (dtype === 'bool') return values.map((v) => (v ? 'True' : 'False').padStart(values.length > 0 && values.some((x) => !x) ? 5 : 4))
   if (!isFloatT(dtype)) {
     const s = values.map((v) => String(v))
-    const w = Math.max(...s.map((x) => x.length))
+    const w = maxOf(s.map((x) => x.length))
     return s.map((x) => x.padStart(w))
   }
   const finite = values.filter((v) => Number.isFinite(v))
@@ -954,15 +958,15 @@ export function formatElements(values: number[], dtype: TDType): string[] {
   let fmt: (v: number) => string
   if (!nz.length) fmt = (v) => (Number.isFinite(v) ? `${v === 0 ? 0 : v}.` : String(v))
   else {
-    const max = Math.max(...nz)
-    const min = Math.min(...nz)
+    const max = maxOf(nz)
+    const min = minOf(nz)
     const allInt = finite.every((v) => Number.isInteger(v))
     if (allInt) fmt = max / min > 1000 || max > 1e8 ? fmtE : (v) => `${v.toFixed(0)}.`
     else if (max / min > 1000 || max > 1e8 || min < 1e-4) fmt = fmtE
     else fmt = (v) => v.toFixed(4)
   }
   const s = values.map((v) => (Number.isNaN(v) ? 'nan' : v === Infinity ? 'inf' : v === -Infinity ? '-inf' : fmt(v)))
-  const w = Math.max(...s.map((x) => x.length))
+  const w = maxOf(s.map((x) => x.length))
   return s.map((x) => x.padStart(w))
 }
 
