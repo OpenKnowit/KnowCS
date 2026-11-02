@@ -947,8 +947,19 @@
         "tensorflow": "Tensors, Variables, GradientTape"
       },
       "libraries": "Libraries",
-      "hide_libs": "Hide the library list",
-      "show_libs": "Show the library list"
+      "hide_libs": "Hide the examples",
+      "show_libs": "Show the examples",
+      "examples": "Examples",
+      "filter": "Filter examples",
+      "visual": "Visual",
+      "tab_output": "Output",
+      "tab_explain": "Explain",
+      "tab_vars": "Variables",
+      "no_vars": "No variables yet.",
+      "var_name": "Name",
+      "var_type": "Type",
+      "var_shape": "Shape",
+      "var_value": "Value"
     },
     "resources": {
       "tab_title": "Resources",

@@ -947,8 +947,19 @@
         "tensorflow": "张量、Variable、GradientTape"
       },
       "libraries": "库",
-      "hide_libs": "收起库列表",
-      "show_libs": "展开库列表"
+      "hide_libs": "收起示例栏",
+      "show_libs": "展开示例栏",
+      "examples": "示例",
+      "filter": "筛选示例",
+      "visual": "可视化",
+      "tab_output": "输出",
+      "tab_explain": "解释",
+      "tab_vars": "变量",
+      "no_vars": "还没有变量。",
+      "var_name": "名称",
+      "var_type": "类型",
+      "var_shape": "形状",
+      "var_value": "值"
     },
     "resources": {
       "tab_title": "资源",

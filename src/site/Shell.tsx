@@ -152,7 +152,8 @@ export function Shell({ section, children }: { section: Section; children: React
       <div id="main-content" tabIndex={-1} className="focus:outline-none">
         {children}
       </div>
-      <div className="h-10 print:hidden" aria-hidden />
+      {/* the playground workbench fills the screen down to the bottom edge */}
+      {section !== 'playground' && <div className="h-10 print:hidden" aria-hidden />}
     </div>
   )
 }
