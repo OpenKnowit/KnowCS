@@ -52,6 +52,7 @@ export const PAGE_LOADERS = {
   drill: memo(withPacks(i18n, ['drill'], () => import('./pages/DrillPage'))),
   formulas: memo(withPacks(i18n, ['formulas.items'], () => import('./pages/FormulasPage'))),
   papers: memo(() => import('./pages/PapersPage')),
+  resources: memo(() => import('./pages/ResourcesPage')),
   notfound: memo(() => import('./pages/NotFoundPage')),
 }
 

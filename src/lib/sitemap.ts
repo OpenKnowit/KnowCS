@@ -40,6 +40,9 @@ export const MODULES: ModuleInfo[] = [
   { id: 'alphabeta', lec: 10, kind: 'classic', legacy: 'alphabeta', exams: ['F22', 'F23', 'F24'] },
 ]
 
+/** Labs marked with a star on the Visualize page. */
+export const STARRED: ReadonlySet<ModuleId> = new Set<ModuleId>(['xor-mlp', 'convolution', 'cnn-shapes', 'alphabeta'])
+
 /** Explainer videos (/watch/<id>/): in-browser animations with captions, one per heavily examined idea. */
 export interface EpisodeInfo {
   id: string
@@ -104,6 +107,7 @@ export const playgroundUrl = (): string => '/playground/'
 export const drillUrl = (): string => '/drill/'
 export const formulasUrl = (): string => '/formulas/'
 export const papersUrl = (): string => '/papers/'
+export const resourcesUrl = (): string => '/resources/'
 export const watchUrl = (id?: string): string => (id ? `/watch/${id}/` : '/watch/')
 export const extendUrl = (id?: string): string => (id ? `/extend/${id}/` : '/extend/')
 
@@ -154,6 +158,7 @@ export type PageSpec =
   | { kind: 'drill'; path: string }
   | { kind: 'formulas'; path: string }
   | { kind: 'papers'; path: string }
+  | { kind: 'resources'; path: string }
   | { kind: 'notfound'; path: string }
   | { kind: 'watch-item'; path: string; id: string }
   | { kind: 'redirect'; path: string; to: string }
@@ -167,6 +172,7 @@ export const PAGES: PageSpec[] = [
   { kind: 'drill', path: 'drill/index.html' },
   { kind: 'formulas', path: 'formulas/index.html' },
   { kind: 'papers', path: 'papers/index.html' },
+  { kind: 'resources', path: 'resources/index.html' },
   { kind: 'notfound', path: '404.html' },
   ...EPISODES.map((e): PageSpec => ({ kind: 'watch-item', path: `watch/${e.id}/index.html`, id: e.id })),
   { kind: 'notes', path: 'notes/index.html' },

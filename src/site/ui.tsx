@@ -1,9 +1,10 @@
 /* eslint-disable react-refresh/only-export-components -- shared lab UI kit: components + one hook */
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ArrowLeft, ArrowRight, ChevronRight, Menu, Search, Star, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { answerMatches } from './format'
-import { EPISODES, MODULES, PAPERS, moduleUrl, neighbours, watchUrl } from '../lib/sitemap'
-import type { ModuleId } from '../lib/sitemap'
+import { LECTURES, MODULES, PAPERS, STARRED, moduleUrl, neighbours } from '../lib/sitemap'
+import type { ModuleId, ModuleInfo } from '../lib/sitemap'
 
 // ---------------------------------------------------------------- quiz mode
 interface Quiz {
@@ -78,76 +79,133 @@ export function usePaperLabel(): (id: string) => string {
   }
 }
 
-/** Sticky bar under the site header: where you are, prev / next, optional extra buttons. */
-export function PageBar({ id, extra }: { id: ModuleId; extra?: ReactNode }) {
+/** The list of labs that slides in from the left; the current lecture starts open. */
+function LabsDrawer({ current, onClose }: { current: ModuleId; onClose: () => void }) {
   const { t } = useTranslation()
-  const mod = MODULES.find((m) => m.id === id)!
-  const { prev, next } = neighbours(id)
-  const pill = 'whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-600 hover:border-slate-300 hover:text-slate-900'
+  const cur = MODULES.find((m) => m.id === current)!
+  const [openLec, setOpenLec] = useState<number | null>(cur.lec)
+  const [q, setQ] = useState('')
+  const closeRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    closeRef.current?.focus()
+    const onKey = (e: globalThis.KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = overflow
+    }
+  }, [onClose])
+  const query = q.trim().toLowerCase()
+  const hit = (id: ModuleId) => !query || t(`site.modules.${id}.title`).toLowerCase().includes(query)
   return (
-    <div className="sticky top-0 z-40 border-b border-slate-200 bg-[#f1f5f9]/90 backdrop-blur">
-      <div className="mx-auto flex max-w-[1480px] items-center gap-3 px-4 py-2 sm:px-6">
-        <nav className="min-w-0 truncate text-[13px] text-slate-500" aria-label={t('site.ui.breadcrumb')}>
-          <a href="/" className="font-semibold text-slate-500 hover:text-blue-600">{t('app.nav.course')}</a>
-          {' / '}
-          <a href={`/#lecture-${mod.lec}`} className="font-bold text-slate-600 hover:text-blue-600">
-            {t('site.lecture_short', { n: mod.lec })} · {t(`site.lectures.${mod.lec}`)}
-          </a>
-          <span className="hidden md:inline"> / {t(`site.modules.${id}.title`)}</span>
-        </nav>
-        <span className="flex-1" />
-        <div className="flex gap-1.5">
-          {extra}
-          {prev && (
-            <a className={pill} href={moduleUrl(prev.id)} title={t(`site.modules.${prev.id}.title`)} rel="prev">
-              ←<span className="hidden sm:inline"> {t('site.ui.prev')}</span>
-            </a>
-          )}
-          {next && (
-            <a className={pill} href={moduleUrl(next.id)} title={t(`site.modules.${next.id}.title`)} rel="next">
-              <span className="hidden sm:inline">{t('site.ui.next')} </span>→
-            </a>
-          )}
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t('site.ui.all_labs')}>
+      <div className="absolute inset-0 bg-slate-900/35" onClick={onClose} aria-hidden />
+      <nav id="labs-drawer" className="drawer-in absolute inset-y-0 left-0 flex w-[340px] max-w-[88vw] flex-col border-r border-slate-200 bg-white shadow-2xl shadow-slate-900/20">
+        <div className="flex items-center justify-between py-3 pl-5 pr-4">
+          <b className="text-base font-extrabold text-slate-900">{t('site.ui.all_labs')}</b>
+          <button ref={closeRef} type="button" onClick={onClose} className={ICON_BTN} aria-label={t('site.ui.close')}>
+            <X size={18} aria-hidden />
+          </button>
         </div>
-      </div>
+        <label className="mx-4 mb-3 flex h-[38px] items-center gap-2.5 rounded-[10px] border border-slate-200 px-3 focus-within:border-blue-400">
+          <Search size={16} className="shrink-0 text-slate-500" aria-hidden />
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('site.ui.filter_labs')} aria-label={t('site.ui.filter_labs')} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-500" />
+        </label>
+        <ul className="flex-1 overflow-y-auto px-2 pb-4">
+          {LECTURES.map((n) => {
+            const labs = MODULES.filter((m) => m.lec === n && hit(m.id))
+            if (!labs.length) return null
+            const open = query !== '' || openLec === n
+            return (
+              <li key={n}>
+                <button type="button" onClick={() => setOpenLec(open && !query ? null : n)} aria-expanded={open} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50">
+                  <ChevronRight size={14} className={`shrink-0 text-slate-500 transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden />
+                  <span className="w-7 font-mono text-[11px] font-bold text-slate-500">{t('site.lecture_short', { n })}</span>
+                  <span className={`flex-1 text-[13px] ${n === cur.lec ? 'font-bold text-slate-900' : 'font-semibold text-slate-600'}`}>{t(`site.lectures.${n}`)}</span>
+                  <span className="font-mono text-[11px] text-slate-500">{labs.length}</span>
+                </button>
+                {open && (
+                  <ul>
+                    {labs.map((m) => (
+                      <li key={m.id}>
+                        <a
+                          href={moduleUrl(m.id)}
+                          aria-current={m.id === current ? 'page' : undefined}
+                          className={`flex items-center gap-2 rounded-lg py-2 pl-12 pr-3 text-[13px] ${m.id === current ? 'bg-blue-50 font-bold text-blue-700' : 'font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+                        >
+                          <span className="flex-1">{t(`site.modules.${m.id}.title`)}</span>
+                          {STARRED.has(m.id) && <Star size={12} className="fill-amber-500 text-amber-500" aria-label={t('site.home.starred')} />}
+                          {m.id === current && <i className="h-1.5 w-1.5 rounded-full bg-blue-600" aria-hidden />}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
     </div>
   )
 }
 
-/** Title block of a module page: lecture, title, one-line lead, exam badges. */
-export function ModuleHero({ id, lead }: { id: ModuleId; lead?: ReactNode }) {
+const ICON_BTN = 'grid h-9 w-9 shrink-0 place-items-center rounded-[9px] border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900'
+
+/** Sticky bar under the site header: ☰ (all labs), lecture + title, extra buttons, prev / next. */
+export function PageBar({ id, extra }: { id: ModuleId; extra?: ReactNode }) {
   const { t } = useTranslation()
-  const paper = usePaperLabel()
-  const mod = MODULES.find((m) => m.id === id)!
+  const [drawer, setDrawer] = useState(false)
+  const idx = MODULES.findIndex((m) => m.id === id)
+  const mod = MODULES[idx]
+  const { prev, next } = neighbours(id)
   useEffect(() => {
     document.title = `${t(`site.modules.${id}.title`)} · KnowCS`
   }, [id, t])
+  const pager = (m: ModuleInfo | null, dir: 'prev' | 'next') =>
+    m ? (
+      <a className={ICON_BTN} href={moduleUrl(m.id)} rel={dir} title={`${t(`site.ui.${dir}`)}: ${t(`site.modules.${m.id}.title`)}`} aria-label={`${t(`site.ui.${dir}`)}: ${t(`site.modules.${m.id}.title`)}`}>
+        {dir === 'prev' ? <ArrowLeft size={18} aria-hidden /> : <ArrowRight size={18} aria-hidden />}
+      </a>
+    ) : (
+      <span className={`${ICON_BTN} opacity-40`} aria-hidden>
+        {dir === 'prev' ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
+      </span>
+    )
   return (
-    <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
-      <div className="max-w-3xl">
-        <div className="text-xs font-extrabold uppercase tracking-[0.12em] text-blue-600">
-          {t('site.lecture_long', { n: mod.lec })} · {t(`site.lectures.${mod.lec}`)}
-        </div>
-        <h1 className="mt-1 text-[clamp(26px,3.2vw,36px)] font-black tracking-tight">{t(`site.modules.${id}.title`)}</h1>
-        <p className="mt-1.5 text-slate-600">{lead ?? t(`site.modules.${id}.blurb`)}</p>
-        {EPISODES.filter((e) => e.modules.includes(id)).map((e) => (
-          <a key={e.id} href={watchUrl(e.id)} className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-900 py-1.5 pl-1.5 pr-4 text-[13px] font-bold text-white shadow-md shadow-slate-300 hover:bg-blue-700">
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-[10px] text-slate-900" aria-hidden>▶</span>
-            {t('watch.ui.watch_first', { title: t(`watch.${e.id}.title`) })}
-          </a>
-        ))}
-      </div>
-      {mod.exams.length > 0 && (
-        <div className="flex max-w-xl flex-wrap justify-start gap-1.5 sm:justify-end" aria-label={t('site.ui.asked_in')}>
-          {mod.exams.map((p) => (
-            <span key={p} className="whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800">
-              {paper(p)}
+    <>
+      <div className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1480px] items-center gap-3.5 px-4 py-2.5 sm:px-6">
+          <button type="button" onClick={() => setDrawer(true)} className={ICON_BTN} aria-label={t('site.ui.open_labs')} aria-expanded={drawer} aria-controls="labs-drawer">
+            <Menu size={18} aria-hidden />
+          </button>
+          <div className="min-w-0 flex-1">
+            <a href={`/#lecture-${mod.lec}`} className="block truncate text-[11px] font-bold uppercase tracking-[0.06em] text-blue-600 hover:underline">
+              {t('site.lecture_short', { n: mod.lec })} · {t(`site.lectures.${mod.lec}`)}
+            </a>
+            <h1 className="truncate text-[19px] font-extrabold tracking-tight text-slate-900">{t(`site.modules.${id}.title`)}</h1>
+          </div>
+          {extra}
+          <div className="flex items-center gap-2.5">
+            {pager(prev, 'prev')}
+            <span className="hidden font-mono text-xs font-semibold text-slate-500 sm:inline" aria-label={t('site.ui.position', { n: idx + 1, total: MODULES.length })}>
+              {idx + 1} / {MODULES.length}
             </span>
-          ))}
+            {pager(next, 'next')}
+          </div>
         </div>
-      )}
-    </section>
+      </div>
+      {drawer && <LabsDrawer current={id} onClose={() => setDrawer(false)} />}
+    </>
   )
+}
+
+/** One line under the bar saying what this page is for (the title lives in the bar). */
+export function ModuleHero({ id, lead }: { id: ModuleId; lead?: ReactNode }) {
+  const { t } = useTranslation()
+  return <p className="mb-5 max-w-3xl text-[15px] text-slate-600">{lead ?? t(`site.modules.${id}.blurb`)}</p>
 }
 
 export function LabPage({ id, lead, quiz = false, children }: { id: ModuleId; lead?: ReactNode; quiz?: boolean; children: ReactNode }) {
@@ -170,7 +228,7 @@ export function LabPage({ id, lead, quiz = false, children }: { id: ModuleId; le
   return (
     <QuizCtx.Provider value={ctx}>
       <PageBar id={id} extra={toggle} />
-      <main className="mx-auto max-w-[1480px] px-4 pb-10 pt-6 sm:px-6">
+      <main className="mx-auto max-w-[1480px] px-4 pb-10 pt-5 sm:px-6">
         <ModuleHero id={id} lead={lead} />
         {children}
       </main>

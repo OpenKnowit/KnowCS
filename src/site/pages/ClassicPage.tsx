@@ -1,6 +1,6 @@
 import type { ComponentType, LazyExoticComponent, ReactNode } from 'react'
 import { lazy } from 'react'
-import { Info } from 'lucide-react'
+import { ChevronDown, GraduationCap } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../../components/Latex'
 import { Motion } from '../../components/Motion'
@@ -29,16 +29,18 @@ export default function ClassicPage({ id }: { id: ModuleId }) {
   return (
     <>
       <PageBar id={id} />
-      <main className="mx-auto max-w-[1480px] px-4 pb-10 pt-6 sm:px-6">
+      <main className="mx-auto max-w-[1480px] px-4 pb-10 pt-5 sm:px-6">
         <ModuleHero id={id} />
         <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/40 sm:p-8">
-          {/* the exam tip lives inside the module card, so the interactive part gets the full width */}
-          <aside className="mb-6 flex flex-col gap-1.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-white shadow-md shadow-blue-200 sm:flex-row sm:items-center sm:gap-3">
-            <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
-              <Info size={16} aria-hidden /> {t('app.sidebar.exam_tip.title')}
-            </span>
-            <p className="text-[13px] font-medium leading-relaxed opacity-95">{tip}</p>
-          </aside>
+          {/* the exam tip stays folded until asked for, so the interactive part comes first */}
+          <details className="group mb-6 rounded-2xl border border-blue-200 bg-blue-50/60">
+            <summary className="flex cursor-pointer list-none items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-bold text-blue-900 hover:bg-blue-50 [&::-webkit-details-marker]:hidden">
+              <GraduationCap size={17} className="text-blue-600" aria-hidden />
+              {t('app.sidebar.exam_tip.title')}
+              <ChevronDown size={16} className="ml-auto text-blue-700 transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+            <p className="px-4 pb-3.5 text-[13.5px] leading-relaxed text-slate-700">{tip}</p>
+          </details>
           <Motion>
             <Component />
           </Motion>

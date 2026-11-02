@@ -1,84 +1,75 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LayoutGrid, List } from 'lucide-react'
-import { EPISODES, LECTURES, MODULES, PAPERS, lectureScope, papersUrl, moduleUrl, noteUrl, watchUrl } from '../../lib/sitemap'
+import { LayoutGrid, List, Search, Star } from 'lucide-react'
+import { LECTURES, MODULES, STARRED, lectureScope, moduleUrl } from '../../lib/sitemap'
 import type { ModuleInfo } from '../../lib/sitemap'
-import { readVisited } from '../ui'
 
-// the explainer thumbnails pull in the animation code and KaTeX: load them after the rest of the page
-const WatchStrip = lazy(() => import('../watch/WatchStrip'))
-const HomeLab = lazy(() => import('./HomeLab'))
+// Visualize: every lab as a card whose picture is a crop of its own core visualization.
+const THUMBS = import.meta.glob<string>('../../assets/thumbs/*.webp', { eager: true, import: 'default' })
+const thumbOf = (id: string) => THUMBS[`../../assets/thumbs/${id}.webp`]
 
-type View = 'map' | 'lab'
+type View = 'grid' | 'chapters'
 const VIEW_KEY = 'knowcs-home-view'
 const readView = (): View => {
+  // links like /#lecture-3 (the module bar) want the chapter they name
+  if (window.location.hash.startsWith('#lecture-')) return 'chapters'
   try {
-    return localStorage.getItem(VIEW_KEY) === 'lab' ? 'lab' : 'map'
+    return localStorage.getItem(VIEW_KEY) === 'chapters' ? 'chapters' : 'grid'
   } catch {
-    return 'map'
+    return 'grid'
   }
 }
-const GRID = { backgroundImage: 'linear-gradient(#e7ebf1 1px, transparent 1px), linear-gradient(90deg, #e7ebf1 1px, transparent 1px)', backgroundSize: '32px 32px' }
 
-/** Course map (lectures in order) or lab grid (every lab by area); the choice is remembered. */
+function LabCard({ m, compact = false }: { m: ModuleInfo; compact?: boolean }) {
+  const { t } = useTranslation()
+  const starred = STARRED.has(m.id)
+  return (
+    <a href={moduleUrl(m.id)} className="group flex min-w-0 flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100">
+      <div className="relative aspect-[8/5] border-b border-slate-200 bg-slate-100">
+        <img src={thumbOf(m.id)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+        {starred && (
+          <span className="absolute left-2.5 top-2.5 grid h-[26px] w-[26px] place-items-center rounded-full bg-white shadow-md shadow-slate-900/20" title={t('site.home.starred')}>
+            <Star size={15} className="fill-amber-500 text-amber-500" aria-hidden />
+            <span className="sr-only">{t('site.home.starred')}</span>
+          </span>
+        )}
+      </div>
+      <div className={`flex flex-col gap-1.5 ${compact ? 'px-3 pb-3 pt-2.5' : 'px-4 pb-4 pt-3.5'}`}>
+        {!compact && (
+          <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-blue-600">
+            {t('site.lecture_short', { n: m.lec })} · {t(`site.lectures.${m.lec}`)}
+          </span>
+        )}
+        <b className={`font-bold text-slate-900 group-hover:text-blue-700 ${compact ? 'text-sm' : 'text-base'}`}>{t(`site.modules.${m.id}.title`)}</b>
+        {!compact && <p className="text-[13px] leading-normal text-slate-500">{t(`site.modules.${m.id}.blurb`)}</p>}
+      </div>
+    </a>
+  )
+}
+
 function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => void }) {
   const { t } = useTranslation()
   return (
-    <div className="mx-auto flex max-w-[1280px] justify-end px-4 pt-4 sm:px-8">
-      <div className="inline-flex gap-1 rounded-xl border border-slate-200 bg-white p-1 text-sm font-bold shadow-sm" role="group" aria-label={t('site.home.view_label')}>
-        {(['map', 'lab'] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => onChange(v)}
-            aria-pressed={view === v}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${view === v ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-          >
-            {v === 'map' ? <List size={15} aria-hidden /> : <LayoutGrid size={15} aria-hidden />}
-            {t(`site.home.view_${v}`)}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-type Scope = 'all' | 'mid' | 'final'
-
-function ExamDots({ papers }: { papers: string[] }) {
-  return (
-    <span className="inline-flex items-center gap-[3px]" aria-hidden>
-      {PAPERS.map((p) => (
-        <i key={p.id} className={`inline-block h-2 w-2 rounded-full ${papers.includes(p.id) ? (p.kind === 'M' ? 'bg-amber-500' : 'bg-rose-500') : 'bg-slate-200'}`} />
+    <div className="inline-flex gap-0.5 rounded-[10px] bg-slate-200/70 p-[3px]" role="group" aria-label={t('site.home.view_label')}>
+      {(['grid', 'chapters'] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          aria-pressed={view === v}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] transition ${view === v ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'font-medium text-slate-500 hover:text-slate-800'}`}
+        >
+          {v === 'grid' ? <LayoutGrid size={15} aria-hidden /> : <List size={15} aria-hidden />}
+          {t(`site.home.view_${v}`)}
+        </button>
       ))}
-    </span>
-  )
-}
-
-function ModuleCard({ m, seen }: { m: ModuleInfo; seen: boolean }) {
-  const { t } = useTranslation()
-  return (
-    <a href={moduleUrl(m.id)} className="group flex flex-col gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">{t('site.lecture_short', { n: m.lec })} · {t(`site.lectures.${m.lec}`)}</span>
-        {seen && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700">{t('site.home.seen')}</span>}
-      </div>
-      <b className="text-[15px] font-extrabold text-slate-900 group-hover:text-blue-700">{t(`site.modules.${m.id}.title`)}</b>
-      <p className="text-[13px] leading-snug text-slate-500">{t(`site.modules.${m.id}.blurb`)}</p>
-      {m.exams.length > 0 && (
-        <div className="mt-auto flex items-center gap-2 pt-1 text-[11px] font-bold text-slate-500">
-          <ExamDots papers={m.exams} /> {t('site.home.in_papers', { n: m.exams.length, total: PAPERS.length })}
-        </div>
-      )}
-    </a>
+    </div>
   )
 }
 
 export default function HomePage() {
   const { t } = useTranslation()
-  const [scope, setScope] = useState<Scope>('all')
   const [q, setQ] = useState('')
-  const [visited] = useState(readVisited)
   const [view, setViewState] = useState<View>(readView)
   const setView = (v: View) => {
     setViewState(v)
@@ -88,121 +79,63 @@ export default function HomePage() {
       // private mode: the choice just isn't remembered
     }
   }
-  const query = q.trim().toLowerCase()
   useEffect(() => {
     document.title = `KnowCS · ${t('site.home.tab_title')}`
   }, [t])
-  const matches = (m: ModuleInfo) => !query || `${t(`site.modules.${m.id}.title`)} ${t(`site.modules.${m.id}.blurb`)}`.toLowerCase().includes(query)
+  // a /#lecture-n link scrolls to its chapter once the chapters are on the page
+  useEffect(() => {
+    if (view === 'chapters' && window.location.hash.startsWith('#lecture-')) document.getElementById(window.location.hash.slice(1))?.scrollIntoView()
+  }, [view])
 
-  if (view === 'lab') {
-    return (
-      <main className="min-h-screen pb-10" style={GRID}>
-        <ViewSwitch view={view} onChange={setView} />
-        <Suspense fallback={<div className="min-h-screen" />}>
-          <HomeLab />
-        </Suspense>
-      </main>
-    )
-  }
+  const query = q.trim().toLowerCase()
+  const matches = (m: ModuleInfo) =>
+    !query || `${t(`site.modules.${m.id}.title`)} ${t(`site.modules.${m.id}.blurb`)} ${t(`site.lectures.${m.lec}`)}`.toLowerCase().includes(query)
+  const shown = MODULES.filter(matches)
 
   return (
-    <main className="pb-10">
-      <ViewSwitch view={view} onChange={setView} />
-      <section className="mx-auto max-w-[1280px] px-4 pb-6 pt-2 sm:px-8">
-        <div className="grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-blue-600">{t('site.home.eyebrow')}</p>
-            <h1 className="mt-2 text-[clamp(32px,4.4vw,52px)] font-black leading-[1.05] tracking-tight text-slate-900">
-              {t('site.home.title_a')}<span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{t('site.home.title_b')}</span>
-            </h1>
-            <p className="mt-3 max-w-2xl text-[17px] text-slate-600">{t('site.home.lead')}</p>
-            <div className="mt-5 flex flex-wrap gap-2 text-sm font-bold">
-              <span className="rounded-full bg-white px-3 py-1.5 text-slate-700 shadow-sm">{t('site.home.stat_pages', { n: MODULES.length })}</span>
-              <a href={papersUrl()} className="rounded-full bg-white px-3 py-1.5 text-amber-700 shadow-sm hover:bg-amber-50">{t('site.home.stat_papers', { n: PAPERS.length })} →</a>
-              <a href={noteUrl()} className="rounded-full bg-white px-3 py-1.5 text-blue-700 shadow-sm hover:bg-blue-50">{t('site.home.stat_notes')} →</a>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-            <label className="text-xs font-bold text-slate-500" htmlFor="topic-search">{t('site.home.find')}</label>
-            <input id="topic-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('site.home.find_placeholder')} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[15px] outline-none focus:ring-2 focus:ring-blue-300" />
-            <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 text-sm font-bold" role="group" aria-label={t('site.home.scope')}>
-              {(['all', 'mid', 'final'] as const).map((v) => (
-                <button key={v} type="button" onClick={() => setScope(v)} aria-pressed={scope === v} className={`rounded-lg py-1.5 ${scope === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
-                  {t(`site.home.scope_${v}`)}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-slate-500">{t(`site.home.scope_${scope}_hint`)}</p>
-          </div>
-        </div>
-      </section>
-
-      {!query && (
-        <section className="mx-auto mb-6 max-w-[1280px] px-4 sm:px-8" aria-labelledby="home-watch">
-          <div className="rounded-3xl bg-slate-900 p-4 text-white sm:p-6">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <h2 id="home-watch" className="text-xl font-black">▶ {t('site.home.watch_title')}</h2>
-                <p className="mt-1 text-sm text-slate-300">{t('site.home.watch_lead')}</p>
-              </div>
-              <a href={watchUrl()} className="text-sm font-bold text-blue-300 hover:text-blue-200">{t('site.home.watch_all')} →</a>
-            </div>
-            <Suspense fallback={<div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((k) => <div key={k} className="aspect-[4/3] animate-pulse rounded-2xl bg-white/10" />)}</div>}>
-              <WatchStrip />
-            </Suspense>
-          </div>
-        </section>
-      )}
-
-      <div className="mx-auto grid max-w-[1280px] gap-4 px-4 sm:px-8">
-        {LECTURES.filter((n) => scope !== 'mid' || lectureScope(n) === 'mid').map((n) => {
-          const mods = MODULES.filter((m) => m.lec === n && matches(m))
-          const eps = EPISODES.filter((e) => e.lec === n && (!query || `${t(`watch.${e.id}.title`)} ${t(`watch.${e.id}.sub`)}`.toLowerCase().includes(query)))
-          if (query && !mods.length && !eps.length) return null
-          const focus = scope === 'final' && n >= 6
-          return (
-            <section key={n} id={`lecture-${n}`} className={`grid scroll-mt-4 gap-4 rounded-3xl border p-4 sm:p-5 md:grid-cols-[220px_minmax(0,1fr)] ${focus ? 'border-rose-200 bg-rose-50/40' : 'border-slate-200 bg-white/60'}`}>
-              <div className="flex items-start gap-3 md:block">
-                <div className="font-mono text-4xl font-black leading-none text-slate-200 md:text-5xl" aria-hidden>{String(n).padStart(2, '0')}</div>
-                <div>
-                  <h2 className="mt-1 text-lg font-black text-slate-900 md:mt-2">
-                    <span className="sr-only">{t('site.lecture_long', { n })}: </span>
-                    {t(`site.lectures.${n}`)}
-                  </h2>
-                  <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${lectureScope(n) === 'mid' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
-                    {t(lectureScope(n) === 'mid' ? 'site.home.badge_mid' : 'site.home.badge_final')}
-                  </span>
-                </div>
-              </div>
-              {mods.length || eps.length ? (
-                <div className="grid content-start gap-3">
-                  {mods.length > 0 && (
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {mods.map((m) => <ModuleCard key={m.id} m={m} seen={!!visited[m.id]} />)}
-                    </div>
-                  )}
-                  {eps.length > 0 && (
-                    <div className="flex flex-wrap items-start gap-2">
-                      {eps.map((e) => (
-                        <a key={e.id} href={watchUrl(e.id)} className="inline-flex items-center gap-2 rounded-full bg-slate-900 py-1 pl-1 pr-3.5 text-[13px] font-bold text-white hover:bg-blue-700">
-                          <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-[10px] text-slate-900" aria-hidden>▶</span>
-                          {t(`watch.${e.id}.title`)}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="grid place-items-center rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
-                  {n === 9 ? (
-                    <a href={noteUrl('pytorch')} className="text-blue-700 hover:underline">{t('site.home.empty_9')}</a>
-                  ) : n === 11 ? t('site.home.empty_11') : t('site.home.empty')}
-                </div>
-              )}
-            </section>
-          )
-        })}
+    <main className="mx-auto max-w-[1280px] px-4 pb-16 pt-8 sm:px-8 lg:pt-10">
+      <h1 className="text-[clamp(24px,2.6vw,30px)] font-extrabold tracking-tight text-slate-900">{t('site.home.title_full')}</h1>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex h-[42px] w-full max-w-[420px] items-center gap-2.5 rounded-[10px] border border-slate-200 bg-white px-3.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+          <Search size={17} className="shrink-0 text-slate-500" aria-hidden />
+          <span className="sr-only">{t('site.home.find')}</span>
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('site.home.find_placeholder')} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-500" />
+        </label>
+        <ViewSwitch view={view} onChange={setView} />
       </div>
+
+      {shown.length === 0 && <p className="mt-10 text-center text-slate-500">{t('site.home.no_match', { q: q.trim() })}</p>}
+
+      {view === 'grid' ? (
+        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {shown.map((m) => (
+            <LabCard key={m.id} m={m} />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-4">
+          {LECTURES.map((n) => {
+            const labs = shown.filter((m) => m.lec === n)
+            if (!labs.length) return null
+            return (
+              <section key={n} id={`lecture-${n}`} className="flex scroll-mt-4 flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-5 md:flex-row">
+                <div className="md:w-[200px] md:shrink-0">
+                  <div className="font-mono text-[28px] font-extrabold leading-none text-slate-300">{String(n).padStart(2, '0')}</div>
+                  <h2 className="mt-2 text-base font-extrabold text-slate-900">{t(`site.lectures.${n}`)}</h2>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
+                    {t(lectureScope(n) === 'mid' ? 'site.home.badge_mid' : 'site.home.badge_final')} · {t('site.home.labs', { count: labs.length })}
+                  </p>
+                </div>
+                <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                  {labs.map((m) => (
+                    <LabCard key={m.id} m={m} compact />
+                  ))}
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      )}
     </main>
   )
 }

@@ -11,7 +11,7 @@ const LANG_LABELS: Record<LangCode, string> = {
   'zh-HK': '繁體中文',
 }
 
-export type Section = 'course' | 'playground' | 'watch' | 'drill' | 'notes' | 'extend'
+export type Section = 'course' | 'playground' | 'resources' | 'watch' | 'drill' | 'notes' | 'extend'
 
 const LanguageMenu = () => {
   const { t, i18n } = useTranslation()
@@ -113,73 +113,14 @@ const SiteLogo = () => (
   </svg>
 )
 
+// Old sections (watch, notes, drill, extend) keep their URLs but are no longer in the header.
 const NAV: { section: Section; href: string; key: string }[] = [
-  { section: 'course', href: '/', key: 'app.nav.course' },
+  { section: 'course', href: '/', key: 'app.nav.visualize' },
   { section: 'playground', href: '/playground/', key: 'app.nav.playground' },
-]
-/** The other sections, grouped under "More" in this order. */
-const MORE: { section: Section; href: string; key: string }[] = [
-  { section: 'watch', href: '/watch/', key: 'app.nav.watch' },
-  { section: 'notes', href: '/notes/', key: 'app.nav.package' },
-  { section: 'drill', href: '/drill/', key: 'app.nav.drill' },
-  { section: 'extend', href: '/extend/', key: 'app.nav.extend' },
+  { section: 'resources', href: '/resources/', key: 'app.nav.resources' },
 ]
 
 const pill = (on: boolean) => `rounded-full px-2.5 py-1.5 text-sm font-bold transition sm:px-3.5 ${on ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:text-slate-800'}`
-
-/** "More ▾": Watch, Package, Check, Extend. Shows the current one's name when you are in it. */
-function MoreMenu({ section }: { section: Section }) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const current = MORE.find((m) => m.section === section)
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
-  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape') {
-      setOpen(false)
-      buttonRef.current?.focus()
-      return
-    }
-    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
-    e.preventDefault()
-    const items = [...e.currentTarget.querySelectorAll<HTMLAnchorElement>('[role="menuitem"]')]
-    const idx = items.indexOf(document.activeElement as HTMLAnchorElement)
-    items[(idx + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus()
-  }
-  return (
-    <div className="relative" ref={rootRef}>
-      <button ref={buttonRef} type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className={`flex items-center gap-1 ${pill(!!current)}`}>
-        {current ? t(current.key) : t('app.nav.more')}
-        <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
-      </button>
-      {open && (
-        <div role="menu" aria-label={t('app.nav.more')} onKeyDown={onKey} className="lang-menu absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white py-1 shadow-xl shadow-slate-200/50">
-          {MORE.map((m, i) => (
-            <a
-              key={m.section}
-              role="menuitem"
-              href={m.href}
-              autoFocus={i === 0}
-              aria-current={section === m.section ? 'page' : undefined}
-              className={`flex items-center justify-between px-4 py-2.5 text-sm font-bold focus:outline-none focus-visible:bg-slate-100 ${section === m.section ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              {t(m.key)}
-              {section === m.section && <Check size={14} aria-hidden />}
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 /** Site header around every page. */
 export function Shell({ section, children }: { section: Section; children: ReactNode }) {
@@ -205,7 +146,6 @@ export function Shell({ section, children }: { section: Section; children: React
               {t(n.key)}
             </a>
           ))}
-          <MoreMenu section={section} />
         </nav>
         <LanguageMenu />
       </header>

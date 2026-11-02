@@ -452,7 +452,9 @@
       "watch": "视频",
       "drill": "自测",
       "more": "更多",
-      "playground": "实验场"
+      "playground": "实验场",
+      "visualize": "可视化",
+      "resources": "资源"
     },
     "tabs_sub": {
       "numpy": "视图 vs 副本 & 广播",
@@ -784,7 +786,12 @@
       "quiz_hint": "隐藏考试表格里的答案，自己填写",
       "asked_in": "考过这类题的试卷",
       "answer_for": "{{label}} 的答案",
-      "not_quite": "不太对——检查一下计算过程"
+      "not_quite": "不太对——检查一下计算过程",
+      "all_labs": "全部实验",
+      "open_labs": "打开实验列表",
+      "close": "关闭",
+      "filter_labs": "筛选实验",
+      "position": "第 {{n}} / {{total}} 个"
     },
     "modules": {
       "numpy": {
@@ -917,7 +924,14 @@
       },
       "view_label": "首页布局",
       "view_map": "课程地图",
-      "view_lab": "实验网格"
+      "view_lab": "实验网格",
+      "title_full": "COMP2211 探索人工智能 · 可视化",
+      "view_grid": "网格",
+      "view_chapters": "章节",
+      "no_match": "没有和“{{q}}”匹配的实验。",
+      "labs_one": "{{count}} 个实验",
+      "labs_other": "{{count}} 个实验",
+      "starred": "星标"
     },
     "playground": {
       "title": "实验场",
@@ -931,6 +945,83 @@
         "pytorch": "张量、自动求导、训练循环",
         "keras": "模型、summary()、fit",
         "tensorflow": "张量、Variable、GradientTape"
+      },
+      "libraries": "库",
+      "hide_libs": "收起库列表",
+      "show_libs": "展开库列表"
+    },
+    "resources": {
+      "tab_title": "资源",
+      "title": "资源",
+      "lead": "配合 COMP2211 值得收藏的网站：课程页面、可视化工具、浏览器里就能跑的 Notebook，以及继续深入的指南。",
+      "search": "搜索网站——例如 Python、Notebook、CNN",
+      "empty": "没有找到，换个关键词试试。",
+      "visit": "访问",
+      "categories": "分类",
+      "cats": {
+        "all": "全部",
+        "course": "课程",
+        "visualize": "可视化",
+        "code": "在线编程",
+        "study": "自学",
+        "notes": "笔记",
+        "archive": "存档"
+      },
+      "kinds": {
+        "web": "网站",
+        "login": "需科大登录",
+        "notes": "笔记",
+        "archive": "存档"
+      },
+      "items": {
+        "comp2211": {
+          "title": "COMP2211 课程网站",
+          "desc": "官方课程主页：讲义、Lab、作业和通知。"
+        },
+        "comp1023": {
+          "title": "COMP1023 Python 视频",
+          "desc": "COMP2211 网站推荐的 Python 复习视频，基础生疏时先补一补。"
+        },
+        "jupyterlite": {
+          "title": "JupyterLite",
+          "desc": "在浏览器里运行的完整 Jupyter Notebook（基于 Pyodide），无需安装。"
+        },
+        "visualgo": {
+          "title": "VisuAlgo",
+          "desc": "数据结构与算法动画，附带电子讲义。"
+        },
+        "programiz": {
+          "title": "Programiz 在线 Python",
+          "desc": "即开即用地运行一小段 Python，做 Lab 前核对语法很方便。"
+        },
+        "tf-playground": {
+          "title": "TensorFlow Playground",
+          "desc": "在浏览器里训练一个小神经网络，改层数时看决策边界如何形成。"
+        },
+        "knowcs-old": {
+          "title": "KnowCS 旧版",
+          "desc": "早先的单页版 KnowCS，保留作参考。"
+        },
+        "list-copy": {
+          "title": "Python 列表拷贝可视化",
+          "desc": "看清 =、copy() 和 deepcopy() 到底共享了什么——每个列表和引用都画出来。"
+        },
+        "comp1945": {
+          "title": "COMP1945 演示",
+          "desc": "COMP1945 课程组的交互演示。"
+        },
+        "csdiy": {
+          "title": "CS 自学指南",
+          "desc": "社区整理的计算机自学指南，汇集各校公开课。"
+        },
+        "cs231n": {
+          "title": "CS231n",
+          "desc": "斯坦福「计算机视觉中的深度学习」：讲义与作业，对应第 7–8 讲。"
+        },
+        "comp2211-notes": {
+          "title": "COMP2211 GitHub 笔记",
+          "desc": "整门 COMP2211 的提纲与 Markdown 笔记。"
+        }
       }
     }
   },

@@ -452,7 +452,9 @@
       "watch": "Watch",
       "drill": "Check",
       "more": "More",
-      "playground": "Playground"
+      "playground": "Playground",
+      "visualize": "Visualize",
+      "resources": "Resources"
     },
     "tabs_sub": {
       "numpy": "View vs Copy & Broadcasting",
@@ -784,7 +786,12 @@
       "quiz_hint": "Hide the answers in the exam tables and type them yourself",
       "asked_in": "Past papers with this pattern",
       "answer_for": "answer for {{label}}",
-      "not_quite": "Not quite — check your working"
+      "not_quite": "Not quite — check your working",
+      "all_labs": "All labs",
+      "open_labs": "Open the list of labs",
+      "close": "Close",
+      "filter_labs": "Filter labs",
+      "position": "{{n}} of {{total}}"
     },
     "modules": {
       "numpy": {
@@ -917,7 +924,14 @@
       },
       "view_label": "Home page layout",
       "view_map": "Course map",
-      "view_lab": "Lab grid"
+      "view_lab": "Lab grid",
+      "title_full": "COMP2211 Exploring Artificial Intelligence Visualization",
+      "view_grid": "Grid",
+      "view_chapters": "Chapters",
+      "no_match": "No lab matches “{{q}}”.",
+      "labs_one": "{{count}} lab",
+      "labs_other": "{{count}} labs",
+      "starred": "Starred"
     },
     "playground": {
       "title": "Playground",
@@ -931,6 +945,83 @@
         "pytorch": "Tensors, autograd, training loops",
         "keras": "Models, summary(), fit",
         "tensorflow": "Tensors, Variables, GradientTape"
+      },
+      "libraries": "Libraries",
+      "hide_libs": "Hide the library list",
+      "show_libs": "Show the library list"
+    },
+    "resources": {
+      "tab_title": "Resources",
+      "title": "Resources",
+      "lead": "Sites worth bookmarking alongside COMP2211: the course pages, visualizers, notebooks that run in the browser, and guides for going further.",
+      "search": "Search sites — e.g. Python, notebook, CNN",
+      "empty": "Nothing matches — try another word.",
+      "visit": "Visit",
+      "categories": "Categories",
+      "cats": {
+        "all": "All",
+        "course": "Course",
+        "visualize": "Visualize",
+        "code": "Code online",
+        "study": "Self-study",
+        "notes": "Notes",
+        "archive": "Archive"
+      },
+      "kinds": {
+        "web": "Website",
+        "login": "HKUST login",
+        "notes": "Notes",
+        "archive": "Archive"
+      },
+      "items": {
+        "comp2211": {
+          "title": "COMP2211 course site",
+          "desc": "The official course page: lecture notes, labs, assignments and announcements."
+        },
+        "comp1023": {
+          "title": "COMP1023 Python videos",
+          "desc": "Python refresher videos linked from the COMP2211 site, for anyone rusty on the basics."
+        },
+        "jupyterlite": {
+          "title": "JupyterLite",
+          "desc": "A full Jupyter notebook running in the browser through Pyodide. Nothing to install."
+        },
+        "visualgo": {
+          "title": "VisuAlgo",
+          "desc": "Animated data structures and algorithms, with e-lecture slides."
+        },
+        "programiz": {
+          "title": "Programiz Python compiler",
+          "desc": "Run a short Python snippet instantly. Handy for checking syntax before a lab."
+        },
+        "tf-playground": {
+          "title": "TensorFlow Playground",
+          "desc": "Train a small neural network in the browser and watch the decision boundary form as you change layers."
+        },
+        "knowcs-old": {
+          "title": "KnowCS, previous version",
+          "desc": "The earlier single-page KnowCS, kept online for reference."
+        },
+        "list-copy": {
+          "title": "Python list copy, visualized",
+          "desc": "See what =, copy() and deepcopy() really share — every list and reference drawn out."
+        },
+        "comp1945": {
+          "title": "COMP1945 demos",
+          "desc": "Interactive demos from the COMP1945 course team."
+        },
+        "csdiy": {
+          "title": "csdiy · CS self-study guide",
+          "desc": "A community guide to learning computer science from open courses (in Chinese)."
+        },
+        "cs231n": {
+          "title": "CS231n",
+          "desc": "Stanford's Deep Learning for Computer Vision: lectures, notes and assignments behind L7 and L8."
+        },
+        "comp2211-notes": {
+          "title": "COMP2211 notes on GitHub",
+          "desc": "An outline of the whole COMP2211 course, with notes in Markdown."
+        }
       }
     }
   },
