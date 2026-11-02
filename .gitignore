@@ -41,3 +41,6 @@ manim/__pycache__/
 
 # Python bytecode (scripts/tts)
 __pycache__/
+
+# Scraped reference sites (third-party content, not for commit)
+ref/visuAlgo/
