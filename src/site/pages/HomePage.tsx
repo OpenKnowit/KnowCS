@@ -92,7 +92,7 @@ export default function HomePage() {
   const shown = MODULES.filter(matches)
 
   return (
-    <main className="px-[clamp(1rem,7vw,10rem)] pb-16 pt-6 lg:pt-8">
+    <main className="px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8">
       <h1 className="text-[clamp(24px,2.6vw,30px)] font-extrabold tracking-tight text-slate-900">{t('site.home.title_full')}</h1>
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <label className="flex h-[42px] w-full max-w-[420px] items-center gap-2.5 rounded-[10px] border border-slate-200 bg-white px-3.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">

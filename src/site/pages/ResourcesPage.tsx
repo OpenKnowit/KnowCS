@@ -86,7 +86,7 @@ export default function ResourcesPage() {
     (r) => (cat === 'all' || r.cat === cat) && (!query || `${t(`site.resources.items.${r.id}.title`)} ${t(`site.resources.items.${r.id}.desc`)} ${t(`site.resources.cats.${r.cat}`)} ${r.url}`.toLowerCase().includes(query)),
   )
   return (
-    <main className="px-[clamp(1rem,7vw,10rem)] pb-16 pt-6 lg:pt-8">
+    <main className="px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8">
       <h1 className="sr-only">{t('site.resources.title')}</h1>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="flex h-[42px] w-full max-w-[420px] items-center gap-2.5 rounded-[10px] border border-slate-200 bg-white px-3.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
