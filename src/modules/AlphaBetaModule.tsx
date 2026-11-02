@@ -35,6 +35,8 @@ export const AlphaBetaModule = () => {
   })
   const [preset, setPreset] = useState<string>('user')
   const [stepIdx, setStepIdx] = useState(0)
+  // the leaf whose value is being typed in place (click a leaf); null = none
+  const [editing, setEditing] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1000)
 
@@ -253,14 +255,36 @@ export const AlphaBetaModule = () => {
   
                   if (node.type === 'leaf') {
                     return (
-                      <g key={node.id} className="cursor-pointer" onClick={() => {
-                        const nv = window.prompt(t('alphabeta.edit_leaf', { id: node.id }), String(node.value))
-                        const n = Number(nv)
-                        if (nv !== null && Number.isFinite(n) && n >= 0 && n <= 20) setLeaf(node.id, Math.round(n))
-                      }}>
+                      <g key={node.id} className="cursor-pointer" onClick={() => setEditing(node.id)}>
                         <circle cx={node.x} cy={node.y} r={22} fill={fill} stroke={stroke} strokeWidth={3} strokeDasharray={isPruned ? '5,4' : undefined} />
                         <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#be123c' : isActive ? '#ffffff' : '#0f172a'}>{node.value}</text>
                         <text x={node.x + 28} y={node.y + 4} fontSize={11} fontFamily="monospace" fill="#475569" fontWeight={700}>{node.id}</text>
+                        {editing === node.id && (
+                          <foreignObject x={node.x - 30} y={node.y - 17} width={60} height={34} onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="number"
+                              min={0}
+                              max={20}
+                              autoFocus
+                              defaultValue={node.value}
+                              aria-label={t('alphabeta.edit_leaf', { id: node.id })}
+                              onFocus={(e) => e.currentTarget.select()}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') e.currentTarget.blur()
+                                if (e.key === 'Escape') {
+                                  e.currentTarget.value = String(node.value)
+                                  e.currentTarget.blur()
+                                }
+                              }}
+                              onBlur={(e) => {
+                                const n = Number(e.currentTarget.value)
+                                if (e.currentTarget.value.trim() !== '' && Number.isFinite(n)) setLeaf(node.id, Math.max(0, Math.min(20, Math.round(n))))
+                                setEditing(null)
+                              }}
+                              className="h-full w-full rounded-full border-2 border-blue-600 bg-white text-center font-mono text-[15px] font-extrabold text-slate-900 outline-none ring-4 ring-blue-200 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            />
+                          </foreignObject>
+                        )}
                       </g>
                     )
                   }
