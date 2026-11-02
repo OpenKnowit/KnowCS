@@ -972,7 +972,9 @@
       "resize": "調整程式碼區和結果區的寬度",
       "traced_one": "追蹤了 {{count}} 步",
       "traced_other": "追蹤了 {{count}} 步",
-      "visual_failed": "這一步畫不出來——下面的輸出仍然是對的。"
+      "visual_failed": "這一步畫不出來——下面的輸出仍然是對的。",
+      "clear": "清空",
+      "resize_output": "調整可視化區和輸出區的高度"
     },
     "resources": {
       "tab_title": "資源",

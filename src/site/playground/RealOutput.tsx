@@ -11,18 +11,22 @@ const VERSION_NAMES: Record<string, string> = { python: 'Python', numpy: 'NumPy'
 
 const shown = (run: RealRun): RealResult | null => (run.s === 'done' ? run.r : run.s === 'busy' ? run.prev : null)
 
-export function RealConsole({ run }: { run: RealRun }) {
+/** bare: no card and no header line, for a surface that is already a terminal (the playground's output pane) */
+export function RealConsole({ run, bare = false }: { run: RealRun; bare?: boolean }) {
   const { t } = useTranslation()
   const r = shown(run)
   const phaseText = (p: RealPhase) => (p.phase === 'packages' ? t('playground.ui.real.phase_packages', { names: p.names.join(', ') }) : t(`playground.ui.real.phase_${p.phase}`))
   const versions = r ? Object.entries(r.versions).filter(([k]) => k in VERSION_NAMES).map(([k, v]) => `${VERSION_NAMES[k]} ${v}`) : []
   const empty = r && !r.stdout && r.value === null && !r.error && !r.stderr
+  const text = bare ? 'font-mono text-[13px] leading-6' : 'max-h-72 overflow-auto font-mono text-xs leading-5'
   return (
-    <div aria-live="polite" className="rounded-xl border border-amber-200 bg-slate-900 p-3">
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] font-bold text-slate-400">
-        <span>{t('playground.ui.real.output')}</span>
-        {r && <span className="font-mono font-normal">{versions.join(' · ')} · {t('playground.ui.real.took', { ms: r.ms })}</span>}
-      </div>
+    <div aria-live="polite" className={bare ? '' : 'rounded-xl border border-amber-200 bg-slate-900 p-3'}>
+      {!bare && (
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] font-bold text-slate-400">
+          <span>{t('playground.ui.real.output')}</span>
+          {r && <span className="font-mono font-normal">{versions.join(' · ')} · {t('playground.ui.real.took', { ms: r.ms })}</span>}
+        </div>
+      )}
       {run.s === 'busy' && (
         <p className="mb-1 flex items-center gap-2 text-xs font-bold text-amber-300">
           <Loader2 size={13} className="animate-spin motion-reduce:animate-none" aria-hidden /> {phaseText(run.phase)}
@@ -35,10 +39,10 @@ export function RealConsole({ run }: { run: RealRun }) {
       )}
       {r && (
         <div className={run.s === 'busy' ? 'opacity-50' : ''}>
-          {r.stdout && <pre className="max-h-72 overflow-auto whitespace-pre font-mono text-xs leading-5 text-slate-100">{r.stdout}</pre>}
-          {r.value !== null && <pre className="max-h-72 overflow-auto whitespace-pre font-mono text-xs leading-5 text-sky-300">{r.value}</pre>}
-          {r.stderr && <pre className="max-h-40 overflow-auto whitespace-pre-wrap font-mono text-xs leading-5 text-amber-300">{r.stderr}</pre>}
-          {r.error && <pre className="max-h-72 overflow-auto whitespace-pre-wrap font-mono text-xs leading-5 text-rose-300">{r.error.trace}</pre>}
+          {r.stdout && <pre className={`${text} whitespace-pre text-slate-100`}>{r.stdout}</pre>}
+          {r.value !== null && <pre className={`${text} whitespace-pre text-sky-300`}>{r.value}</pre>}
+          {r.stderr && <pre className={`${text} whitespace-pre-wrap text-amber-300`}>{r.stderr}</pre>}
+          {r.error && <pre className={`${text} whitespace-pre-wrap text-rose-300`}>{r.error.trace}</pre>}
           {empty && <p className="text-xs italic text-slate-400">{r.figures.length ? t('playground.ui.real.see_figures') : t('playground.ui.no_output')}</p>}
         </div>
       )}
@@ -46,7 +50,8 @@ export function RealConsole({ run }: { run: RealRun }) {
   )
 }
 
-export function RealFigures({ run }: { run: RealRun }) {
+/** bare: just the figures, without the note that step views need the other engine */
+export function RealFigures({ run, bare = false }: { run: RealRun; bare?: boolean }) {
   const { t } = useTranslation()
   const r = shown(run)
   return (
@@ -54,7 +59,7 @@ export function RealFigures({ run }: { run: RealRun }) {
       {r?.figures.map((src, k) => (
         <img key={k} src={src} alt={t('playground.ui.real.figure', { n: k + 1 })} className={`w-full rounded-xl border border-slate-200 bg-white ${run.s === 'busy' ? 'opacity-50' : ''}`} />
       ))}
-      <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">{t('playground.ui.engine.steps_off')}</p>
+      {!bare && <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">{t('playground.ui.engine.steps_off')}</p>}
     </div>
   )
 }

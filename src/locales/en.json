@@ -972,7 +972,9 @@
       "resize": "Resize the code and results panes",
       "traced_one": "{{count}} step traced",
       "traced_other": "{{count}} steps traced",
-      "visual_failed": "This step cannot be drawn — the output below is still right."
+      "visual_failed": "This step cannot be drawn — the output below is still right.",
+      "clear": "Clear",
+      "resize_output": "Resize the visual and output panes"
     },
     "resources": {
       "tab_title": "Resources",

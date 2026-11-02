@@ -50,6 +50,16 @@ class VisualBoundary extends Component<{ fallback: ReactNode; children: ReactNod
   }
 }
 
+const OUT_KEY = 'knowcs-playground-output-h'
+const readOutH = () => {
+  try {
+    const v = Number(localStorage.getItem(OUT_KEY))
+    return v >= 96 && v <= 900 ? v : 260
+  } catch {
+    return 260
+  }
+}
+
 const SPLIT_KEY = 'knowcs-playground-split'
 const readSplit = () => {
   try {
@@ -267,6 +277,9 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery 
   const [picked, setPicked] = useState<{ code: string; seq: number } | null>(null)
   const [tab, setTab] = useState<Tab>('output')
   const [split, setSplit] = useState(readSplit)
+  const [outH, setOutH] = useState(readOutH)
+  // Clear in the real-Python terminal hides this run's output until the next run
+  const [cleared, setCleared] = useState<unknown>(null)
   // another example picked (sidebar or gallery): start from its code
   const [shownEntry, setShownEntry] = useState(entry.id)
   if (shownEntry !== entry.id) {
@@ -348,6 +361,30 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery 
     if (!d) return
     e.preventDefault()
     saveSplit(split + d)
+  }
+
+  // the visual | output divider (step-through only)
+  const colRef = useRef<HTMLDivElement>(null)
+  const saveOutH = (v: number) => {
+    const max = (colRef.current?.getBoundingClientRect().height ?? 700) - 140
+    const c = Math.round(Math.max(96, Math.min(max, v)))
+    setOutH(c)
+    try {
+      localStorage.setItem(OUT_KEY, String(c))
+    } catch {
+      /* private mode: the height lasts for this visit */
+    }
+  }
+  const onDragRow = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const box = colRef.current?.getBoundingClientRect()
+    if (!box || !(e.buttons & 1)) return
+    saveOutH(box.bottom - e.clientY)
+  }
+  const onRowKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const d = e.key === 'ArrowUp' ? 24 : e.key === 'ArrowDown' ? -24 : 0
+    if (!d) return
+    e.preventDefault()
+    saveOutH(outH + d)
   }
 
   // ---------------------------------------------------------------- toolbar
@@ -466,10 +503,12 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery 
 
   // ---------------------------------------------------------------- output / explain / variables
   const console_ = realOn ? (
-    <div className="space-y-4">
-      <RealConsole run={real.run} />
-      <RealFigures run={real.run} />
-    </div>
+    cleared === real.run ? null : (
+      <div className="space-y-4">
+        <RealConsole run={real.run} bare />
+        <RealFigures run={real.run} bare />
+      </div>
+    )
   ) : (
     <div aria-live="polite" className={`space-y-1.5 font-mono text-[13px] leading-6 transition-opacity ${stale ? 'opacity-60' : ''}`}>
       {result.stdout && <pre className="whitespace-pre text-slate-800">{result.stdout}</pre>}
@@ -484,9 +523,9 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery 
     </div>
   )
   const explain = (
-    <div className="space-y-2.5 text-sm leading-relaxed text-slate-700">
+    <div className={`space-y-2.5 text-sm leading-relaxed ${realOn ? 'text-slate-300' : 'text-slate-700'}`}>
       <p>
-        <b className="font-mono text-slate-900">{entry.label}</b> — {t(spec.explainKey(entry.id))}
+        <b className={`font-mono ${realOn ? 'text-white' : 'text-slate-900'}`}>{entry.label}</b> — {t(spec.explainKey(entry.id))}
       </p>
       {!realOn &&
         notes.map((n) => (
@@ -497,7 +536,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery 
             </span>
           </p>
         ))}
-      <p className="text-xs text-slate-500">{t(spec.noteKey)}</p>
+      <p className={`text-xs ${realOn ? 'text-slate-400' : 'text-slate-500'}`}>{t(spec.noteKey)}</p>
     </div>
   )
   const vars = result.vars.length ? (
@@ -526,21 +565,37 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery 
   // real Python has no steps and no variable trace: the whole column is output
   const tabs: Tab[] = realOn ? ['output', 'explain'] : ['output', 'explain', 'vars']
   const shownTab = tabs.includes(tab) ? tab : 'output'
-  const outputPanel = (
-    <section className={`flex flex-col ${realOn ? 'min-h-[22rem] lg:min-h-0 lg:flex-1' : 'h-[260px] shrink-0 border-t border-slate-200'}`}>
+  const tabButton = (k: Tab, dark: boolean) => (
+    <button
+      key={k}
+      type="button"
+      role="tab"
+      aria-selected={shownTab === k}
+      onClick={() => setTab(k)}
+      className={`-mb-px border-b-2 px-2.5 py-2.5 text-[13px] ${
+        shownTab === k ? (dark ? 'border-sky-400 font-bold text-white' : 'border-blue-600 font-bold text-slate-900') : dark ? 'border-transparent font-medium text-slate-400 hover:text-slate-200' : 'border-transparent font-medium text-slate-500 hover:text-slate-800'
+      }`}
+    >
+      {t(`site.playground.tab_${k}`)}
+    </button>
+  )
+  const outputPanel = realOn ? (
+    // real Python: the whole column is a terminal, like an online compiler's output pane
+    <section className="flex min-h-[22rem] flex-col bg-slate-900 lg:min-h-0 lg:flex-1">
+      <div className="flex items-center gap-1 bg-slate-800 px-3" role="tablist" aria-label={t('playground.ui.output')}>
+        {tabs.map((k) => tabButton(k, true))}
+        <button type="button" onClick={() => setCleared(real.run)} className="ml-auto rounded-md px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white">
+          {t('site.playground.clear')}
+        </button>
+      </div>
+      <div role="tabpanel" className="min-h-0 flex-1 overflow-auto px-4 py-3">
+        {shownTab === 'output' ? console_ : explain}
+      </div>
+    </section>
+  ) : (
+    <section className="flex shrink-0 flex-col" style={{ height: outH }}>
       <div className="flex gap-1 border-b border-slate-200 px-3" role="tablist" aria-label={t('playground.ui.output')}>
-        {tabs.map((k) => (
-          <button
-            key={k}
-            type="button"
-            role="tab"
-            aria-selected={shownTab === k}
-            onClick={() => setTab(k)}
-            className={`-mb-px border-b-2 px-2.5 py-2.5 text-[13px] ${shownTab === k ? 'border-blue-600 font-bold text-slate-900' : 'border-transparent font-medium text-slate-500 hover:text-slate-800'}`}
-          >
-            {t(`site.playground.tab_${k}`)}
-          </button>
-        ))}
+        {tabs.map((k) => tabButton(k, false))}
       </div>
       <div role="tabpanel" className="min-h-0 flex-1 overflow-auto px-4 py-3">
         {shownTab === 'output' ? console_ : shownTab === 'explain' ? explain : vars}
@@ -593,8 +648,22 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery 
           onKeyDown={onDividerKey}
           className="hidden w-1.5 shrink-0 cursor-col-resize touch-none bg-slate-200 transition-colors hover:bg-blue-400 focus-visible:bg-blue-500 focus-visible:outline-none active:bg-blue-500 lg:block"
         />
-        <div className="flex min-w-0 flex-col bg-white lg:w-[var(--split)] lg:shrink-0">
+        <div ref={colRef} className="flex min-w-0 flex-col bg-white lg:w-[var(--split)] lg:shrink-0">
           {!realOn && visual}
+          {!realOn && (
+            <div
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label={t('site.playground.resize_output')}
+              aria-valuemin={96}
+              aria-valuenow={outH}
+              tabIndex={0}
+              onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
+              onPointerMove={onDragRow}
+              onKeyDown={onRowKey}
+              className="h-1.5 shrink-0 cursor-row-resize touch-none border-y border-slate-200 bg-slate-100 transition-colors hover:bg-blue-400 focus-visible:bg-blue-500 focus-visible:outline-none active:bg-blue-500"
+            />
+          )}
           {outputPanel}
         </div>
       </div>
