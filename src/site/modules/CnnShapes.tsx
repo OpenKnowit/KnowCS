@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, CircleHelp, Code2, Play, Table2, Undo2, X } from 'lucide-react'
 import { analyse, totalParams, type Layer, type LayerInfo, type Padding, type Shape } from '../../lib/cnnShapes'
@@ -409,6 +410,62 @@ function CalcTable({ st, infos }: { st: LabState; infos: LayerInfo[] }) {
   )
 }
 
+/** Beside the code: each layer's input, output and parameters, the total pinned below. Rows pick the layer too. */
+function ParamList({ st, infos, active, setActive }: { st: LabState; infos: LayerInfo[]; active: number | null; setActive: (i: number | null) => void }) {
+  const { t } = useTranslation()
+  const total = totalParams(infos)
+  const firstDense = infos.find((i) => i.layer.kind === 'dense')
+  const { input } = st
+  const mlp = input.length === 3 && firstDense?.layer.kind === 'dense' ? (input[0] * input[1] * input[2] + 1) * firstDense.layer.units : null
+  return (
+    <section className="flex min-h-[320px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white lg:min-h-0">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <table className="lab-table">
+          <tbody>
+            <tr className="sticky top-0 z-10">
+              <th className="left">{t('lab.cnn.th.layer')}</th>
+              <th>{t('lab.cnn.th.input')}</th>
+              <th>{t('lab.cnn.th.output')}</th>
+              <th>{t('lab.cnn.th.params')}</th>
+            </tr>
+            {infos.map((info, i) => (
+              <tr key={i} onClick={() => setActive(active === i ? null : i)} className={`cursor-pointer hover:bg-slate-50 ${active === i ? 'cur' : ''} ${info.error ? 'dim' : ''}`}>
+                <td className="left">
+                  <span className="inline-flex items-center gap-1.5 font-sans font-semibold text-slate-800">
+                    <i className="h-2.5 w-2.5 rounded-[3px]" style={{ background: KIND_COL[info.layer.kind][2] }} />
+                    {i + 1}. {t(`lab.cnn.kinds.${info.layer.kind}`)}
+                  </span>
+                  <span className="ml-1.5 text-[11px] text-slate-500">{layerNote(info.layer)}</span>
+                </td>
+                <td>{info.input.join('×')}</td>
+                {info.error ? (
+                  <td className="changed whitespace-normal font-sans" colSpan={2}>
+                    {t(`lab.errors.cnn_${info.error}`)}
+                  </td>
+                ) : (
+                  <>
+                    <Ans k={`out${i}`} v={info.output.join('×')} />
+                    <Ans k={`p${i}`} v={info.params} />
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-slate-200 bg-slate-50 px-4 py-2.5">
+        <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">{t('lab.cnn.total')}</span>
+        <b className="font-mono text-lg text-blue-700">{int(total)}</b>
+        {mlp !== null && total > 0 && (
+          <span className="ml-auto text-xs text-slate-500">
+            {t('lab.cnn.mlp')}: <b className="font-mono text-rose-600">{int(mlp)}</b> ({(mlp / total).toFixed(1)}×)
+          </span>
+        )}
+      </div>
+    </section>
+  )
+}
+
 /** The ? next to Add layer: what each layer does and where it may go. */
 function LayerGuide() {
   const { t } = useTranslation()
@@ -448,7 +505,7 @@ function LayerGuide() {
 }
 
 /** The layer cards next to the code: input, every layer (open by default, ↑ ↓ ✕), add at a position, output. */
-function LayersPanel({ st, infos, active, setActive, commit }: { st: LabState; infos: LayerInfo[]; active: number | null; setActive: (i: number | null) => void; commit: (s: LabState) => void }) {
+function LayersPanel({ st, infos, active, setActive, commit, example }: { st: LabState; infos: LayerInfo[]; active: number | null; setActive: (i: number | null) => void; commit: (s: LabState) => void; example: ReactNode }) {
   const { t } = useTranslation()
   const { input, layers } = st
   const [closed, setClosed] = useState<Set<number>>(() => new Set())
@@ -475,9 +532,10 @@ function LayersPanel({ st, infos, active, setActive, commit }: { st: LabState; i
   const iconBtn = 'grid h-6 w-6 place-items-center rounded text-slate-500 hover:bg-white disabled:opacity-30'
   const gap = (i: number) => hoverAdd && at === i && <div aria-hidden className="h-1 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />
   return (
-    <section className="flex min-h-[320px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white lg:min-h-0">
-      <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
-        <h2 className="text-[14px] font-extrabold">{t('lab.cnn.layers')}</h2>
+    <aside className="flex min-h-[320px] min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white lg:min-h-0">
+      <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
+        <h2 className="text-[15px] font-extrabold">{t('lab.cnn.layers')}</h2>
+        {example}
         <button
           type="button"
           onClick={() => setClosed(allOpen ? new Set(layers.map((_, i) => i).concat(-1)) : new Set())}
@@ -601,7 +659,7 @@ function LayersPanel({ st, infos, active, setActive, commit }: { st: LabState; i
           )}
         </div>
       </div>
-    </section>
+    </aside>
   )
 }
 
@@ -643,10 +701,14 @@ export default function CnnShapes() {
 
   return (
     <LabPage id="cnn-shapes" quiz>
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:h-[calc(100dvh-170px)] lg:min-h-[640px] lg:grid-rows-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
-        <section className="flex min-h-0 min-w-0 flex-col rounded-[20px] border border-slate-200 bg-white px-4 pb-2 pt-3">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <h2 className="text-[15px] font-extrabold">{t('lab.cnn.volumes_title')}</h2>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:h-[calc(100dvh-170px)] lg:min-h-[640px] lg:grid-cols-[360px_minmax(0,1fr)]">
+        <LayersPanel
+          st={st}
+          infos={infos}
+          active={active}
+          setActive={setActive}
+          commit={commit}
+          example={
             <ExampleMenu
               value={preset}
               onPick={(id) => {
@@ -656,45 +718,49 @@ export default function CnnShapes() {
                 setActive(null)
               }}
             />
-            <ul className="ml-auto flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
-              {(['input', ...new Set(st.layers.map((l) => l.kind))] as string[]).map((k) => (
-                <li key={k} className="flex items-center gap-1.5">
-                  <i className="h-2.5 w-2.5 rounded-[3px] border" style={{ background: KIND_COL[k][1], borderColor: KIND_COL[k][2] }} />
-                  {k === 'input' ? t('lab.cnn.input_name') : t(`lab.cnn.kinds.${k}`)}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="h-[220px] min-h-0 lg:h-auto lg:flex-1">
-            <Volumes input={st.input} infos={infos} active={active} onPick={(i) => setActive(active === i ? null : i)} />
-          </div>
-        </section>
+          }
+        />
+        <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-rows-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+          <section className="flex min-h-0 min-w-0 flex-col rounded-[20px] border border-slate-200 bg-white px-4 pb-2 pt-3">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <h2 className="text-[15px] font-extrabold">{t('lab.cnn.volumes_title')}</h2>
+              <ul className="ml-auto flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
+                {(['input', ...new Set(st.layers.map((l) => l.kind))] as string[]).map((k) => (
+                  <li key={k} className="flex items-center gap-1.5">
+                    <i className="h-2.5 w-2.5 rounded-[3px] border" style={{ background: KIND_COL[k][1], borderColor: KIND_COL[k][2] }} />
+                    {k === 'input' ? t('lab.cnn.input_name') : t(`lab.cnn.kinds.${k}`)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="h-[220px] min-h-0 lg:h-auto lg:flex-1">
+              <Volumes input={st.input} infos={infos} active={active} onPick={(i) => setActive(active === i ? null : i)} />
+            </div>
+          </section>
 
-        <section className="flex min-h-0 min-w-0 flex-col gap-3 rounded-[20px] border border-slate-200 bg-white p-3">
-          <div className="flex items-center gap-3">
-            <div className="inline-flex rounded-[10px] bg-slate-100 p-[3px]" role="tablist" aria-label={t('lab.cnn.mode')}>
-              {(['code', 'table'] as const).map((m) => (
-                <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] ${mode === m ? 'bg-white font-bold text-slate-900 shadow-sm' : 'font-medium text-slate-500 hover:text-slate-800'}`}>
-                  {m === 'code' ? <Code2 size={14} aria-hidden /> : <Table2 size={14} aria-hidden />}
-                  {t(`lab.cnn.mode_${m}`)}
-                </button>
-              ))}
+          <section className="flex min-h-0 min-w-0 flex-col gap-3 rounded-[20px] border border-slate-200 bg-white p-3">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex rounded-[10px] bg-slate-100 p-[3px]" role="tablist" aria-label={t('lab.cnn.mode')}>
+                {(['code', 'table'] as const).map((m) => (
+                  <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] ${mode === m ? 'bg-white font-bold text-slate-900 shadow-sm' : 'font-medium text-slate-500 hover:text-slate-800'}`}>
+                    {m === 'code' ? <Code2 size={14} aria-hidden /> : <Table2 size={14} aria-hidden />}
+                    {t(`lab.cnn.mode_${m}`)}
+                  </button>
+                ))}
+              </div>
             </div>
-            <span className="ml-auto text-xs text-slate-500">
-              {t('lab.cnn.total')}: <b className="font-mono text-[13px] text-blue-700">{int(totalParams(infos))}</b>
-            </span>
-          </div>
-          {mode === 'code' ? (
-            <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-              <CodePanel st={st} active={active} onParsed={(s) => commit(s)} onHead={(h) => commit({ ...st, head: h })} canUndo={past.length > 0} onUndo={undo} />
-              <LayersPanel st={st} infos={infos} active={active} setActive={setActive} commit={commit} />
-            </div>
-          ) : (
-            <div className="min-h-0 flex-1">
-              <CalcTable st={st} infos={infos} />
-            </div>
-          )}
-        </section>
+            {mode === 'code' ? (
+              <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+                <CodePanel st={st} active={active} onParsed={(s) => commit(s)} onHead={(h) => commit({ ...st, head: h })} canUndo={past.length > 0} onUndo={undo} />
+                <ParamList st={st} infos={infos} active={active} setActive={setActive} />
+              </div>
+            ) : (
+              <div className="min-h-0 flex-1">
+                <CalcTable st={st} infos={infos} />
+              </div>
+            )}
+          </section>
+        </div>
       </div>
 
       <details className="group mt-4 rounded-[20px] border border-slate-200 bg-white">
