@@ -3,10 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { LayoutGrid, List, Search, Star } from 'lucide-react'
 import { LECTURES, MODULES, STARRED, lectureScope, moduleUrl } from '../../lib/sitemap'
 import type { ModuleInfo } from '../../lib/sitemap'
+import LabArt from '../LabArt'
 
-// Visualize: every lab as a card whose picture is a crop of its own core visualization.
-const THUMBS = import.meta.glob<string>('../../assets/thumbs/*.webp', { eager: true, import: 'default' })
-const thumbOf = (id: string) => THUMBS[`../../assets/thumbs/${id}.webp`]
+// Visualize: every lab as a card whose picture is a small drawing of what the lab is about.
 
 type View = 'grid' | 'chapters'
 const VIEW_KEY = 'knowcs-home-view'
@@ -26,7 +25,7 @@ function LabCard({ m, compact = false }: { m: ModuleInfo; compact?: boolean }) {
   return (
     <a href={moduleUrl(m.id)} className="group flex min-w-0 flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100">
       <div className="relative aspect-[8/5] border-b border-slate-200 bg-slate-100">
-        <img src={thumbOf(m.id)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+        <LabArt id={m.id} />
         {starred && (
           <span className="absolute left-2.5 top-2.5 grid h-[26px] w-[26px] place-items-center rounded-full bg-white shadow-md shadow-slate-900/20" title={t('site.home.starred')}>
             <Star size={15} className="fill-amber-500 text-amber-500" aria-hidden />
