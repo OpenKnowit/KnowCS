@@ -151,7 +151,8 @@ export const AlphaBetaModule = () => {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-5 rounded-[1.75rem] bg-slate-950 p-4 text-slate-100 sm:p-6">
+      {/* the dark board runs edge to edge under the page bar (cancels the page padding: px-4 / sm:px-6, pt-5) */}
+      <div className="-mx-4 -mt-5 space-y-5 bg-slate-950 px-4 py-5 text-slate-100 sm:-mx-6 sm:px-6 sm:py-6">
         {/* header: title + state legend */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">
