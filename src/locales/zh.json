@@ -1896,18 +1896,19 @@
       "mode_code": "代码",
       "mode_table": "计算表",
       "add_at": "位置",
-      "add_end": "末尾",
       "output_units": "单元数（类别数）",
       "output_no_dense": "最后一层不是 Dense，输出就是它的形状。",
-      "guide_title": "各层的作用",
+      "guide_title": "这个位置能放什么",
       "guide": {
-        "conv": "用卷积核在图像上滑动；filters 就是输出通道数。参数 (k·k·C_in + 1) × filters。",
-        "pool": "缩小高和宽（取最大或平均），通道数不变，没有参数。stride 默认等于 size。",
-        "globalpool": "每个通道压成一个数：h × w × c → c。这样后面的 Dense 就不受图像尺寸影响。",
-        "flatten": "把 h × w × c 展开成长度 h·w·c 的向量，没有参数。",
-        "dense": "每个输入连到每个单元。参数 (输入数 + 1) × units。输入必须是一维的。",
-        "dropout": "训练时随机关掉一部分数值；形状和参数都不变。",
-        "order": "常见顺序：Conv / Pool 若干块 → Flatten 或全局池化 → Dense → 最后一个 Dense（每类一个单元）。"
+        "at": "#{{n}} 的输入是 {{shape}}",
+        "conv": "kernel ≤ {{max}} + 2·padding，stride ≥ 1，filters ≥ 1",
+        "pool": "size ≤ {{max}} + 2·padding，stride ≥ 1（默认等于 size）",
+        "globalpool": "→ {{c}}，没有参数",
+        "flatten": "→ {{n}}，没有参数",
+        "dense": "units ≥ 1，参数 ({{n}} + 1) × units",
+        "dropout": "0 ≤ rate < 1，形状不变",
+        "need_3d": "需要 h × w × c 的输入",
+        "need_flat": "需要一维向量：先放 Flatten 或全局池化"
       }
     },
     "pytorch": {

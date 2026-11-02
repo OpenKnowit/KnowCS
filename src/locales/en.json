@@ -1895,19 +1895,20 @@
       "mode": "View",
       "mode_code": "Code",
       "mode_table": "Calculation table",
-      "add_at": "at",
-      "add_end": "end",
+      "add_at": "Position",
       "output_units": "units (classes)",
       "output_no_dense": "The last layer is not Dense, so the output is its shape.",
-      "guide_title": "Which layer does what",
+      "guide_title": "What fits at this position",
       "guide": {
-        "conv": "slides filters over the image; filters = output channels. Params (k·k·C_in + 1) × filters.",
-        "pool": "shrinks height and width (max or average), channels unchanged, no params. Stride defaults to the size.",
-        "globalpool": "one number per channel: h × w × c → c. Lets the next Dense layer ignore the image size.",
-        "flatten": "unrolls h × w × c into one vector of h·w·c numbers, no params.",
-        "dense": "every input to every unit. Params (inputs + 1) × units. Needs a flat input.",
-        "dropout": "switches off a fraction of values while training; shape and params unchanged.",
-        "order": "Usual order: Conv / Pool blocks → Flatten or Global pool → Dense → the last Dense (one unit per class)."
+        "at": "#{{n}} receives {{shape}}",
+        "conv": "kernel ≤ {{max}} + 2·padding, stride ≥ 1, filters ≥ 1",
+        "pool": "size ≤ {{max}} + 2·padding, stride ≥ 1 (default = size)",
+        "globalpool": "→ {{c}}, no parameters",
+        "flatten": "→ {{n}}, no parameters",
+        "dense": "units ≥ 1, params ({{n}} + 1) × units",
+        "dropout": "0 ≤ rate < 1, shape unchanged",
+        "need_3d": "needs an h × w × c input",
+        "need_flat": "needs a vector: put Flatten or Global pool first"
       }
     },
     "pytorch": {

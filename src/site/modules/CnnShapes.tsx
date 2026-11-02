@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, CircleHelp, Code2, Play, Table2, Undo2, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, CircleHelp, Code2, Play, Plus, Table2, Undo2, X } from 'lucide-react'
 import { analyse, totalParams, type Layer, type LayerInfo, type Padding, type Shape } from '../../lib/cnnShapes'
 import { kerasCode, kerasSummary, type Head } from '../../lib/keras'
 import { torchCode } from '../../lib/torchCode'
@@ -9,7 +9,7 @@ import { parseKeras, parseTorch } from '../../lib/cnnParse'
 import { outputSize } from '../../lib/conv2d'
 import { int } from '../format'
 import { CodeEditor } from '../playground/CodeEditor'
-import { Ans, Btn, LabPage, NumberField, Presets, Seg, Slider, Stat, TableWrap } from '../ui'
+import { Ans, LabPage, NumberField, Presets, Seg, Slider, Stat, TableWrap } from '../ui'
 
 const conv = (filters: number, k: number, stride = 1, pad: Padding = 0): Layer => ({ kind: 'conv', filters, k, stride, pad, bias: true })
 const pool = (k: number, stride = k, pad: Padding = 0): Layer => ({ kind: 'pool', k, stride, pad, op: 'max' })
@@ -466,37 +466,51 @@ function ParamList({ st, infos, active, setActive }: { st: LabState; infos: Laye
   )
 }
 
-/** The ? next to Add layer: what each layer does and where it may go. */
-function LayerGuide() {
+/** The ? in the add block: what may go at the chosen position, and which parameters are valid there. */
+function LayerGuide({ at, shape }: { at: number; shape: Shape }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const flat = shape.length !== 3
+  const n = shape.reduce((a, b) => a * b, 1)
+  const side = flat ? 0 : Math.min(shape[0], shape[1])
+  const rule = (k: Layer['kind']): { ok: boolean; text: string } => {
+    if (flat && (k === 'conv' || k === 'pool' || k === 'globalpool' || k === 'flatten')) return { ok: false, text: t('lab.cnn.guide.need_3d') }
+    if (!flat && k === 'dense') return { ok: false, text: t('lab.cnn.guide.need_flat') }
+    if (k === 'conv') return { ok: true, text: t('lab.cnn.guide.conv', { max: side }) }
+    if (k === 'pool') return { ok: true, text: t('lab.cnn.guide.pool', { max: side }) }
+    if (k === 'globalpool') return { ok: true, text: t('lab.cnn.guide.globalpool', { c: shape[2] }) }
+    if (k === 'flatten') return { ok: true, text: t('lab.cnn.guide.flatten', { n }) }
+    if (k === 'dense') return { ok: true, text: t('lab.cnn.guide.dense', { n }) }
+    return { ok: true, text: t('lab.cnn.guide.dropout') }
+  }
   return (
     <div className="relative">
-      <button type="button" aria-expanded={open} aria-label={t('lab.cnn.guide_title')} onClick={() => setOpen((o) => !o)} className="grid h-[34px] w-[34px] place-items-center rounded-[10px] border border-slate-300 bg-white text-slate-600 hover:border-blue-400 hover:text-blue-700">
+      <button type="button" aria-expanded={open} aria-label={t('lab.cnn.guide_title')} title={t('lab.cnn.guide_title')} onClick={() => setOpen((o) => !o)} className="grid h-[34px] w-[34px] place-items-center rounded-[10px] border border-slate-300 bg-white text-slate-600 hover:border-blue-400 hover:text-blue-700">
         <CircleHelp size={16} aria-hidden />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-          <div role="dialog" aria-label={t('lab.cnn.guide_title')} className="absolute bottom-full right-0 z-30 mb-2 max-h-[70vh] w-[340px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 text-[13px] leading-relaxed text-slate-700 shadow-xl shadow-slate-900/10">
-            <div className="mb-2 flex items-center justify-between">
-              <b className="text-[14px] text-slate-900">{t('lab.cnn.guide_title')}</b>
+          <div role="dialog" aria-label={t('lab.cnn.guide_title')} className="absolute bottom-full right-0 z-30 mb-2 w-[320px] rounded-2xl border border-slate-200 bg-white p-3.5 text-[13px] leading-snug text-slate-700 shadow-xl shadow-slate-900/10">
+            <div className="mb-2.5 flex items-center justify-between gap-2">
+              <b className="text-slate-900">{t('lab.cnn.guide.at', { n: at + 1, shape: shape.join('×') })}</b>
               <button type="button" aria-label={t('site.ui.close')} onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-700">
                 <X size={16} aria-hidden />
               </button>
             </div>
-            <ul className="grid gap-2">
-              {KINDS.map((k) => (
-                <li key={k} className="flex gap-2">
-                  <i className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: KIND_COL[k][2] }} />
-                  <span>
-                    <b>{t(`lab.cnn.kinds.${k}`)}</b> — {t(`lab.cnn.guide.${k}`)}
-                  </span>
-                </li>
-              ))}
+            <ul className="grid gap-1.5">
+              {KINDS.map((k) => {
+                const r = rule(k)
+                return (
+                  <li key={k} className={`flex gap-2 ${r.ok ? '' : 'opacity-55'}`}>
+                    <span className={`w-3 shrink-0 font-bold ${r.ok ? 'text-emerald-600' : 'text-rose-500'}`}>{r.ok ? '✓' : '✗'}</span>
+                    <span>
+                      <b>{t(`lab.cnn.kinds.${k}`)}</b> <span className="font-mono text-xs text-slate-600">{r.text}</span>
+                    </span>
+                  </li>
+                )
+              })}
             </ul>
-            <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-amber-950">{t('lab.cnn.guide.order')}</p>
-            <p className="mt-2 text-xs text-slate-500">{t('lab.cnn.keras_note')}</p>
           </div>
         </>
       )}
@@ -504,15 +518,16 @@ function LayerGuide() {
   )
 }
 
-/** The layer cards next to the code: input, every layer (open by default, ↑ ↓ ✕), add at a position, output. */
+/** The layer settings: input, every layer (open by default, ↑ ↓ ✕), output, then the add block. */
 function LayersPanel({ st, infos, active, setActive, commit, example }: { st: LabState; infos: LayerInfo[]; active: number | null; setActive: (i: number | null) => void; commit: (s: LabState) => void; example: ReactNode }) {
   const { t } = useTranslation()
   const { input, layers } = st
+  const OUT = -2 // the output card's key in `closed`
   const [closed, setClosed] = useState<Set<number>>(() => new Set())
   const [addKind, setAddKind] = useState<Layer['kind']>('conv')
-  const [addAt, setAddAt] = useState<number | null>(null) // null = at the end
+  const [addAt, setAddAt] = useState(-1) // -1 = after the last layer
   const [hoverAdd, setHoverAdd] = useState(false)
-  const at = addAt === null || addAt > layers.length ? layers.length : addAt
+  const at = addAt < 0 || addAt > layers.length ? layers.length : addAt
   const allOpen = closed.size === 0
   const setLayers = (next: Layer[]) => commit({ ...st, layers: next })
   const move = (i: number, j: number) => {
@@ -521,42 +536,50 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
     setLayers(n)
     setActive(j)
   }
-  const toggle = (i: number) => setClosed((c) => {
-    const n = new Set(c)
-    if (n.has(i)) n.delete(i)
-    else n.add(i)
-    return n
-  })
+  const toggle = (i: number) =>
+    setClosed((c) => {
+      const n = new Set(c)
+      if (n.has(i)) n.delete(i)
+      else n.add(i)
+      return n
+    })
   const last = layers[layers.length - 1]
   const out = infos.length ? infos[infos.length - 1].output : input
+  const shapeAt = at === 0 ? input : infos[at - 1].output
   const iconBtn = 'grid h-6 w-6 place-items-center rounded text-slate-500 hover:bg-white disabled:opacity-30'
-  const gap = (i: number) => hoverAdd && at === i && <div aria-hidden className="h-1 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />
+  const marker = (i: number) => hoverAdd && at === i && <div aria-hidden className="h-1 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />
+  const card = (on: boolean, err = false) => `rounded-xl border p-2 ${err ? 'border-rose-300 bg-rose-50/70' : on ? 'border-blue-400 bg-blue-50/60' : 'border-slate-200 bg-slate-50'}`
+  const head = (key: number, label: ReactNode, color: string, right: ReactNode, actions?: ReactNode) => (
+    <div className="flex min-w-0 items-center gap-1.5">
+      <button type="button" aria-expanded={!closed.has(key)} aria-label={t(closed.has(key) ? 'site.ui.expand_all' : 'site.ui.collapse_all')} onClick={() => toggle(key)} className="grid h-6 w-6 shrink-0 place-items-center rounded hover:bg-white">
+        <Chevron open={!closed.has(key)} />
+      </button>
+      <button type="button" onClick={() => key > -2 && setActive(active === key ? null : key)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+        <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: color }} />
+        <b className="truncate text-[13px]">{label}</b>
+        <span className="ml-auto shrink-0 font-mono text-xs text-slate-600">{right}</span>
+      </button>
+      {actions}
+    </div>
+  )
   return (
     <aside className="flex min-h-[320px] min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white lg:min-h-0">
-      <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
-        <h2 className="text-[15px] font-extrabold">{t('lab.cnn.layers')}</h2>
+      <div className="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2.5">
+        <h2 className="mr-auto text-[15px] font-extrabold">{t('lab.cnn.layers')}</h2>
         {example}
         <button
           type="button"
-          onClick={() => setClosed(allOpen ? new Set(layers.map((_, i) => i).concat(-1)) : new Set())}
-          className="ml-auto flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:border-slate-300 hover:text-slate-900"
+          onClick={() => setClosed(allOpen ? new Set([-1, OUT, ...layers.map((_, i) => i)]) : new Set())}
+          aria-label={t(allOpen ? 'site.ui.collapse_all' : 'site.ui.expand_all')}
+          title={t(allOpen ? 'site.ui.collapse_all' : 'site.ui.expand_all')}
+          className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
         >
-          {allOpen ? <ChevronsDownUp size={13} aria-hidden /> : <ChevronsUpDown size={13} aria-hidden />}
-          {t(allOpen ? 'site.ui.collapse_all' : 'site.ui.expand_all')}
+          {allOpen ? <ChevronsDownUp size={15} aria-hidden /> : <ChevronsUpDown size={15} aria-hidden />}
         </button>
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] content-start gap-2 overflow-y-auto p-3">
-        <div className={`rounded-xl border p-2 ${active === -1 ? 'border-blue-400 bg-blue-50/60' : 'border-slate-200 bg-slate-50'}`}>
-          <div className="flex items-center gap-2">
-            <button type="button" aria-expanded={!closed.has(-1)} aria-label={t(closed.has(-1) ? 'site.ui.expand_all' : 'site.ui.collapse_all')} onClick={() => toggle(-1)} className="grid h-6 w-6 place-items-center rounded hover:bg-white">
-              <Chevron open={!closed.has(-1)} />
-            </button>
-            <button type="button" onClick={() => setActive(active === -1 ? null : -1)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-              <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: KIND_COL.input[2] }} />
-              <b className="text-[13px]">{t('lab.cnn.input_title')}</b>
-              <span className="ml-auto font-mono text-xs text-slate-600">{input.join('×')}</span>
-            </button>
-          </div>
+        <div className={card(active === -1)}>
+          {head(-1, t('lab.cnn.input_name'), KIND_COL.input[2], input.join('×'))}
           {!closed.has(-1) && (
             <div className="mt-1.5 grid grid-cols-3 gap-1.5">
               {['height', 'width', 'channels'].map((name, i) => (
@@ -577,30 +600,22 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
         </div>
         {layers.map((l, i) => {
           const info = infos[i]
-          const on = active === i
           const open = !closed.has(i)
           return (
-            <div key={i} className="grid gap-2">
-              {gap(i)}
-              <div className={`rounded-xl border p-2 ${info.error ? 'border-rose-300 bg-rose-50/70' : on ? 'border-blue-400 bg-blue-50/60' : 'border-slate-200 bg-slate-50'}`}>
-                <div className="flex items-center gap-2">
-                  <button type="button" aria-expanded={open} aria-label={t(open ? 'site.ui.collapse_all' : 'site.ui.expand_all')} onClick={() => toggle(i)} className="grid h-6 w-6 shrink-0 place-items-center rounded hover:bg-white">
-                    <Chevron open={open} />
-                  </button>
-                  <button type="button" onClick={() => setActive(on ? null : i)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                    <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: KIND_COL[l.kind][2] }} />
-                    <b className="truncate text-[13px]">
-                      {i + 1}. {t(`lab.cnn.kinds.${l.kind}`)}
-                    </b>
-                    {!open && <span className="truncate text-xs text-slate-500">{layerNote(l)}</span>}
-                    <span className={`ml-auto shrink-0 font-mono text-xs ${info.error ? 'text-rose-600' : 'text-slate-600'}`}>{info.error ? '!' : info.output.join('×')}</span>
-                  </button>
+            <div key={i} className="grid grid-cols-[minmax(0,1fr)] gap-2">
+              {marker(i)}
+              <div className={card(active === i, !!info.error)}>
+                {head(
+                  i,
+                  `${i + 1}. ${t(`lab.cnn.kinds.${l.kind}`)}`,
+                  KIND_COL[l.kind][2],
+                  <span className={info.error ? 'text-rose-600' : ''}>{info.error ? '!' : info.output.join('×')}</span>,
                   <span className="flex shrink-0">
                     <button type="button" aria-label={t('lab.cnn.move_up')} disabled={i === 0} onClick={() => move(i, i - 1)} className={iconBtn}>↑</button>
                     <button type="button" aria-label={t('lab.cnn.move_down')} disabled={i === layers.length - 1} onClick={() => move(i, i + 1)} className={iconBtn}>↓</button>
                     <button type="button" aria-label={t('lab.cnn.remove')} onClick={() => { setLayers(layers.filter((_, j) => j !== i)); setActive(null) }} className={`${iconBtn} text-rose-600`}>✕</button>
-                  </span>
-                </div>
+                  </span>,
+                )}
                 {open && (l.kind === 'conv' || l.kind === 'pool' || l.kind === 'dense' || info.error) && (
                   <div className="mt-1.5" onFocus={() => setActive(i)}>
                     <LayerEditor layer={l} onChange={(nl) => setLayers(layers.map((x, j) => (j === i ? nl : x)))} />
@@ -611,8 +626,25 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
             </div>
           )
         })}
-        {gap(layers.length)}
-        <div className="flex flex-wrap items-center gap-1.5 py-1">
+        {marker(layers.length)}
+        <div className={card(false)}>
+          {head(OUT, t('lab.cnn.output_name'), '#0f172a', out.join('×'))}
+          {!closed.has(OUT) &&
+            (last?.kind === 'dense' ? (
+              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                <NumberField label={t('lab.cnn.output_units')} value={st.head === 'regress' ? 1 : last.units} min={1} onChange={(v) => setLayers(layers.map((x, j) => (j === layers.length - 1 ? { ...last, units: Math.max(1, Math.round(v)) } : x)))} />
+              </div>
+            ) : (
+              <p className="mt-1 px-1 text-xs text-slate-500">{t('lab.cnn.output_no_dense')}</p>
+            ))}
+        </div>
+        <div
+          className={`flex items-center gap-1.5 rounded-xl border border-dashed p-2 transition ${hoverAdd ? 'border-blue-400 bg-blue-50/50' : 'border-slate-300'}`}
+          onMouseEnter={() => setHoverAdd(true)}
+          onMouseLeave={() => setHoverAdd(false)}
+          onFocus={() => setHoverAdd(true)}
+          onBlur={() => setHoverAdd(false)}
+        >
           <select value={addKind} onChange={(e) => setAddKind(e.target.value as Layer['kind'])} aria-label={t('lab.cnn.add')} className="min-w-0 flex-1 rounded-[10px] border border-slate-300 bg-white px-2 py-1.5 text-sm">
             {KINDS.map((k) => (
               <option key={k} value={k}>
@@ -620,43 +652,31 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-1 text-xs text-slate-500" onMouseEnter={() => setHoverAdd(true)} onMouseLeave={() => setHoverAdd(false)}>
-            {t('lab.cnn.add_at')}
-            <select value={addAt === null ? 'end' : String(at)} onChange={(e) => setAddAt(e.target.value === 'end' ? null : Number(e.target.value))} onFocus={() => setHoverAdd(true)} onBlur={() => setHoverAdd(false)} className="rounded-[10px] border border-slate-300 bg-white px-1.5 py-1.5 font-mono text-sm text-slate-800">
+          <label className="flex items-center gap-1 font-mono text-sm text-slate-500">
+            #
+            <select value={addAt < 0 ? -1 : at} onChange={(e) => setAddAt(Number(e.target.value))} aria-label={t('lab.cnn.add_at')} className="rounded-[10px] border border-slate-300 bg-white px-1.5 py-1.5 font-mono text-sm text-slate-800">
               {layers.map((_, i) => (
                 <option key={i} value={i}>
-                  #{i + 1}
+                  {i + 1}
                 </option>
               ))}
-              <option value="end">{t('lab.cnn.add_end')}</option>
+              <option value={-1}>-1</option>
             </select>
           </label>
-          <span onMouseEnter={() => setHoverAdd(true)} onMouseLeave={() => setHoverAdd(false)} onFocus={() => setHoverAdd(true)} onBlur={() => setHoverAdd(false)}>
-            <Btn
-              onClick={() => {
-                setLayers([...layers.slice(0, at), newLayer(addKind), ...layers.slice(at)])
-                setActive(at)
-                setClosed((c) => new Set([...c].map((j) => (j >= at ? j + 1 : j))))
-              }}
-            >
-              + {t('lab.cnn.add')}
-            </Btn>
-          </span>
-          <LayerGuide />
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-2">
-          <div className="flex items-center gap-2 px-1">
-            <b className="text-[13px]">{t('lab.cnn.output_name')}</b>
-            <span className="ml-auto font-mono text-xs text-slate-700">{out.join('×')}</span>
-          </div>
-          {last?.kind === 'dense' ? (
-            <div className="mt-1.5 grid grid-cols-2 items-end gap-2">
-              <NumberField label={t('lab.cnn.output_units')} value={st.head === 'regress' ? 1 : last.units} min={1} onChange={(v) => setLayers(layers.map((x, j) => (j === layers.length - 1 ? { ...last, units: Math.max(1, Math.round(v)) } : x)))} />
-              <span className="pb-1.5 text-xs text-slate-500">{t(`lab.cnn.head_${st.head}_note`)}</span>
-            </div>
-          ) : (
-            <p className="mt-1 px-1 text-xs text-slate-500">{t('lab.cnn.output_no_dense')}</p>
-          )}
+          <button
+            type="button"
+            aria-label={t('lab.cnn.add')}
+            title={t('lab.cnn.add')}
+            onClick={() => {
+              setLayers([...layers.slice(0, at), newLayer(addKind), ...layers.slice(at)])
+              setActive(at)
+              setClosed((c) => new Set([...c].map((j) => (j >= at ? j + 1 : j))))
+            }}
+            className="grid h-[34px] w-[34px] place-items-center rounded-[10px] bg-blue-600 text-white hover:bg-blue-700"
+          >
+            <Plus size={17} aria-hidden />
+          </button>
+          <LayerGuide at={at} shape={shapeAt} />
         </div>
       </div>
     </aside>

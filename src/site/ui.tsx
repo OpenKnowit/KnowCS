@@ -350,16 +350,24 @@ export function Slider({ label, value, min, max, step, onChange, display }: { la
 }
 
 export function NumberField({ label, value, onChange, step = 1, min, max, className = '' }: { label: ReactNode; value: number; onChange: (v: number) => void; step?: number; min?: number; max?: number; className?: string }) {
+  // what the box shows while it is being edited: it may be empty or out of range for a moment ("" while
+  // replacing the last digit); the last valid number is what the page uses, and leaving the box shows it again
+  const [text, setText] = useState<string | null>(null)
   return (
     <label className={`grid gap-1 ${className}`}>
       <span className="text-xs font-bold text-slate-500">{label}</span>
       <input
         type="number"
-        value={Number.isFinite(value) ? value : ''}
+        value={text ?? (Number.isFinite(value) ? value : '')}
         step={step}
         min={min}
         max={max}
-        onChange={(e) => e.target.value !== '' && onChange(Number(e.target.value))}
+        onChange={(e) => {
+          setText(e.target.value)
+          const v = Number(e.target.value)
+          if (e.target.value.trim() !== '' && Number.isFinite(v)) onChange(v)
+        }}
+        onBlur={() => setText(null)}
         className="w-full rounded-[10px] border border-slate-300 bg-white px-2.5 py-1.5 font-mono text-sm outline-none focus:ring-2 focus:ring-blue-300"
       />
     </label>

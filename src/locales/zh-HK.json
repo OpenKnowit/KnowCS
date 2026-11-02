@@ -1896,18 +1896,19 @@
       "mode_code": "程式碼",
       "mode_table": "計算表",
       "add_at": "位置",
-      "add_end": "末尾",
       "output_units": "單元數（類別數）",
       "output_no_dense": "最後一層不是 Dense，輸出就是它的形狀。",
-      "guide_title": "各層的作用",
+      "guide_title": "這個位置能放什麼",
       "guide": {
-        "conv": "用卷積核在圖像上滑動；filters 就是輸出通道數。參數 (k·k·C_in + 1) × filters。",
-        "pool": "縮小高和寬（取最大或平均），通道數不變，沒有參數。stride 預設等於 size。",
-        "globalpool": "每個通道壓成一個數：h × w × c → c。這樣後面的 Dense 就不受圖像尺寸影響。",
-        "flatten": "把 h × w × c 展開成長度 h·w·c 的向量，沒有參數。",
-        "dense": "每個輸入連到每個單元。參數 (輸入數 + 1) × units。輸入必須是一維的。",
-        "dropout": "訓練時隨機關掉一部分數值；形狀和參數都不變。",
-        "order": "常見順序：Conv / Pool 若干塊 → Flatten 或全局池化 → Dense → 最後一個 Dense（每類一個單元）。"
+        "at": "#{{n}} 的輸入是 {{shape}}",
+        "conv": "kernel ≤ {{max}} + 2·padding，stride ≥ 1，filters ≥ 1",
+        "pool": "size ≤ {{max}} + 2·padding，stride ≥ 1（預設等於 size）",
+        "globalpool": "→ {{c}}，沒有參數",
+        "flatten": "→ {{n}}，沒有參數",
+        "dense": "units ≥ 1，參數 ({{n}} + 1) × units",
+        "dropout": "0 ≤ rate < 1，形狀不變",
+        "need_3d": "需要 h × w × c 的輸入",
+        "need_flat": "需要一維向量：先放 Flatten 或全局池化"
       }
     },
     "pytorch": {
