@@ -974,7 +974,8 @@
       "traced_other": "追踪了 {{count}} 步",
       "visual_failed": "这一步画不出来——下面的输出仍然是对的。",
       "clear": "清空",
-      "resize_output": "调整可视化区和输出区的高度"
+      "resize_output": "调整可视化区和输出区的高度",
+      "back": "返回"
     },
     "resources": {
       "tab_title": "资源",

@@ -974,7 +974,8 @@
       "traced_other": "{{count}} steps traced",
       "visual_failed": "This step cannot be drawn — the output below is still right.",
       "clear": "Clear",
-      "resize_output": "Resize the visual and output panes"
+      "resize_output": "Resize the visual and output panes",
+      "back": "Back"
     },
     "resources": {
       "tab_title": "Resources",

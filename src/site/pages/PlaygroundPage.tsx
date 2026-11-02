@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ArrowLeft } from 'lucide-react'
 import { LIBS, entryFromHash, libFromHash, loadSpec, loadWorkbench, playgroundHash } from '../playground/libs'
 import type { LibId } from '../playground/libs'
 import type { Specs } from '../playground/Workbench'
@@ -21,9 +22,25 @@ export default function PlaygroundPage() {
     const code = new URLSearchParams(window.location.search).get('code')
     return code ? { lib: libFromHash(), code } : null
   })
+  // …and the page it came from (?from=/cnn-shapes/), for the back button; only paths on this site
+  const [from] = useState<string | null>(() => {
+    const f = new URLSearchParams(window.location.search).get('from')
+    return f && /^\/(?!\/)/.test(f) ? f : null
+  })
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has('code')) history.replaceState(null, '', window.location.pathname + window.location.hash)
+    if (window.location.search) history.replaceState(null, '', window.location.pathname + window.location.hash)
   }, [])
+  const back = () => {
+    // the browser's back keeps the lab page as it was left (its edits); a fresh tab has nothing to go back to
+    let sameSite = false
+    try {
+      sameSite = !!document.referrer && new URL(document.referrer).origin === window.location.origin && new URL(document.referrer).pathname === from
+    } catch {
+      sameSite = false
+    }
+    if (sameSite && history.length > 1) history.back()
+    else window.location.assign(from!)
+  }
   useEffect(() => {
     document.title = `${t('site.playground.title')} · KnowCS`
   }, [t])
@@ -81,6 +98,17 @@ export default function PlaygroundPage() {
           </div>
         )}
       </div>
+      {from && (
+        <button
+          type="button"
+          onClick={back}
+          title={from}
+          className="fixed bottom-12 left-4 z-40 flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-bold text-slate-700 shadow-lg shadow-slate-900/10 hover:border-blue-300 hover:text-blue-700"
+        >
+          <ArrowLeft size={15} aria-hidden />
+          {t('site.playground.back')}
+        </button>
+      )}
       {mod && gallery && (
         <mod.Gallery
           lib={shown.lib}

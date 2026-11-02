@@ -278,7 +278,7 @@ function CodePanel({ st, active, onParsed, onHead, canUndo, onUndo }: { st: LabS
     const [h, w, c] = input
     return /print\s*\(/.test(text) ? text : `${text}\n\nx = torch.randn(1, ${c}, ${h}, ${w})\nprint(model(x).shape)`
   })()
-  const href = `/playground/?code=${encodeURIComponent(run)}#${fw === 'keras' ? 'keras' : 'pytorch'}`
+  const href = `/playground/?code=${encodeURIComponent(run)}&from=${encodeURIComponent(window.location.pathname)}#${fw === 'keras' ? 'keras' : 'pytorch'}`
   const tab = (f: Fw) => `px-3 py-2 text-[13px] font-bold ${fw === f ? 'border-b-2 border-sky-400 text-white' : 'border-b-2 border-transparent text-slate-400 hover:text-slate-200'}`
   return (
     <section className="flex min-h-[320px] min-w-0 flex-col overflow-hidden rounded-2xl bg-slate-900 lg:min-h-0">
@@ -689,13 +689,31 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
   )
 }
 
+const SAVE_KEY = 'knowcs-cnn-shapes'
+const saved = (): { st: LabState; preset: string | null; mode: 'code' | 'table' } | null => {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(SAVE_KEY) ?? 'null')
+    return v && Array.isArray(v.st?.input) && Array.isArray(v.st?.layers) && (v.st.head === 'classify' || v.st.head === 'regress') ? v : null
+  } catch {
+    return null
+  }
+}
+
 export default function CnnShapes() {
   const { t } = useTranslation()
-  const [preset, setPreset] = useState<string | null>('stem')
-  const [st, setSt] = useState<LabState>({ input: PRESETS[2].input, layers: PRESETS[2].layers, head: 'classify' })
+  const [preset, setPreset] = useState<string | null>(() => saved()?.preset ?? 'stem')
+  const [st, setSt] = useState<LabState>(() => saved()?.st ?? { input: PRESETS[2].input, layers: PRESETS[2].layers, head: 'classify' })
   const [past, setPast] = useState<LabState[]>([])
   const [active, setActive] = useState<number | null>(null)
-  const [mode, setMode] = useState<'code' | 'table'>('code')
+  const [mode, setMode] = useState<'code' | 'table'>(() => saved()?.mode ?? 'code')
+  // kept for this tab, so coming back from Run in Playground (or a reload) shows the network as it was left
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(SAVE_KEY, JSON.stringify({ st, preset, mode }))
+    } catch {
+      // storage off: the lab just starts fresh next time
+    }
+  }, [st, preset, mode])
   const infos = analyse(st.input, st.layers)
 
   const commit = (next: LabState) => {
