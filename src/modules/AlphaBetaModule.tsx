@@ -139,14 +139,14 @@ export const AlphaBetaModule = () => {
     return { evaluated: AB_LEAF_IDS.length - prunedLeaves, prunedLeaves, total: AB_LEAF_IDS.length }
   }, [steps])
 
-  const mathBoxClass = step.type === 'prune' ? 'border-rose-300 bg-rose-50' : step.type === 'leaf_eval' || step.type === 'update' ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50'
+  const mathBoxClass = step.type === 'prune' ? 'border-rose-300 bg-rose-50' : step.type === 'leaf_eval' || step.type === 'update' ? 'border-violet-300 bg-violet-50' : 'border-slate-200 bg-slate-50'
   const panel = 'rounded-[20px] border border-slate-200 bg-white'
   const heading = 'flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-700'
   const STEP_TONE: Record<AbStep['type'], string> = {
     enter: 'bg-blue-100 text-blue-700',
     traverse: 'bg-slate-100 text-slate-600',
-    leaf_eval: 'bg-emerald-100 text-emerald-700',
-    update: 'bg-emerald-100 text-emerald-700',
+    leaf_eval: 'bg-violet-100 text-violet-700',
+    update: 'bg-violet-100 text-violet-700',
     prune: 'bg-rose-100 text-rose-700',
     exit: 'bg-amber-100 text-amber-800',
   }
@@ -164,7 +164,7 @@ export const AlphaBetaModule = () => {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            {[['bg-emerald-500', 'visited'], ['bg-blue-500', 'active'], ['bg-rose-500', 'pruned']].map(([c, k]) => (
+            {[['bg-violet-500', 'visited'], ['bg-blue-500', 'active'], ['bg-rose-500', 'pruned']].map(([c, k]) => (
               <span key={k} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-700"><span className={`h-2.5 w-2.5 rounded-full ${c}`} />{t(`alphabeta.legend.${k}`)}</span>
             ))}
           </div>
@@ -204,7 +204,7 @@ export const AlphaBetaModule = () => {
               <div className="absolute right-4 top-4 z-10 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white/90 p-3 text-[11px] text-slate-600 backdrop-blur">
                 <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-blue-500" />{t('alphabeta.layers.max')}</span>
                 <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-amber-500" />{t('alphabeta.layers.min')}</span>
-                <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-emerald-500" />{t('alphabeta.layers.leaf')}</span>
+                <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-violet-500" />{t('alphabeta.layers.leaf')}</span>
               </div>
               <svg viewBox="0 0 1000 470" className="mt-10 h-auto max-h-[460px] w-full" role="img" aria-label={t('alphabeta.tree_label')}>
                 <defs>
@@ -225,7 +225,7 @@ export const AlphaBetaModule = () => {
                   let dash = '0'
                   if (isPruned) { stroke = '#e11d48'; width = 2.5; dash = '6,5' }
                   else if (isActive) { stroke = '#2563eb'; width = 6 }
-                  else if (isVisited) { stroke = '#059669'; width = 4 }
+                  else if (isVisited) { stroke = '#7c3aed'; width = 4 }
                   return (
                     <g key={key}>
                       <line x1={p.x} y1={p.y} x2={c.x} y2={c.y} stroke={stroke} strokeWidth={width} strokeDasharray={dash} markerEnd="url(#ab-arrow)" />
@@ -251,7 +251,7 @@ export const AlphaBetaModule = () => {
                   let text = '#334155'
                   if (isPruned) { fill = '#fff1f2'; stroke = '#e11d48'; text = '#be123c' }
                   else if (isActive) { fill = '#2563eb'; stroke = '#1d4ed8'; text = '#ffffff' }
-                  else if (isVisited) { fill = '#d1fae5'; stroke = '#059669'; text = '#065f46' }
+                  else if (isVisited) { fill = '#ede9fe'; stroke = '#7c3aed'; text = '#5b21b6' }
   
                   if (node.type === 'leaf') {
                     return (
@@ -299,13 +299,13 @@ export const AlphaBetaModule = () => {
                       <g transform={`translate(${node.x}, ${node.y + (isMax ? -40 : -34)})`}>
                         <rect x={-56} y={-12} width={112} height={21} rx={6} fill="#ffffff" stroke="#cbd5e1" />
                         <text textAnchor="middle" dy={3} fontSize={10.5} fontWeight={700} fontFamily="monospace">
-                          <tspan fill="#047857">α:{fmt(a)}</tspan> <tspan fill="#b45309">β:{fmt(b)}</tspan>
+                          <tspan fill="#6d28d9">α:{fmt(a)}</tspan> <tspan fill="#b45309">β:{fmt(b)}</tspan>
                         </text>
                       </g>
                       <text x={node.x + 32} y={node.y + 2} fontSize={11} fontFamily="monospace" fill="#475569" fontWeight={700}>{node.id}</text>
                       {value !== null && (
                         <g transform={`translate(${node.x}, ${node.y + (isMax ? 34 : 40)})`}>
-                          <rect x={-15} y={-10} width={30} height={18} rx={5} fill="#10b981" />
+                          <rect x={-15} y={-10} width={30} height={18} rx={5} fill="#8b5cf6" />
                           <text textAnchor="middle" dy={3} fontSize={11} fontWeight="bold" fill="white">{value}</text>
                         </g>
                       )}
@@ -337,19 +337,19 @@ export const AlphaBetaModule = () => {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-4 text-center">
-                <div><p className="text-[10px] uppercase text-slate-500">{t('alphabeta.evaluated')}</p><p className="text-xl font-black text-emerald-600">{counts.evaluated}/{counts.total}</p></div>
+                <div><p className="text-[10px] uppercase text-slate-500">{t('alphabeta.evaluated')}</p><p className="text-xl font-black text-violet-600">{counts.evaluated}/{counts.total}</p></div>
                 <div><p className="text-[10px] uppercase text-slate-500">{t('alphabeta.pruned')}</p><p className="text-xl font-black text-rose-600">{counts.prunedLeaves}</p></div>
               </div>
             </div>
 
             <div className="flex min-h-[260px] flex-1 flex-col rounded-[20px] border border-slate-200 bg-white p-5">
-              <h3 className={`${heading} border-b border-slate-200 pb-3`}><FileText size={15} className="text-emerald-600" aria-hidden /> {t('alphabeta.detail')}</h3>
+              <h3 className={`${heading} border-b border-slate-200 pb-3`}><FileText size={15} className="text-violet-600" aria-hidden /> {t('alphabeta.detail')}</h3>
               <div className="flex flex-1 flex-col justify-between gap-4 pt-4">
                 <p className="text-sm leading-relaxed text-slate-700" aria-live="polite">{explanation}</p>
                 <div className={`flex flex-col gap-2 rounded-xl border p-3.5 transition-colors ${mathBoxClass}`}>
                   <div className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{t('alphabeta.range_label')}</div>
                   <div className="flex items-center justify-around font-mono text-xs">
-                    <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-500">α ({t('alphabeta.lower')})</span><span className="text-base font-bold text-emerald-600">{fmt(step.alpha)}</span></div>
+                    <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-500">α ({t('alphabeta.lower')})</span><span className="text-base font-bold text-violet-600">{fmt(step.alpha)}</span></div>
                     <div className="text-lg text-slate-500" aria-hidden>|</div>
                     <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-500">β ({t('alphabeta.upper')})</span><span className="text-base font-bold text-amber-600">{fmt(step.beta)}</span></div>
                   </div>
