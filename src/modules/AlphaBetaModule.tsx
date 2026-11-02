@@ -255,12 +255,12 @@ export const AlphaBetaModule = () => {
   
                   if (node.type === 'leaf') {
                     return (
-                      <g key={node.id} className="cursor-pointer" onClick={() => setEditing(node.id)}>
+                      <g key={node.id} className="cursor-pointer [&:hover>circle]:stroke-blue-500" onClick={() => setEditing(node.id)}>
                         <circle cx={node.x} cy={node.y} r={22} fill={fill} stroke={stroke} strokeWidth={3} strokeDasharray={isPruned ? '5,4' : undefined} />
-                        <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#be123c' : isActive ? '#ffffff' : '#0f172a'}>{node.value}</text>
+                        {editing !== node.id && <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#be123c' : isActive ? '#ffffff' : '#0f172a'}>{node.value}</text>}
                         <text x={node.x + 28} y={node.y + 4} fontSize={11} fontFamily="monospace" fill="#475569" fontWeight={700}>{node.id}</text>
                         {editing === node.id && (
-                          <foreignObject x={node.x - 30} y={node.y - 17} width={60} height={34} onClick={(e) => e.stopPropagation()}>
+                          <foreignObject x={node.x - 22} y={node.y - 22} width={44} height={44} onClick={(e) => e.stopPropagation()}>
                             <input
                               type="number"
                               min={0}
@@ -281,7 +281,7 @@ export const AlphaBetaModule = () => {
                                 if (e.currentTarget.value.trim() !== '' && Number.isFinite(n)) setLeaf(node.id, Math.max(0, Math.min(20, Math.round(n))))
                                 setEditing(null)
                               }}
-                              className="h-full w-full rounded-full border-2 border-blue-600 bg-white text-center font-mono text-[15px] font-extrabold text-slate-900 outline-none ring-4 ring-blue-200 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              className="block h-full w-full rounded-full border-[3px] border-blue-600 bg-white p-0 text-center text-[14px] font-extrabold text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                             />
                           </foreignObject>
                         )}
