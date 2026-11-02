@@ -548,7 +548,8 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
   const out = infos.length ? infos[infos.length - 1].output : input
   const shapeAt = at === 0 ? input : infos[at - 1].output
   const iconBtn = 'grid h-6 w-6 place-items-center rounded text-slate-500 hover:bg-white disabled:opacity-30'
-  const marker = (i: number) => hoverAdd && at === i && <div aria-hidden className="h-1 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />
+  // floats in the gap above card i, so showing it never moves the add block out from under the pointer
+  const marker = (i: number) => hoverAdd && at === i && <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-[6px] h-1 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />
   const card = (on: boolean, err = false) => `rounded-xl border p-2 ${err ? 'border-rose-300 bg-rose-50/70' : on ? 'border-blue-400 bg-blue-50/60' : 'border-slate-200 bg-slate-50'}`
   const head = (key: number, label: ReactNode, color: string, right: ReactNode, actions?: ReactNode) => (
     <div className="flex min-w-0 items-center gap-1.5">
@@ -567,7 +568,6 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
     <aside className="relative z-10 flex min-h-[320px] min-w-0 flex-col rounded-[20px] border border-slate-200 bg-white lg:min-h-0">
       <div className="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2.5">
         <h2 className="mr-auto text-[15px] font-extrabold">{t('lab.cnn.layers')}</h2>
-        {example}
         <button
           type="button"
           onClick={() => setClosed(allOpen ? new Set([-1, OUT, ...layers.map((_, i) => i)]) : new Set())}
@@ -577,6 +577,7 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
         >
           {allOpen ? <ChevronsDownUp size={15} aria-hidden /> : <ChevronsUpDown size={15} aria-hidden />}
         </button>
+        {example}
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] content-start gap-2 overflow-y-auto p-3">
         <div className={card(active === -1)}>
@@ -603,7 +604,7 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
           const info = infos[i]
           const open = !closed.has(i)
           return (
-            <div key={i} className="grid grid-cols-[minmax(0,1fr)] gap-2">
+            <div key={i} className="relative grid grid-cols-[minmax(0,1fr)]">
               {marker(i)}
               <div className={card(active === i, !!info.error)}>
                 {head(
@@ -627,8 +628,8 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
             </div>
           )
         })}
-        {marker(layers.length)}
-        <div className={card(false)}>
+        <div className={`relative ${card(false)}`}>
+          {marker(layers.length)}
           {head(OUT, t('lab.cnn.output_name'), KIND_COL.output[2], out.join('×'))}
           {!closed.has(OUT) &&
             (last?.kind === 'dense' ? (
