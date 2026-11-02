@@ -168,17 +168,20 @@ const LayerStack = ({ ev, active, onActive }: { ev: PyEvent & { type: 'flow' }; 
     const f = d.reduce((a, x) => a * x, 1)
     return { kind: 'bar' as const, H: Math.max(22, Math.min(124, 10 + 10 * Math.log2(Math.max(f, 1)))), D: 12, label: d.join('×'), wDepth: 6, wh: f }
   })
-  const GAP = 46
+  // Each block owns a column as wide as its widest text (shape, name, params), and the arrow to the next block is
+  // long enough for its tag (ReLU·Dropout), so no two labels can run into each other.
   const TOP = 22
   const maxH = Math.max(...geo.map((g) => g.H + g.wDepth))
   const base = TOP + maxH
-  let x = 12
-  const xs = geo.map((g) => {
-    const at = x
-    x += g.D + g.wDepth + Math.max(GAP, g.label.length * 6.4 - g.D - g.wDepth + 14)
-    return at
+  const names = blocks.map((b) => clip(b.name.replace(/\s*\(.*\)$/, ''), 14))
+  const tags = blocks.map((b) => clip(b.tags.join('·'), 16))
+  const half = geo.map((g, i) => Math.max(g.D + g.wDepth, g.label.length * 6.9, names[i].length * 6.2, blocks[i].params > 0 ? `${short(blocks[i].params)} p`.length * 5.9 : 0) / 2)
+  const centers: number[] = []
+  geo.forEach((_, i) => {
+    centers.push(i === 0 ? 12 + half[0] : centers[i - 1] + half[i - 1] + Math.max(30, tags[i - 1] ? tags[i - 1].length * 6 + 18 : 0) + half[i])
   })
-  const W = x - GAP + 24
+  const xs = geo.map((g, i) => centers[i] - (g.D + g.wDepth) / 2)
+  const W = centers[centers.length - 1] + half[half.length - 1] + 12
   const Hsvg = base + 46
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-2">
@@ -199,13 +202,13 @@ const LayerStack = ({ ev, active, onActive }: { ev: PyEvent & { type: 'flow' }; 
               <path d={`M${x0 + g.D},${yTop} l${g.wDepth},${-g.wDepth * 0.6} v${g.H} l${-g.wDepth},${g.wDepth * 0.6} z`} fill={c.side} stroke={c.side} strokeWidth={1} />
               <rect x={x0} y={yTop} width={g.D} height={g.H} fill={c.face} stroke={on ? '#0f172a' : c.side} strokeWidth={on ? 2 : 1} />
               <text x={x0 + (g.D + g.wDepth) / 2} y={base + 16} textAnchor="middle" fontSize={11} fontWeight={700} fill="#0f172a" fontFamily="ui-monospace, monospace">{g.label}</text>
-              <text x={x0 + (g.D + g.wDepth) / 2} y={base + 30} textAnchor="middle" fontSize={10} fill={c.ink} fontFamily="ui-monospace, monospace">{clip(b.name, 14)}</text>
+              <text x={x0 + (g.D + g.wDepth) / 2} y={base + 30} textAnchor="middle" fontSize={10} fill={c.ink} fontFamily="ui-monospace, monospace">{names[i]}</text>
               {b.params > 0 && <text x={x0 + (g.D + g.wDepth) / 2} y={base + 42} textAnchor="middle" fontSize={9.5} fill="#64748b" fontFamily="ui-monospace, monospace">{short(b.params)} p</text>}
               {next !== null && (
                 <g>
                   <line x1={x0 + g.D + g.wDepth + 4} x2={next - 6} y1={base - 10} y2={base - 10} stroke="#94a3b8" strokeWidth={1.4} markerEnd="url(#flowArrow)" />
                   {b.tags.length > 0 && (
-                    <text x={(x0 + g.D + g.wDepth + next) / 2} y={base - 16} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="#047857" fontFamily="ui-monospace, monospace">{clip(b.tags.join('·'), 16)}</text>
+                    <text x={(centers[i] + half[i] + centers[i + 1] - half[i + 1]) / 2} y={base - 16} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="#047857" fontFamily="ui-monospace, monospace">{tags[i]}</text>
                   )}
                 </g>
               )}
