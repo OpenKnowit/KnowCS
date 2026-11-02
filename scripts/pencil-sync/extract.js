@@ -128,7 +128,7 @@
     const raw = tn.data
     if (!raw.trim()) return []
     const pre = /^pre/.test(cs.whiteSpace) || cs.whiteSpace === 'break-spaces'
-    let color = hex(cs.color)
+    const color = hex(cs.color)
     let fill = color
     if (cs.backgroundClip === 'text' || (cs.webkitBackgroundClip === 'text')) {
       fill = gradient(cs.backgroundImage) || color || '#0F172A'
