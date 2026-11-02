@@ -211,7 +211,7 @@ function ExampleMenu({ value, onPick }: { value: string | null; onPick: (id: str
       {open && (
         <>
           <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full z-30 mt-1.5 w-[300px] rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
+          <div className="absolute right-0 top-full z-30 mt-1.5 max-h-[70vh] w-[300px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
             <Presets
               items={PRESETS.map((p) => ({ id: p.id, title: t(`lab.cnn.presets.${p.id}.title`), note: t(`lab.cnn.presets.${p.id}.note`) }))}
               value={value}
@@ -563,7 +563,7 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
     </div>
   )
   return (
-    <aside className="flex min-h-[320px] min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white lg:min-h-0">
+    <aside className="relative z-10 flex min-h-[320px] min-w-0 flex-col rounded-[20px] border border-slate-200 bg-white lg:min-h-0">
       <div className="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2.5">
         <h2 className="mr-auto text-[15px] font-extrabold">{t('lab.cnn.layers')}</h2>
         {example}
