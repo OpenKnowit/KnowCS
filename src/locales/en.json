@@ -1053,7 +1053,8 @@
           "title": "Google Colab",
           "desc": "Free Jupyter notebooks in the cloud with GPUs — for the PyTorch and Keras labs once a laptop is too slow."
         }
-      }
+      },
+      "edit": "Edit this list"
     },
     "admin": {
       "title": "Resources admin",

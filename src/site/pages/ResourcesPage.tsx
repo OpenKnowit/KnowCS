@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowUpRight, BookOpen, Globe, History, Lock, Search } from 'lucide-react'
+import { ArrowUpRight, BookOpen, Globe, History, Lock, Pencil, Search } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { fetchResources, inLang } from '../../lib/resources'
 import type { ResourceCat, ResourceItem, ResourceKind } from '../../lib/resources'
@@ -136,6 +136,12 @@ export default function ResourcesPage() {
       ) : (
         <p className="mt-12 text-center text-slate-500">{t('site.resources.empty')}</p>
       )}
+      {/* a quiet way in for whoever maintains the list */}
+      <div className="mt-10 flex justify-end">
+        <a href="/admin/" title={t('site.resources.edit')} aria-label={t('site.resources.edit')} className="grid h-7 w-7 place-items-center rounded-md text-slate-300 transition hover:bg-slate-200/60 hover:text-slate-500">
+          <Pencil size={13} aria-hidden />
+        </a>
+      </div>
     </main>
   )
 }

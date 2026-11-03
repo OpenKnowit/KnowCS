@@ -1053,7 +1053,8 @@
           "title": "Google Colab",
           "desc": "云端免费 Jupyter Notebook，带 GPU——笔记本电脑跑不动 PyTorch、Keras 时用它。"
         }
-      }
+      },
+      "edit": "编辑列表"
     },
     "admin": {
       "title": "资源管理",

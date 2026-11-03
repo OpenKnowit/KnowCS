@@ -200,7 +200,8 @@ export default function AdminPage() {
 
   return (
     <main className="px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* signed out: title and sign-in centred on the page; signed in: title left, actions right */}
+      <div className={state === 'in' ? 'flex flex-wrap items-center justify-between gap-3' : 'mx-auto mt-[8vh] flex max-w-[380px] justify-center'}>
         <h1 className="text-[clamp(22px,2.4vw,28px)] font-extrabold tracking-tight text-slate-900">{t('site.admin.title')}</h1>
         {state === 'in' && (
           <div className="flex flex-wrap gap-2">
@@ -220,10 +221,10 @@ export default function AdminPage() {
         )}
       </div>
 
-      {state === 'loading' && <p className="mt-8 text-sm text-slate-500">…</p>}
-      {state === 'missing' && <p className="mt-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{t('site.admin.missing')}</p>}
+      {state === 'loading' && <p className="mt-8 text-center text-sm text-slate-500">…</p>}
+      {state === 'missing' && <p className="mx-auto mt-8 max-w-[380px] rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{t('site.admin.missing')}</p>}
       {state === 'out' && (
-        <form onSubmit={signIn} className="mt-8 grid max-w-[380px] gap-3 rounded-[20px] border border-slate-200 bg-white p-5">
+        <form onSubmit={signIn} className="mx-auto mt-6 grid max-w-[380px] gap-3 rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
           <Field label={t('site.admin.passphrase')}>
             <input ref={passRef} type="password" autoComplete="current-password" autoFocus className={input} value={pass} onChange={(e) => setPass(e.target.value)} />
           </Field>
