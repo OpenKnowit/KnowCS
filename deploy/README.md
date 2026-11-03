@@ -19,6 +19,12 @@ Create a temporary symlink targeting that release, then atomically replace
 `/opt/1panel/www/sites/knowcs/current` using `sudo mv -Tf`.
 Do not remove prior releases. Static updates do not require an OpenResty reload.
 
+Keep the previous release's recent chunks in the new one before switching `current`:
+`find current/assets -type f -mtime -14 -exec cp -pn {} releases/<timestamp>/assets/ \;`. The service worker serves
+pages a visitor has seen from its cache and refreshes them in the background (stale-while-revalidate, `src/sw/sw.js`),
+so right after a deploy an old page may still ask for the old hashed chunks. File names are content hashes, so nothing
+is overwritten; chunks older than two weeks drop out on their own.
+
 The playground's "Run in real Python" card downloads Pyodide from jsDelivr by default
 (`https://cdn.jsdelivr.net/pyodide/v314.0.7/full/`, see `src/lib/pyodide/config.ts`). To serve it
 from elsewhere (a self-hosted copy of the Pyodide `full/` directory, or COS + CDN), build with
