@@ -1054,6 +1054,51 @@
           "desc": "云端免费 Jupyter Notebook，带 GPU——笔记本电脑跑不动 PyTorch、Keras 时用它。"
         }
       }
+    },
+    "admin": {
+      "title": "资源管理",
+      "passphrase": "口令",
+      "sign_in": "登录",
+      "sign_out": "退出",
+      "add": "添加资源",
+      "edit": "编辑",
+      "delete": "删除",
+      "confirm_delete": "确定删除？",
+      "view": "查看页面",
+      "save": "保存",
+      "cancel": "取消",
+      "count_one": "共 {{count}} 个资源，顺序即页面上的顺序。",
+      "count_other": "共 {{count}} 个资源，顺序即页面上的顺序。",
+      "hk_note": "繁体（香港）由中文内容自动生成。",
+      "no_preview": "无图片",
+      "upload": "上传图片",
+      "remove_preview": "移除图片",
+      "preview_hint": "PNG、JPEG 或 WebP，不超过 3 MB；宽屏截图效果最好。",
+      "missing": "本站没有运行管理服务，这里无法编辑列表。",
+      "f": {
+        "url": "链接",
+        "cat": "分类",
+        "kind": "类型",
+        "title_en": "标题（English）",
+        "title_zh": "标题（中文）",
+        "desc_en": "简介（English）",
+        "desc_zh": "简介（中文）",
+        "preview": "图片"
+      },
+      "err": {
+        "wrong_passphrase": "口令不正确。",
+        "too_many_tries": "尝试次数过多，请一分钟后再试。",
+        "signed_out": "登录已失效，请重新登录。",
+        "bad_url": "链接须以 https:// 或 http:// 开头。",
+        "no_title": "请至少填写英文或中文标题。",
+        "bad_category": "请选择分类和类型。",
+        "bad_image": "图片不是 PNG、JPEG 或 WebP 格式。",
+        "too_large": "图片超过 3 MB。",
+        "changed_elsewhere": "列表已被他人修改，请刷新页面。",
+        "wrong_origin": "只接受来自本站的修改。",
+        "not_found": "该资源已不存在，请刷新页面。",
+        "server_error": "服务器出错了。"
+      }
     }
   },
   "lab": {

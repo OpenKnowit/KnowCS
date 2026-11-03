@@ -116,19 +116,19 @@ export function ExamplesSidebar({ lib, entryId, specs, onPick, onCollapse }: Sid
   }
   return (
     <aside className="hidden w-[272px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex" aria-label={t('site.playground.examples')}>
-      <div className="flex items-center justify-between py-3 pl-4 pr-3">
-        <span className="mr-auto text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">{t('site.playground.examples')}</span>
-        <button type="button" onClick={toggleAll} className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label={t(allOpen ? 'site.ui.collapse_all' : 'site.ui.expand_all')} title={t(allOpen ? 'site.ui.collapse_all' : 'site.ui.expand_all')}>
+      {/* one row: the filter and two icons (expand / collapse every group, hide the sidebar) */}
+      <div className="flex items-center gap-1 px-3 pb-2 pt-3">
+        <label className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 px-2.5 focus-within:border-blue-400">
+          <Search size={14} className="shrink-0 text-slate-500" aria-hidden />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('site.playground.filter')} aria-label={t('site.playground.filter')} className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-slate-500" />
+        </label>
+        <button type="button" onClick={toggleAll} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label={t(allOpen ? 'site.ui.collapse_all' : 'site.ui.expand_all')} title={t(allOpen ? 'site.ui.collapse_all' : 'site.ui.expand_all')}>
           {allOpen ? <ChevronsDownUp size={16} aria-hidden /> : <ChevronsUpDown size={16} aria-hidden />}
         </button>
-        <button type="button" onClick={onCollapse} className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label={t('site.playground.hide_libs')} title={t('site.playground.hide_libs')}>
+        <button type="button" onClick={onCollapse} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label={t('site.playground.hide_libs')} title={t('site.playground.hide_libs')}>
           <PanelLeftClose size={16} aria-hidden />
         </button>
       </div>
-      <label className="mx-3 mb-2 flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-2.5 focus-within:border-blue-400">
-        <Search size={14} className="shrink-0 text-slate-500" aria-hidden />
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('site.playground.filter')} aria-label={t('site.playground.filter')} className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-slate-500" />
-      </label>
       <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
         {LIBS.map((l) => {
           const s = specs[l.id]

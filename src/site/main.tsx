@@ -25,13 +25,14 @@ const DrillPage = lazy(PAGE_LOADERS.drill)
 const FormulasPage = lazy(PAGE_LOADERS.formulas)
 const PapersPage = lazy(PAGE_LOADERS.papers)
 const ResourcesPage = lazy(PAGE_LOADERS.resources)
+const AdminPage = lazy(PAGE_LOADERS.admin)
 const NotFoundPage = lazy(PAGE_LOADERS.notfound)
 
 const section: Section =
-  page === 'notes' || page === 'note' ? 'notes' : page === 'extend' || page === 'extend-item' ? 'extend' : page === 'watch' || page === 'watch-item' ? 'watch' : page === 'drill' || page === 'formulas' ? 'drill' : page === 'playground' ? 'playground' : page === 'resources' ? 'resources' : 'course'
+  page === 'notes' || page === 'note' ? 'notes' : page === 'extend' || page === 'extend-item' ? 'extend' : page === 'watch' || page === 'watch-item' ? 'watch' : page === 'drill' || page === 'formulas' ? 'drill' : page === 'playground' ? 'playground' : page === 'resources' || page === 'admin' ? 'resources' : 'course'
 
 const content =
-  page === 'module' ? <ModulePage id={id} /> : page === 'playground' ? <PlaygroundPage /> : page === 'drill' ? <DrillPage /> : page === 'formulas' ? <FormulasPage /> : page === 'papers' ? <PapersPage /> : page === 'resources' ? <ResourcesPage /> : page === 'notfound' ? <NotFoundPage /> : page === 'watch' || page === 'watch-item' ? <WatchPage id={id || null} /> : page === 'notes' || page === 'note' ? <NotesPage id={id || null} /> : page === 'extend' || page === 'extend-item' ? <ExtendPage id={id || null} /> : <HomePage />
+  page === 'module' ? <ModulePage id={id} /> : page === 'playground' ? <PlaygroundPage /> : page === 'drill' ? <DrillPage /> : page === 'formulas' ? <FormulasPage /> : page === 'papers' ? <PapersPage /> : page === 'resources' ? <ResourcesPage /> : page === 'admin' ? <AdminPage /> : page === 'notfound' ? <NotFoundPage /> : page === 'watch' || page === 'watch-item' ? <WatchPage id={id || null} /> : page === 'notes' || page === 'note' ? <NotesPage id={id || null} /> : page === 'extend' || page === 'extend-item' ? <ExtendPage id={id || null} /> : <HomePage />
 
 // cache-first for hashed assets, offline fallback for pages (production only; see src/sw/sw.js)
 if (!moved && import.meta.env.PROD && 'serviceWorker' in navigator) {

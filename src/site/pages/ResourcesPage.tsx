@@ -2,11 +2,16 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowUpRight, BookOpen, Globe, History, Lock, Search } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { fetchResources, inLang } from '../../lib/resources'
+import type { ResourceCat, ResourceItem, ResourceKind } from '../../lib/resources'
+import { previewSrc } from '../resourcePreviews'
 
 // /resources/: outside sites worth keeping open next to the course. Titles and blurbs are in site.resources.items.<id>.
 
-type Cat = 'course' | 'visualize' | 'code' | 'study' | 'notes' | 'archive'
-type Kind = 'web' | 'login' | 'notes' | 'archive'
+// The list itself is edited on /admin/ and served by /api/resources; RESOURCES below is the built-in copy shown until
+// (or if) the API answers.
+type Cat = ResourceCat
+type Kind = ResourceKind
 interface Resource {
   id: string
   url: string
@@ -32,7 +37,6 @@ const RESOURCES: Resource[] = [
   { id: 'comp2211-notes', url: 'https://github.com/moyunxiang/COMP2211', cat: 'notes', kind: 'notes', preview: true },
 ]
 
-const PREVIEWS = import.meta.glob<string>('../../assets/resources/*.webp', { eager: true, import: 'default' })
 const CAT_COLOR: Record<Cat, string> = { course: 'bg-indigo-600', visualize: 'bg-blue-600', code: 'bg-emerald-600', study: 'bg-rose-600', notes: 'bg-amber-600', archive: 'bg-slate-500' }
 const KIND_ICON: Record<Kind, LucideIcon> = { web: Globe, login: Lock, notes: BookOpen, archive: History }
 const FILTERS: ('all' | Cat)[] = ['all', 'course', 'visualize', 'code', 'study', 'notes']
@@ -44,10 +48,18 @@ const host = (url: string) => {
   return full.length > 32 ? `${full.slice(0, 31)}…` : full
 }
 
-function ResourceCard({ r }: { r: Resource }) {
-  const { t } = useTranslation()
-  const Icon = KIND_ICON[r.kind]
-  const preview = r.preview ? PREVIEWS[`../../assets/resources/${r.id}.webp`] : undefined
+/** the built-in list in the shape the API serves */
+const builtIn = (t: (k: string) => string): ResourceItem[] =>
+  RESOURCES.map((r) => {
+    const title = t(`site.resources.items.${r.id}.title`)
+    const desc = t(`site.resources.items.${r.id}.desc`)
+    return { id: r.id, url: r.url, cat: r.cat, kind: r.kind, title: { en: title, zh: title, 'zh-HK': title }, desc: { en: desc, zh: desc, 'zh-HK': desc }, preview: r.preview ? 'builtin' : null }
+  })
+
+function ResourceCard({ r }: { r: ResourceItem }) {
+  const { t, i18n } = useTranslation()
+  const Icon = KIND_ICON[r.kind] ?? Globe
+  const preview = previewSrc(r)
   return (
     <a href={r.url} target="_blank" rel="noopener noreferrer" className="group mb-6 block break-inside-avoid overflow-hidden rounded-[14px] border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200">
       <div className={`h-1 ${CAT_COLOR[r.cat]}`} aria-hidden />
@@ -60,8 +72,8 @@ function ResourceCard({ r }: { r: Resource }) {
         </div>
         {preview && <img src={preview} alt="" loading="lazy" decoding="async" className="aspect-[8/5] w-full rounded-lg border border-slate-200 bg-slate-100 object-cover object-top" />}
         <div>
-          <h2 className="text-[19px] font-bold text-slate-900 group-hover:text-blue-700">{t(`site.resources.items.${r.id}.title`)}</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{t(`site.resources.items.${r.id}.desc`)}</p>
+          <h2 className="text-[19px] font-bold text-slate-900 group-hover:text-blue-700">{inLang(r.title, i18n.language)}</h2>
+          {inLang(r.desc, i18n.language) && <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{inLang(r.desc, i18n.language)}</p>}
         </div>
         <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-3.5">
           <span className="min-w-0 truncate font-mono text-xs text-slate-500">{host(r.url)}</span>
@@ -78,13 +90,21 @@ export default function ResourcesPage() {
   const { t } = useTranslation()
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<'all' | Cat>('all')
+  const { i18n } = useTranslation()
+  // the edited list from the admin API; null until it answers (or when there is none)
+  const [live, setLive] = useState<ResourceItem[] | null>(null)
   useEffect(() => {
     document.title = `${t('site.resources.tab_title')} · KnowCS`
   }, [t])
+  useEffect(() => {
+    const ctl = new AbortController()
+    void fetchResources(ctl.signal).then((d) => d && setLive(d.resources))
+    return () => ctl.abort()
+  }, [])
+  const items = live ?? builtIn(t)
   const query = q.trim().toLowerCase()
-  const shown = RESOURCES.filter(
-    (r) => (cat === 'all' || r.cat === cat) && (!query || `${t(`site.resources.items.${r.id}.title`)} ${t(`site.resources.items.${r.id}.desc`)} ${t(`site.resources.cats.${r.cat}`)} ${r.url}`.toLowerCase().includes(query)),
-  )
+  const lang = i18n.language
+  const shown = items.filter((r) => (cat === 'all' || r.cat === cat) && (!query || `${inLang(r.title, lang)} ${inLang(r.desc, lang)} ${t(`site.resources.cats.${r.cat}`)} ${r.url}`.toLowerCase().includes(query)))
   return (
     <main className="px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8">
       <h1 className="sr-only">{t('site.resources.title')}</h1>

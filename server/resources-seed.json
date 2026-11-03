@@ -1,0 +1,226 @@
+{
+  "updatedAt": "2026-11-03T13:00:13.766Z",
+  "resources": [
+    {
+      "id": "comp2211",
+      "url": "https://course.cse.ust.hk/comp2211/",
+      "cat": "course",
+      "kind": "login",
+      "title": {
+        "en": "COMP2211 course site",
+        "zh": "COMP2211 课程网站",
+        "zh-HK": "COMP2211 課程網站"
+      },
+      "desc": {
+        "en": "The official course page: lecture notes, labs, assignments and announcements.",
+        "zh": "官方课程主页：讲义、Lab、作业和通知。",
+        "zh-HK": "官方課程主頁：講義、Lab、作業和通知。"
+      },
+      "preview": null
+    },
+    {
+      "id": "comp1023",
+      "url": "https://course.cse.ust.hk/comp2211/comp1023-videos.html",
+      "cat": "course",
+      "kind": "login",
+      "title": {
+        "en": "COMP1023 Python videos",
+        "zh": "COMP1023 Python 视频",
+        "zh-HK": "COMP1023 Python 影片"
+      },
+      "desc": {
+        "en": "Python refresher videos linked from the COMP2211 site, for anyone rusty on the basics.",
+        "zh": "COMP2211 网站推荐的 Python 复习视频，基础生疏时先补一补。",
+        "zh-HK": "COMP2211 網站推薦的 Python 複習影片，基礎生疏時先補一補。"
+      },
+      "preview": null
+    },
+    {
+      "id": "jupyterlite",
+      "url": "https://jupyter.org/try-jupyter/lab/",
+      "cat": "code",
+      "kind": "web",
+      "title": {
+        "en": "JupyterLite",
+        "zh": "JupyterLite",
+        "zh-HK": "JupyterLite"
+      },
+      "desc": {
+        "en": "A full Jupyter notebook running in the browser through Pyodide. Nothing to install.",
+        "zh": "在浏览器里运行的完整 Jupyter Notebook（基于 Pyodide），无需安装。",
+        "zh-HK": "在瀏覽器裏執行的完整 Jupyter Notebook（基於 Pyodide），無需安裝。"
+      },
+      "preview": null
+    },
+    {
+      "id": "colab",
+      "url": "https://colab.research.google.com/",
+      "cat": "code",
+      "kind": "web",
+      "title": {
+        "en": "Google Colab",
+        "zh": "Google Colab",
+        "zh-HK": "Google Colab"
+      },
+      "desc": {
+        "en": "Free Jupyter notebooks in the cloud with GPUs — for the PyTorch and Keras labs once a laptop is too slow.",
+        "zh": "云端免费 Jupyter Notebook，带 GPU——笔记本电脑跑不动 PyTorch、Keras 时用它。",
+        "zh-HK": "雲端免費 Jupyter Notebook，帶 GPU——筆記本電腦跑不動 PyTorch、Keras 時用它。"
+      },
+      "preview": "builtin"
+    },
+    {
+      "id": "visualgo",
+      "url": "https://visualgo.net/en",
+      "cat": "visualize",
+      "kind": "web",
+      "title": {
+        "en": "VisuAlgo",
+        "zh": "VisuAlgo",
+        "zh-HK": "VisuAlgo"
+      },
+      "desc": {
+        "en": "Animated data structures and algorithms, with e-lecture slides.",
+        "zh": "数据结构与算法动画，附带电子讲义。",
+        "zh-HK": "數據結構與演算法動畫，附帶電子講義。"
+      },
+      "preview": "builtin"
+    },
+    {
+      "id": "programiz",
+      "url": "https://www.programiz.com/python-programming/online-compiler/",
+      "cat": "code",
+      "kind": "web",
+      "title": {
+        "en": "Programiz Python compiler",
+        "zh": "Programiz 在线 Python",
+        "zh-HK": "Programiz 在線 Python"
+      },
+      "desc": {
+        "en": "Run a short Python snippet instantly. Handy for checking syntax before a lab.",
+        "zh": "即开即用地运行一小段 Python，做 Lab 前核对语法很方便。",
+        "zh-HK": "即開即用地執行一小段 Python，做 Lab 前核對語法很方便。"
+      },
+      "preview": "builtin"
+    },
+    {
+      "id": "tf-playground",
+      "url": "https://playground.tensorflow.org/",
+      "cat": "visualize",
+      "kind": "web",
+      "title": {
+        "en": "TensorFlow Playground",
+        "zh": "TensorFlow Playground",
+        "zh-HK": "TensorFlow Playground"
+      },
+      "desc": {
+        "en": "Train a small neural network in the browser and watch the decision boundary form as you change layers.",
+        "zh": "在浏览器里训练一个小神经网络，改层数时看决策边界如何形成。",
+        "zh-HK": "在瀏覽器裏訓練一個小神經網絡，改層數時看決策邊界如何形成。"
+      },
+      "preview": "builtin"
+    },
+    {
+      "id": "knowcs-old",
+      "url": "https://knowcs.pinit.eth.link/",
+      "cat": "archive",
+      "kind": "archive",
+      "title": {
+        "en": "KnowCS, previous version",
+        "zh": "KnowCS 旧版",
+        "zh-HK": "KnowCS 舊版"
+      },
+      "desc": {
+        "en": "The earlier single-page KnowCS, kept online for reference.",
+        "zh": "早先的单页版 KnowCS，保留作参考。",
+        "zh-HK": "早先的單頁版 KnowCS，保留作參考。"
+      },
+      "preview": "builtin"
+    },
+    {
+      "id": "list-copy",
+      "url": "https://www.likeimingbai.dev/python-list-copy-demo/index.html",
+      "cat": "visualize",
+      "kind": "web",
+      "title": {
+        "en": "Python list copy, visualized",
+        "zh": "Python 列表拷贝可视化",
+        "zh-HK": "Python 列表拷貝可視化"
+      },
+      "desc": {
+        "en": "See what =, copy() and deepcopy() really share — every list and reference drawn out.",
+        "zh": "看清 =、copy() 和 deepcopy() 到底共享了什么——每个列表和引用都画出来。",
+        "zh-HK": "看清 =、copy() 和 deepcopy() 到底共享了什麼——每個列表和引用都畫出來。"
+      },
+      "preview": "builtin"
+    },
+    {
+      "id": "comp1945",
+      "url": "https://course.cse.ust.hk/comp1945/demos/",
+      "cat": "course",
+      "kind": "login",
+      "title": {
+        "en": "COMP1945 demos",
+        "zh": "COMP1945 演示",
+        "zh-HK": "COMP1945 演示"
+      },
+      "desc": {
+        "en": "Interactive demos from the COMP1945 course team.",
+        "zh": "COMP1945 课程组的交互演示。",
+        "zh-HK": "COMP1945 課程組的互動演示。"
+      },
+      "preview": null
+    },
+    {
+      "id": "csdiy",
+      "url": "https://csdiy.wiki/",
+      "cat": "study",
+      "kind": "web",
+      "title": {
+        "en": "csdiy · CS self-study guide",
+        "zh": "CS 自学指南",
+        "zh-HK": "CS 自學指南"
+      },
+      "desc": {
+        "en": "A community guide to learning computer science from open courses (in Chinese).",
+        "zh": "社区整理的计算机自学指南，汇集各校公开课。",
+        "zh-HK": "社區整理的計算機自學指南，彙集各校公開課。"
+      },
+      "preview": "builtin"
+    },
+    {
+      "id": "cs231n",
+      "url": "https://cs231n.stanford.edu/",
+      "cat": "study",
+      "kind": "web",
+      "title": {
+        "en": "CS231n",
+        "zh": "CS231n",
+        "zh-HK": "CS231n"
+      },
+      "desc": {
+        "en": "Stanford's Deep Learning for Computer Vision: lectures, notes and assignments behind L7 and L8.",
+        "zh": "斯坦福「计算机视觉中的深度学习」：讲义与作业，对应第 7–8 讲。",
+        "zh-HK": "斯坦福「計算機視覺中的深度學習」：講義與作業，對應第 7–8 講。"
+      },
+      "preview": "builtin"
+    },
+    {
+      "id": "comp2211-notes",
+      "url": "https://github.com/moyunxiang/COMP2211",
+      "cat": "notes",
+      "kind": "notes",
+      "title": {
+        "en": "COMP2211 notes on GitHub",
+        "zh": "COMP2211 GitHub 笔记",
+        "zh-HK": "COMP2211 GitHub 筆記"
+      },
+      "desc": {
+        "en": "An outline of the whole COMP2211 course, with notes in Markdown.",
+        "zh": "整门 COMP2211 的提纲与 Markdown 笔记。",
+        "zh-HK": "整門 COMP2211 的提綱與 Markdown 筆記。"
+      },
+      "preview": "builtin"
+    }
+  ]
+}

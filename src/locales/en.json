@@ -1054,6 +1054,51 @@
           "desc": "Free Jupyter notebooks in the cloud with GPUs — for the PyTorch and Keras labs once a laptop is too slow."
         }
       }
+    },
+    "admin": {
+      "title": "Resources admin",
+      "passphrase": "Passphrase",
+      "sign_in": "Sign in",
+      "sign_out": "Sign out",
+      "add": "Add resource",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirm_delete": "Delete?",
+      "view": "View page",
+      "save": "Save",
+      "cancel": "Cancel",
+      "count_one": "{{count}} resource, in the order the page shows them.",
+      "count_other": "{{count}} resources, in the order the page shows them.",
+      "hk_note": "Traditional Chinese (Hong Kong) is generated from the Chinese text.",
+      "no_preview": "no picture",
+      "upload": "Upload picture",
+      "remove_preview": "Remove picture",
+      "preview_hint": "PNG, JPEG or WebP, up to 3 MB; a wide screenshot works best.",
+      "missing": "The admin service is not running on this site, so the list cannot be edited here.",
+      "f": {
+        "url": "Link",
+        "cat": "Category",
+        "kind": "Type",
+        "title_en": "Title (English)",
+        "title_zh": "Title (中文)",
+        "desc_en": "Description (English)",
+        "desc_zh": "Description (中文)",
+        "preview": "Picture"
+      },
+      "err": {
+        "wrong_passphrase": "Wrong passphrase.",
+        "too_many_tries": "Too many tries: wait a minute and try again.",
+        "signed_out": "Signed out: sign in again.",
+        "bad_url": "The link must start with https:// or http://.",
+        "no_title": "Give it a title in English or Chinese.",
+        "bad_category": "Pick a category and a type.",
+        "bad_image": "That picture is not a PNG, JPEG or WebP file.",
+        "too_large": "The picture is larger than 3 MB.",
+        "changed_elsewhere": "Someone else changed the list: reload the page.",
+        "wrong_origin": "Changes are only accepted from this site.",
+        "not_found": "That resource no longer exists: reload the page.",
+        "server_error": "Something went wrong on the server."
+      }
     }
   },
   "lab": {

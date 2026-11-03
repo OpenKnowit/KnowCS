@@ -41,6 +41,8 @@ function pageMeta(page) {
       return pick("papers.title", "papers.lead")
     case "resources":
       return pick("site.resources.title", "site.resources.lead")
+    case "admin":
+      return pick("site.admin.title", "site.admin.title")
     case "notfound":
       return pick("notfound.title", "notfound.lead")
     case "notes":
@@ -61,7 +63,7 @@ function pageHtml(page) {
   const up = "../".repeat(page.path.split("/").length)
   const head = `<meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#2563eb" />
+    <meta name="theme-color" content="#2563eb" />${page.kind === "admin" ? '\n    <meta name="robots" content="noindex, nofollow" />' : ""}
     <link rel="icon" type="image/svg+xml" href="${FAVICON}" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -119,7 +121,7 @@ writeFileSync(
   resolve(ROOT, "public/sitemap.xml"),
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound").map((p) => `  <url><loc>${urlOf(p)}</loc></url>`).join("\n")}
+${PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound" && p.kind !== "admin").map((p) => `  <url><loc>${urlOf(p)}</loc></url>`).join("\n")}
 </urlset>
 `,
 )
@@ -143,7 +145,7 @@ writeFileSync(
     ],
   }),
 )
-writeFileSync(resolve(ROOT, "public/robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`)
+writeFileSync(resolve(ROOT, "public/robots.txt"), `User-agent: *\nAllow: /\nDisallow: /admin/\nSitemap: ${SITE}/sitemap.xml\n`)
 
 /**
  * The core strings are only requested once the entry script has run. A tiny inline script picks the language the
@@ -218,5 +220,10 @@ export default defineConfig({
   },
   server: {
     port: 5174,
+    // the admin API (server/admin.mjs) during local work: ADMIN_PASSPHRASE=… node server/admin.mjs
+    proxy: { "/api": { target: "http://127.0.0.1:3021", xfwd: true } },
+  },
+  preview: {
+    proxy: { "/api": { target: "http://127.0.0.1:3021", xfwd: true } },
   },
 })

@@ -1,0 +1,9 @@
+{
+  "name": "knowcs-admin",
+  "private": true,
+  "type": "module",
+  "description": "The KnowCS admin API (Resources list). See server/admin.mjs and deploy/README.md.",
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node admin.mjs" },
+  "dependencies": { "opencc-js": "^1.3.1" }
+}

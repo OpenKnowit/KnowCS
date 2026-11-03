@@ -68,3 +68,23 @@ The `dev` branch is published to https://dev.knowcs.online (same server, same Op
   `ssl/` and reloads OpenResty.
 - Publishing is the same as production with `knowcs-dev` in place of `knowcs`. SSH to the server drops now and then:
   run long commands (Certbot) with `nohup … &` and poll their log.
+
+## Admin API: /admin/ and /api/
+
+`/admin/` edits the Resources list (add, edit, delete, reorder, upload a picture). The page talks to a small Node
+service, `server/admin.mjs` (no framework; `opencc-js` derives the Traditional Chinese text), which the Resources page
+also reads (`GET /api/resources`); without the service the page shows its built-in list. On the server:
+
+- Code: `/opt/knowcs-admin/` (`admin.mjs`, `package.json`, `resources-seed.json`, `npm install --omit=dev`), owned by root.
+- Data: `/var/lib/knowcs-admin/` (`resources.json` + `.backup`, `media/` uploads, `session.key`), owned by the system
+  user `knowcs-admin`. The first start copies `resources-seed.json` in; after that the JSON file is the source of truth.
+- Settings: `/etc/knowcs-admin.env` (root only, not in Git): `ADMIN_PASSPHRASE`, `DATA_DIR=/var/lib/knowcs-admin`,
+  `PORT=3021`, `HOST=127.0.0.1`, `COOKIE_SECURE=true`, `TRUST_PROXY=true`. Change the passphrase there and
+  `systemctl restart knowcs-admin`.
+- Service: `knowcs-admin.service` (template here), `systemctl status knowcs-admin`, logs with `journalctl -u knowcs-admin`.
+- OpenResty: the vhost's `location /api/` proxies to `127.0.0.1:3021` (the container uses host networking); see
+  `dev.knowcs.online.conf`. Production gets the same block when it moves to this version.
+
+Sign-in sets an HttpOnly, SameSite=Strict, signed cookie for 12 hours; five wrong passphrases per minute per IP are
+refused; changes are accepted only from the site's own pages (Origin check). Update the code with the same three files
+and `systemctl restart knowcs-admin`.

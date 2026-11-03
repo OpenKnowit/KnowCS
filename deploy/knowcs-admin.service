@@ -1,0 +1,22 @@
+# The KnowCS admin API (server/admin.mjs): the Resources list behind a passphrase.
+# Installed as /etc/systemd/system/knowcs-admin.service; see deploy/README.md "Admin API".
+[Unit]
+Description=KnowCS admin API
+After=network.target
+
+[Service]
+User=knowcs-admin
+Group=knowcs-admin
+WorkingDirectory=/opt/knowcs-admin
+# ADMIN_PASSPHRASE, DATA_DIR, PORT, HOST, COOKIE_SECURE, TRUST_PROXY (root-only file, not in Git)
+EnvironmentFile=/etc/knowcs-admin.env
+ExecStart=/usr/bin/node /opt/knowcs-admin/admin.mjs
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/knowcs-admin
+
+[Install]
+WantedBy=multi-user.target

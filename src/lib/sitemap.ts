@@ -159,6 +159,7 @@ export type PageSpec =
   | { kind: 'formulas'; path: string }
   | { kind: 'papers'; path: string }
   | { kind: 'resources'; path: string }
+  | { kind: 'admin'; path: string }
   | { kind: 'notfound'; path: string }
   | { kind: 'watch-item'; path: string; id: string }
   | { kind: 'redirect'; path: string; to: string }
@@ -173,6 +174,7 @@ export const PAGES: PageSpec[] = [
   { kind: 'formulas', path: 'formulas/index.html' },
   { kind: 'papers', path: 'papers/index.html' },
   { kind: 'resources', path: 'resources/index.html' },
+  { kind: 'admin', path: 'admin/index.html' },
   { kind: 'notfound', path: '404.html' },
   ...EPISODES.map((e): PageSpec => ({ kind: 'watch-item', path: `watch/${e.id}/index.html`, id: e.id })),
   { kind: 'notes', path: 'notes/index.html' },
