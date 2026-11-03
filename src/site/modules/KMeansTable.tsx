@@ -120,8 +120,7 @@ export default function KMeansTable() {
 
   const controls = (
       <>
-        <Card title={t('lab.common.example')}>
-          <Presets
+        <Presets title={t('lab.common.example')}
             items={PRESETS.map((p) => ({ id: p.id, title: t(`lab.km.presets.${p.id}.title`), note: t(`lab.km.presets.${p.id}.note`) }))}
             value={preset}
             onPick={(id) => {
@@ -133,7 +132,6 @@ export default function KMeansTable() {
               setRound(0)
             }}
           />
-        </Card>
         <Card title={t('lab.km.data')} sub={t('lab.km.data_sub')}>
           <div className="grid grid-cols-[1.4fr_1fr] gap-2">
             <label className="grid gap-1">

@@ -148,8 +148,7 @@ export default function Perceptron() {
         wide
         controls={
           <>
-            <Card title={t('lab.common.example')}>
-              <Presets
+            <Presets title={t('lab.common.example')}
                 items={PRESETS.map((p) => ({ id: p.id, title: t(`lab.perc.presets.${p.id}.title`), note: t(`lab.perc.presets.${p.id}.note`) }))}
                 value={preset}
                 onPick={(id) => {
@@ -163,7 +162,6 @@ export default function Perceptron() {
                   reset()
                 }}
               />
-            </Card>
             <Card title={t('lab.perc.setup')}>
               <label className="grid gap-1">
                 <span className="text-xs font-bold text-slate-500">{t('lab.perc.rows_label')}</span>

@@ -247,8 +247,8 @@ export default function XorMlp() {
         wide
         controls={
           <>
-            <Card title={t('lab.xor.start_from')}>
-              <Presets
+            <Presets
+                title={t('lab.xor.start_from')}
                 items={PRESETS.map((p) => ({ id: p.id, title: t(`lab.xor.presets.${p.id}.title`), note: t(`lab.xor.presets.${p.id}.note`) }))}
                 value={preset}
                 onPick={(id) => {
@@ -257,7 +257,7 @@ export default function XorMlp() {
                   load(p.net, p.act)
                   if (id === 'lecture') setEta(0.5)
                 }}
-              />
+              >
               <div className="mt-2">
                 <Btn
                   onClick={() => {
@@ -270,7 +270,7 @@ export default function XorMlp() {
                   {t('lab.xor.random')}
                 </Btn>
               </div>
-            </Card>
+            </Presets>
             <Card title={t('lab.xor.network')}>
               <Seg label={t('lab.xor.activation')} value={act} onChange={(a) => { setAct(a); setHistory([{ e: epoch, l: loss(net, XOR, a) }]) }} options={[{ v: 'sigmoid', label: 'sigmoid' }, { v: 'step', label: t('lab.xor.binary_step') }]} />
               <div className="mt-3 grid grid-cols-3 gap-2">

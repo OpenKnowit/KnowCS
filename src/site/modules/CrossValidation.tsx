@@ -42,8 +42,7 @@ export default function CrossValidation() {
       <Workspace
         controls={
           <>
-            <Card title={t('lab.common.dataset')}>
-              <Presets
+            <Presets title={t('lab.common.dataset')}
                 items={PRESETS.map((p) => ({ id: p.id, title: t(`lab.cv.presets.${p.id}.title`), note: t(`lab.cv.presets.${p.id}.note`) }))}
                 value={preset}
                 onPick={(id) => {
@@ -55,7 +54,6 @@ export default function CrossValidation() {
                   setOrdering('sorted')
                 }}
               />
-            </Card>
             <Card title={t('lab.common.settings')}>
               <div className="grid gap-3">
                 <Slider label={t('lab.cv.classes')} value={classes} min={2} max={6} step={1} onChange={(v) => { setClasses(v); custom() }} />

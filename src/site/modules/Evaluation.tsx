@@ -61,8 +61,7 @@ export default function Evaluation() {
       <Workspace
         controls={
           <>
-            <Card title={t('lab.common.example')}>
-              <Presets
+            <Presets title={t('lab.common.example')}
                 items={PRESETS.map((p) => ({ id: p.id, title: t(`lab.eval.presets.${p.id}.title`), note: t(`lab.eval.presets.${p.id}.note`) }))}
                 value={preset}
                 onPick={(id) => {
@@ -78,7 +77,6 @@ export default function Evaluation() {
                   }
                 }}
               />
-            </Card>
             <Card title={t('lab.eval.labels')} sub={manual ? t('lab.eval.manual') : undefined}>
               <div className={`grid gap-2.5 ${manual ? 'opacity-50' : ''}`}>
                 {(['actual', 'predicted'] as const).map((name, i) => (

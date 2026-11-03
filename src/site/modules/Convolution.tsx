@@ -147,9 +147,7 @@ export default function Convolution() {
 
   const controls = (
     <>
-      <Card title={t('lab.common.example')}>
-        <Presets items={PRESETS.map((p) => ({ id: p.id, title: t(`lab.conv.presets.${p.id}.title`), note: t(`lab.conv.presets.${p.id}.note`) }))} value={preset} onPick={(id) => load(PRESETS.find((p) => p.id === id)!)} />
-      </Card>
+      <Presets title={t('lab.common.example')} items={PRESETS.map((p) => ({ id: p.id, title: t(`lab.conv.presets.${p.id}.title`), note: t(`lab.conv.presets.${p.id}.note`) }))} value={preset} onPick={(id) => load(PRESETS.find((p) => p.id === id)!)} />
       <Card title={t('lab.conv.inputs')} sub={t('lab.conv.inputs_sub')}>
         <div className="grid grid-cols-[1.3fr_1fr] gap-2">
           <label className="grid gap-1">

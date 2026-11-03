@@ -297,8 +297,22 @@ export interface PresetItem<T extends string = string> {
   note?: string
 }
 
-export function Presets<T extends string>({ items, value, onPick }: { items: PresetItem<T>[]; value: T | null; onPick: (id: T) => void }) {
-  return (
+const PRESETS_OPEN_KEY = 'knowcs-presets-open'
+const readPresetsOpen = () => {
+  try {
+    return localStorage.getItem(PRESETS_OPEN_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+/**
+ * A lab's list of examples. With a title it is its own card that folds away (the choice is remembered across labs);
+ * folded, the header still names the example that is loaded.
+ */
+export function Presets<T extends string>({ items, value, onPick, title, children }: { items: PresetItem<T>[]; value: T | null; onPick: (id: T) => void; title?: ReactNode; children?: ReactNode }) {
+  const [open, setOpen] = useState(readPresetsOpen)
+  const list = (
     <div className="grid gap-1.5">
       {items.map((p) => (
         <button
@@ -313,6 +327,33 @@ export function Presets<T extends string>({ items, value, onPick }: { items: Pre
         </button>
       ))}
     </div>
+  )
+  if (title === undefined) return list
+  const current = items.find((p) => p.id === value)
+  const toggle = () => {
+    setOpen((o) => {
+      try {
+        localStorage.setItem(PRESETS_OPEN_KEY, o ? '0' : '1')
+      } catch {
+        // private mode: just not remembered
+      }
+      return !o
+    })
+  }
+  return (
+    <section className="min-w-0 rounded-[20px] border border-slate-200 bg-white p-4 sm:p-5">
+      <button type="button" aria-expanded={open} onClick={toggle} className="flex w-full min-w-0 items-center gap-2 text-left">
+        <h2 className="shrink-0 text-[15px] font-extrabold">{title}</h2>
+        {!open && current && <span className="min-w-0 truncate text-[13px] font-semibold text-blue-700">{current.title}</span>}
+        <ChevronRight size={16} aria-hidden className={`ml-auto shrink-0 text-slate-400 transition-transform ${open ? 'rotate-90' : ''}`} />
+      </button>
+      {open && (
+        <div className="mt-3">
+          {list}
+          {children}
+        </div>
+      )}
+    </section>
   )
 }
 

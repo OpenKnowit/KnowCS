@@ -149,8 +149,7 @@ export default function GaussianNb() {
       <Workspace
         controls={
           <>
-            <Card title={t('lab.common.dataset')}>
-              <Presets
+            <Presets title={t('lab.common.dataset')}
                 items={PRESETS.map((p) => ({ id: p.id, title: t(`lab.gnb.presets.${p.id}.title`), note: t(`lab.gnb.presets.${p.id}.note`) }))}
                 value={preset}
                 onPick={(id) => {
@@ -161,7 +160,6 @@ export default function GaussianNb() {
                   setTest(p.test)
                 }}
               />
-            </Card>
             {!given && (
               <Card title={t('lab.gnb.training')} sub={t('lab.gnb.training_sub')}>
                 <textarea

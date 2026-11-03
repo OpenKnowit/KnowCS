@@ -132,8 +132,7 @@ export default function BayesVirus() {
       <Workspace
         controls={
           <>
-            <Card title={t('lab.bayes.scenario')}>
-              <Presets
+            <Presets title={t('lab.bayes.scenario')}
                 items={PRESETS.map((p) => ({ id: p.id, title: t(`lab.bayes.presets.${p.id}.title`), note: t(`lab.bayes.presets.${p.id}.note`) }))}
                 value={preset}
                 onPick={(id) => {
@@ -144,7 +143,6 @@ export default function BayesVirus() {
                   setObserved(p.observed ?? 'E')
                 }}
               />
-            </Card>
             <Card title={t('lab.bayes.probabilities')}>
               <div className="grid gap-3">
                 <Slider label={t('lab.bayes.prior_label', { B })} value={toSlider(s.prior)} min={0} max={1000} step={1} display={`${fmt(s.prior * 100, 2)}%`} onChange={(v) => edit({ prior: fromSlider(v) })} />

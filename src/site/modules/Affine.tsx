@@ -181,9 +181,7 @@ export default function AffinePage() {
         wide
         controls={
           <>
-            <Card title={t('lab.affine.transform')}>
-              <Presets items={KINDS.map((id) => ({ id, title: t(`lab.affine.kinds.${id}.title`), note: t(`lab.affine.kinds.${id}.note`) }))} value={kind} onPick={setKind} />
-            </Card>
+            <Presets title={t('lab.affine.transform')} items={KINDS.map((id) => ({ id, title: t(`lab.affine.kinds.${id}.title`), note: t(`lab.affine.kinds.${id}.note`) }))} value={kind} onPick={setKind} />
             {(kind === 'translate' || kind === 'rotate' || kind === 'scale' || kind === 'shear') && (
               <Card title={t('lab.common.settings')}>
                 <div className="grid gap-3">

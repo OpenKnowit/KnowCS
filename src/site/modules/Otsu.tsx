@@ -151,9 +151,7 @@ export default function Otsu() {
         wide
         controls={
           <>
-            <Card title={t('lab.otsu.image')}>
-              <Presets items={SOURCES.map((x) => ({ id: x.id, title: t(`lab.otsu.presets.${x.id}.title`), note: t(`lab.otsu.presets.${x.id}.note`) }))} value={src} onPick={(id) => { setSrc(id); setIter(0); setChecked(false); setGuess({}) }} />
-            </Card>
+            <Presets title={t('lab.otsu.image')} items={SOURCES.map((x) => ({ id: x.id, title: t(`lab.otsu.presets.${x.id}.title`), note: t(`lab.otsu.presets.${x.id}.note`) }))} value={src} onPick={(id) => { setSrc(id); setIter(0); setChecked(false); setGuess({}) }} />
             <Card title={t('lab.otsu.operation')}>
               <div className="grid gap-3">
                 <Seg value={op} onChange={(v) => { setOp(v); setIter(0) }} options={(['original', 'stretch', 'flip', 'threshold', 'otsu'] as const).map((v) => ({ v, label: t(`lab.otsu.ops.${v}`) }))} />
