@@ -13,7 +13,7 @@ import { RunInPlayground } from '../../components/RunInPlayground'
 import { Motion } from '../../components/Motion'
 import { SeniorAdvice } from '../../components/SeniorAdvice'
 import { highlightPython } from '../playground/pyHighlight'
-import { Ans, Btn, Card, LabPage, Note, Presets, TableWrap, Workspace } from '../ui'
+import { Ans, Btn, Card, LabPage, Note, Presets, TableWrap } from '../ui'
 
 // L1 · NumPy broadcasting. One pair of shapes drives the page: ① check the rule axis by axis, ② see the stretch (or the
 // clash and its fix) with the same thing in code, ③ the exam drill and the (n,) vs (n, 1) trap, ④ the course's classic
@@ -141,53 +141,51 @@ export default function NumpyBroadcasting() {
 
   return (
     <LabPage id="numpy-broadcast" quiz>
-      <Workspace
-        controls={
-          <>
-            <Card title={t('lab.bc.shapes')}>
-              <div className="grid gap-2.5">
-                <ShapeEditor name="A" shape={a} onChange={(s) => load(s, b)} />
-                <div className="flex justify-center gap-1" role="group" aria-label={t('numpy_module.broadcast.op')}>
-                  {(['+', '-', '*'] as Op[]).map((o) => (
-                    <button key={o} type="button" onClick={() => setOp(o)} aria-pressed={op === o} className={`h-9 w-9 rounded-lg font-mono text-lg font-bold ${op === o ? 'bg-slate-800 text-white' : 'border border-gray-200 bg-white text-gray-500'}`}>
-                      {o === '*' ? '×' : o === '-' ? '−' : '+'}
-                    </button>
-                  ))}
-                </div>
-                <ShapeEditor name="B" shape={b} onChange={(s) => load(a, s)} />
+      {/* first screen: the examples beside one workbench, shapes and the rule on its left, the stretch and the code on its right */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:h-[calc(100dvh-170px)] lg:min-h-[620px] lg:grid-cols-[290px_minmax(0,1fr)]">
+        <div className="min-h-0 lg:overflow-y-auto">
+          <Presets
+            title={t('lab.common.example')}
+            items={EXAMPLES.map((p) =>
+              p.kind === 'pair'
+                ? { id: p.id, title: t(`numpy_module.broadcast.preset.${p.id}`), note: t(`numpy_module.broadcast.story.${p.id}`) }
+                : { id: p.id, title: t(`numpy_module.broadcast.cards.ml_${p.use.id}`), note: `${p.use.code}   ${p.use.shapes}` },
+            )}
+            value={example}
+            onPick={(id) => {
+              const p = EXAMPLES.find((x) => x.id === id)!
+              load(p.a, p.b, p.op)
+            }}
+          />
+        </div>
+
+        <section className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)] gap-5 rounded-[20px] border border-slate-200 bg-white p-4 sm:p-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+          {/* left: the two shapes and the rule, checked axis by axis */}
+          <div className="flex min-h-0 min-w-0 flex-col gap-3 lg:overflow-y-auto">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+              <ShapeEditor name="A" shape={a} onChange={(s) => load(s, b)} />
+              <div className="flex justify-center gap-1" role="group" aria-label={t('numpy_module.broadcast.op')}>
+                {(['+', '-', '*'] as Op[]).map((o) => (
+                  <button key={o} type="button" onClick={() => setOp(o)} aria-pressed={op === o} className={`h-8 w-8 rounded-lg font-mono text-base font-bold ${op === o ? 'bg-slate-800 text-white' : 'border border-gray-200 bg-white text-gray-500'}`}>
+                    {o === '*' ? '×' : o === '-' ? '−' : '+'}
+                  </button>
+                ))}
               </div>
-            </Card>
-            <Presets
-              title={t('lab.common.example')}
-              items={EXAMPLES.map((p) =>
-                p.kind === 'pair'
-                  ? { id: p.id, title: t(`numpy_module.broadcast.preset.${p.id}`), note: t(`numpy_module.broadcast.story.${p.id}`) }
-                  : { id: p.id, title: t(`numpy_module.broadcast.cards.ml_${p.use.id}`), note: `${p.use.code}   ${p.use.shapes}` },
-              )}
-              value={example}
-              onPick={(id) => {
-                const p = EXAMPLES.find((x) => x.id === id)!
-                load(p.a, p.b, p.op)
-              }}
-            />
-          </>
-        }
-      >
-        <Card step={1} title={t('lab.bc.check', { a: shapeLabel(a), b: shapeLabel(b) })}>
-          <p className="text-sm leading-relaxed text-slate-700">{t('lab.bc.idea')}</p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[13px]">
-            <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-slate-700">
-              <b className="text-blue-700">①</b> {t('lab.bc.rule_1')}
-            </span>
-            <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-slate-700">
-              <b className="text-blue-700">②</b> {t('lab.bc.rule_2')} <span className="text-emerald-700">{t('lab.bc.rule_eq')}</span> · <span className="text-emerald-700">{t('lab.bc.rule_one')}</span> · <span className="text-rose-700">{t('lab.bc.rule_bad')}</span>
-            </span>
-          </div>
-          <div className="mt-4 flex flex-wrap items-start gap-4">
-            <div className="min-w-0 flex-1">
-              <RuleTable a={a} b={b} steps={plan.steps} phase={ph} />
+              <ShapeEditor name="B" shape={b} onChange={(s) => load(a, s)} />
             </div>
-            <div className="flex items-center gap-1.5">
+            <p className="text-[13px] leading-relaxed text-slate-600">{t('lab.bc.idea')}</p>
+            <ol className="grid gap-1.5 text-[13px] text-slate-700">
+              <li className="rounded-lg bg-slate-100 px-2.5 py-1.5">
+                <b className="text-blue-700">①</b> {t('lab.bc.rule_1')}
+              </li>
+              <li className="rounded-lg bg-slate-100 px-2.5 py-1.5">
+                <b className="text-blue-700">②</b> {t('lab.bc.rule_2')} <span className="text-emerald-700">{t('lab.bc.rule_eq')}</span> · <span className="text-emerald-700">{t('lab.bc.rule_one')}</span> · <span className="text-rose-700">{t('lab.bc.rule_bad')}</span>
+              </li>
+            </ol>
+            <div className="rounded-xl border border-slate-200 p-3">
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <b className="text-[13px] text-slate-800">{t('lab.bc.check', { a: shapeLabel(a), b: shapeLabel(b) })}</b>
+                <div className="flex items-center gap-1.5">
               {phase === null ? (
                 <button type="button" onClick={() => setPhase(0)} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500">
                   <Footprints size={14} aria-hidden /> {t('numpy_module.broadcast.walk')}
@@ -208,40 +206,47 @@ export default function NumpyBroadcasting() {
                   </button>
                 </>
               )}
-            </div>
-          </div>
-          <p
-            aria-live="polite"
-            className={`mt-3 rounded-lg px-3 py-2 text-sm ${done && !plan.ok ? 'bg-rose-50 text-rose-700' : done ? 'bg-emerald-50 text-emerald-800' : 'bg-yellow-50 text-yellow-900'}`}
-          >
-            {narration}
-          </p>
-        </Card>
-
-        <Card step={2} title={plan.ok ? t('lab.bc.stretch_title', { shape: shapeLabel(plan.outShape!) }) : t('lab.bc.fail_title')} sub={plan.ok ? t('lab.bc.stretch_sub') : undefined}>
-          {plan.ok ? <StretchView key={`${a.join()}|${b.join()}`} a={a} b={b} op={op} out={plan.outShape!} /> : <FailView a={a} b={b} op={op} onFix={(na, nb) => load(na, nb)} />}
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <div className="min-w-0 rounded-xl bg-slate-900 p-3">
-              <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-slate-400">
-                {t('numpy_module.broadcast.code_title')}
-                <RunInPlayground lib="numpy" code={code} />
+                </div>
               </div>
-              <PyBlock code={code} className="overflow-x-auto whitespace-pre font-mono text-[12.5px] leading-5 text-slate-100" />
-            </div>
-            <div className="min-w-0 rounded-xl border border-gray-200 bg-white p-3">
-              <div className="mb-1 text-[11px] text-gray-500">{t('numpy_module.broadcast.output_title')}</div>
-              {run.error ? (
-                <p className="whitespace-pre-wrap break-words font-mono text-[12.5px] leading-5 text-rose-600">
-                  <b>{run.error.type}</b>: {run.error.message}
-                </p>
-              ) : (
-                <pre className="overflow-x-auto whitespace-pre font-mono text-[12.5px] leading-5 text-sky-700">{run.out}</pre>
-              )}
+              <RuleTable a={a} b={b} steps={plan.steps} phase={ph} />
+              <p aria-live="polite" className={`mt-2 rounded-lg px-3 py-2 text-sm ${done && !plan.ok ? 'bg-rose-50 text-rose-700' : done ? 'bg-emerald-50 text-emerald-800' : 'bg-yellow-50 text-yellow-900'}`}>
+                {narration}
+              </p>
             </div>
           </div>
-        </Card>
 
-        <Card step={3} title={t('lab.bc.quiz_title')} sub={t('lab.common.quiz_sub')}>
+          {/* right: what the rule does to the data, and the same thing in code */}
+          <div className="flex min-h-0 min-w-0 flex-col gap-3 lg:overflow-y-auto">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-[15px] font-extrabold">{plan.ok ? t('lab.bc.stretch_title', { shape: shapeLabel(plan.outShape!) }) : t('lab.bc.fail_title')}</h2>
+              {plan.ok && <span className="text-xs text-slate-500">{t('lab.bc.stretch_sub')}</span>}
+            </div>
+            {plan.ok ? <StretchView key={`${a.join()}|${b.join()}`} a={a} b={b} op={op} out={plan.outShape!} /> : <FailView a={a} b={b} op={op} onFix={(na, nb) => load(na, nb)} />}
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="min-w-0 rounded-xl bg-slate-900 p-3">
+                <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                  {t('numpy_module.broadcast.code_title')}
+                  <RunInPlayground lib="numpy" code={code} />
+                </div>
+                <PyBlock code={code} className="overflow-x-auto whitespace-pre font-mono text-[12px] leading-5 text-slate-100" />
+              </div>
+              <div className="min-w-0 rounded-xl border border-gray-200 bg-white p-3">
+                <div className="mb-1 text-[11px] text-gray-500">{t('numpy_module.broadcast.output_title')}</div>
+                {run.error ? (
+                  <p className="whitespace-pre-wrap break-words font-mono text-[12px] leading-5 text-rose-600">
+                    <b>{run.error.type}</b>: {run.error.message}
+                  </p>
+                ) : (
+                  <pre className="overflow-x-auto whitespace-pre font-mono text-[12px] leading-5 text-sky-700">{run.out}</pre>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5">
+        <Card step={1} title={t('lab.bc.quiz_title')} sub={t('lab.common.quiz_sub')}>
           <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
             <div>
               <p className="mb-2 text-sm text-slate-600">{t('lab.bc.quiz_lead')}</p>
@@ -276,7 +281,7 @@ export default function NumpyBroadcasting() {
           </div>
         </Card>
 
-        <Card step={4} title={t('lab.bc.pw_title')} sub={t('lab.bc.pw_sub')}>
+        <Card step={2} title={t('lab.bc.pw_title')} sub={t('lab.bc.pw_sub')}>
           <PairwiseWalkthrough />
         </Card>
 
@@ -284,7 +289,7 @@ export default function NumpyBroadcasting() {
         <Motion>
           <SeniorAdvice content={<Trans i18nKey="numpy_module.broadcast.advice" components={{ 1: <Latex formula="1" /> }} />} />
         </Motion>
-      </Workspace>
+      </div>
     </LabPage>
   )
 }
