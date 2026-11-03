@@ -62,7 +62,9 @@
       "alias_title": "{{name}} changed too!",
       "alias_desc": "{{name}} shares memory with {{target}}, so this write also changed {{count}} of its cells.",
       "too_large": "Too large to draw (shape {{shape}}). Try a smaller array.",
-      "hover_hint": "Hover or tap any cell to see where it comes from. The small numbers give the order of elements in the result."
+      "hover_hint": "Hover or tap any cell to see where it comes from. The small numbers give the order of elements in the result.",
+      "resize_editor": "Drag to resize the editor",
+      "resize_cols": "Drag to resize the columns"
     },
     "broadcast": {
       "title": "Broadcasting: Combining Arrays of Different Shapes",

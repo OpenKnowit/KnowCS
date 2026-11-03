@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { m } from 'framer-motion'
 import { AlertTriangle, ArrowRight, Play, TerminalSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -305,8 +305,62 @@ const TraceView = ({ tr }: { tr: IndexTrace }) => {
   )
 }
 
+// the two dividers' positions, remembered: left column width (%) and editor height (px)
+const readNum = (key: string, fallback: number, lo: number, hi: number) => {
+  try {
+    const v = Number(localStorage.getItem(key))
+    return v >= lo && v <= hi ? v : fallback
+  } catch {
+    return fallback
+  }
+}
+const saveNum = (key: string, v: number) => {
+  try {
+    localStorage.setItem(key, String(Math.round(v)))
+  } catch {
+    // private mode: not remembered
+  }
+}
+const COL_KEY = 'knowcs-np-split'
+const ED_KEY = 'knowcs-np-editor-h'
+
 export const NumpyPlayground = () => {
   const { t } = useTranslation()
+  const [col, setCol] = useState(() => readNum(COL_KEY, 45, 25, 75))
+  const [edH, setEdH] = useState(() => readNum(ED_KEY, 220, 110, 640))
+  const rowRef = useRef<HTMLDivElement>(null)
+  const leftRef = useRef<HTMLDivElement>(null)
+  const dragCol = (e: ReactPointerEvent) => {
+    const box = rowRef.current?.getBoundingClientRect()
+    if (!box || !(e.buttons & 1)) return
+    const v = Math.max(25, Math.min(75, ((e.clientX - box.left) / box.width) * 100))
+    setCol(v)
+    saveNum(COL_KEY, v)
+  }
+  const dragEd = (e: ReactPointerEvent) => {
+    const box = leftRef.current?.getBoundingClientRect()
+    if (!box || !(e.buttons & 1)) return
+    const v = Math.max(110, Math.min(Math.min(640, box.height - 140), e.clientY - box.top))
+    setEdH(v)
+    saveNum(ED_KEY, v)
+  }
+  const keyCol = (e: ReactKeyboardEvent) => {
+    const d = e.key === 'ArrowLeft' ? -3 : e.key === 'ArrowRight' ? 3 : 0
+    if (!d) return
+    e.preventDefault()
+    const v = Math.max(25, Math.min(75, col + d))
+    setCol(v)
+    saveNum(COL_KEY, v)
+  }
+  const keyEd = (e: ReactKeyboardEvent) => {
+    const d = e.key === 'ArrowUp' ? -24 : e.key === 'ArrowDown' ? 24 : 0
+    if (!d) return
+    e.preventDefault()
+    const v = Math.max(110, Math.min(640, edH + d))
+    setEdH(v)
+    saveNum(ED_KEY, v)
+  }
+  const grip = 'hidden shrink-0 touch-none rounded-full bg-slate-200 transition-colors hover:bg-blue-400 focus-visible:bg-blue-500 focus-visible:outline-none lg:block'
   const [code, setCode] = useState(PRESETS[0].code)
   const [result, setResult] = useState<RunResult>(() => runPython(PRESETS[0].code))
   const [selected, setSelected] = useState<number | null>(null)
@@ -347,11 +401,12 @@ export const NumpyPlayground = () => {
       </div>
 
       {/* one screen: code, output and variables on the left; what each indexing operation picked on the right */}
-      <div className="grid grid-cols-1 gap-4 lg:h-[calc(100dvh-300px)] lg:min-h-[560px] lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="flex min-w-0 flex-col gap-3 lg:min-h-0">
+      {/* the dividers between the columns and under the editor drag (or take ← → / ↑ ↓); positions are remembered */}
+      <div ref={rowRef} className="flex flex-col gap-4 lg:h-[calc(100dvh-300px)] lg:min-h-[560px] lg:flex-row lg:gap-0" style={{ ['--np-l' as string]: `${col}%`, ['--np-ed' as string]: `${edH}px` }}>
+        <div ref={leftRef} className="flex min-w-0 flex-col gap-3 lg:min-h-0 lg:w-[var(--np-l)] lg:shrink-0 lg:gap-0">
         {/* 编辑器 */}
-        <div className="rounded-xl bg-slate-900 overflow-hidden shadow-sm flex flex-col">
-          <div className="flex font-mono text-[13px] leading-6 flex-1">
+        <div className="rounded-xl bg-slate-900 overflow-hidden shadow-sm flex flex-col lg:h-[var(--np-ed)] lg:shrink-0">
+          <div className="flex min-h-0 font-mono text-[13px] leading-6 flex-1 overflow-auto">
             <div aria-hidden className="select-none py-3 pl-3 pr-2 text-right text-slate-500 border-r border-slate-700/60">
               {lines.map((_, i) => (
                 <div key={i} className={errLine === i + 1 ? 'text-rose-400 font-bold' : ''}>{i + 1}</div>
@@ -381,6 +436,7 @@ export const NumpyPlayground = () => {
           </div>
         </div>
 
+        <div role="separator" aria-orientation="horizontal" aria-label={t('numpy_module.playground.resize_editor')} tabIndex={0} onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)} onPointerMove={dragEd} onKeyDown={keyEd} className={`${grip} mx-auto my-1.5 h-1.5 w-16 cursor-row-resize`} />
         {/* 输出 + 变量 */}
         <div className="flex flex-col gap-3 min-w-0 lg:min-h-0 lg:flex-1">
           <div className="rounded-xl border border-gray-200 bg-white p-3 min-h-24 lg:min-h-0 lg:flex-1 lg:overflow-auto" aria-live="polite">
@@ -424,11 +480,12 @@ export const NumpyPlayground = () => {
             </div>
           )}
         </div>
-        <p className="text-[11px] text-gray-400">{t('numpy_module.playground.subset')}</p>
+        <p className="mt-2 text-[11px] text-gray-400">{t('numpy_module.playground.subset')}</p>
 
         </div>
+  <div role="separator" aria-orientation="vertical" aria-label={t('numpy_module.playground.resize_cols')} tabIndex={0} onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)} onPointerMove={dragCol} onKeyDown={keyCol} className={`${grip} mx-1.5 my-auto h-16 w-1.5 cursor-col-resize`} />
   {/* 索引轨迹 */}
-  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4 min-w-0 lg:min-h-0 lg:overflow-auto">
+  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4 min-w-0 lg:min-h-0 lg:flex-1 lg:overflow-auto">
     <div className="text-xs font-semibold text-gray-500">{t('numpy_module.playground.ops', { count: result.traces.length })}</div>
     {result.traces.length === 0 ? (
       <p className="text-sm text-gray-400 italic">{t('numpy_module.playground.no_ops')}</p>

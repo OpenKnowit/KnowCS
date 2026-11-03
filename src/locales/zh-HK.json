@@ -62,7 +62,9 @@
       "alias_title": "{{name}} 也被改了！",
       "alias_desc": "{{name}} 與 {{target}} 共享記憶體，這次寫入同時改動了它的 {{count}} 個格子。",
       "too_large": "陣列太大無法繪製（形狀 {{shape}}），請換個小一點的陣列。",
-      "hover_hint": "懸停或點按任意格子即可查看它的來源；小數字表示該元素在結果中的順序。"
+      "hover_hint": "懸停或點按任意格子即可查看它的來源；小數字表示該元素在結果中的順序。",
+      "resize_editor": "拖動調整編輯器高度",
+      "resize_cols": "拖動調整左右欄寬度"
     },
     "broadcast": {
       "title": "廣播（Broadcasting）：不同形狀的陣列如何運算",

@@ -62,7 +62,9 @@
       "alias_title": "{{name}} 也被改了！",
       "alias_desc": "{{name}} 与 {{target}} 共享内存，这次写入同时改动了它的 {{count}} 个格子。",
       "too_large": "数组太大无法绘制（形状 {{shape}}），请换个小一点的数组。",
-      "hover_hint": "悬停或点按任意格子即可查看它的来源；小数字表示该元素在结果中的顺序。"
+      "hover_hint": "悬停或点按任意格子即可查看它的来源；小数字表示该元素在结果中的顺序。",
+      "resize_editor": "拖动调整编辑器高度",
+      "resize_cols": "拖动调整左右栏宽度"
     },
     "broadcast": {
       "title": "广播（Broadcasting）：不同形状的数组如何运算",
