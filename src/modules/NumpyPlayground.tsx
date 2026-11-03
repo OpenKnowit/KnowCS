@@ -346,7 +346,9 @@ export const NumpyPlayground = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* one screen: code, output and variables on the left; what each indexing operation picked on the right */}
+      <div className="grid grid-cols-1 gap-4 lg:h-[calc(100dvh-300px)] lg:min-h-[560px] lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="flex min-w-0 flex-col gap-3 lg:min-h-0">
         {/* 编辑器 */}
         <div className="rounded-xl bg-slate-900 overflow-hidden shadow-sm flex flex-col">
           <div className="flex font-mono text-[13px] leading-6 flex-1">
@@ -365,7 +367,7 @@ export const NumpyPlayground = () => {
                   runNow()
                 }
               }}
-              rows={Math.max(lines.length, 7)}
+              rows={Math.max(lines.length, 5)}
               aria-label={t('numpy_module.playground.editor_label')}
               className="py-3 px-3 outline-none resize-none overflow-x-auto"
             />
@@ -380,8 +382,8 @@ export const NumpyPlayground = () => {
         </div>
 
         {/* 输出 + 变量 */}
-        <div className="flex flex-col gap-3 min-w-0">
-          <div className="rounded-xl border border-gray-200 bg-white p-3 flex-1 min-h-32" aria-live="polite">
+        <div className="flex flex-col gap-3 min-w-0 lg:min-h-0 lg:flex-1">
+          <div className="rounded-xl border border-gray-200 bg-white p-3 min-h-24 lg:min-h-0 lg:flex-1 lg:overflow-auto" aria-live="polite">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mb-2">
               <TerminalSquare size={14} /> {t('numpy_module.playground.output')}
             </div>
@@ -422,35 +424,36 @@ export const NumpyPlayground = () => {
             </div>
           )}
         </div>
-      </div>
-      <p className="text-[11px] text-gray-400 -mt-2">{t('numpy_module.playground.subset')}</p>
+        <p className="text-[11px] text-gray-400">{t('numpy_module.playground.subset')}</p>
 
-      {/* 索引轨迹 */}
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4">
-        <div className="text-xs font-semibold text-gray-500">{t('numpy_module.playground.ops', { count: result.traces.length })}</div>
-        {result.traces.length === 0 ? (
-          <p className="text-sm text-gray-400 italic">{t('numpy_module.playground.no_ops')}</p>
-        ) : (
-          <>
-            <div className="flex flex-wrap gap-2">
-              {result.traces.map((tr) => {
-                const on = tr.id === trace?.id
-                return (
-                  <button
-                    key={tr.id}
-                    onClick={() => setSelected(tr.id)}
-                    aria-pressed={on}
-                    className={`px-2 py-1 rounded-md border text-xs font-mono transition ${on ? `bg-white shadow-sm ${TONE[toneOf(tr)].chip}` : 'border-gray-200 bg-white/60 text-gray-500 hover:border-gray-400'}`}
-                  >
-                    <span className="text-gray-400 mr-1.5">L{tr.line}</span>
-                    {tr.code}
-                  </button>
-                )
-              })}
-            </div>
-            {trace && <TraceView key={`${trace.id}:${trace.code}:${trace.line}`} tr={trace} />}
-          </>
-        )}
+        </div>
+  {/* 索引轨迹 */}
+  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-4 min-w-0 lg:min-h-0 lg:overflow-auto">
+    <div className="text-xs font-semibold text-gray-500">{t('numpy_module.playground.ops', { count: result.traces.length })}</div>
+    {result.traces.length === 0 ? (
+      <p className="text-sm text-gray-400 italic">{t('numpy_module.playground.no_ops')}</p>
+    ) : (
+      <>
+        <div className="flex flex-wrap gap-2">
+          {result.traces.map((tr) => {
+            const on = tr.id === trace?.id
+            return (
+              <button
+                key={tr.id}
+                onClick={() => setSelected(tr.id)}
+                aria-pressed={on}
+                className={`px-2 py-1 rounded-md border text-xs font-mono transition ${on ? `bg-white shadow-sm ${TONE[toneOf(tr)].chip}` : 'border-gray-200 bg-white/60 text-gray-500 hover:border-gray-400'}`}
+              >
+                <span className="text-gray-400 mr-1.5">L{tr.line}</span>
+                {tr.code}
+              </button>
+            )
+          })}
+        </div>
+        {trace && <TraceView key={`${trace.id}:${trace.code}:${trace.line}`} tr={trace} />}
+      </>
+    )}
+  </div>
       </div>
     </div>
   )
