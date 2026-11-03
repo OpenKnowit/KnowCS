@@ -15,7 +15,7 @@ const memo = <T,>(f: () => Promise<T>): (() => Promise<T>) => {
 
 /** Lab pages render their own LabPage; each brings its lab.<key> strings. */
 export const LAB_LOADERS: Partial<Record<ModuleId, Loader>> = {
-  'numpy-broadcast': memo(withPacks(i18n, ['lab.bc', 'numpy_module'], () => import('./modules/NumpyBroadcasting'))),
+  'numpy-broadcast': memo(withPacks(i18n, ['lab.bc', 'numpy_module', 'numpy_api'], () => import('./modules/NumpyBroadcasting'))),
   'bayes-virus': memo(withPacks(i18n, ['lab.bayes'], () => import('./modules/BayesVirus'))),
   'gaussian-nb': memo(withPacks(i18n, ['lab.gnb'], () => import('./modules/GaussianNb'))),
   evaluation: memo(withPacks(i18n, ['lab.eval'], () => import('./modules/Evaluation'))),
