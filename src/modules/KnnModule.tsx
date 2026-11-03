@@ -66,10 +66,10 @@ export const KnnModule = () => {
   const predLabel = processedData.prediction === 'M' ? t('knn.class_m') : t('knn.class_l')
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-[2rem] p-5 sm:p-8 shadow-sm">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-[2rem] p-5 sm:p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
             <h4 className="text-[11px] font-black text-slate-400 uppercase flex items-center gap-2">
               <MousePointer2 size={14} className="text-blue-500" aria-hidden /> {t('knn.click_instruction')}
             </h4>
@@ -80,7 +80,7 @@ export const KnnModule = () => {
           </div>
 
           {/* 网格布局给两条坐标轴标签留位置，避免旋转文字压到画布 */}
-          <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 w-full max-w-[470px] mx-auto">
+          <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 w-full max-w-[min(470px,calc(100dvh-510px))] mx-auto">
             <div className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] whitespace-nowrap" aria-hidden>{t('knn.axis_weight')}</div>
             <div className="aspect-square w-full">
             <svg
@@ -155,11 +155,13 @@ export const KnnModule = () => {
           <p className="mt-4 text-[10px] text-slate-400 text-center">{t('knn.keyboard_hint')}</p>
         </div>
 
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-2xl relative overflow-hidden">
+        <div className="lg:col-span-5 space-y-4">
+          <div className="bg-slate-900 rounded-[2rem] p-5 text-white shadow-2xl relative overflow-hidden">
              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                <LineIcon size={14} className="text-blue-500" aria-hidden /> {t('knn.model_complexity')}
              </h4>
+             {/* capped so the lab fits one screen; the chart keeps its proportions */}
+             <div className="[&_svg]:mx-auto [&_svg]:max-h-[190px]">
              <LineChart
                data={looCurve}
                referenceX={k}
@@ -168,18 +170,19 @@ export const KnnModule = () => {
                xLabel="K"
                ariaLabel={t('knn.loo_chart_label', { k: best.x, err: pct(best.y) })}
              />
+             </div>
              <p className="text-[10px] text-slate-400 mt-3 leading-relaxed">
                {t('knn.loo_hint', { n: KNN_RAW_DATA.length, k: best.x, err: pct(best.y) })}
              </p>
-             <div className="mt-4 grid grid-cols-2 gap-4 text-center border-t border-slate-800 pt-4">
+             <div className="mt-3 grid grid-cols-2 gap-4 text-center border-t border-slate-800 pt-3">
                 <div><p className="text-[9px] text-slate-500 uppercase">{t('knn.low_k')}</p><p className="text-[10px] text-red-400 font-bold">{t('knn.overfitting')}</p></div>
                 <div><p className="text-[9px] text-slate-500 uppercase">{t('knn.high_k')}</p><p className="text-[10px] text-orange-400 font-bold">{t('knn.underfitting')}</p></div>
              </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-[2rem] p-6 sm:p-8 shadow-sm">
-            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6">{t('knn.voting_panel')}</h4>
-            <div className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-[2rem] p-5 shadow-sm">
+            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">{t('knn.voting_panel')}</h4>
+            <div className="space-y-4">
                <div className="flex items-center justify-between">
                   <label htmlFor="knn-k" className="text-xs font-bold text-slate-600">{t('knn.k_value')}</label>
                   <div className="flex items-center gap-4">
@@ -188,13 +191,13 @@ export const KnnModule = () => {
                   </div>
                </div>
                <div className="grid grid-cols-2 gap-4" aria-live="polite">
-                  <div className={`p-4 rounded-2xl border-2 transition ${processedData.prediction === 'M' ? 'bg-blue-50 border-blue-500' : 'bg-slate-50 border-transparent opacity-50'}`}>
+                  <div className={`p-3 rounded-2xl border-2 transition ${processedData.prediction === 'M' ? 'bg-blue-50 border-blue-500' : 'bg-slate-50 border-transparent opacity-50'}`}>
                      <p className="text-[9px] font-black uppercase text-blue-600 mb-1">{t('knn.m_vote')}</p>
-                     <p className="text-3xl font-black text-slate-800">{processedData.mCount}</p>
+                     <p className="text-2xl font-black text-slate-800">{processedData.mCount}</p>
                   </div>
-                  <div className={`p-4 rounded-2xl border-2 transition ${processedData.prediction === 'L' ? 'bg-red-50 border-red-500' : 'bg-slate-50 border-transparent opacity-50'}`}>
+                  <div className={`p-3 rounded-2xl border-2 transition ${processedData.prediction === 'L' ? 'bg-red-50 border-red-500' : 'bg-slate-50 border-transparent opacity-50'}`}>
                      <p className="text-[9px] font-black uppercase text-red-600 mb-1">{t('knn.l_vote')}</p>
-                     <p className="text-3xl font-black text-slate-800">{processedData.lCount}</p>
+                     <p className="text-2xl font-black text-slate-800">{processedData.lCount}</p>
                   </div>
                </div>
                {processedData.isTie && (

@@ -158,7 +158,7 @@ export default function CrossValidation() {
           </Card>
 
           <Card step={4} title={t('lab.cv.every_d')} sub={t(`lab.cv.order_short_${ordering}`)}>
-            <svg viewBox="0 0 360 200" className="w-full" role="img" aria-label={t('lab.cv.every_d')}>
+            <svg viewBox="0 0 360 200" className="h-[200px] w-full" role="img" aria-label={t('lab.cv.every_d')}>
               {[0, 0.5, 1].map((y) => (
                 <g key={y}>
                   <line x1={34} x2={350} y1={170 - y * 150} y2={170 - y * 150} stroke="#e2e8f0" />
@@ -180,12 +180,19 @@ export default function CrossValidation() {
           </Card>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          <Note tone="warn" title={t('lab.cv.how_title')}>
-            <Trans i18nKey="lab.cv.how" components={{ 1: <b />, 3: <b /> }} />
-          </Note>
-          <Note title={t('lab.cv.loo_title')}>{t('lab.cv.loo')}</Note>
-        </div>
+        {/* how to cut folds properly and leave-one-out: folded, so the lab itself fits one screen */}
+        <details className="group rounded-[20px] border border-slate-200 bg-white">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-[15px] font-extrabold [&::-webkit-details-marker]:hidden">
+            <span className="text-slate-400 transition-transform group-open:rotate-90">›</span>
+            {t('lab.cv.how_title')} · {t('lab.cv.loo_title')}
+          </summary>
+          <div className="grid gap-5 px-5 pb-5 md:grid-cols-2">
+            <Note tone="warn" title={t('lab.cv.how_title')}>
+              <Trans i18nKey="lab.cv.how" components={{ 1: <b />, 3: <b /> }} />
+            </Note>
+            <Note title={t('lab.cv.loo_title')}>{t('lab.cv.loo')}</Note>
+          </div>
+        </details>
       </Workspace>
     </LabPage>
   )

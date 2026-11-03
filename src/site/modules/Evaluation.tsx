@@ -187,6 +187,7 @@ export default function Evaluation() {
               </Card>
             </div>
 
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
             <Card step={3} title={t('lab.eval.per_class')} sub={t('lab.common.quiz_sub')}>
               <TableWrap>
                 <tr>
@@ -208,7 +209,7 @@ export default function Evaluation() {
             </Card>
 
             <Card step={4} title={t('lab.eval.summary')}>
-              <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
                 <Stat k={t('lab.eval.accuracy')} v={fmt(R.accuracy, 3)} d={t('lab.eval.accuracy_d', { n: R.perClass.reduce((a, p) => a + p.TP, 0), total: R.total })} tone="blue" />
                 <Stat k="Macro-F1" v={fmt(R.macroF1, 3)} d={t('lab.eval.macro_d')} tone={R.macroF1 < R.accuracy - 0.15 ? 'bad' : 'none'} />
                 <Stat k="Weighted-F1" v={fmt(R.weightedF1, 3)} d={t('lab.eval.weighted_d')} />
@@ -226,8 +227,15 @@ export default function Evaluation() {
                 )}
               </div>
             </Card>
+            </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            {/* the NumPy version and the exam traps fold away, so the lab itself fits one screen */}
+            <details className="group rounded-[20px] border border-slate-200 bg-white">
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-[15px] font-extrabold [&::-webkit-details-marker]:hidden">
+                <span className="text-slate-400 transition-transform group-open:rotate-90">›</span>
+                {t('lab.eval.numpy')} · {t('lab.common.exam_traps')}
+              </summary>
+            <div className="grid gap-5 px-5 pb-5 md:grid-cols-2">
               <Card title={t('lab.eval.numpy')} sub={t('lab.eval.numpy_sub')}>
                 <div className="formula">
                   <span className="text-slate-500"># {t(rowsActual ? 'lab.eval.code_rows_actual' : 'lab.eval.code_rows_pred')}</span>
@@ -242,6 +250,7 @@ export default function Evaluation() {
                 <Trans i18nKey="lab.eval.traps" components={{ 1: <i />, 3: <i /> }} />
               </Note>
             </div>
+            </details>
           </>
         )}
       </Workspace>
