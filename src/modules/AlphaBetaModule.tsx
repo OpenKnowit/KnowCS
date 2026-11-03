@@ -10,43 +10,42 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Maximize2,
+  Minus,
+  Plus,
   Shuffle,
-  SlidersHorizontal,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
-import { AB_LEAF_IDS, AB_NODES, AB_PRESETS } from '../data/constants'
-import { generateAbSteps } from '../lib/alphabeta'
+import { AB_PRESETS } from '../data/constants'
+import { buildAbTree, generateAbSteps } from '../lib/alphabeta'
 import type { AbNode, AbStep } from '../types'
 
 const fmt = (v: number): string => (v === Infinity ? '∞' : v === -Infinity ? '-∞' : String(v))
 
-const EDGES: { from: string; to: string }[] = Object.values(AB_NODES).flatMap((n) =>
-  (n.children ?? []).map((c) => ({ from: n.id, to: c }))
-)
+const MIN_DEPTH = 2
+const MAX_DEPTH = 5
+const randomLeaves = (n: number) => Array.from({ length: n }, () => Math.floor(Math.random() * 21))
 
 export const AlphaBetaModule = () => {
   const { t } = useTranslation()
-  const [leaves, setLeaves] = useState<Record<string, number>>(() => {
-    const init: Record<string, number> = {}
-    AB_LEAF_IDS.forEach((id, i) => (init[id] = AB_PRESETS.user[i]))
-    return init
-  })
-  const [preset, setPreset] = useState<string>('user')
+  // the tree: how many levels above the leaves (a full binary tree), and the leaf values left to right
+  const [depth, setDepth] = useState(3)
+  const [vals, setVals] = useState<number[]>(() => [...AB_PRESETS.alpha])
+  const [preset, setPreset] = useState<string>('alpha')
   const [stepIdx, setStepIdx] = useState(0)
   // the leaf whose value is being typed in place (click a leaf); null = none
   const [editing, setEditing] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1000)
 
-  // 把当前叶子值注入节点表
-  const nodes = useMemo<Record<string, AbNode>>(() => {
-    const clone: Record<string, AbNode> = {}
-    for (const id in AB_NODES) clone[id] = { ...AB_NODES[id], value: AB_NODES[id].value }
-    AB_LEAF_IDS.forEach((id) => (clone[id].value = leaves[id]))
-    return clone
-  }, [leaves])
+  const tree = useMemo(() => buildAbTree(depth, vals), [depth, vals])
+  const nodes: Record<string, AbNode> = tree.nodes
+  const edges = useMemo(() => Object.values(nodes).flatMap((n) => (n.children ?? []).map((c) => ({ from: n.id, to: c }))), [nodes])
+  const leafIds = useMemo(() => Object.values(nodes).filter((n) => n.type === 'leaf').map((n) => n.id), [nodes])
 
   const steps = useMemo<AbStep[]>(() => generateAbSteps(nodes), [nodes])
   const safeIdx = Math.min(stepIdx, steps.length - 1)
@@ -64,28 +63,60 @@ export const AlphaBetaModule = () => {
   }, [playing, safeIdx, steps.length, speed])
 
   const applyPreset = (key: string) => {
-    const vals = AB_PRESETS[key]
-    const next: Record<string, number> = {}
-    AB_LEAF_IDS.forEach((id, i) => (next[id] = vals[i]))
-    setLeaves(next)
+    setDepth(3)
+    setVals([...AB_PRESETS[key]])
     setPreset(key)
     setStepIdx(0)
     setPlaying(false)
   }
 
   const randomize = () => {
-    const next: Record<string, number> = {}
-    AB_LEAF_IDS.forEach((id) => (next[id] = Math.floor(Math.random() * 21)))
-    setLeaves(next)
+    setVals(randomLeaves(2 ** depth))
     setPreset('custom')
     setStepIdx(0)
     setPlaying(false)
   }
 
   const setLeaf = (id: string, v: number) => {
-    setLeaves((prev) => ({ ...prev, [id]: v }))
+    const i = Number(id.slice(1)) - 1
+    setVals((prev) => prev.map((x, j) => (j === i ? v : x)))
     setPreset('custom')
   }
+  // more or fewer levels: the leaves we have are kept (left to right), new ones are random
+  const changeDepth = (d: number) => {
+    const next = Math.max(MIN_DEPTH, Math.min(MAX_DEPTH, d))
+    if (next === depth) return
+    setDepth(next)
+    setVals((prev) => {
+      const n = 2 ** next
+      return prev.length >= n ? prev.slice(0, n) : [...prev, ...randomLeaves(n - prev.length)]
+    })
+    setPreset('custom')
+    setStepIdx(0)
+    setPlaying(false)
+  }
+
+  // the canvas: drag to move, Ctrl/⌘ + wheel or the buttons to zoom; it fits the tree again when its size changes
+  const W = Math.max(tree.width, 1000)
+  const H = tree.height
+  const fit = { k: 1, tx: (W - tree.width) / 2, ty: 0 }
+  const [view, setView] = useState(fit)
+  const [viewFor, setViewFor] = useState(depth)
+  if (viewFor !== depth) {
+    setViewFor(depth)
+    setView(fit)
+  }
+  const svgRef = useRef<SVGSVGElement>(null)
+  const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null)
+  const unit = () => {
+    const r = svgRef.current?.getBoundingClientRect()
+    return r ? Math.min(r.width / W, r.height / H) : 1
+  }
+  const zoomAt = (factor: number, cx = W / 2, cy = H / 2) =>
+    setView((v) => {
+      const k = Math.max(0.3, Math.min(4, v.k * factor))
+      return { k, tx: cx - ((cx - v.tx) * k) / v.k, ty: cy - ((cy - v.ty) * k) / v.k }
+    })
 
   // 结构化步骤 → 本地化解释文案（当前步骤与追踪链共用）
   const explain = (s: AbStep): string => {
@@ -135,18 +166,18 @@ export const AlphaBetaModule = () => {
 
   const counts = useMemo(() => {
     const pruned = new Set(steps.at(-1)!.prunedNodes)
-    const prunedLeaves = AB_LEAF_IDS.filter((id) => pruned.has(id)).length
-    return { evaluated: AB_LEAF_IDS.length - prunedLeaves, prunedLeaves, total: AB_LEAF_IDS.length }
-  }, [steps])
+    const prunedLeaves = leafIds.filter((id) => pruned.has(id)).length
+    return { evaluated: leafIds.length - prunedLeaves, prunedLeaves, total: leafIds.length }
+  }, [steps, leafIds])
 
-  const mathBoxClass = step.type === 'prune' ? 'border-rose-300 bg-rose-50' : step.type === 'leaf_eval' || step.type === 'update' ? 'border-violet-300 bg-violet-50' : 'border-slate-200 bg-slate-50'
+  const mathBoxClass = step.type === 'prune' ? 'border-rose-300 bg-rose-50' : step.type === 'leaf_eval' || step.type === 'update' ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-slate-50'
   const panel = 'rounded-[20px] border border-slate-200 bg-white'
   const heading = 'flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-700'
   const STEP_TONE: Record<AbStep['type'], string> = {
     enter: 'bg-blue-100 text-blue-700',
     traverse: 'bg-slate-100 text-slate-600',
-    leaf_eval: 'bg-violet-100 text-violet-700',
-    update: 'bg-violet-100 text-violet-700',
+    leaf_eval: 'bg-blue-100 text-blue-700',
+    update: 'bg-blue-100 text-blue-700',
     prune: 'bg-rose-100 text-rose-700',
     exit: 'bg-amber-100 text-amber-800',
   }
@@ -164,7 +195,7 @@ export const AlphaBetaModule = () => {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            {[['bg-violet-500', 'visited'], ['bg-blue-500', 'active'], ['bg-rose-500', 'pruned']].map(([c, k]) => (
+            {[['bg-blue-200 ring-1 ring-blue-500', 'visited'], ['bg-blue-800', 'active'], ['bg-rose-500', 'pruned']].map(([c, k]) => (
               <span key={k} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-700"><span className={`h-2.5 w-2.5 rounded-full ${c}`} />{t(`alphabeta.legend.${k}`)}</span>
             ))}
           </div>
@@ -189,31 +220,74 @@ export const AlphaBetaModule = () => {
                   ))}
                 </div>
               </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-slate-500">{t('alphabeta.levels')}</span>
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={() => changeDepth(depth - 1)} disabled={depth <= MIN_DEPTH} aria-label={t('alphabeta.levels_less')} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:border-slate-400 disabled:opacity-40"><Minus size={14} aria-hidden /></button>
+                  <span className="w-16 text-center font-mono text-sm font-bold text-slate-900">{depth} · {2 ** depth}</span>
+                  <button type="button" onClick={() => changeDepth(depth + 1)} disabled={depth >= MAX_DEPTH} aria-label={t('alphabeta.levels_more')} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:border-slate-400 disabled:opacity-40"><Plus size={14} aria-hidden /></button>
+                </div>
+              </div>
               <div className="flex gap-2">
                 <button onClick={randomize} className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400">
                   <Shuffle size={14} className="text-blue-600" aria-hidden /> {t('alphabeta.randomize')}
                 </button>
-                <button onClick={() => applyPreset(preset === 'custom' ? 'user' : preset)} className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400">
+                <button onClick={() => applyPreset(preset === 'custom' ? 'alpha' : preset)} className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400">
                   <RotateCcw size={14} className="text-slate-500" aria-hidden /> {t('alphabeta.reset')}
                 </button>
               </div>
             </div>
 
-            <div className={`${panel} relative min-h-[360px] overflow-hidden p-4`}>
-              <div className="absolute left-4 top-4 z-10 rounded-lg border border-slate-200 bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-500 backdrop-blur">{t('alphabeta.canvas_label')}</div>
-              <div className="absolute right-4 top-4 z-10 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white/90 p-3 text-[11px] text-slate-600 backdrop-blur">
-                <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-blue-500" />{t('alphabeta.layers.max')}</span>
-                <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-amber-500" />{t('alphabeta.layers.min')}</span>
-                <span className="flex items-center gap-2"><span className="h-1.5 w-3.5 rounded bg-violet-500" />{t('alphabeta.layers.leaf')}</span>
+            <div className={`${panel} relative h-[480px] overflow-hidden`}>
+              <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-lg border border-slate-200 bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-500 backdrop-blur">{t('alphabeta.canvas_label')}</div>
+              <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 backdrop-blur">
+                <span className="hidden px-2 text-[11px] text-slate-500 sm:inline">{t('alphabeta.canvas_hint')}</span>
+                <button type="button" onClick={() => zoomAt(1 / 1.25)} aria-label={t('alphabeta.zoom_out')} title={t('alphabeta.zoom_out')} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100"><ZoomOut size={15} aria-hidden /></button>
+                <button type="button" onClick={() => zoomAt(1.25)} aria-label={t('alphabeta.zoom_in')} title={t('alphabeta.zoom_in')} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100"><ZoomIn size={15} aria-hidden /></button>
+                <button type="button" onClick={() => setView(fit)} aria-label={t('alphabeta.zoom_fit')} title={t('alphabeta.zoom_fit')} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100"><Maximize2 size={14} aria-hidden /></button>
               </div>
-              <svg viewBox="0 0 1000 470" className="mt-10 h-auto max-h-[460px] w-full" role="img" aria-label={t('alphabeta.tree_label')}>
+              <div className="pointer-events-none absolute right-4 top-4 z-10 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white/90 p-3 text-[11px] text-slate-600 backdrop-blur">
+                <span className="flex items-center gap-2"><span className="w-3.5 text-center text-slate-600">▲</span>{t('alphabeta.layers.max')}</span>
+                <span className="flex items-center gap-2"><span className="w-3.5 text-center text-slate-600">▼</span>{t('alphabeta.layers.min')}</span>
+                <span className="flex items-center gap-2"><span className="w-3.5 text-center text-slate-600">●</span>{t('alphabeta.layers.leaf')}</span>
+              </div>
+              <svg
+                ref={svgRef}
+                viewBox={`0 0 ${W} ${H}`}
+                className="h-full w-full cursor-grab touch-none select-none active:cursor-grabbing"
+                role="img"
+                aria-label={t('alphabeta.tree_label')}
+                onPointerDown={(e) => {
+                  if ((e.target as Element).closest('[data-leaf], foreignObject')) return
+                  e.currentTarget.setPointerCapture(e.pointerId)
+                  drag.current = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty }
+                }}
+                onPointerMove={(e) => {
+                  const d = drag.current
+                  if (!d) return
+                  const u = unit()
+                  setView((v) => ({ ...v, tx: d.tx + (e.clientX - d.x) / u, ty: d.ty + (e.clientY - d.y) / u }))
+                }}
+                onPointerUp={() => (drag.current = null)}
+                onPointerCancel={() => (drag.current = null)}
+                onWheel={(e) => {
+                  if (!e.ctrlKey && !e.metaKey) return
+                  e.preventDefault()
+                  const r = e.currentTarget.getBoundingClientRect()
+                  const u = unit()
+                  const ox = (r.width - W * u) / 2
+                  const oy = (r.height - H * u) / 2
+                  zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, (e.clientX - r.left - ox) / u, (e.clientY - r.top - oy) / u)
+                }}
+              >
                 <defs>
                   <marker id="ab-arrow" viewBox="0 0 10 10" refX="20" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                     <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b" />
                   </marker>
                 </defs>
+                <g transform={`translate(${view.tx} ${view.ty}) scale(${view.k})`}>
                 {/* 边 */}
-                {EDGES.map((e) => {
+                {edges.map((e) => {
                   const p = nodes[e.from]
                   const c = nodes[e.to]
                   const key = `${e.from}->${e.to}`
@@ -224,8 +298,8 @@ export const AlphaBetaModule = () => {
                   let width = 3
                   let dash = '0'
                   if (isPruned) { stroke = '#e11d48'; width = 2.5; dash = '6,5' }
-                  else if (isActive) { stroke = '#2563eb'; width = 6 }
-                  else if (isVisited) { stroke = '#7c3aed'; width = 4 }
+                  else if (isActive) { stroke = '#1e3a8a'; width = 6 }
+                  else if (isVisited) { stroke = '#3b82f6'; width = 4 }
                   return (
                     <g key={key}>
                       <line x1={p.x} y1={p.y} x2={c.x} y2={c.y} stroke={stroke} strokeWidth={width} strokeDasharray={dash} markerEnd="url(#ab-arrow)" />
@@ -250,12 +324,12 @@ export const AlphaBetaModule = () => {
                   let stroke = '#64748b'
                   let text = '#334155'
                   if (isPruned) { fill = '#fff1f2'; stroke = '#e11d48'; text = '#be123c' }
-                  else if (isActive) { fill = '#2563eb'; stroke = '#1d4ed8'; text = '#ffffff' }
-                  else if (isVisited) { fill = '#ede9fe'; stroke = '#7c3aed'; text = '#5b21b6' }
+                  else if (isActive) { fill = '#1e40af'; stroke = '#1e3a8a'; text = '#ffffff' }
+                  else if (isVisited) { fill = '#dbeafe'; stroke = '#3b82f6'; text = '#1e40af' }
   
                   if (node.type === 'leaf') {
                     return (
-                      <g key={node.id} className="cursor-pointer [&:hover>circle]:stroke-blue-500" onClick={() => setEditing(node.id)}>
+                      <g key={node.id} data-leaf className="cursor-pointer [&:hover>circle]:stroke-blue-500" onClick={() => setEditing(node.id)}>
                         <circle cx={node.x} cy={node.y} r={22} fill={fill} stroke={stroke} strokeWidth={3} strokeDasharray={isPruned ? '5,4' : undefined} />
                         {editing !== node.id && <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#be123c' : isActive ? '#ffffff' : '#0f172a'}>{node.value}</text>}
                         <text x={node.x + 28} y={node.y + 4} fontSize={11} fontFamily="monospace" fill="#475569" fontWeight={700}>{node.id}</text>
@@ -299,19 +373,20 @@ export const AlphaBetaModule = () => {
                       <g transform={`translate(${node.x}, ${node.y + (isMax ? -40 : -34)})`}>
                         <rect x={-56} y={-12} width={112} height={21} rx={6} fill="#ffffff" stroke="#cbd5e1" />
                         <text textAnchor="middle" dy={3} fontSize={10.5} fontWeight={700} fontFamily="monospace">
-                          <tspan fill="#6d28d9">α:{fmt(a)}</tspan> <tspan fill="#b45309">β:{fmt(b)}</tspan>
+                          <tspan fill="#1d4ed8">α:{fmt(a)}</tspan> <tspan fill="#b45309">β:{fmt(b)}</tspan>
                         </text>
                       </g>
                       <text x={node.x + 32} y={node.y + 2} fontSize={11} fontFamily="monospace" fill="#475569" fontWeight={700}>{node.id}</text>
                       {value !== null && (
                         <g transform={`translate(${node.x}, ${node.y + (isMax ? 34 : 40)})`}>
-                          <rect x={-15} y={-10} width={30} height={18} rx={5} fill="#8b5cf6" />
+                          <rect x={-15} y={-10} width={30} height={18} rx={5} fill="#60a5fa" />
                           <text textAnchor="middle" dy={3} fontSize={11} fontWeight="bold" fill="white">{value}</text>
                         </g>
                       )}
                     </g>
                   )
                 })}
+                </g>
               </svg>
             </div>
           </section>
@@ -337,19 +412,19 @@ export const AlphaBetaModule = () => {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-4 text-center">
-                <div><p className="text-[10px] uppercase text-slate-500">{t('alphabeta.evaluated')}</p><p className="text-xl font-black text-violet-600">{counts.evaluated}/{counts.total}</p></div>
+                <div><p className="text-[10px] uppercase text-slate-500">{t('alphabeta.evaluated')}</p><p className="text-xl font-black text-blue-600">{counts.evaluated}/{counts.total}</p></div>
                 <div><p className="text-[10px] uppercase text-slate-500">{t('alphabeta.pruned')}</p><p className="text-xl font-black text-rose-600">{counts.prunedLeaves}</p></div>
               </div>
             </div>
 
             <div className="flex min-h-[260px] flex-1 flex-col rounded-[20px] border border-slate-200 bg-white p-5">
-              <h3 className={`${heading} border-b border-slate-200 pb-3`}><FileText size={15} className="text-violet-600" aria-hidden /> {t('alphabeta.detail')}</h3>
+              <h3 className={`${heading} border-b border-slate-200 pb-3`}><FileText size={15} className="text-blue-600" aria-hidden /> {t('alphabeta.detail')}</h3>
               <div className="flex flex-1 flex-col justify-between gap-4 pt-4">
                 <p className="text-sm leading-relaxed text-slate-700" aria-live="polite">{explanation}</p>
                 <div className={`flex flex-col gap-2 rounded-xl border p-3.5 transition-colors ${mathBoxClass}`}>
                   <div className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{t('alphabeta.range_label')}</div>
                   <div className="flex items-center justify-around font-mono text-xs">
-                    <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-500">α ({t('alphabeta.lower')})</span><span className="text-base font-bold text-violet-600">{fmt(step.alpha)}</span></div>
+                    <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-500">α ({t('alphabeta.lower')})</span><span className="text-base font-bold text-blue-600">{fmt(step.alpha)}</span></div>
                     <div className="text-lg text-slate-500" aria-hidden>|</div>
                     <div className="flex flex-col items-center"><span className="mb-0.5 text-[10px] text-slate-500">β ({t('alphabeta.upper')})</span><span className="text-base font-bold text-amber-600">{fmt(step.beta)}</span></div>
                   </div>
@@ -359,23 +434,6 @@ export const AlphaBetaModule = () => {
             </div>
           </section>
         </div>
-
-        {/* leaf value sandbox, full width */}
-        <section className={`${panel} flex flex-col gap-4 p-5`}>
-          <h3 className={`${heading} flex-wrap justify-between border-b border-slate-200 pb-3`}>
-            <span className="flex items-center gap-2"><SlidersHorizontal size={15} className="text-violet-600" aria-hidden /> {t('alphabeta.sandbox')}</span>
-            <span className="text-xs font-normal normal-case tracking-normal text-slate-500">{t('alphabeta.sandbox_hint')}</span>
-          </h3>
-          <div className="grid grid-cols-4 gap-4 md:grid-cols-8">
-            {AB_LEAF_IDS.map((id) => (
-              <div key={id} className="flex flex-col items-center gap-1.5">
-                <span className="font-mono text-[11px] font-bold text-slate-500">{id}</span>
-                <input type="range" min={0} max={20} value={leaves[id]} onChange={(e) => setLeaf(id, parseInt(e.target.value))} aria-label={t('alphabeta.leaf_label', { id })} className="w-full cursor-pointer accent-blue-600" />
-                <span className="text-sm font-black text-blue-700">{leaves[id]}</span>
-              </div>
-            ))}
-          </div>
-        </section>
 
         {/* step trace: click any step to jump there */}
         <section className={`${panel} flex h-[260px] flex-col gap-3 p-5`}>

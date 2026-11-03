@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { generateAbSteps, leavesEvaluated, minimaxValue, treeWithLeaves } from './alphabeta'
-import { AB_PRESETS } from '../data/constants'
+import { buildAbTree, generateAbSteps, leavesEvaluated, minimaxValue, treeWithLeaves } from './alphabeta'
+import { AB_NODES, AB_PRESETS } from '../data/constants'
 
 describe('generateAbSteps', () => {
   it('剪枝得到的根值与无剪枝 minimax 一致（所有预设）', () => {
@@ -71,5 +71,29 @@ describe('leavesEvaluated', () => {
     const worst = treeWithLeaves([0, 4, 1, 2, 8, 9, 6, 7])
     expect(leavesEvaluated(generateAbSteps(worst))).toBe(8)
     expect(minimaxValue(worst)).toBe(minimaxValue(treeWithLeaves(AB_PRESETS.alpha)))
+  })
+})
+
+describe('buildAbTree', () => {
+  it('depth 3 is the lecture tree', () => {
+    const { nodes } = buildAbTree(3, [3, 5, 2, 4, 6, 1, 0, 7])
+    for (const id in AB_NODES) {
+      expect(nodes[id].type).toBe(AB_NODES[id].type)
+      expect(nodes[id].children).toEqual(AB_NODES[id].children)
+      expect(nodes[id].parent).toBe(AB_NODES[id].parent)
+    }
+    expect(Object.keys(nodes)).toHaveLength(15)
+    expect(minimaxValue(nodes)).toBe(minimaxValue(treeWithLeaves([3, 5, 2, 4, 6, 1, 0, 7])))
+  })
+  it('other depths alternate MAX / MIN and name every node once', () => {
+    const { nodes } = buildAbTree(5, Array.from({ length: 32 }, (_, i) => i))
+    expect(Object.keys(nodes)).toHaveLength(63)
+    expect(nodes.A.type).toBe('max')
+    expect(nodes.B.type).toBe('min')
+    expect(nodes.L32.parent).toBe(nodes[nodes.L32.parent!].id)
+    // alpha-beta returns the plain minimax value at any depth
+    expect(generateAbSteps(nodes).at(-1)!.returnValue).toBe(minimaxValue(nodes))
+    const { nodes: two } = buildAbTree(2, [4, 9, 2, 7])
+    expect(generateAbSteps(two).at(-1)!.returnValue).toBe(4)
   })
 })

@@ -496,7 +496,6 @@
     "lower": "lower",
     "upper": "upper",
     "edit_leaf": "New value for leaf {{id}} (0-20):",
-    "sandbox": "Live leaf-value sandbox",
     "legend": {
       "active": "Active",
       "visited": "Visited",
@@ -511,8 +510,7 @@
       "prune": "β({{beta}}) ≤ α({{alpha}}) at {{node}} → prune! Skip remaining branches [{{children}}].",
       "exit": "Exit {{node}}: final score {{value}}, return to parent."
     },
-    "advice": "Alpha-Beta returns the exact same value as plain Minimax, just faster. The prune condition <1></1> means the parent already has a better guaranteed option, so the rest of this branch can never affect the result. <3>Move ordering is everything</3>: evaluate the most promising child first to trigger maximum pruning.",
-    "leaf_label": "Value of leaf {{id}}",
+    "advice": "Alpha-beta pruning never changes the final answer; it only makes the search faster. Once we find that a path cannot do better than the choice we already have, there is no point searching further down it. That is the whole idea of pruning. The search order matters too: a different order can decide whether a cut happens at all, and a good order rules out useless branches earlier and saves more work.",
     "tree_label": "Game tree with MAX and MIN nodes; colours show the active, visited and pruned parts at the current step.",
     "header_title": "Alpha-beta pruning, step by step",
     "header_sub": "Depth-first search with α / β bounds: watch every decision and every cut.",
@@ -530,7 +528,6 @@
       "prune": "β = {{beta}} ≤ α = {{alpha}} ⇒ cut the remaining children",
       "done": "Search finished: the root’s minimax value is {{value}}"
     },
-    "sandbox_hint": "Drag a slider and watch the pruned branches change.",
     "timeline": "Algorithm trace (click a step to jump to it)",
     "step_type": {
       "enter": "enter",
@@ -539,7 +536,14 @@
       "update": "update",
       "prune": "prune",
       "exit": "return"
-    }
+    },
+    "levels": "Levels · leaves",
+    "levels_less": "One level fewer",
+    "levels_more": "One level more",
+    "canvas_hint": "Drag to move · Ctrl/⌘ + scroll to zoom",
+    "zoom_in": "Zoom in",
+    "zoom_out": "Zoom out",
+    "zoom_fit": "Fit the tree"
   },
   "kmeans": {
     "canvas_title": "Cluster Assignment (click Play to iterate)",

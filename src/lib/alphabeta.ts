@@ -211,3 +211,36 @@ export function treeWithLeaves(values: readonly number[]): Record<string, AbNode
 
 /** How many leaves alpha-beta actually evaluates. */
 export const leavesEvaluated = (steps: AbStep[]): number => steps.filter((s) => s.type === 'leaf_eval').length
+
+/** internal node names in breadth-first order: A … Z, then AA, AB … */
+const nodeName = (i: number): string => (i < 26 ? String.fromCharCode(65 + i) : nodeName(Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26)))
+
+export const AB_LEAF_GAP = 120
+export const AB_LEVEL_GAP = 120
+
+/**
+ * A full binary game tree `depth` levels deep above its leaves (MAX at the root, then MIN, MAX, …), with SVG
+ * positions: leaves AB_LEAF_GAP apart along the bottom, each parent centred over its children.
+ * depth 3 is the lecture's tree: A → B, C → D…G → L1…L8.
+ */
+export function buildAbTree(depth: number, leafValues: number[]): { nodes: Record<string, AbNode>; width: number; height: number } {
+  const nodes: Record<string, AbNode> = {}
+  const leaves = 2 ** depth
+  const leafY = 60 + depth * AB_LEVEL_GAP + 10
+  // ids level by level
+  const levels: string[][] = []
+  let k = 0
+  for (let l = 0; l < depth; l++) levels.push(Array.from({ length: 2 ** l }, () => nodeName(k++)))
+  levels.push(Array.from({ length: leaves }, (_, i) => `L${i + 1}`))
+  for (let i = 0; i < leaves; i++) {
+    const id = levels[depth][i]
+    nodes[id] = { id, type: 'leaf', parent: levels[depth - 1][i >> 1], value: leafValues[i] ?? 0, x: 70 + i * AB_LEAF_GAP, y: leafY }
+  }
+  for (let l = depth - 1; l >= 0; l--) {
+    levels[l].forEach((id, i) => {
+      const children = [levels[l + 1][2 * i], levels[l + 1][2 * i + 1]]
+      nodes[id] = { id, type: l % 2 === 0 ? 'max' : 'min', parent: l ? levels[l - 1][i >> 1] : null, children, x: (nodes[children[0]].x + nodes[children[1]].x) / 2, y: 60 + l * AB_LEVEL_GAP }
+    })
+  }
+  return { nodes, width: 140 + (leaves - 1) * AB_LEAF_GAP, height: leafY + 60 }
+}
