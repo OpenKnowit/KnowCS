@@ -7,6 +7,7 @@ import { broadcastStrides, isRealCell, planBroadcast, shapeLabel, sourceIndex, s
 import type { AxisStep } from '../lib/broadcast'
 import { runPython } from '../lib/minipy'
 import { PyBlock, PyInline } from '../components/PyCode'
+import { RunInPlayground } from '../components/RunInPlayground'
 
 // --- 广播实验台：自选两个形状，逐轴走一遍规则，看虚拟拉伸与结果的逐格对应 ---
 
@@ -491,7 +492,10 @@ export const NumpyBroadcast = () => {
       {/* 等价代码（由站内解释器真实运行） */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="rounded-xl bg-slate-900 p-3">
-          <div className="text-[11px] text-slate-400 mb-1">{t('numpy_module.broadcast.code_title')}</div>
+          <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+            {t('numpy_module.broadcast.code_title')}
+            <RunInPlayground lib="numpy" code={code} />
+          </div>
           <PyBlock code={code} className="font-mono text-[12.5px] leading-5 text-slate-100 whitespace-pre overflow-x-auto" />
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-3 min-w-0">

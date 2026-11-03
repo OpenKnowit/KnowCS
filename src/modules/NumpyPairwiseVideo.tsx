@@ -7,6 +7,7 @@ import { EXAM_TEST, EXAM_TRAIN, kNearest, pairwiseDiff, pairwiseDist, pairwiseSq
 import { runPython } from '../lib/minipy'
 import { PyBlock } from '../components/PyCode'
 import { highlightPython } from '../site/playground/pyHighlight'
+import { RunInPlayground } from '../components/RunInPlayground'
 
 // --- 讲解视频：用 2022S 期中 Q2(c) 原题数据，逐场景演示一行 NumPy 成对距离为什么成立 ---
 // 视频由时间轴驱动：每个场景按本地进度 p ∈ [0, 1] 决定显示什么，字幕按 cue 切换。
@@ -745,7 +746,10 @@ export const NumpyPairwiseVideo = () => {
       {/* 亲手跑一遍（站内解释器真实运行） */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="rounded-xl bg-slate-900 p-3 min-w-0">
-          <div className="text-[11px] text-slate-400 mb-1">{t(`${P}.code_title`)}</div>
+          <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+            {t(`${P}.code_title`)}
+            <RunInPlayground lib="numpy" code={TRY_CODE} />
+          </div>
           <PyBlock code={TRY_CODE} className="font-mono text-[12px] leading-5 text-slate-100 whitespace-pre overflow-x-auto" />
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-3 min-w-0">

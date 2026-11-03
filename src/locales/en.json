@@ -797,7 +797,8 @@
       "filter_labs": "Filter labs",
       "position": "{{n}} of {{total}}",
       "expand_all": "Expand all",
-      "collapse_all": "Collapse all"
+      "collapse_all": "Collapse all",
+      "run_playground": "Run in Playground"
     },
     "modules": {
       "numpy": {

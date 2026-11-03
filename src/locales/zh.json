@@ -797,7 +797,8 @@
       "filter_labs": "筛选实验",
       "position": "第 {{n}} / {{total}} 个",
       "expand_all": "全部展开",
-      "collapse_all": "全部收起"
+      "collapse_all": "全部收起",
+      "run_playground": "在实验场运行"
     },
     "modules": {
       "numpy": {

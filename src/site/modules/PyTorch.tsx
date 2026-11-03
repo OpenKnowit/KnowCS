@@ -6,6 +6,7 @@ import { moduleUrl } from '../../lib/sitemap'
 import { fmt } from '../format'
 import { Ans, Btn, Card, LabPage, Note, Seg, Slider, TableWrap } from '../ui'
 import { PyBlock } from '../../components/PyCode'
+import { RunInPlayground } from '../../components/RunInPlayground'
 import { highlightPython } from '../playground/pyHighlight'
 
 const Mat = ({ m, label, hot }: { m: number[][]; label: string; hot?: (i: number, j: number) => boolean }) => (
@@ -69,6 +70,23 @@ const BRIDGE_OPS: { op: BridgeOp; code: string }[] = [
   { op: 'clone', code: 'my_tensor = my_tensor.clone()' },
 ]
 
+/** a Python float literal: 2 → 2.0, -0.25 → -0.25 */
+const float = (v: number) => (Number.isInteger(v) ? v.toFixed(1) : String(v))
+const MM_CODE = 'tensor = torch.ones(4, 4)\ntensor[:, 1] = 0\ny1 = tensor @ tensor.T     # matrix product\nz1 = tensor * tensor       # element-wise'
+/** the loop's setup for the playground: a tiny model and made-up data, so the student's loop body runs */
+const LOOP_SETUP = `import torch
+import torch.nn as nn
+
+# a tiny model and made-up data, so the loop can run
+torch.manual_seed(0)
+X = torch.randn(32, 4)
+Y = (X.sum(dim=1) > 0).long()
+trainloader = [(X[i:i + 8], Y[i:i + 8]) for i in range(0, 32, 8)]
+model = nn.Linear(4, 2)
+lossfunc = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+`
+
 /** the five loop lines, shuffled */
 const POOL: LoopLine[] = ['loss', 'step', 'zero_grad', 'backward', 'forward']
 
@@ -84,6 +102,10 @@ export default function PyTorchPage() {
   const [events, setEvents] = useState<GradEvent[]>([])
   const [noGrad, setNoGrad] = useState(false)
   const [order, setOrder] = useState<LoopLine[]>([])
+  const bridgeCode = ['my_tensor = torch.ones(5)', 'np_array = my_tensor.numpy()   # shares memory', ...ops.map((o) => BRIDGE_OPS.find((x) => x.op === o)!.code)].join('\n')
+  // floats, as PyTorch needs for requires_grad (torch.tensor(-1) would be an integer tensor)
+  const gradCode = [`w = torch.tensor(${float(w)}, requires_grad=True)`, `b = torch.tensor(${float(b)}, requires_grad=True)`, `x, y = torch.tensor(${float(x)}), torch.tensor(${float(y)})`, 'z = w * x + b', 'loss = F.binary_cross_entropy_with_logits(z, y)', 'loss.backward()', 'print(w.grad, b.grad)'].join('\n')
+  const loopBody = ['for inputs, labels in trainloader:', ...order.map((l) => `    ${LOOP_CODE[l]}`)].join('\n')
 
   const tensor = TENSORS[ti]
   const lt = lectureTensor()
@@ -123,7 +145,10 @@ export default function PyTorchPage() {
         </Card>
 
         <Card step={2} title={t('lab.pytorch.mm_title')} sub={t('lab.common.quiz_sub')}>
-          <PyBlock className="mb-3 overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100" code={'tensor = torch.ones(4, 4)\ntensor[:, 1] = 0\ny1 = tensor @ tensor.T     # matrix product\nz1 = tensor * tensor       # element-wise'} />
+          <div className="mb-3">
+            <PyBlock className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100" code={MM_CODE} />
+            <div className="mt-1.5 flex justify-end"><RunInPlayground lib="pytorch" code={`import torch\n${MM_CODE}\nprint(y1)\nprint(z1)`} /></div>
+          </div>
           <div className="flex flex-wrap gap-6">
             <Mat m={lt} label="tensor" hot={(_, j) => j === 1} />
             <Mat m={matmul(lt, transpose(lt))} label="tensor @ tensor.T" />
@@ -141,7 +166,10 @@ export default function PyTorchPage() {
         </Card>
 
         <Card step={3} title={t('lab.pytorch.bridge_title')}>
-          <PyBlock className="mb-3 overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100" code={['my_tensor = torch.ones(5)', 'np_array = my_tensor.numpy()   # shares memory', ...ops.map((o) => BRIDGE_OPS.find((x) => x.op === o)!.code)].join('\n')} />
+          <div className="mb-3">
+            <PyBlock className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100" code={bridgeCode} />
+            <div className="mt-1.5 flex justify-end"><RunInPlayground lib="pytorch" code={`import torch\nimport numpy as np\n${bridgeCode}\nprint(my_tensor)\nprint(np_array)`} /></div>
+          </div>
           <div className="mb-3 flex flex-wrap gap-2">
             {BRIDGE_OPS.map((o) => <Btn key={o.op} onClick={() => setOps([...ops, o.op])}><span className="font-mono text-[12px]">{highlightPython(o.code, 'light')}</span></Btn>)}
             <Btn onClick={() => setOps([])}>{t('lab.common.reset')}</Btn>
@@ -163,7 +191,8 @@ export default function PyTorchPage() {
                 <Seg label={t('lab.pytorch.target')} value={y} onChange={(v) => resetGraph(() => setY(v))} options={[{ v: 0, label: 'y = 0' }, { v: 1, label: 'y = 1' }]} />
               </div>
               <div>
-                <PyBlock className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100" aria-label={t('lab.pytorch.code_title')} code={[`w = torch.tensor(${w}, requires_grad=True)`, `b = torch.tensor(${b}, requires_grad=True)`, `x, y = torch.tensor(${x}), torch.tensor(${y}.)`, 'z = w * x + b', 'loss = F.binary_cross_entropy_with_logits(z, y)', 'loss.backward()', 'print(w.grad, b.grad)'].join('\n')} />
+                <PyBlock className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100" aria-label={t('lab.pytorch.code_title')} code={gradCode} />
+                <div className="mt-1.5 flex justify-end"><RunInPlayground lib="pytorch" code={`import torch\nimport torch.nn.functional as F\n${gradCode}`} /></div>
                 <p className="mt-2 text-xs text-slate-500">{t('lab.pytorch.code_note')}</p>
               </div>
             </div>
@@ -218,9 +247,15 @@ export default function PyTorchPage() {
               {order.length > 0 && <div className="mt-1"><Btn onClick={() => setOrder([])}>{t('lab.common.reset')}</Btn></div>}
             </div>
             <div className="grid content-start gap-2">
-              <PyBlock className="min-h-[150px] overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100" code={['for inputs, labels in trainloader:', ...order.map((l) => `    ${LOOP_CODE[l]}`)].join('\n')} />
+              <PyBlock className="min-h-[150px] overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100" code={loopBody} />
               {order.length === LOOP.length && (
-                <Note tone={err ? 'bad' : 'good'}>{t(err ? `lab.pytorch.loop_err.${err}` : 'lab.pytorch.loop_ok')}</Note>
+                <>
+                  <Note tone={err ? 'bad' : 'good'}>{t(err ? `lab.pytorch.loop_err.${err}` : 'lab.pytorch.loop_ok')}</Note>
+                  {/* the five lines run as they are ordered, inside a few epochs on made-up data: a wrong order shows up in the loss */}
+                  <div className="flex justify-end">
+                    <RunInPlayground lib="pytorch" code={`${LOOP_SETUP}\nfor epoch in range(5):\n${loopBody.split('\n').map((l) => `    ${l}`).join('\n')}\n    print(epoch, round(loss.item(), 4))`} />
+                  </div>
+                </>
               )}
             </div>
           </div>

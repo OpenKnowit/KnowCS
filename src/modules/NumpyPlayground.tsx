@@ -8,6 +8,7 @@ import type { DType } from '../lib/ndarray'
 import { runPython } from '../lib/minipy'
 import type { GridSnapshot, IndexTrace, RunResult } from '../lib/minipy'
 import { PyInline, PyTextarea } from '../components/PyCode'
+import { RunInPlayground } from '../components/RunInPlayground'
 
 // --- NumPy 索引实验台：浏览器内运行 Python/NumPy 子集（lib/minipy），可视化每一次下标读写 ---
 
@@ -374,6 +375,7 @@ export const NumpyPlayground = () => {
               <Play size={12} /> {t('numpy_module.playground.run')}
             </button>
             <span className="text-[11px] text-slate-400">{t('numpy_module.playground.shortcut')}</span>
+            <RunInPlayground lib="numpy" code={code} className="ml-auto" />
           </div>
         </div>
 
