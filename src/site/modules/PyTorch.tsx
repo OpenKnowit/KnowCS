@@ -5,6 +5,8 @@ import type { BridgeOp, GradEvent, LoopLine } from '../../lib/torchSim'
 import { moduleUrl } from '../../lib/sitemap'
 import { fmt } from '../format'
 import { Ans, Btn, Card, LabPage, Note, Seg, Slider, TableWrap } from '../ui'
+import { PyBlock } from '../../components/PyCode'
+import { highlightPython } from '../playground/pyHighlight'
 
 const Mat = ({ m, label, hot }: { m: number[][]; label: string; hot?: (i: number, j: number) => boolean }) => (
   <div className="grid gap-1">
@@ -104,7 +106,7 @@ export default function PyTorchPage() {
             <div className="grid content-start gap-1.5">
               {TENSORS.map((x, i) => (
                 <button key={x.code} type="button" aria-pressed={i === ti} onClick={() => setTi(i)} className={`rounded-lg border px-3 py-1.5 text-left font-mono text-[12.5px] ${i === ti ? 'border-blue-500 bg-blue-50 text-blue-900' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}>
-                  {x.code}
+                  {highlightPython(x.code, 'light')}
                 </button>
               ))}
             </div>
@@ -121,7 +123,7 @@ export default function PyTorchPage() {
         </Card>
 
         <Card step={2} title={t('lab.pytorch.mm_title')} sub={t('lab.common.quiz_sub')}>
-          <pre className="mb-3 overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100">{'tensor = torch.ones(4, 4)\ntensor[:, 1] = 0\ny1 = tensor @ tensor.T     # matrix product\nz1 = tensor * tensor       # element-wise'}</pre>
+          <PyBlock className="mb-3 overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100" code={'tensor = torch.ones(4, 4)\ntensor[:, 1] = 0\ny1 = tensor @ tensor.T     # matrix product\nz1 = tensor * tensor       # element-wise'} />
           <div className="flex flex-wrap gap-6">
             <Mat m={lt} label="tensor" hot={(_, j) => j === 1} />
             <Mat m={matmul(lt, transpose(lt))} label="tensor @ tensor.T" />
@@ -139,9 +141,9 @@ export default function PyTorchPage() {
         </Card>
 
         <Card step={3} title={t('lab.pytorch.bridge_title')}>
-          <pre className="mb-3 overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100">{['my_tensor = torch.ones(5)', 'np_array = my_tensor.numpy()   # shares memory', ...ops.map((o) => BRIDGE_OPS.find((x) => x.op === o)!.code)].join('\n')}</pre>
+          <PyBlock className="mb-3 overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100" code={['my_tensor = torch.ones(5)', 'np_array = my_tensor.numpy()   # shares memory', ...ops.map((o) => BRIDGE_OPS.find((x) => x.op === o)!.code)].join('\n')} />
           <div className="mb-3 flex flex-wrap gap-2">
-            {BRIDGE_OPS.map((o) => <Btn key={o.op} onClick={() => setOps([...ops, o.op])}><span className="font-mono text-[12px]">{o.code}</span></Btn>)}
+            {BRIDGE_OPS.map((o) => <Btn key={o.op} onClick={() => setOps([...ops, o.op])}><span className="font-mono text-[12px]">{highlightPython(o.code, 'light')}</span></Btn>)}
             <Btn onClick={() => setOps([])}>{t('lab.common.reset')}</Btn>
           </div>
           <div className="grid gap-2">
@@ -161,9 +163,7 @@ export default function PyTorchPage() {
                 <Seg label={t('lab.pytorch.target')} value={y} onChange={(v) => resetGraph(() => setY(v))} options={[{ v: 0, label: 'y = 0' }, { v: 1, label: 'y = 1' }]} />
               </div>
               <div>
-                <pre className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100" aria-label={t('lab.pytorch.code_title')}>
-                  {[`w = torch.tensor(${w}, requires_grad=True)`, `b = torch.tensor(${b}, requires_grad=True)`, `x, y = torch.tensor(${x}), torch.tensor(${y}.)`, 'z = w * x + b', 'loss = F.binary_cross_entropy_with_logits(z, y)', 'loss.backward()', 'print(w.grad, b.grad)'].join('\n')}
-                </pre>
+                <PyBlock className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100" aria-label={t('lab.pytorch.code_title')} code={[`w = torch.tensor(${w}, requires_grad=True)`, `b = torch.tensor(${b}, requires_grad=True)`, `x, y = torch.tensor(${x}), torch.tensor(${y}.)`, 'z = w * x + b', 'loss = F.binary_cross_entropy_with_logits(z, y)', 'loss.backward()', 'print(w.grad, b.grad)'].join('\n')} />
                 <p className="mt-2 text-xs text-slate-500">{t('lab.pytorch.code_note')}</p>
               </div>
             </div>
@@ -187,9 +187,9 @@ export default function PyTorchPage() {
             </TableWrap>
             <div className="grid content-start gap-3">
               <div className="flex flex-wrap gap-2">
-                <Btn onClick={() => setEvents([...events, 'backward'])} disabled={noGrad}><span className="font-mono text-[12px]">loss.backward()</span></Btn>
-                <Btn onClick={() => setEvents([...events, 'step'])} disabled={noGrad}><span className="font-mono text-[12px]">optimizer.step()</span></Btn>
-                <Btn onClick={() => setEvents([...events, 'zero_grad'])}><span className="font-mono text-[12px]">optimizer.zero_grad()</span></Btn>
+                <Btn onClick={() => setEvents([...events, 'backward'])} disabled={noGrad}><span className="font-mono text-[12px]">{highlightPython('loss.backward()', 'light')}</span></Btn>
+                <Btn onClick={() => setEvents([...events, 'step'])} disabled={noGrad}><span className="font-mono text-[12px]">{highlightPython('optimizer.step()', 'light')}</span></Btn>
+                <Btn onClick={() => setEvents([...events, 'zero_grad'])}><span className="font-mono text-[12px]">{highlightPython('optimizer.zero_grad()', 'light')}</span></Btn>
                 <Btn onClick={() => setEvents([])}>{t('lab.common.reset')}</Btn>
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-[13px] leading-relaxed text-slate-800">
@@ -212,15 +212,13 @@ export default function PyTorchPage() {
             <div className="grid content-start gap-1.5">
               {POOL.filter((l) => !order.includes(l)).map((l) => (
                 <button key={l} type="button" onClick={() => setOrder([...order, l])} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-left font-mono text-[12.5px] text-slate-800 hover:border-blue-400">
-                  {LOOP_CODE[l]}
+                  {highlightPython(LOOP_CODE[l], 'light')}
                 </button>
               ))}
               {order.length > 0 && <div className="mt-1"><Btn onClick={() => setOrder([])}>{t('lab.common.reset')}</Btn></div>}
             </div>
             <div className="grid content-start gap-2">
-              <pre className="min-h-[150px] overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100">
-                {['for inputs, labels in trainloader:', ...order.map((l) => `    ${LOOP_CODE[l]}`)].join('\n')}
-              </pre>
+              <PyBlock className="min-h-[150px] overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100" code={['for inputs, labels in trainloader:', ...order.map((l) => `    ${LOOP_CODE[l]}`)].join('\n')} />
               {order.length === LOOP.length && (
                 <Note tone={err ? 'bad' : 'good'}>{t(err ? `lab.pytorch.loop_err.${err}` : 'lab.pytorch.loop_ok')}</Note>
               )}

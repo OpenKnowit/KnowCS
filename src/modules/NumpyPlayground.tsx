@@ -7,6 +7,7 @@ import { prod, shapeStr, unravel } from '../lib/ndarray'
 import type { DType } from '../lib/ndarray'
 import { runPython } from '../lib/minipy'
 import type { GridSnapshot, IndexTrace, RunResult } from '../lib/minipy'
+import { PyInline, PyTextarea } from '../components/PyCode'
 
 // --- NumPy 索引实验台：浏览器内运行 Python/NumPy 子集（lib/minipy），可视化每一次下标读写 ---
 
@@ -169,7 +170,7 @@ const TraceView = ({ tr }: { tr: IndexTrace }) => {
   return (
     <m.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
       <div className="flex flex-wrap items-start gap-3">
-        <code className="px-2 py-1 rounded bg-slate-900 text-slate-100 text-sm font-mono break-all">{tr.code}</code>
+        <PyInline code={tr.code} className="px-2 py-1 rounded bg-slate-900 text-slate-100 text-sm font-mono break-all" />
         <span className={`px-2 py-1 rounded text-white text-[11px] font-bold uppercase tracking-wider ${TONE[tone].badge}`}>
           {t(`numpy_module.playground.badge.${tr.result}`)}
         </span>
@@ -353,7 +354,8 @@ export const NumpyPlayground = () => {
                 <div key={i} className={errLine === i + 1 ? 'text-rose-400 font-bold' : ''}>{i + 1}</div>
               ))}
             </div>
-            <textarea
+            <PyTextarea
+              boxClassName="flex-1"
               value={code}
               onChange={(e) => edit(e.target.value)}
               onKeyDown={(e) => {
@@ -363,12 +365,8 @@ export const NumpyPlayground = () => {
                 }
               }}
               rows={Math.max(lines.length, 7)}
-              wrap="off"
-              spellCheck={false}
-              autoCapitalize="off"
-              autoCorrect="off"
               aria-label={t('numpy_module.playground.editor_label')}
-              className="flex-1 min-w-0 bg-transparent text-slate-100 py-3 px-3 outline-none resize-none overflow-x-auto whitespace-pre caret-sky-400"
+              className="py-3 px-3 outline-none resize-none overflow-x-auto"
             />
           </div>
           <div className="flex flex-wrap items-center gap-3 px-3 py-2 border-t border-slate-700/60 bg-slate-950/40">

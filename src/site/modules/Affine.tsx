@@ -5,6 +5,7 @@ import { applyPoint, doableBy3x3, properties, reach, reflectX, reflectY, rotate,
 import type { Affine as M23 } from '../../lib/affine'
 import { fmt } from '../format'
 import { Ans, Card, LabPage, Note, Presets, Seg, Slider, TableWrap, Workspace } from '../ui'
+import { PyBlock } from '../../components/PyCode'
 
 // --- the test picture: an "F" and a dot on an 8 × 10 grid (rows ≠ cols, so rows − 1 and cols − 1 differ) ---
 const ROWS = 8
@@ -200,11 +201,9 @@ export default function AffinePage() {
             )}
             <Card title={t('lab.affine.matrix')}>
               <div className="formula !text-[13px]">M = {code(M)}</div>
-              <pre className="mt-2 overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100">
-{`rows, cols = img.shape   # ${ROWS}, ${COLS}
+              <PyBlock className="mt-2 overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100" code={`rows, cols = img.shape   # ${ROWS}, ${COLS}
 M = np.float32(${code(M)})
-out = cv2.warpAffine(img, M, (cols, rows))`}
-              </pre>
+out = cv2.warpAffine(img, M, (cols, rows))`} />
               <p className="mt-2 text-xs text-slate-500">{t('lab.affine.dsize')}</p>
             </Card>
           </>

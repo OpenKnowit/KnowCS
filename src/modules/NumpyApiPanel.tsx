@@ -11,6 +11,7 @@ import { useFullScreen } from '../site/playground/useFullScreen'
 import { EngineSwitch } from '../site/playground/EngineSwitch'
 import { RealConsole, RealFigures } from '../site/playground/RealOutput'
 import { useEngineChoice, useRealRun, useWarmEngine } from '../site/playground/useEngine'
+import { PyTextarea } from '../components/PyCode'
 
 // --- NumPy API 可视化面板：在浏览器里运行示例（lib/minipy），并标出结果每个元素来自哪些输入元素 ---
 
@@ -172,14 +173,14 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
             <span>{t('numpy_api.shortcut')}</span>
           )}
         </div>
-        <textarea
+        <PyTextarea
           value={code}
           onChange={(e) => setCode(e.target.value)}
           onKeyDown={onKey}
-          spellCheck={false}
           aria-label={t('numpy_api.editor')}
           rows={full ? Math.max(8, code.split('\n').length) : Math.min(8, Math.max(3, code.split('\n').length))}
-          className={`w-full ${full ? 'min-h-48 flex-1' : ''} resize-y rounded-xl border border-slate-800 bg-slate-900 p-3 font-mono text-[13px] leading-relaxed text-slate-100 outline-none focus:ring-2 focus:ring-blue-400`}
+          boxClassName={`w-full ${full ? 'min-h-48 flex-1' : ''} overflow-hidden rounded-xl border border-slate-800 bg-slate-900 focus-within:ring-2 focus-within:ring-blue-400`}
+          className={`${full ? 'h-full' : ''} resize-y p-3 font-mono text-[13px] leading-relaxed outline-none`}
         />
       </div>
 

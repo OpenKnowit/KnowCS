@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { broadcastStrides, isRealCell, planBroadcast, shapeLabel, sourceIndex, suggestFix } from '../lib/broadcast'
 import type { AxisStep } from '../lib/broadcast'
 import { runPython } from '../lib/minipy'
+import { PyBlock, PyInline } from '../components/PyCode'
 
 // --- 广播实验台：自选两个形状，逐轴走一遍规则，看虚拟拉伸与结果的逐格对应 ---
 
@@ -473,7 +474,7 @@ export const NumpyBroadcast = () => {
                 <Wand2 size={16} className="text-emerald-600" />
                 <span className="text-sm text-gray-700">
                   {t('numpy_module.broadcast.fix', { from: shapeLabel(fix.side === 'A' ? a : b), to: shapeLabel(fix.shape) })}{' '}
-                  <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-xs">{fix.code}</code>
+                  <PyInline tone="light" code={fix.code} className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-xs" />
                 </span>
                 <button
                   onClick={() => (fix.side === 'A' ? reset(fix.shape, b) : reset(a, fix.shape))}
@@ -491,7 +492,7 @@ export const NumpyBroadcast = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="rounded-xl bg-slate-900 p-3">
           <div className="text-[11px] text-slate-400 mb-1">{t('numpy_module.broadcast.code_title')}</div>
-          <pre className="font-mono text-[12.5px] leading-5 text-slate-100 whitespace-pre overflow-x-auto">{code}</pre>
+          <PyBlock code={code} className="font-mono text-[12.5px] leading-5 text-slate-100 whitespace-pre overflow-x-auto" />
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-3 min-w-0">
           <div className="text-[11px] text-gray-400 mb-1">{t('numpy_module.broadcast.output_title')}</div>
@@ -517,7 +518,7 @@ export const NumpyBroadcast = () => {
           <ul className="space-y-1.5">
             {ML_USES.map((u) => (
               <li key={u.id}>
-                <code className="font-mono text-[11.5px] px-1 py-0.5 rounded bg-slate-100 text-slate-800">{u.code}</code>
+                <PyInline tone="light" code={u.code} className="font-mono text-[11.5px] px-1 py-0.5 rounded bg-slate-100 text-slate-800" />
                 <span className="block text-[11px] text-gray-500 mt-0.5"><span className="font-mono">{u.shapes}</span> · {t(`numpy_module.broadcast.cards.ml_${u.id}`)}</span>
               </li>
             ))}

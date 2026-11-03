@@ -15,7 +15,7 @@ const TOKEN = new RegExp(
   ].join('|'),
   'g',
 )
-const CLASS: Record<string, string> = {
+const DARK: Record<string, string> = {
   str: 'text-emerald-300',
   com: 'italic text-slate-500',
   dec: 'text-pink-300',
@@ -23,8 +23,18 @@ const CLASS: Record<string, string> = {
   fn: 'text-sky-300',
   num: 'text-orange-300',
 }
+// the same roles on a light background (inline code chips on white cards)
+const LIGHT: Record<string, string> = {
+  str: 'text-emerald-700',
+  com: 'italic text-slate-500',
+  dec: 'text-pink-700',
+  kw: 'text-violet-700',
+  fn: 'text-sky-700',
+  num: 'text-orange-700',
+}
 
-export function highlightPython(code: string): ReactNode[] {
+export function highlightPython(code: string, tone: 'dark' | 'light' = 'dark'): ReactNode[] {
+  const CLASS = tone === 'dark' ? DARK : LIGHT
   const out: ReactNode[] = []
   let last = 0
   for (const m of code.matchAll(TOKEN)) {

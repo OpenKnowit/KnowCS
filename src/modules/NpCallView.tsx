@@ -8,6 +8,7 @@ import { polyStr, polyval } from '../lib/poly'
 import { niceTicks } from '../lib/chart'
 import { dependents, explainCall } from '../lib/npTrace'
 import type { Cell, Explain } from '../lib/npTrace'
+import { PyInline } from '../components/PyCode'
 
 // --- 一次调用的可视化：输入 / 结果网格，悬停时标出结果元素来自哪些输入元素（NumPy 面板与各库实验台共用）---
 
@@ -233,7 +234,7 @@ export const CallView = ({ call }: { call: CallTrace }) => {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <code className="rounded-lg bg-slate-900 px-2.5 py-1 font-mono text-xs text-slate-100">{call.code}</code>
+        <PyInline code={call.code} className="rounded-lg bg-slate-900 px-2.5 py-1 font-mono text-xs text-slate-100" />
         <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-700">{t(`numpy_api.kind.${call.kind}`)}</span>
         {call.result && call.operands.length > 0 && (
           <span className="font-mono text-[11px] text-slate-400">
