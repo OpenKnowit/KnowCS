@@ -1,7 +1,7 @@
 // --- 全站页面表：每个模块 / 笔记 / 拓展各是一个独立 HTML 页面；旧的 #/… 与 /lab/*.html 链接重定向到新地址 ---
 
 export type ModuleId =
-  | 'numpy' | 'bayes-basics' | 'naive-bayes' | 'bayes-virus' | 'gaussian-nb' | 'knn' | 'evaluation' | 'cross-validation'
+  | 'numpy' | 'numpy-broadcast' | 'bayes-basics' | 'naive-bayes' | 'bayes-virus' | 'gaussian-nb' | 'knn' | 'evaluation' | 'cross-validation'
   | 'kmeans' | 'kmeans-table' | 'perceptron' | 'backprop' | 'xor-mlp' | 'kernel' | 'convolution' | 'otsu' | 'affine' | 'cnn-shapes' | 'pytorch' | 'alphabeta'
 
 export interface ModuleInfo {
@@ -19,6 +19,7 @@ export interface ModuleInfo {
 // Order = reading order (prev / next): by lecture, basics before exam drills.
 export const MODULES: ModuleInfo[] = [
   { id: 'numpy', lec: 1, kind: 'classic', legacy: 'numpy', exams: ['22F', '22S', '23F', '23S', '24S', '25S'] },
+  { id: 'numpy-broadcast', lec: 1, kind: 'lab', exams: ['22F', '22S', '23F', '23S', '24S', '25S'] },
   { id: 'bayes-basics', lec: 2, kind: 'classic', legacy: 'bayesBasics', exams: [] },
   { id: 'bayes-virus', lec: 2, kind: 'lab', exams: ['22F', '22S', '25S'] },
   { id: 'naive-bayes', lec: 2, kind: 'classic', legacy: 'naiveBayes', exams: ['22F', '22S', '23F', '24S', 'F22', 'F23'] },
@@ -55,7 +56,7 @@ export interface EpisodeInfo {
 }
 
 export const EPISODES: EpisodeInfo[] = [
-  { id: 'broadcast', lec: 1, modules: ['numpy'], exams: ['22F', '22S', '23F', '23S', '24S', '25S'], thumb: 86_000 },
+  { id: 'broadcast', lec: 1, modules: ['numpy-broadcast', 'numpy'], exams: ['22F', '22S', '23F', '23S', '24S', '25S'], thumb: 86_000 },
   { id: 'bayes', lec: 2, modules: ['bayes-virus', 'naive-bayes', 'bayes-basics'], exams: ['22F', '22S', '23F', '24S', '25S', 'F22', 'F23', 'F24'], thumb: 62_000 },
   { id: 'gaussian', lec: 2, modules: ['gaussian-nb', 'naive-bayes'], exams: ['23F', '24S', 'F24'], thumb: 40_000 },
   { id: 'knn', lec: 3, modules: ['knn', 'evaluation', 'cross-validation'], exams: ['22F', '22S', '23F', '23S', '24S', '25S', 'F22'], thumb: 71_000 },

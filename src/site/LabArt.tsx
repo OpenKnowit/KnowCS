@@ -167,6 +167,33 @@ const ART: Record<ModuleId, () => ReactElement> = {
     )
   },
 
+  // the lab's grids: a blue column plus an orange row, each stretched (dashed copies) into a green 3 × 4 result
+  'numpy-broadcast': () => (
+    <>
+      <Cells x={14} y={56} rows={3} cols={4} s={20} gap={3} rx={3} ts={10} cell={(r, c) => (c === 0 ? { f: '#3b82f6', st: '#2563eb', t: r, tc: C.paper } : { f: '#eff6ff', st: '#93c5fd', dash: '3 2', t: r, tc: '#93c5fd' })} />
+      <Txt x={114} y={89} s={20} w={700} c={C.soft}>
+        +
+      </Txt>
+      <Cells x={126} y={56} rows={3} cols={4} s={20} gap={3} rx={3} ts={10} cell={(r, c) => (r === 0 ? { f: '#f97316', st: '#ea580c', t: (c + 1) * 10, tc: C.paper } : { f: '#fff7ed', st: '#fdba74', dash: '3 2', t: (c + 1) * 10, tc: '#fdba74' })} />
+      <Txt x={226} y={89} s={20} w={700} c={C.soft}>
+        =
+      </Txt>
+      <Cells x={238} y={58} rows={3} cols={4} s={17} gap={2} rx={3} ts={8.5} cell={(r, c) => ({ f: '#10b981', st: '#059669', t: r + (c + 1) * 10, tc: C.paper })} />
+      <Txt x={59} y={38} m s={12} w={700} c="#2563eb">
+        (3, 1)
+      </Txt>
+      <Txt x={171} y={38} m s={12} w={700} c="#ea580c">
+        (1, 4)
+      </Txt>
+      <Txt x={274} y={38} m s={12} w={700} c="#059669">
+        (3, 4)
+      </Txt>
+      <Txt x={160} y={168} m s={11} c={C.muted}>
+        (3, 1) + (1, 4) → (3, 4)
+      </Txt>
+    </>
+  ),
+
   // the sliders on the left, the dark result card with the posterior on the right
   'bayes-basics': () => (
     <>

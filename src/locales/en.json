@@ -2,7 +2,7 @@
   "senior_advice": "Senior's Advice:",
   "numpy_module": {
     "playground": {
-      "title": "1. Indexing Playground: Run NumPy Code, See Every Index",
+      "title": "Indexing Playground: Run NumPy Code, See Every Index",
       "intro": "Write NumPy code below. It runs instantly in your browser, and every indexing operation is traced: which cells are picked, whether you get a view or a copy, and what else changes when you write.",
       "presets": "Examples",
       "preset": {
@@ -65,7 +65,7 @@
       "hover_hint": "Hover or tap any cell to see where it comes from. The small numbers give the order of elements in the result."
     },
     "broadcast": {
-      "title": "2. Broadcasting: Combining Arrays of Different Shapes",
+      "title": "Broadcasting: Combining Arrays of Different Shapes",
       "intro": "Broadcasting lets NumPy compute A + B even when the shapes differ, without copying any data. Choose two shapes, walk through the rule one axis at a time, and see which value each result cell uses.",
       "presets": "Examples",
       "preset": {
@@ -146,7 +146,7 @@
       "advice": "Broadcasting doesn't actually copy data in memory, but virtually maps addresses during iteration. Core rule: Compare from the last dimension forward, they must either be equal or one of them is <1>1</1>."
     },
     "pairwise": {
-      "title": "3. Pairwise Distance in One NumPy Line (Exam Video)",
+      "title": "Pairwise Distance in One NumPy Line (Exam Video)",
       "intro": "A short animated video on a question that keeps coming back in COMP2211 papers: compute every test-to-train distance with no loops. It uses the exact data from the 2022 Spring midterm Q2(c) and follows the official marking scheme, tracking the shape at every step.",
       "video_label": "Video: pairwise distance in one NumPy line",
       "play_video": "Play the video",
@@ -802,8 +802,8 @@
     },
     "modules": {
       "numpy": {
-        "title": "NumPy indexing & broadcasting",
-        "blurb": "Run NumPy in the browser and see where every element comes from."
+        "title": "NumPy indexing",
+        "blurb": "Slices, fancy indexing and masks: see which cells are picked, and whether you get a view or a copy."
       },
       "bayes-basics": {
         "title": "Bayes basics",
@@ -880,6 +880,10 @@
       "alphabeta": {
         "title": "Minimax & alpha-beta",
         "blurb": "Step through the search with α / β and see which branches get pruned."
+      },
+      "numpy-broadcast": {
+        "title": "NumPy broadcasting",
+        "blurb": "Why (3, 1) + (1, 4) gives a 3 × 4 grid: line the shapes up on the right and check every axis."
       }
     },
     "home": {
@@ -2022,6 +2026,33 @@
       "cnn_needs_3d": "Needs an h × w × c input (place it before Flatten).",
       "cnn_kernel_big": "Kernel is larger than the (padded) input.",
       "cnn_needs_flatten": "Dense expects a flat vector — add Flatten first."
+    },
+    "bc": {
+      "shapes": "Shapes",
+      "idea_title": "The idea: stretch the smaller array",
+      "idea": "When two arrays have different shapes, NumPy does not give up right away. It pretends the smaller one is copied along the missing directions until both shapes match, then works element by element.",
+      "idea_note": "Dashed cells are those pretend copies. Nothing is really copied: the stretched axis just reads the same numbers again.",
+      "rule_title": "The rule: line the shapes up on the right",
+      "rule_sub": "then check one axis at a time",
+      "rule_1": "Write both shapes right-aligned. If one has fewer axes, the missing ones on the left count as 1.",
+      "rule_2": "Compare the lengths axis by axis, starting from the right:",
+      "rule_eq": "equal: keep that length",
+      "rule_one": "one of them is 1: that side is stretched",
+      "rule_bad": "anything else: error",
+      "check": "Checking {{a}} and {{b}}",
+      "stretch_title": "See the stretch → {{shape}}",
+      "stretch_sub": "hover a result cell to see which two numbers made it",
+      "fail_title": "These shapes do not broadcast",
+      "code_title": "The same thing in code",
+      "code_sub": "run by the site’s interpreter",
+      "uses_sub": "load one into the lab",
+      "try": "Load",
+      "quiz_title": "Exam drill: which shape comes out?",
+      "quiz_lead": "For each pair, write the result shape, or “error” if the shapes do not broadcast. Turn on “Quiz me” to hide the answers.",
+      "quiz_result": "A + B",
+      "check_it": "check",
+      "pit_try": "Try (3,) + (3, 1)",
+      "mismatch_try": "Try (3, 4) + (3,)"
     }
   },
   "watch": {

@@ -40,7 +40,8 @@ describe('PAGES', () => {
 describe('neighbours', () => {
   it('links modules in reading order and stops at the ends', () => {
     expect(neighbours('numpy').prev).toBeNull()
-    expect(neighbours('numpy').next?.id).toBe('bayes-basics')
+    expect(neighbours('numpy').next?.id).toBe('numpy-broadcast')
+    expect(neighbours('numpy-broadcast').next?.id).toBe('bayes-basics')
     expect(neighbours('alphabeta').next).toBeNull()
   })
 

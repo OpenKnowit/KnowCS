@@ -21,7 +21,7 @@ const areaOf = (m: ModuleInfo) => AREAS.find((a) => (a.lecs as readonly number[]
 
 /** Short code names in the mono subtitle (the same in every language, like a product line). */
 const CODE: Record<ModuleId, string> = {
-  numpy: 'BROADCAST LAB', 'bayes-basics': 'BAYES RULE', 'bayes-virus': 'BASE-RATE LAB', 'naive-bayes': 'NAIVE BAYES TABLE', 'gaussian-nb': 'GAUSSIAN NB',
+  numpy: 'INDEX LAB', 'numpy-broadcast': 'BROADCAST LAB', 'bayes-basics': 'BAYES RULE', 'bayes-virus': 'BASE-RATE LAB', 'naive-bayes': 'NAIVE BAYES TABLE', 'gaussian-nb': 'GAUSSIAN NB',
   knn: 'NEIGHBOUR LAB', evaluation: 'CONFUSION MATRIX', 'cross-validation': 'D-FOLD CV', kmeans: 'CLUSTER LAB', 'kmeans-table': 'K-MEANS TABLE',
   perceptron: 'PERCEPTRON TABLE', backprop: 'BACKPROP LAB', 'xor-mlp': 'XOR · MLP', kernel: 'EDGE KERNELS', convolution: 'CONV LAB',
   otsu: 'HISTOGRAM · OTSU', affine: 'AFFINE LAB', 'cnn-shapes': 'SHAPE CALCULATOR', pytorch: 'TENSOR LAB', alphabeta: 'GAME TREE',
@@ -37,7 +37,8 @@ const box = (x: number, y: number, n: number, m: number, s: number, c: string, h
 
 function Sketch({ id, c }: { id: ModuleId; c: string }) {
   const S: Record<ModuleId, ReactNode> = {
-    numpy: (
+    numpy: <>{box(110, 30, 4, 4, 24, c, (i, j) => i >= 1 && i < 3 && j % 2 === 0)}</>,
+    'numpy-broadcast': (
       <>
         {box(40, 40, 3, 1, 22, c)}
         <text x={82} y={78} fill={c} fontSize={18}>+</text>
