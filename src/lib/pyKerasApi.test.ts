@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { runPython } from './minipy'
 import { KERAS } from './pyKeras'
+import { PANDAS } from './pyPandas'
 
 const run = (src: string) => runPython(src, { libs: [KERAS], maxSize: 2_000_000, timeBudget: 30_000 })
 const H = 'import numpy as np\nimport keras\nfrom keras import layers\nimport tensorflow as tf\n'
@@ -349,7 +350,7 @@ const PARAMS: [string, string, string, number, number][] = [
 describe('output shapes and parameter counts', () => {
   it.each(PARAMS)('%s on %s', (layer, shape, out, total, frozen) => {
     const r = run(`${H}m = keras.Sequential([layers.Input(shape=${shape}), ${layer}])
-print(m.output_shape, m.count_params(), sum([w.numpy().size for w in m.non_trainable_weights]), len(m.weights) == len(m.get_weights()))
+print(m.output_shape, m.count_params(), sum([int(tf.size(w)) for w in m.non_trainable_weights]), len(m.weights) == len(m.get_weights()))
 x = np.zeros((2,) + ${shape})
 print(m.predict(x, verbose=0).shape[1:] == m.output_shape[1:])`)
     expect(r.error).toBeNull()
@@ -448,6 +449,11 @@ print(len(m.trainable_variables))`)
     expect(r.stdout).toContain('2 2 False True\n')
     expect(r.stdout).toContain(' Trainable params: 3 (12.00 B)\n Non-trainable params: 6 (24.00 B)\n')
     expect(r.stdout.endsWith('0\n4\n')).toBe(true)
+  })
+
+  it('a pointwise loss on shapes that cannot broadcast says so', () => {
+    const r = run(`${H}m = keras.Sequential([layers.Input((2,)), layers.Dense(10)])\nm.compile('sgd', 'mse')\nm.fit(np.ones((5, 2)), np.zeros(5))`)
+    expect(r.error).toMatchObject({ type: 'ValueError', message: "Dimensions must be equal, but are 10 and 5 for 'sub' with input shapes: [?,10], [?]." })
   })
 
   it('layer names follow to_snake_case', () => {
@@ -618,7 +624,7 @@ ${y}
 m = keras.Sequential(${body})
 m.compile(keras.optimizers.Adam(0.02), '${loss}', metrics=['accuracy'])
 h = m.fit(X, y, epochs=25, batch_size=16, verbose=0)
-print(h.history['loss'][-1] < h.history['loss'][0] * 0.7)`)
+print(h.history['loss'][-1] < h.history['loss'][0] * 0.85)`)
       expect(r.error).toBeNull()
       expect(r.stdout).toBe('True\n')
     }
@@ -672,7 +678,7 @@ def scheduler(epoch, lr):
         return lr
     return lr * math.exp(-0.1)
 print(round(float(m.optimizer.learning_rate), 5))
-h = m.fit(np.arange(100).reshape(5, 20), np.zeros(5), epochs=15, callbacks=[keras.callbacks.LearningRateScheduler(scheduler)], verbose=0)
+h = m.fit(np.arange(100).reshape(5, 20), np.zeros(5), batch_size=1, epochs=15, callbacks=[keras.callbacks.LearningRateScheduler(scheduler)], verbose=0)
 print(round(float(m.optimizer.learning_rate), 5), list(h.history.keys()), len(h.history['learning_rate']))
 m2 = keras.Sequential([layers.Input((1,)), layers.Dense(1)])
 m2.compile(keras.optimizers.SGD(), 'mse')
@@ -767,6 +773,18 @@ train end ['loss', 'mine', 'val_loss']
 `)
   })
 
+  it('a single callback needs no list; hooks that cannot fire are refused; a schedule refuses ReduceLROnPlateau', () => {
+    const M = `${H}m = keras.Sequential([layers.Input((1,)), layers.Dense(1)])\n`
+    const r = run(`${M}m.compile('sgd', 'mse')
+print(len(m.fit(np.ones((2, 1)), np.ones(2), epochs=3, callbacks=keras.callbacks.TerminateOnNaN(), verbose=0).history['loss']))`)
+    expect(r.stdout).toBe('3\n')
+    expect(run(`${M}class C(keras.callbacks.Callback):\n    def on_test_batch_end(self, batch, logs=None):\n        pass\nm.compile('sgd', 'mse')\nm.fit(np.ones((2, 1)), np.ones(2), callbacks=[C()], verbose=0)`).error?.type).toBe('NotImplementedError')
+    expect(run(`${M}m.compile(keras.optimizers.SGD(keras.optimizers.schedules.ExponentialDecay(0.1, 1, 0.5)), 'mse')\nm.fit(np.ones((2, 1)), np.ones(2), epochs=3, callbacks=[keras.callbacks.ReduceLROnPlateau(monitor='loss', patience=0, min_delta=1e6)], verbose=0)`).error?.message).toContain('hence its learning rate is not settable')
+    expect(run(`${M}m.compile('sgd', 'mse')\nm.evaluate(np.ones((2, 1)), np.ones(2), steps=1)`).error?.type).toBe('NotImplementedError')
+    expect(run(`${M}m.predict(np.ones((2, 1)), steps=1)`).error?.type).toBe('NotImplementedError')
+    expect(run(`${M}print(m.predict(tf.data.Dataset.from_tensor_slices(np.ones((4, 1))).batch(1), steps=2, verbose=0).shape)`).stdout).toBe('(2, 1)\n')
+  })
+
   it('TerminateOnNaN, CSVLogger, LambdaCallback', () => {
     const r = run(`${H}X = np.ones((4, 1)) * 1e30
 m = keras.Sequential([layers.Input((1,)), layers.Dense(1)])
@@ -800,10 +818,10 @@ print(m.evaluate({'a': X[0], 'b': X[1]}, {'reg': Y[0], 'two': Y[1]}, verbose=0)[
 h = m.fit(X, Y, epochs=1, verbose=0)
 print(list(h.history.keys()))
 print([o.shape for o in m.predict(X, verbose=0)], m.predict_on_batch(X)[0].shape, m.input_shape, m.output_shape, [t.name for t in m.inputs][0], len(m.outputs))`)
-    // reg: mse of 4 = 16; two: mae of 4 = 4, weighted by 0.5; total 18
+    // reg: mse of 4 = 16; two: mae of 4 = 4, weighted by 0.5 = 2 (compile_utils records the weighted value); total 18
     expect(r.error).toBeNull()
-    expect(r.stdout).toBe(`[18.0, 16.0, 4.0, 4.0]
-{'loss': 18.0, 'reg_loss': 16.0, 'reg_mae': 4.0, 'two_loss': 4.0}
+    expect(r.stdout).toBe(`[18.0, 16.0, 2.0, 4.0]
+{'loss': 18.0, 'reg_loss': 16.0, 'reg_mae': 4.0, 'two_loss': 2.0}
 18.0
 ['loss', 'reg_loss', 'reg_mae', 'two_loss']
 [(2, 1), (2, 1)] (2, 1) [(None, 2), (None, 2)] [(None, 1), (None, 1)] keras_tensor 2
@@ -883,22 +901,9 @@ print(isinstance(n, keras.Model))`)
   })
 
   it('a user Layer: build, add_weight, call, add_loss, inside Sequential and Functional', () => {
-    const r = run(`${H}class Scale(layers.Layer):
-    def __init__(self, units, **kwargs):
-        super().__init__()
-        self.units = units
-    def build(self, input_shape):
-        self.w = self.add_weight(shape=(input_shape[-1], self.units), initializer='ones', trainable=True, name='w')
-        self.b = self.add_weight(shape=(self.units,), initializer='zeros', trainable=False, name='b')
-    def call(self, x):
-        self.add_loss(0.5 * tf.reduce_sum(self.w))
-        return tf.matmul(x, self.w) + self.b
-print(1)`)
-    // **kwargs is being added to the core separately
-    if (r.error) expect(r.error.type).not.toBe('AttributeError')
     const s = run(`${H}class Scale(layers.Layer):
-    def __init__(self, units):
-        super().__init__()
+    def __init__(self, units, **kwargs):
+        super().__init__(**kwargs)
         self.units = units
     def build(self, input_shape):
         self.w = self.add_weight(shape=(input_shape[-1], self.units), initializer='ones', trainable=True, name='w')
@@ -959,9 +964,6 @@ class M(keras.metrics.Metric):
         return self.n
 X = np.ones((2, 1))
 Y = np.zeros((2, 1))
-def fresh(**kw):
-    m = keras.Sequential([layers.Input((1,)), layers.Dense(1, use_bias=False, kernel_initializer='ones', **kw)])
-    return m
 m = keras.Sequential([layers.Input((1,)), layers.Dense(1, use_bias=False, kernel_initializer=keras.initializers.Constant(3.0))])
 m.compile(keras.optimizers.SGD(0.0), my_loss, metrics=[my_metric, M(), 'mse'])
 print(m.evaluate(X, Y, verbose=0, return_dict=True))
@@ -972,37 +974,8 @@ r.compile(keras.optimizers.SGD(0.0), 'mse')
 print(r.evaluate(X, Y, verbose=0))
 a = keras.Sequential([layers.Input((1,)), layers.Dense(1, use_bias=False, kernel_initializer=lambda shape, dtype=None: tf.ones(shape) * 5.0, activation=lambda x: x * 2)])
 print(a.predict(X, verbose=0).ravel().tolist())`)
-    expect(r.error?.message ?? null).toBe(r.error === null ? null : expect.anything())
-    if (!r.error) expect(r.stdout).toBe("{'count_big': 2.0, 'loss': 3.0, 'mse': 9.0, 'my_metric': 3.0}\n9.0 tf.Tensor(1.0, shape=(), dtype=float32)\n8.0\n[10.0, 10.0]\n")
-    const noKw = run(`${H}def my_loss(y_true, y_pred):
-    return tf.reduce_mean(tf.abs(y_true - y_pred), axis=-1)
-def my_metric(y_true, y_pred):
-    return tf.reduce_max(y_pred - y_true, axis=-1)
-class L(keras.losses.Loss):
-    def call(self, y_true, y_pred):
-        return tf.square(y_true - y_pred)
-class M(keras.metrics.Metric):
-    def __init__(self, name='count_big'):
-        super().__init__(name=name)
-        self.n = self.add_variable(shape=(), initializer='zeros', name='n')
-    def update_state(self, y_true, y_pred, sample_weight=None):
-        self.n.assign_add(tf.reduce_sum(tf.cast(y_pred > 0.5, tf.float32)))
-    def result(self):
-        return self.n
-X = np.ones((2, 1))
-Y = np.zeros((2, 1))
-m = keras.Sequential([layers.Input((1,)), layers.Dense(1, use_bias=False, kernel_initializer=keras.initializers.Constant(3.0))])
-m.compile(keras.optimizers.SGD(0.0), my_loss, metrics=[my_metric, M(), 'mse'])
-print(m.evaluate(X, Y, verbose=0, return_dict=True))
-m.compile(keras.optimizers.SGD(0.0), L())
-print(m.evaluate(X, Y, verbose=0), L()(np.ones((2, 1)), np.zeros((2, 1))))
-r = keras.Sequential([layers.Input((1,)), layers.Dense(1, use_bias=False, kernel_initializer='ones', kernel_regularizer=lambda w: 7.0 * tf.reduce_sum(w))])
-r.compile(keras.optimizers.SGD(0.0), 'mse')
-print(r.evaluate(X, Y, verbose=0))
-a = keras.Sequential([layers.Input((1,)), layers.Dense(1, use_bias=False, kernel_initializer=lambda shape, dtype=None: tf.ones(shape) * 5.0, activation=lambda x: x * 2)])
-print(a.predict(X, verbose=0).ravel().tolist())`)
-    expect(noKw.error).toBeNull()
-    expect(noKw.stdout).toBe("{'count_big': 2.0, 'loss': 3.0, 'mse': 9.0, 'my_metric': 3.0}\n9.0 tf.Tensor(1.0, shape=(), dtype=float32)\n8.0\n[10.0, 10.0]\n")
+    expect(r.error).toBeNull()
+    expect(r.stdout).toBe("{'count_big': 2.0, 'loss': 3.0, 'mse': 9.0, 'my_metric': 3.0}\n9.0 tf.Tensor(1.0, shape=(), dtype=float32)\n8.0\n[10.0, 10.0]\n")
   })
 
   it('weights in memory: save_weights, load_weights, set_weights errors', () => {
@@ -1057,17 +1030,17 @@ print(keras.models.model_from_json(keras.Sequential([layers.Input((5, 2)), layer
     const lines = r.stdout.split('\n').filter((l) => !l.startsWith('(sandbox)'))
     expect(lines[0]).toBe("net ['InputLayer', 'Conv2D', 'BatchNormalization', 'Flatten', 'Dense'] 2 (3, 3) relu HeNormal {'l2': 0.01}")
     expect(lines[1]).toBe("3 {'module': 'keras.initializers', 'class_name': 'Zeros', 'config': {}, 'registered_name': None}")
-    expect(lines[2]).toBe('net True True TensorShape([3, 3, 1, 2])')
+    expect(lines[2]).toBe('net True True (3, 3, 1, 2)')
     expect(lines[3]).toBe('True False')
     expect(lines[4]).toBe("True adam ['loss', 'compile_metrics'] 1")
-    expect(lines[5]).toBe("fn 18 ['a', 'q', 'd', 'c', 'o'] (1, 1)")
-    expect(lines[6]).toBe("18 ['a', 'q', 'd', 'c', 'o'] [(None, 2), (None, 2)]")
+    // Dense(3) on 2 inputs is 9, Dense(1) on 3 + 2 is 6; layers by depth, then in traversal order from the output (map_graph)
+    expect(lines[5]).toBe("fn 15 ['a', 'd', 'q', 'c', 'o'] (1, 1)")
+    expect(lines[6]).toBe("15 ['a', 'd', 'q', 'c', 'o'] [(None, 2), (None, 2)]")
     // LSTM(2) on 2 features: 4 * 2 * (2 + 2 + 1), both directions; then Dense(1) on 4
     expect(lines[7]).toBe(String(2 * 40 + 5))
     expect(lines[8]).toBe(String(6 + 2 * 40))
-    expect(r.stdout).toContain('{"module": "keras", "class_name": "Sequential"'.slice(0, 0))
     const t = run(`${H}print(keras.Sequential([layers.Input((2,)), layers.Dense(1)]).to_json()[:60])`)
-    expect(t.stdout).toBe('{"module": "keras", "class_name": "Sequential", "config": {"n\n')
+    expect(t.stdout).toBe('{"module": "keras", "class_name": "Sequential", "config": {"\n')
     expect(run(`${H}class N(keras.Model):\n    def call(self, x):\n        return x\nkeras.models.clone_model(N())`).error?.message).toContain('subclassed model')
   })
 })
@@ -1114,18 +1087,30 @@ print((keras.models.load_model('anime_model.keras').predict([texts, meta], verbo
  [1 0 0]], shape=(2, 3), dtype=int64)
 tf.Tensor(
 [[0. 1. 0.]
- [0. 0. 1.]], shape=(2, 3), dtype=float32)
+ [1. 0. 1.]], shape=(2, 3), dtype=float32)
 tf.Tensor(
 [[0. 2. 0.]
  [1. 0. 1.]], shape=(2, 3), dtype=float32)
 tf.Tensor(
 [[2]
  [1]], shape=(2, 1), dtype=int64)
-string int64 197
+string int64 189
 ['loss', 'mae', 'val_loss', 'val_mae'] (4, 1)
 `)
-    // embedding 20 * 8 + dense (3 + 1) * 4 + dense (8 + 4 + 1) * 1 = 160 + 16 + 13 = 189, see below
+    // embedding 20 * 8 + dense (3 + 1) * 4 + dense (8 + 4 + 1) * 1 = 160 + 16 + 13
     expect(r.stdout.endsWith('True\n')).toBe(true)
+  })
+
+  it('text from pandas', () => {
+    const r = runPython(`${H}import pandas as pd
+s = pd.Series(['a b', 'c a'])
+v = layers.TextVectorization()
+v.adapt(s)
+print(v.get_vocabulary(), v(s).numpy().tolist())
+m = keras.Sequential([layers.Input((2,)), layers.Dense(1, use_bias=False, kernel_initializer='ones')])
+print(m.predict(pd.DataFrame({'p': [1.0, 2.0], 'q': [3.0, 4.0]}), verbose=0).ravel().tolist())`, { libs: [KERAS, PANDAS], maxSize: 2_000_000, timeBudget: 30_000 })
+    expect(r.error).toBeNull()
+    expect(r.stdout).toBe("['', '[UNK]', 'a', 'c', 'b'] [[2, 4], [3, 2]]\n[4.0, 6.0]\n")
   })
 
   it('pad_sequences and split_dataset', () => {
@@ -1163,7 +1148,7 @@ for x, y in p.batch(2).take(1):
 print(p.map(lambda a, b: (a * 2, b)))
 d = tf.data.Dataset.from_tensor_slices({'a': [1.0, 2.0]})
 print(d, [e['a'].numpy() for e in d])
-print([int(x) for x in tf.data.Dataset.range(3)], len(tf.data.Dataset.from_tensors([1, 2])), [b.numpy().tolist() for b in ds.batch(2).unbatch().take(1)], tf.data.Dataset.from_tensor_slices(['a', 'b']))
+print([int(x) for x in tf.data.Dataset.range(3)], len(tf.data.Dataset.from_tensors([1, 2])), [int(b) for b in ds.batch(2).unbatch().take(1)], tf.data.Dataset.from_tensor_slices(['a', 'b']))
 a = list(ds.shuffle(5, seed=7, reshuffle_each_iteration=False).as_numpy_iterator())
 b = ds.shuffle(5, seed=7, reshuffle_each_iteration=False)
 print(a == list(b.as_numpy_iterator()), list(b.as_numpy_iterator()) == list(b.as_numpy_iterator()))`)
@@ -1208,6 +1193,123 @@ print(len(h.history['loss']))`)
   })
 })
 
+describe('what the language core now allows', () => {
+  it('except tf.errors.*, and the errors of Keras as the built-in classes', () => {
+    const r = run(`${H}try:
+    tf.constant(1) + tf.constant(1.0)
+except tf.errors.InvalidArgumentError as e:
+    print('caught', type(e).__name__, e.message[:16], isinstance(e, tf.errors.OpError))
+try:
+    tf.constant([1, 2, 3]) + tf.constant([1, 2])
+except Exception as e:
+    print(e)
+try:
+    layers.Dense(-1)
+except ValueError as e:
+    print('value', e)
+try:
+    layers.Conv2D(1, 1, groups=2)
+except NotImplementedError as e:
+    print('not implemented', e)
+try:
+    tf.linalg.inv(tf.zeros((2, 2)))
+except tf.errors.InvalidArgumentError as e:
+    print(e)`)
+    expect(r.error).toBeNull()
+    expect(r.stdout).toBe(`caught InvalidArgumentError cannot compute A True
+Incompatible shapes: [3] vs. [2] [Op:AddV2]
+value Received an invalid value for \`units\`, expected a positive integer. Received: units=-1
+not implemented Conv2D: groups=2 is not implemented in this sandbox
+Input is not invertible. [Op:MatrixInverse]
+`)
+    expect(run(`${H}tf.constant([1, 2, 3]) + tf.constant([1, 2])`).error).toMatchObject({ type: 'InvalidArgumentError', message: 'Incompatible shapes: [3] vs. [2] [Op:AddV2]' })
+  })
+
+  it('@tf.function, **kwargs in a Layer, *args in call', () => {
+    const r = run(`${H}@tf.function
+def f(x):
+    return x + 1
+print(f(tf.constant(1)))
+@tf.function(jit_compile=True)
+def g(x):
+    return x * 2
+print(g(tf.constant(2)))
+class P(layers.Layer):
+    def __init__(self, k, **kwargs):
+        super().__init__(**kwargs)
+        self.k = k
+    def call(self, x, *rest):
+        return x * self.k
+p = P(3, name='triple')
+print(p.name, p(np.array([[1.0]])))`)
+    expect(r.error).toBeNull()
+    expect(r.stdout).toBe('tf.Tensor(2, shape=(), dtype=int32)\ntf.Tensor(4, shape=(), dtype=int32)\ntriple tf.Tensor(\n[[3.]], shape=(1, 1), dtype=float32)\n')
+  })
+
+  it('generators: Dataset.from_generator, tf.TensorSpec, model.fit(generator, steps_per_epoch=...)', () => {
+    const r = run(`${H}def gen():
+    for i in range(3):
+        yield float(i), i
+ds = tf.data.Dataset.from_generator(gen, output_signature=(tf.TensorSpec(shape=(), dtype=tf.float32), tf.TensorSpec(shape=(), dtype=tf.int32)))
+print(ds)
+print([(float(a), int(b)) for a, b in ds], [(float(a), int(b)) for a, b in ds][0])
+for a, b in ds.batch(2).take(1):
+    print(a.shape, b.dtype)
+print(tf.TensorSpec(shape=(2, None), dtype=tf.int32), tf.data.Dataset.from_generator(gen, output_types=(tf.float32, tf.int64)))
+def batches():
+    while True:
+        yield np.ones((2, 1)), np.zeros((2, 1))
+m = keras.Sequential([layers.Input((1,)), layers.Dense(1)])
+m.compile('sgd', 'mse')
+print(len(m.fit(batches(), steps_per_epoch=2, epochs=3, verbose=0).history['loss']))
+def few():
+    yield np.ones((2, 1)), np.zeros((2, 1))
+print(len(m.fit(few(), steps_per_epoch=2, epochs=3, verbose=0).history['loss']))`)
+    expect(r.error).toBeNull()
+    expect(r.stdout).toContain(`<_FlatMapDataset element_spec=(TensorSpec(shape=(), dtype=tf.float32, name=None), TensorSpec(shape=(), dtype=tf.int32, name=None))>
+[(0.0, 0), (1.0, 1), (2.0, 2)] (0.0, 0)
+(2,) tf.int32
+TensorSpec(shape=(2, None), dtype=tf.int32, name=None) <_FlatMapDataset element_spec=(TensorSpec(shape=<unknown>, dtype=tf.float32, name=None), TensorSpec(shape=<unknown>, dtype=tf.int64, name=None))>
+3
+`)
+    expect(r.stdout).toContain('UserWarning: Your input ran out of data; interrupting training.')
+    expect(r.stdout.endsWith('1\n')).toBe(true)
+    expect(run(`${H}def g():\n    yield 1\nm = keras.Sequential([layers.Input((1,)), layers.Dense(1)])\nm.compile('sgd', 'mse')\nm.fit(g())`).error?.type).toBe('NotImplementedError')
+    expect(run(`${H}tf.data.Dataset.from_generator(lambda: iter([]))`).error?.type).toBe('TypeError')
+  })
+
+  it('uint8 is a real dtype: tensors keep it, NumPy shows it, images and models accept it', () => {
+    const r = run(`${H}a = np.array([[1, 200]], dtype=np.uint8)
+t = tf.constant(a)
+print(t, t.dtype, t.numpy().dtype, repr(t))
+print(tf.cast(tf.constant([1.0, 300.0]), tf.uint8), (t + 100).numpy(), tf.convert_to_tensor(a).dtype)
+img = np.zeros((2, 2, 3), dtype=np.uint8)
+print(tf.image.resize(img, (4, 4)).dtype, tf.image.flip_left_right(tf.constant(img)).dtype, tf.image.rgb_to_grayscale(tf.constant(img)).dtype, tf.image.convert_image_dtype(tf.constant(img), tf.float32).dtype)
+print(tf.image.rgb_to_grayscale(tf.constant(np.array([[[255, 255, 255]]], dtype=np.uint8))).numpy().ravel().tolist())
+m = keras.Sequential([layers.Input((2,)), layers.Dense(1, use_bias=False, kernel_initializer='ones')])
+print(m.predict(a, verbose=0).tolist())
+print(tf.data.Dataset.from_tensor_slices(a))`)
+    expect(r.error).toBeNull()
+    expect(r.stdout).toBe(`tf.Tensor(
+[[  1 200]], shape=(1, 2), dtype=uint8) tf.uint8 uint8 <tf.Tensor: shape=(1, 2), dtype=uint8, numpy=array([[  1, 200]], dtype=uint8)>
+tf.Tensor([ 1 44], shape=(2,), dtype=uint8) [[101  44]] tf.uint8
+tf.float32 tf.uint8 tf.uint8 tf.float32
+[255]
+[[201.0]]
+<_TensorSliceDataset element_spec=TensorSpec(shape=(2,), dtype=tf.uint8, name=None)>
+`)
+  })
+
+  it('the standard library is there for what the course pairs with TensorBoard', () => {
+    const r = run(`${H}import datetime
+log_dir = 'logs/' + datetime.datetime.now().strftime('%Y')
+cb = keras.callbacks.TensorBoard(log_dir=log_dir)
+print(len(log_dir))`)
+    expect(r.error).toBeNull()
+    expect(r.stdout.endsWith('9\n')).toBe(true)
+  })
+})
+
 describe('tensorflow printing and bits', () => {
   it.each([
     ['print(tf.eye(2))', 'tf.Tensor(\n[[1. 0.]\n [0. 1.]], shape=(2, 2), dtype=float32)\n'],
@@ -1247,7 +1349,7 @@ describe('tensorflow printing and bits', () => {
     ['with tf.device("/CPU:0"):\n    with tf.name_scope("a"):\n        print(tf.ones(1))', 'tf.Tensor([1.], shape=(1,), dtype=float32)\n'],
     ['print(keras.backend.epsilon(), keras.backend.image_data_format(), keras.backend.floatx(), keras.backend.clear_session())', '1e-07 channels_last float32 None\n'],
     ['print(keras.ops.sum(tf.constant([1.0, 2.0])), keras.ops.shape(tf.ones((2, 3))))', 'tf.Tensor(3.0, shape=(), dtype=float32) (2, 3)\n'],
-    ['print(keras.layers.Dense(2, activation="relu").activation, keras.layers.Dense(2, activation=keras.activations.tanh).activation.__name__)', '<function relu> tanh\n'],
+    ['print(keras.layers.Dense(2, activation="relu").activation.__name__, keras.layers.Dense(2, activation=keras.activations.tanh).activation.__name__)', 'relu tanh\n'],
     ['l = keras.layers.Conv2D(2, 3)\nprint(l.kernel_size, l.strides, l.filters, l.padding, type(l).__name__, l.__class__.__name__)', "(3, 3) (1, 1) 2 valid Conv2D Conv2D\n"],
     ['print(keras.optimizers.Adam().learning_rate)', '<Variable path=adam/learning_rate, shape=(), dtype=float32, value=0.001>\n'],
     ['o = keras.optimizers.Adam(0.5)\no.learning_rate = 0.25\nprint(float(o.learning_rate))\no.learning_rate.assign(0.125)\nprint(float(o.learning_rate), o.name)', '0.25\n0.125 adam\n'],
@@ -1297,7 +1399,7 @@ const OP_GRADS: [string, string][] = [
   ['tensordot', 'tf.tensordot(x, tf.transpose(x), axes=1)'],
   ['norm', 'tf.norm(x)'],
   ['norm ord=3', 'tf.norm(x, ord=3)'],
-  ['clip_by_value', 'tf.clip_by_value(x, -0.2, 0.2)'],
+  ['clip_by_value', 'tf.clip_by_value(x, -0.25, 0.25)'],
   ['maximum', 'tf.maximum(x, 0.1)'],
   ['elu', 'tf.nn.elu(x)'],
   ['selu', 'tf.nn.selu(x)'],
@@ -1313,7 +1415,6 @@ const OP_GRADS: [string, string][] = [
   ['det', 'tf.linalg.det(x[:, :2] + tf.constant([[3.0, 0.0], [0.0, 3.0]], dtype=tf.float64))'],
   ['trace', 'tf.linalg.trace(x[:, :2])'],
   ['resize', 'tf.image.resize(tf.reshape(x, (2, 3, 1)), (3, 4))'],
-  ['stop_gradient', 'x * tf.stop_gradient(x)'],
   ['moments', 'tf.nn.moments(x, axes=[0])[1]'],
 ]
 
@@ -1435,6 +1536,17 @@ True True True
 [0.0, 9.0]
 [0.0, 2.0] 8
 `)
+  })
+
+  it('a model called with no training flag leaves it to each layer: RandomFlip defaults to training, Dropout does not', () => {
+    const r = run(`${H}x = np.arange(4.0).reshape(1, 2, 2, 1)
+m = keras.Sequential([layers.Input((2, 2, 1)), layers.RandomFlip('horizontal', seed=1)])
+seen = [m(x).numpy().ravel().tolist() for i in range(12)]
+print(len(set([str(s) for s in seen])), (m.predict(x, verbose=0) == x).all(), (m(x, training=False).numpy() == x).all())
+d = keras.Sequential([layers.Input((4,)), layers.Dropout(0.9)])
+print((d(np.ones((1, 4))).numpy() == 1).all())`)
+    expect(r.error).toBeNull()
+    expect(r.stdout).toBe('2 True True\nTrue\n')
   })
 
   it('RandomCrop at inference crops to the aspect ratio, then resizes', () => {

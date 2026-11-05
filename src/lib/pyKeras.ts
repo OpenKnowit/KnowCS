@@ -6,6 +6,7 @@
  * Keras is channels-last: images are (batch, height, width, channels).
  */
 import { NDArray, PyError, arrayRepr, arrayStr, cStrides, prod } from './ndarray'
+import type { DType } from './ndarray'
 import { PyDict, PyObj, formatSpec, py, repr, toArray } from './minipy'
 import type { ApiKind, ClassValue, FuncValue, Host, HostClass, InstValue, Kw, PyLib, Value } from './minipy'
 import { SandboxRandom } from './ndops'
@@ -32,12 +33,13 @@ interface KerasState {
   make: (kind: string, kw: Kw) => KLayer
   /** the tf function being run has recorded its own step */
   traced: boolean
+  errors: Record<string, ClassValue> | null
 }
 
 const stateOf = (h: Host): KerasState => {
   let s = h.state.get('keras') as KerasState | undefined
   if (!s) {
-    s = { E: new Engine(h.rng), counters: new Map(), files: new Map(), notes: new Set(), training: null, losses: [], make: () => { throw new PyError('RuntimeError', 'keras is not loaded') }, traced: false }
+    s = { E: new Engine(h.rng), counters: new Map(), files: new Map(), notes: new Set(), training: null, losses: [], make: () => { throw new PyError('RuntimeError', 'keras is not loaded') }, traced: false, errors: null }
     h.state.set('keras', s)
   }
   return s
@@ -49,6 +51,26 @@ const autoName = (h: Host, base: string): string => {
   const n = c.get(base) ?? 0
   c.set(base, n + 1)
   return n ? `${base}_${n}` : base
+}
+
+/** tf.errors: real exception classes, so that except tf.errors.InvalidArgumentError catches them */
+const tfErrorClasses = (h: Host): Record<string, ClassValue> => {
+  const S = stateOf(h)
+  if (!S.errors) {
+    const base = h.excClass('Exception')
+    const make = (name: string, parent: ClassValue): ClassValue => ({ k: 'class', name, bases: [parent], ns: new Map(), host: parent.host, builtin: true })
+    const op = make('OpError', base)
+    S.errors = { OpError: op, ...Object.fromEntries(['InvalidArgumentError', 'NotFoundError', 'OutOfRangeError', 'ResourceExhaustedError', 'FailedPreconditionError', 'UnimplementedError', 'UnknownError'].map((n) => [n, make(n, op)])) }
+  }
+  return S.errors
+}
+
+const tfErr = (h: Host, message: string): PyError => {
+  const e = h.err('InvalidArgumentError', message)
+  const inst = h.call(tfErrorClasses(h).InvalidArgumentError, [py.str(message)])
+  if (inst.k === 'inst') inst.attrs.set('message', py.str(message))
+  e.exc = inst
+  return e
 }
 
 const noteOnce = (h: Host, key: string, tone: 'info' | 'warn', params: Record<string, string | number> = {}) => {
@@ -142,13 +164,13 @@ const f32clean = (v: number): number => {
 
 const ndFor = (t: TT): NDArray => {
   const vals = t.dtype === 'float32' ? t.values().map(f32clean) : t.values()
-  return NDArray.create(vals, t.shape, t.dtype === 'bool' ? 'bool' : isFloatT(t.dtype) ? 'float64' : 'int64')
+  return NDArray.create(vals, t.shape, t.dtype === 'bool' ? 'bool' : isFloatT(t.dtype) ? 'float64' : t.dtype === 'uint8' ? 'uint8' : 'int64')
 }
 
 /** array([...], dtype=float32) */
 const npRepr = (t: TT): string => {
   const base = arrayRepr(ndFor(t))
-  if (t.dtype === 'float64' || t.dtype === 'int64' || t.dtype === 'bool') return base
+  if (t.dtype === 'float64' || t.dtype === 'int64' || t.dtype === 'bool' || t.dtype === 'uint8') return base
   if (!t.ndim) return base
   return `${base.slice(0, -1)}, dtype=${t.dtype})`
 }
@@ -237,6 +259,8 @@ const traceTF = (h: Host, api: string, kind: ApiKind, ops: { label: string; t: T
 const tfOf = (v: Value | undefined): TT | null => (v && v.k === 'obj' && v.o instanceof TFTensor ? v.o.t : null)
 
 const OP_NAME: Record<string, string> = { '+': 'AddV2', '-': 'Sub', '*': 'Mul', '/': 'RealDiv', '@': 'MatMul', '**': 'Pow', '<': 'Less', '>': 'Greater', '<=': 'LessEqual', '>=': 'GreaterEqual', '==': 'Equal', '!=': 'NotEqual', maximum: 'Maximum', minimum: 'Minimum', '//': 'FloorDiv', '%': 'FloorMod' }
+/** the tensor dtype NumPy data keeps */
+const ND_TF: Record<DType, TDType> = { float64: 'float64', int64: 'int64', bool: 'bool', uint8: 'uint8' }
 const TF_KIND: Record<TDType, string> = { float32: 'float', float64: 'double', int32: 'int32', int64: 'int64', bool: 'bool', uint8: 'uint8' }
 
 /** a Python value as a TF operand: Python numbers take the tensor's dtype, tensors must match exactly */
@@ -250,7 +274,7 @@ const tfOperand = (h: Host, v: Value, like: TT | null): TT | null => {
     }
     return TT.scalar(v.k === 'bool' ? (v.v ? 1 : 0) : v.v, d)
   }
-  if (v.k === 'array') return TT.of(v.a.values(), v.a.shape, v.a.dtype === 'float64' ? 'float64' : v.a.dtype === 'bool' ? 'bool' : 'int64')
+  if (v.k === 'array') return TT.of(v.a.values(), v.a.shape, ND_TF[v.a.dtype])
   if (v.k === 'list' || v.k === 'tuple') return toTF(h, v, like?.dtype ?? null)
   return null
 }
@@ -259,7 +283,7 @@ const tfOperand = (h: Host, v: Value, like: TT | null): TT | null => {
 const toTF = (h: Host, v: Value, dtype: TDType | null): TT => {
   const t = tfOf(v)
   if (t) return dtype && dtype !== t.dtype ? TT.of(t.values(), t.shape, dtype) : t
-  if (v.k === 'array') return TT.of(v.a.values(), v.a.shape, dtype ?? (v.a.dtype === 'float64' ? 'float64' : v.a.dtype === 'bool' ? 'bool' : 'int64'))
+  if (v.k === 'array') return TT.of(v.a.values(), v.a.shape, dtype ?? ND_TF[v.a.dtype])
   if (isSeq(v) && v.items.some((x) => tfOf(x))) {
     // a list holding tensors stacks them, as tf.constant does
     const parts = v.items.map((x) => toTF(h, x, dtype))
@@ -338,11 +362,12 @@ class TFTensor extends PyObj {
     if (!o) return undefined
     const [a, b] = reflected ? [o, this.t] : [this.t, o]
     if (a.dtype !== b.dtype && OP_NAME[op]) {
-      throw h.err('InvalidArgumentError', `cannot compute ${OP_NAME[op]} as input #1(zero-based) was expected to be a ${TF_KIND[a.dtype]} tensor but is a ${TF_KIND[b.dtype]} tensor [Op:${OP_NAME[op]}]`)
+      throw tfErr(h, `cannot compute ${OP_NAME[op]} as input #1(zero-based) was expected to be a ${TF_KIND[a.dtype]} tensor but is a ${TF_KIND[b.dtype]} tensor [Op:${OP_NAME[op]}]`)
     }
     const E = stateOf(h).E
     const me = h.nameOf(py.obj(this), 'a')
     const ops = reflected ? [{ label: h.nameOf(other, 'a'), t: a }, { label: me, t: b }] : [{ label: me, t: a }, { label: h.nameOf(other, 'b'), t: b }]
+    if (op !== '@' && OP_NAME[op]) bcast(h, a.shape, b.shape, OP_NAME[op])
     let out: TT
     if (op === '@') {
       out = C.matmul(E, a, b, 'MatMul')
@@ -350,10 +375,10 @@ class TFTensor extends PyObj {
       return tfWrap(out)
     }
     if (['<', '<=', '>', '>=', '==', '!='].includes(op)) out = C.compare(a, b, op as C.CmpOpT)
-    else if ((op === '&' || op === '|' || op === '^') && a.dtype === 'bool') out = logical(a, b, op)
+    else if ((op === '&' || op === '|' || op === '^') && a.dtype === 'bool') out = logical(h, a, b, op)
     else if (op === '/' && !isFloatT(a.dtype)) out = C.binary(E, '/', C.toDtype(E, a, 'float64'), C.toDtype(E, b, 'float64'))
     else if (['+', '-', '*', '/', '**', '//', '%', 'maximum', 'minimum'].includes(op)) {
-      if ((op === '//' || op === '%') && !isFloatT(a.dtype) && b.values().some((v) => v === 0)) throw h.err('InvalidArgumentError', `Integer division by zero [Op:${OP_NAME[op]}]`)
+      if ((op === '//' || op === '%') && !isFloatT(a.dtype) && b.values().some((v) => v === 0)) throw tfErr(h, `Integer division by zero [Op:${OP_NAME[op]}]`)
       const r = C.binary(E, op as C.BinOpT, a, b)
       out = r.dtype === a.dtype ? r : C.toDtype(E, r, a.dtype)
     } else return undefined
@@ -379,8 +404,8 @@ class TFTensor extends PyObj {
   }
 }
 
-const logical = (a: TT, b: TT, op: '&' | '|' | '^'): TT => {
-  const shape = bcast(a.shape, b.shape)
+const logical = (h: Host, a: TT, b: TT, op: '&' | '|' | '^'): TT => {
+  const shape = bcast(h, a.shape, b.shape)
   const ia = C.bcastIndex(a.shape, shape)
   const ib = C.bcastIndex(b.shape, shape)
   const av = a.values()
@@ -392,13 +417,13 @@ const logical = (a: TT, b: TT, op: '&' | '|' | '^'): TT => {
   }), shape, 'bool')
 }
 
-const bcast = (a: number[], b: number[]): number[] => {
+const bcast = (h: Host, a: number[], b: number[], op?: string): number[] => {
   const nd = Math.max(a.length, b.length)
   const out = new Array<number>(nd)
   for (let d = 1; d <= nd; d++) {
     const x = a[a.length - d] ?? 1
     const y = b[b.length - d] ?? 1
-    if (x !== y && x !== 1 && y !== 1) throw new PyError('InvalidArgumentError', `Incompatible shapes: [${a.join(',')}] vs. [${b.join(',')}]`)
+    if (x !== y && x !== 1 && y !== 1) throw tfErr(h, `Incompatible shapes: [${a.join(',')}] vs. [${b.join(',')}]${op ? ` [Op:${op}]` : ''}`)
     out[nd - d] = x === 1 ? y : x
   }
   return out
@@ -425,7 +450,7 @@ class TFVariable extends TFTensor {
     const assign = (op: (old: number, v: number) => number) => fnv(name, (args, kw) => {
       const v = tfOperand(h, args[0] ?? kw.value, this.t)
       if (!v) throw h.err('TypeError', `${name}() needs a tensor or a number`)
-      if (v.dtype !== this.t.dtype) throw h.err('InvalidArgumentError', `Cannot update variable with shape [${this.t.shape.join(',')}] using a Tensor of dtype ${v.dtype}`)
+      if (v.dtype !== this.t.dtype) throw tfErr(h, `Cannot update variable with shape [${this.t.shape.join(',')}] using a Tensor of dtype ${v.dtype}`)
       if (v.size !== this.t.size && v.size !== 1) throw h.err('ValueError', `Cannot assign value to variable ' ${this.name}:0': Shape mismatch.The variable shape (${this.t.shape.join(', ')}), and the assigned value shape (${v.shape.join(', ')}) are incompatible.`)
       const old = this.t.values()
       const nv = v.values()
@@ -569,37 +594,10 @@ const opT = (E: Engine, out: TT, name: string, inputs: (TT | null)[], backward: 
   return out
 }
 
-/** out[i] = a[src[i]], or fill where src[i] is negative; the gradient flows back along the same map */
-const takeT = (E: Engine, a: TT, src: ArrayLike<number>, shape: number[], fill = 0): TT => {
-  const av = a.values()
-  const n = src.length
-  const vals = new Array<number>(n)
-  const f = C.castT(fill, a.dtype)
-  for (let i = 0; i < n; i++) vals[i] = src[i] < 0 ? f : av[src[i]]
-  return opT(E, TT.raw(vals, shape, a.dtype), 'TakeBackward', [a], (g) => {
-    const ga = new Array<number>(a.size).fill(0)
-    for (let i = 0; i < n; i++) if (src[i] >= 0) ga[src[i]] += g[i]
-    return [ga]
-  })
-}
-
-/** the flat source index of every output element, given the source index along each axis (−1: nothing there) */
-const gridIndex = (shape: number[], maps: number[][]): number[] => {
-  const st = cStrides(shape)
-  let cur = [0]
-  maps.forEach((m, d) => {
-    const next = new Array<number>(cur.length * m.length)
-    let k = 0
-    for (const base of cur) for (const j of m) next[k++] = base < 0 || j < 0 ? -1 : base + j * st[d]
-    cur = next
-  })
-  return cur
-}
-
 const allOf = (n: number): number[] => Array.from({ length: n }, (_, i) => i)
 
-/** a tensor rearranged axis by axis: slices, flips, padding, tiling and nearest-neighbour resizing are all this */
-const gridT = (E: Engine, a: TT, maps: number[][], fill = 0): TT => takeT(E, a, gridIndex(a.shape, maps), maps.map((m) => m.length), fill)
+/** a tensor rearranged axis by axis, as a copy: slices, flips, padding, tiling and nearest-neighbour resizing are all this */
+const gridT = (E: Engine, a: TT, maps: number[][], fill = 0): TT => C.takeT(E, a, C.crossSrc(a.shape, maps), maps.map((m) => m.length), 'TakeBackward', fill)
 
 const sliceAxis = (E: Engine, a: TT, axis: number, start: number, stop: number): TT => gridT(E, a, a.shape.map((n, d) => (d === axis ? Array.from({ length: stop - start }, (_, i) => start + i) : allOf(n))))
 
@@ -610,76 +608,23 @@ const unstackT = (E: Engine, a: TT, axis: number): TT[] => {
   const shape = a.shape.filter((_, d) => d !== axis)
   const av = a.values()
   const st = cStrides(a.shape)[axis]
-  const base = gridIndex(a.shape, a.shape.map((n, d) => (d === axis ? [0] : allOf(n))))
-  return allOf(a.shape[axis]).map((i) => opT(E, TT.raw(base.map((b) => av[b + i * st]), shape, a.dtype), 'UnstackBackward', [a], (g) => {
+  const base = C.crossSrc(a.shape, a.shape.map((n, d) => (d === axis ? [0] : allOf(n))))
+  return allOf(a.shape[axis]).map((i) => opT(E, TT.raw(Array.from(base, (b) => av[b + i * st]), shape, a.dtype), 'UnstackBackward', [a], (g) => {
     const ga = new Array<number>(a.size).fill(0)
     base.forEach((b, k) => { ga[b + i * st] = g[k] })
     return [ga]
   }))
 }
 
-/** f applied elementwise, with its derivative (df gets the input and the output) */
-const elementT = (E: Engine, x: TT, name: string, f: (v: number) => number, df: (v: number, y: number) => number): TT => {
-  const xv = x.values()
-  const out = TT.of(xv.map(f), x.shape, isFloatT(x.dtype) ? x.dtype : 'float32')
-  const ov = out.values()
-  return opT(E, out, name, [x], (g) => [g.map((gi, i) => gi * df(xv[i], ov[i]))])
-}
-
 const scalarT = (v: number): TT => TT.scalar(v, 'float32')
 const mulS = (E: Engine, x: TT, v: number): TT => C.binary(E, '*', x, TT.scalar(v, x.dtype), false, true)
 
-/** max / min over several axes */
-const reduceExtreme = (E: Engine, t: TT, axes: number[] | null, keep: boolean, min: boolean): TT => {
-  if (axes === null) {
-    const m = C.maxAll(E, t, min)
-    return keep ? C.reshapeT(E, m, t.shape.map(() => 1), false) : m
-  }
-  const ds = [...new Set(axes.map((a) => C.normDim(a, t.ndim)))].sort((a, b) => b - a)
+/** the product over several axes, in the tensor's own dtype as TensorFlow keeps it */
+const prodAxes = (E: Engine, t: TT, axes: number[] | null, keep: boolean): TT => {
   let y = t
-  for (const d of ds) y = C.maxAlong(E, y, d, keep, min).values
-  return y
-}
-
-/** groups of flat indices that an axis reduction merges, in output order */
-const reduceGroups = (shape: number[], axes: number[]): { groups: number[][]; keep: number[]; drop: number[] } => {
-  const st = cStrides(shape)
-  const keepShape = shape.map((s, d) => (axes.includes(d) ? 1 : s))
-  const ost = cStrides(keepShape)
-  const groups: number[][] = Array.from({ length: prod(keepShape) }, () => [])
-  const n = prod(shape)
-  for (let f = 0; f < n; f++) {
-    let r = f
-    let o = 0
-    for (let d = 0; d < shape.length; d++) {
-      const i = Math.floor(r / st[d])
-      r -= i * st[d]
-      if (!axes.includes(d)) o += i * ost[d]
-    }
-    groups[o].push(f)
-  }
-  return { groups, keep: keepShape, drop: shape.filter((_, d) => !axes.includes(d)) }
-}
-
-const prodT = (E: Engine, t: TT, axes: number[] | null, keep: boolean): TT => {
-  const ds = axes === null ? t.shape.map((_, d) => d) : [...new Set(axes.map((a) => C.normDim(a, t.ndim)))]
-  const { groups, keep: ks, drop } = reduceGroups(t.shape, ds)
-  const v = t.values()
-  const out = TT.of(groups.map((g) => g.reduce((p, i) => p * v[i], 1)), keep ? ks : drop, t.dtype)
-  return opT(E, out, 'ProdBackward', [t], (g) => {
-    const ga = new Array<number>(t.size).fill(0)
-    groups.forEach((idx, o) => {
-      // the product of the others: prefix × suffix, so a zero does not divide
-      let pre = 1
-      const before = idx.map((i) => { const p = pre; pre *= v[i]; return p })
-      let suf = 1
-      for (let k = idx.length - 1; k >= 0; k--) {
-        ga[idx[k]] = g[o] * before[k] * suf
-        suf *= v[idx[k]]
-      }
-    })
-    return [ga]
-  })
+  if (axes === null) y = C.prodT(E, t, null, keep)
+  else for (const d of [...new Set(axes.map((a) => C.normDim(a, t.ndim)))].sort((a, b) => b - a)) y = C.prodT(E, y, d, keep)
+  return y.dtype === t.dtype ? y : C.toDtype(E, y, t.dtype)
 }
 
 /** tf.boolean_mask(t, mask, axis): the mask covers axes axis … axis + mask.ndim − 1 */
@@ -700,18 +645,10 @@ const booleanMask = (h: Host, E: Engine, t: TT, mask: TT, axis: number): TT => {
       for (let k = 0; k < after; k++) src.push((b * mv.length + i) * after + k)
     }
   }
-  return takeT(E, t, src, [...t.shape.slice(0, a), kept, ...t.shape.slice(a + mask.ndim)])
+  return C.takeT(E, t, src, [...t.shape.slice(0, a), kept, ...t.shape.slice(a + mask.ndim)], 'TakeBackward')
 }
 
 // ---------------------------------------------------------------- activations
-
-// Abramowitz & Stegun 7.1.26's cousin (Numerical Recipes erfc), good to about 1e-7: finer than float32 needs
-const erf = (x: number): number => {
-  const z = Math.abs(x)
-  const t = 1 / (1 + 0.5 * z)
-  const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))))
-  return x >= 0 ? 1 - r : r - 1
-}
 
 const softplus = (v: number) => (v > 30 ? v : Math.log1p(Math.exp(v)))
 const sigmoidV = (v: number) => 1 / (1 + Math.exp(-v))
@@ -721,30 +658,30 @@ const SELU_SCALE = 1.0507009873554805
 /** keras.activations.relu with its three options */
 const reluOptT = (E: Engine, x: TT, slope: number, maxV: number | null, thr: number): TT => {
   if (!slope && maxV === null && !thr) return C.unary(E, 'relu', x)
-  return elementT(E, x, 'ReluBackward', (v) => {
+  return C.mapT(E, x, (v) => {
     const pos = v > thr ? v : 0
     return (maxV !== null ? Math.min(pos, maxV) : pos) - slope * Math.max(thr - v, 0)
-  }, (v) => (v > thr ? (maxV !== null && v > maxV ? 0 : 1) : v < thr ? slope : 0))
+  }, (v) => (v > thr ? (maxV !== null && v > maxV ? 0 : 1) : v < thr ? slope : 0), 'ReluBackward')
 }
 
 const relu6T = (E: Engine, x: TT) => C.clamp(E, C.unary(E, 'relu', x), null, 6)
 const leakyT = (E: Engine, x: TT, a: number) => C.binary(E, 'maximum', x, C.binary(E, '*', x, TT.scalar(a, 'float32'), false, true))
-const eluT = (E: Engine, x: TT, a = 1) => elementT(E, x, 'EluBackward', (v) => (v > 0 ? v : a * (Math.exp(v) - 1)), (v) => (v > 0 ? 1 : a * Math.exp(v)))
-const seluT = (E: Engine, x: TT) => elementT(E, x, 'SeluBackward', (v) => (v > 0 ? SELU_SCALE * v : SELU_SCALE * SELU_ALPHA * (Math.exp(v) - 1)), (v) => (v > 0 ? SELU_SCALE : SELU_SCALE * SELU_ALPHA * Math.exp(v)))
-const softplusT = (E: Engine, x: TT) => elementT(E, x, 'SoftplusBackward', softplus, (v) => sigmoidV(v))
-const silu = (E: Engine, x: TT) => elementT(E, x, 'SiluBackward', (v) => v * sigmoidV(v), (v) => sigmoidV(v) + v * sigmoidV(v) * (1 - sigmoidV(v)))
+const eluT = (E: Engine, x: TT, a = 1) => C.mapT(E, x, (v) => (v > 0 ? v : a * (Math.exp(v) - 1)), (v) => (v > 0 ? 1 : a * Math.exp(v)), 'EluBackward')
+const seluT = (E: Engine, x: TT) => C.mapT(E, x, (v) => (v > 0 ? SELU_SCALE * v : SELU_SCALE * SELU_ALPHA * (Math.exp(v) - 1)), (v) => (v > 0 ? SELU_SCALE : SELU_SCALE * SELU_ALPHA * Math.exp(v)), 'SeluBackward')
+const softplusT = (E: Engine, x: TT) => C.mapT(E, x, softplus, (v) => sigmoidV(v), 'SoftplusBackward')
+const silu = (E: Engine, x: TT) => C.mapT(E, x, (v) => v * sigmoidV(v), (v) => sigmoidV(v) + v * sigmoidV(v) * (1 - sigmoidV(v)), 'SiluBackward')
 const geluT = (E: Engine, x: TT, approximate = false) => {
   if (approximate) {
     const k = Math.sqrt(2 / Math.PI)
     const inner = (v: number) => k * (v + 0.044715 * v ** 3)
-    return elementT(E, x, 'GeluBackward', (v) => 0.5 * v * (1 + Math.tanh(inner(v))), (v) => {
+    return C.mapT(E, x, (v) => 0.5 * v * (1 + Math.tanh(inner(v))), (v) => {
       const s = Math.tanh(inner(v))
       return 0.5 * (1 + s) + 0.5 * v * (1 - s * s) * k * (1 + 3 * 0.044715 * v * v)
-    })
+    }, 'GeluBackward')
   }
   const phi = (v: number) => Math.exp(-0.5 * v * v) / Math.sqrt(2 * Math.PI)
-  const Phi = (v: number) => 0.5 * (1 + erf(v / Math.SQRT2))
-  return elementT(E, x, 'GeluBackward', (v) => v * Phi(v), (v) => Phi(v) + v * phi(v))
+  const Phi = (v: number) => 0.5 * (1 + C.erf(v / Math.SQRT2))
+  return C.mapT(E, x, (v) => v * Phi(v), (v) => Phi(v) + v * phi(v), 'GeluBackward')
 }
 
 interface ActSpec { name: string; f: (E: Engine, x: TT) => TT }
@@ -761,16 +698,16 @@ const ACTS: Record<string, (E: Engine, x: TT) => TT> = {
   elu: (E, x) => eluT(E, x),
   selu: seluT,
   softplus: softplusT,
-  softsign: (E, x) => elementT(E, x, 'SoftsignBackward', (v) => v / (Math.abs(v) + 1), (v) => 1 / (Math.abs(v) + 1) ** 2),
+  softsign: (E, x) => C.mapT(E, x, (v) => v / (Math.abs(v) + 1), (v) => 1 / (Math.abs(v) + 1) ** 2, 'SoftsignBackward'),
   swish: silu,
   silu,
   gelu: (E, x) => geluT(E, x),
   exponential: (E, x) => C.unary(E, 'exp', x),
-  hard_sigmoid: (E, x) => elementT(E, x, 'HardSigmoidBackward', (v) => Math.min(1, Math.max(0, v / 6 + 0.5)), (v) => (v / 6 + 0.5 > 0 && v / 6 + 0.5 < 1 ? 1 / 6 : 0)),
-  mish: (E, x) => elementT(E, x, 'MishBackward', (v) => v * Math.tanh(softplus(v)), (v) => {
+  hard_sigmoid: (E, x) => C.mapT(E, x, (v) => Math.min(1, Math.max(0, v / 6 + 0.5)), (v) => (v / 6 + 0.5 > 0 && v / 6 + 0.5 < 1 ? 1 / 6 : 0), 'HardSigmoidBackward'),
+  mish: (E, x) => C.mapT(E, x, (v) => v * Math.tanh(softplus(v)), (v) => {
     const t = Math.tanh(softplus(v))
     return t + v * (1 - t * t) * sigmoidV(v)
-  }),
+  }, 'MishBackward'),
 }
 
 const toTT = (h: Host, v: Value, what: string): TT => {
@@ -956,15 +893,28 @@ const initArg = (h: Host, v: Value | undefined, dflt: string): Initializer => {
 
 // ---------------------------------------------------------------- JSON values and configs
 
-type Json = null | boolean | number | string | Json[] | { [k: string]: Json }
+/** a whole-number float in a config, which must print as 1.0 and not 1 */
+class JFloat {
+  v: number
+  constructor(v: number) { this.v = v }
+}
+/** a tuple in a config: get_config shows (3, 3), to_json writes [3, 3] */
+class JTuple {
+  items: Json[]
+  constructor(items: Json[]) { this.items = items }
+}
+type Json = null | boolean | number | string | JFloat | JTuple | Json[] | { [k: string]: Json }
+const jf = (v: number): Json => (Number.isInteger(v) ? new JFloat(v) : v)
 
 const pyToJs = (h: Host, v: Value): Json => {
   switch (v.k) {
     case 'none': return null
     case 'bool': return v.v
-    case 'int': case 'float': return v.v
+    case 'int': return v.v
+    case 'float': return jf(v.v)
     case 'str': return v.v
-    case 'list': case 'tuple': return v.items.map((x) => pyToJs(h, x))
+    case 'list': return v.items.map((x) => pyToJs(h, x))
+    case 'tuple': return new JTuple(v.items.map((x) => pyToJs(h, x)))
     case 'dict': return Object.fromEntries(v.d.items().map(([k, x]) => [h.str(k), pyToJs(h, x)]))
     case 'obj':
       if (v.o instanceof Initializer) return initConfig(v.o, h)
@@ -984,6 +934,8 @@ const pyToJs = (h: Host, v: Value): Json => {
 
 const jsToPy = (j: Json): Value => {
   if (j === null) return py.NONE
+  if (j instanceof JFloat) return py.float(j.v)
+  if (j instanceof JTuple) return py.tuple(j.items.map(jsToPy))
   if (typeof j === 'boolean') return py.bool(j)
   if (typeof j === 'number') return Number.isInteger(j) ? py.int(j) : py.float(j)
   if (typeof j === 'string') return py.str(j)
@@ -993,6 +945,8 @@ const jsToPy = (j: Json): Value => {
 
 /** json.dumps: the separators Python uses */
 const pyJson = (j: Json): string => {
+  if (j instanceof JFloat) return `${j.v}.0`
+  if (j instanceof JTuple) return pyJson(j.items)
   if (Array.isArray(j)) return `[${j.map(pyJson).join(', ')}]`
   if (j !== null && typeof j === 'object') return `{${Object.entries(j).map(([k, x]) => `${JSON.stringify(k)}: ${pyJson(x)}`).join(', ')}}`
   return JSON.stringify(j)
@@ -1035,7 +989,7 @@ class Regularizer extends PyObj {
   }
 }
 
-const regConfig = (r: Regularizer): { [k: string]: Json } => objConfig('keras.regularizers', r.cls, r.cls === 'L1' ? { l1: r.l1 } : r.cls === 'L2' ? { l2: r.l2 } : { l1: r.l1, l2: r.l2 })
+const regConfig = (r: Regularizer): { [k: string]: Json } => objConfig('keras.regularizers', r.cls, r.cls === 'L1' ? { l1: jf(r.l1) } : r.cls === 'L2' ? { l2: jf(r.l2) } : { l1: jf(r.l1), l2: jf(r.l2) })
 
 const regArg = (h: Host, v: Value | undefined): Regularizer | null => {
   if (isNone(v)) return null
@@ -1182,7 +1136,7 @@ const strsOf = (v: Value): string[] | null => {
 const asInput = (h: Host, v: Value | undefined): TT => {
   if (v) {
     let strs = strsOf(v)
-    if (!strs && v.k === 'obj' && v.o.iter && !(v.o instanceof TFTensor) && !v.o.toArray) {
+    if (!strs && v.k === 'obj' && v.o.iter && v.o.cls === 'Series') {
       const items = v.o.iter(h)
       if (items.length && items.every((x) => x.k === 'str')) strs = items.map((x) => h.str(x))
     }
@@ -1273,13 +1227,13 @@ abstract class KLayer extends PyObj {
   run(E: Engine, xs: TT[], training: boolean, h: Host, _kw: Kw): TT[] { return [this.forward(E, xs[0], training, h)] }
   /** output shapes for input shapes (building if need be) */
   outShapes(h: Host, shapes: KShape[], _kw: Kw): KShape[] { return [this.ensureBuilt(h, shapes[0])] }
-  /** run with this layer's training flag in force for what it calls, and collect its activity penalty */
-  invoke(E: Engine, xs: TT[], training: boolean, h: Host, kw: Kw = {}): TT[] {
+  /** run with this layer's training flag in force for what it calls, and collect its activity penalty; null = nobody said, so each layer's default decides */
+  invoke(E: Engine, xs: TT[], training: boolean | null, h: Host, kw: Kw = {}): TT[] {
     const S = stateOf(h)
     const prev = S.training
     S.training = training
     try {
-      const out = this.run(E, xs, training, h, kw)
+      const out = this.run(E, xs, training ?? this.defaultTraining, h, kw)
       if (this.activity) for (const o of out) S.losses.push(this.activity.penalty(E, o, h))
       return out
     } finally {
@@ -1333,7 +1287,7 @@ abstract class KLayer extends PyObj {
     const S = stateOf(h)
     const xs = items.map((v) => asInput(h, v))
     this.eagerBuild(h, xs.map((t) => [null, ...t.shape.slice(1)]), kw)
-    const training = !isNone(kw.training) ? h.truthy(kw.training!) : S.training ?? this.defaultTraining
+    const training = !isNone(kw.training) ? h.truthy(kw.training!) : S.training
     const out = this.invoke(S.E, this.withState(h, xs, kw), training, h, kw)
     return out.length === 1 ? tfWrap(out[0]) : py.list(out.map(tfWrap))
   }
@@ -1454,7 +1408,7 @@ class InputLayer extends KLayer {
   }
   build(_h: Host, s: KShape) { return s }
   forward(_E: Engine, x: TT) { return x }
-  getConfig(): { [k: string]: Json } { return { batch_shape: this.shape, dtype: this.dtypeName, sparse: false, name: this.name } }
+  getConfig(): { [k: string]: Json } { return { batch_shape: new JTuple(this.shape), dtype: this.dtypeName, sparse: false, name: this.name } }
 }
 
 /** weights and shapes for layers that hold a kernel and a bias */
@@ -1495,30 +1449,7 @@ const samePad = (n: number, k: number, s: number): [number, number] => {
 const nhwc = (E: Engine, x: TT, pad: [[number, number], [number, number]], run: (y: TT) => TT): TT => {
   let y = C.permuteT(E, x, [0, 3, 1, 2])
   const [[pt, pb], [pl, pr]] = pad
-  if (pt || pb || pl || pr) {
-    const [N, Cc, H, W] = y.shape
-    const H2 = H + pt + pb
-    const W2 = W + pl + pr
-    const vals = y.values()
-    const idx: number[] = []
-    const out = new Array<number>(N * Cc * H2 * W2).fill(0)
-    for (let n = 0; n < N * Cc; n++) {
-      for (let i = 0; i < H; i++) {
-        for (let j = 0; j < W; j++) {
-          const o = n * H2 * W2 + (i + pt) * W2 + (j + pl)
-          out[o] = vals[n * H * W + i * W + j]
-          idx.push(o)
-        }
-      }
-    }
-    const src = y
-    const padded = TT.of(out, [N, Cc, H2, W2], y.dtype)
-    if (E.grad && src.requiresGrad) {
-      padded.requiresGrad = true
-      padded.fn = { name: 'PadBackward', inputs: [src], backward: (g) => [idx.map((o) => g[o])], freed: false }
-    }
-    y = padded
-  }
+  if (pt || pb || pl || pr) y = C.padT(E, y, [pl, pr, pt, pb], 'constant', 0)
   return C.permuteT(E, run(y), [0, 2, 3, 1])
 }
 
@@ -1579,25 +1510,12 @@ class Dense extends KLayer {
     return this.act.f(E, y)
   }
   attr(name: string, h: Host) {
-    if (name === 'activation') return actValue(this.act)
+    if (name === 'activation') return actValue(this.act, h)
     return super.attr(name, h)
   }
 }
 
-/** layer.activation: callable, with a __name__ */
-class ActFunction extends PyObj {
-  readonly cls = 'function'
-  a: ActSpec
-  constructor(a: ActSpec) {
-    super()
-    this.a = a
-  }
-  repr() { return `<function ${this.a.name}>` }
-  call(args: Value[], _kw: Kw, h: Host): Value { return tfWrap(this.a.f(stateOf(h).E, asFloat(h, args[0]))) }
-  getAttr(name: string) { return name === '__name__' ? py.str(this.a.name) : undefined }
-}
-
-const actValue = (a: ActSpec): Value => py.obj(new ActFunction(a))
+const actValue = (a: ActSpec, h: Host): Value => fnv(a.name, (args) => tfWrap(a.f(stateOf(h).E, asFloat(h, args[0]))))
 
 /** Conv1D and Conv2D: Conv1D is a Conv2D of height 1, with a kernel that has no height axis */
 class Conv extends KLayer {
@@ -1678,58 +1596,9 @@ class Conv extends KLayer {
     return this.act.f(E, this.rank === 1 ? C.squeezeT(E, y, 1) : y)
   }
   attr(name: string, h: Host) {
-    if (name === 'activation') return actValue(this.act)
+    if (name === 'activation') return actValue(this.act, h)
     return super.attr(name, h)
   }
-}
-
-/** x (N, H, W, Ci), kernel (kh, kw, Co, Ci): every input pixel stamps the kernel on the output, the transpose of conv2d */
-const convTranspose = (E: Engine, x: TT, w: TT, b: TT | null, s: [number, number], outHW: [number, number], low: [number, number]): TT => {
-  const [N, H, W, Ci] = x.shape
-  const [kh, kw, Co] = w.shape
-  const [Ho, Wo] = outHW
-  const xv = x.values()
-  const wv = w.values()
-  const bv = b ? b.values() : null
-  const size = N * Ho * Wo * Co
-  const out = new Float64Array(size)
-  const each = (visit: (o: number, xi: number, wi: number) => void) => {
-    for (let n = 0; n < N; n++) {
-      for (let i = 0; i < H; i++) {
-        for (let j = 0; j < W; j++) {
-          for (let ci = 0; ci < Ci; ci++) {
-            const xi = ((n * H + i) * W + j) * Ci + ci
-            for (let u = 0; u < kh; u++) {
-              const p = i * s[0] + u - low[0]
-              if (p < 0 || p >= Ho) continue
-              for (let v = 0; v < kw; v++) {
-                const q = j * s[1] + v - low[1]
-                if (q < 0 || q >= Wo) continue
-                for (let co = 0; co < Co; co++) visit(((n * Ho + p) * Wo + q) * Co + co, xi, ((u * kw + v) * Co + co) * Ci + ci)
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  each((o, xi, wi) => { out[o] += xv[xi] * wv[wi] })
-  const vals = new Array<number>(size)
-  for (let o = 0; o < size; o++) vals[o] = Math.fround(out[o] + (bv ? bv[o % Co] : 0))
-  return opT(E, TT.raw(vals, [N, Ho, Wo, Co], 'float32'), 'ConvTransposeBackward', [x, w, b], (g) => {
-    const gx = new Array<number>(xv.length).fill(0)
-    const gw = new Array<number>(wv.length).fill(0)
-    each((o, xi, wi) => {
-      gx[xi] += g[o] * wv[wi]
-      gw[wi] += g[o] * xv[xi]
-    })
-    let gb: number[] | null = null
-    if (bv) {
-      gb = new Array<number>(Co).fill(0)
-      for (let o = 0; o < size; o++) gb[o % Co] += g[o]
-    }
-    return [gx, gw, gb]
-  })
 }
 
 class Conv2DTranspose extends KLayer {
@@ -1776,7 +1645,13 @@ class Conv2DTranspose extends KLayer {
     const Ho = this.outLen(x.shape[1], 0)
     const Wo = this.outLen(x.shape[2], 1)
     const low: [number, number] = this.padding === 'same' ? [samePad(Ho, this.k[0], this.strides[0])[0], samePad(Wo, this.k[1], this.strides[1])[0]] : [0, 0]
-    return this.act.f(E, convTranspose(E, x, this.w!, this.b, this.strides, [Ho, Wo], low))
+    // the engine crops the same amount from both ends: Keras's 'same' may crop one more from the far end
+    const base = (n: number, a: 0 | 1) => (n - 1) * this.strides[a] - 2 * low[a] + this.k[a]
+    const [bh, bw] = [base(x.shape[1], 0), base(x.shape[2], 1)]
+    const wT = C.permuteT(E, this.w!, [3, 2, 0, 1])
+    const y = C.convTranspose2d(E, C.permuteT(E, x, [0, 3, 1, 2]), wT, this.b, this.strides, low, [Math.max(Ho - bh, 0), Math.max(Wo - bw, 0)])
+    const cut = bh > Ho || bw > Wo ? C.narrowT(E, C.narrowT(E, y, 2, 0, Ho), 3, 0, Wo) : y
+    return this.act.f(E, C.permuteT(E, cut, [0, 2, 3, 1]))
   }
 }
 
@@ -2108,15 +1983,11 @@ class Embedding extends KLayer {
   describe() { return `Embedding(${this.inDim}, ${this.outDim})` }
   note() { return `${this.inDim} × ${this.outDim} = ${this.params().toLocaleString('en-US')}` }
   forward(E: Engine, x: TT, _t: boolean, h: Host) {
-    const iv = x.values()
-    const d = this.outDim
-    const src = new Array<number>(iv.length * d)
-    iv.forEach((v, n) => {
-      const c = Math.trunc(v)
-      if (c < 0 || c >= this.inDim) throw h.err('InvalidArgumentError', `indices[${n}] = ${c} is not in [0, ${this.inDim}) [Op:ResourceGather]`)
-      for (let j = 0; j < d; j++) src[n * d + j] = c * d + j
+    const idx = TT.of(x.values().map(Math.trunc), x.shape, 'int64')
+    idx.values().forEach((c, n) => {
+      if (c < 0 || c >= this.inDim) throw tfErr(h, `indices[${n}] = ${c} is not in [0, ${this.inDim}) [Op:ResourceGather]`)
     })
-    return takeT(E, this.w!, src, [...x.shape, d])
+    return C.embeddingT(E, this.w!, idx, null)
   }
 }
 
@@ -2506,7 +2377,9 @@ class Normalization extends KLayer {
 const STRIP = /[!"#$%&()*+,\-./:;<=>?@[\\\]^_`{|}~']/g
 
 class TextVectorization extends KLayer {
-  vocab: string[] = ['', '[UNK]']
+  /** index_lookup._oov_start_index: only 'int' output reserves index 0 for the mask */
+  specials: string[]
+  vocab: string[]
   index = new Map<string, number>()
   maxTokens: number | null
   seqLen: number | null
@@ -2518,10 +2391,12 @@ class TextVectorization extends KLayer {
     this.mode = h.str(P.output_mode)
     if (!['int', 'multi_hot', 'count'].includes(this.mode)) throw h.err('NotImplementedError', `TextVectorization: output_mode='${this.mode}' is not implemented in this sandbox`)
     if (this.seqLen !== null && this.mode !== 'int') throw h.err('ValueError', "`output_sequence_length` must not be set if `output_mode` is not 'int'. ")
+    this.specials = this.mode === 'int' ? ['', '[UNK]'] : ['[UNK]']
+    this.vocab = [...this.specials]
     if (!isNone(P.vocabulary)) this.setVocab(h.iterate(P.vocabulary).map((v) => h.str(v)))
   }
   setVocab(tokens: string[]) {
-    this.vocab = ['', '[UNK]', ...tokens.filter((t) => t !== '' && t !== '[UNK]')]
+    this.vocab = [...this.specials, ...tokens.filter((t) => !this.specials.includes(t))]
     this.index = new Map(this.vocab.map((t, i) => [t, i]))
   }
   tokens(s: string, h: Host): string[] {
@@ -2542,10 +2417,9 @@ class TextVectorization extends KLayer {
     for (const s of list) for (const t of this.tokens(s, h)) counts.set(t, (counts.get(t) ?? 0) + 1)
     // count, then token, both descending: np.lexsort(...)[::-1] in keras.src.layers.preprocessing.index_lookup
     const sorted = [...counts].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0)).map(([t]) => t)
-    this.setVocab(this.maxTokens === null ? sorted : sorted.slice(0, Math.max(0, this.maxTokens - 2)))
+    this.setVocab(this.maxTokens === null ? sorted : sorted.slice(0, Math.max(0, this.maxTokens - this.specials.length)))
   }
-  build(h: Host, s: KShape): KShape {
-    void h
+  build(_h: Host, s: KShape): KShape {
     if (this.mode !== 'int') return [s[0], this.maxTokens ?? this.vocab.length]
     return [s[0], this.seqLen]
   }
@@ -2553,7 +2427,8 @@ class TextVectorization extends KLayer {
   describe() { return 'TextVectorization()' }
   forward(_E: Engine, x: TT, _t: boolean, h: Host) {
     if (!(x instanceof StrT)) throw h.err('ValueError', 'TextVectorization expects strings as input')
-    const rows = x.strs.map((s) => this.tokens(s, h).map((t) => this.index.get(t) ?? 1))
+    const oov = this.specials.length - 1
+    const rows = x.strs.map((s) => this.tokens(s, h).map((t) => this.index.get(t) ?? oov))
     if (this.mode === 'int') {
       const L = this.seqLen ?? rows.reduce((m, r) => Math.max(m, r.length), 0)
       const out: number[] = []
@@ -2569,7 +2444,7 @@ class TextVectorization extends KLayer {
     if (name === 'adapt') return fnv(name, (args, kw) => { this.adapt(h, args[0] ?? kw.data); return py.NONE })
     if (name === 'get_vocabulary') return fnv(name, (args, kw) => {
       const inc = kw.include_special_tokens ?? args[0]
-      return py.list((inc && !h.truthy(inc) ? this.vocab.slice(2) : this.vocab).map(py.str))
+      return py.list((inc && !h.truthy(inc) ? this.vocab.slice(this.specials.length) : this.vocab).map(py.str))
     })
     if (name === 'vocabulary_size') return fnv(name, () => py.int(this.vocab.length))
     if (name === 'set_vocabulary') return fnv(name, (args) => { this.setVocab(h.iterate(args[0]).map((v) => h.str(v))); return py.NONE })
@@ -2600,24 +2475,8 @@ const resizeT = (E: Engine, x: TT, Ho: number, Wo: number, method: 'nearest' | '
   const f = isFloatT(x.dtype) ? x : TT.of(x.values(), x.shape, 'float32')
   const ya = bilinearAxis(H, Ho)
   const xa = bilinearAxis(W, Wo)
-  const shape = [...lead, Ho, Wo, Cc]
-  const corner = (ys: number[], xs: number[]) => gridT(E, f, [...rest(ys), xs, allOf(Cc)])
-  const weight = (wy: number[], wx: number[]) => {
-    const vals: number[] = []
-    const n = prod(lead)
-    for (let l = 0; l < n; l++) for (const y of wy) for (const q of wx) for (let c = 0; c < Cc; c++) vals.push(y * q)
-    return TT.of(vals, shape, 'float32')
-  }
-  const fy = ya.map((p) => p.f)
-  const fx = xa.map((p) => p.f)
-  const gy = fy.map((v) => 1 - v)
-  const gx = fx.map((v) => 1 - v)
-  const term = (ys: number[], xs: number[], wy: number[], wx: number[]) => C.binary(E, '*', corner(ys, xs), weight(wy, wx))
-  const ys0 = ya.map((p) => p.a)
-  const ys1 = ya.map((p) => p.b)
-  const xs0 = xa.map((p) => p.a)
-  const xs1 = xa.map((p) => p.b)
-  return C.binary(E, '+', C.binary(E, '+', term(ys0, xs0, gy, gx), term(ys0, xs1, gy, fx)), C.binary(E, '+', term(ys1, xs0, fy, gx), term(ys1, xs1, fy, fx)))
+  const rows = C.linearAxis(E, f, x.ndim - 3, ya.map((p) => p.a), ya.map((p) => p.b), ya.map((p) => p.f))
+  return C.linearAxis(E, rows, x.ndim - 2, xa.map((p) => p.a), xa.map((p) => p.b), xa.map((p) => p.f))
 }
 
 /** tf.image.resize's crop_to_aspect_ratio: the largest centred window of the target's aspect ratio */
@@ -2747,7 +2606,7 @@ function perSample(E: Engine, h: Host, spec: LossSpec, yTrue: TT, yPred: TT, tra
       const C2 = yPred.shape[yPred.ndim - 1]
       const labels = yTrue.values().map(Math.round)
       if (labels.length !== yPred.size / C2) throw new PyError('ValueError', `Arguments \`target\` and \`output\` must have the same rank (ndim) or the target must have one dimension less. Received: target.shape=${shapeStr([null, ...yTrue.shape.slice(1)])}, output.shape=${shapeStr([null, ...yPred.shape.slice(1)])}`)
-      for (const l of labels) if (l < 0 || l >= C2) throw new PyError('InvalidArgumentError', `Received a label value of ${l} which is outside the valid range of [0, ${C2}). (One-hot targets need loss='categorical_crossentropy'.)`)
+      for (const l of labels) if (l < 0 || l >= C2) throw tfErr(h, `Received a label value of ${l} which is outside the valid range of [0, ${C2}). (One-hot targets need loss='categorical_crossentropy'.)`)
       const target = TT.of(labels, [labels.length], 'int64')
       const logp = spec.fromLogits ? C.softmax(E, yPred, -1, true) : clipLog(E, normalise(E, yPred))
       const per = C.nllLoss(E, C.reshapeT(E, logp, [labels.length, C2], false), target, 'none')
@@ -2778,6 +2637,10 @@ function perSample(E: Engine, h: Host, spec: LossSpec, yTrue: TT, yPred: TT, tra
     }
   }
   const y = sameRank(E, yTrue, yPred)
+  for (let i = 1; i <= Math.min(y.ndim, yPred.ndim); i++) {
+    const [a, b] = [yPred.shape[yPred.ndim - i], y.shape[y.ndim - i]]
+    if (a !== b && a !== 1 && b !== 1) throw h.err('ValueError', `Dimensions must be equal, but are ${a} and ${b} for 'sub' with input shapes: [?,${yPred.shape.slice(1).join(',')}], [?${y.shape.slice(1).map((v) => `,${v}`).join('')}].`)
+  }
   const d = C.binary(E, '-', yPred, y)
   switch (spec.name) {
     case 'mean_squared_error': return meanLast(E, C.unary(E, 'square', d))
@@ -2792,9 +2655,9 @@ function perSample(E: Engine, h: Host, spec: LossSpec, yTrue: TT, yPred: TT, tra
     }
     case 'huber': {
       const dl = spec.delta
-      return meanLast(E, elementT(E, d, 'HuberBackward', (v) => (Math.abs(v) <= dl ? 0.5 * v * v : dl * Math.abs(v) - 0.5 * dl * dl), (v) => (Math.abs(v) <= dl ? v : dl * Math.sign(v))))
+      return meanLast(E, C.mapT(E, d, (v) => (Math.abs(v) <= dl ? 0.5 * v * v : dl * Math.abs(v) - 0.5 * dl * dl), (v) => (Math.abs(v) <= dl ? v : dl * Math.sign(v)), 'HuberBackward'))
     }
-    case 'log_cosh': return meanLast(E, elementT(E, d, 'LogCoshBackward', (v) => v + softplus(-2 * v) - Math.LN2, (v) => Math.tanh(v)))
+    case 'log_cosh': return meanLast(E, C.mapT(E, d, (v) => v + softplus(-2 * v) - Math.LN2, (v) => Math.tanh(v), 'LogCoshBackward'))
     case 'hinge': case 'squared_hinge': {
       // labels in {0, 1} are converted to {−1, 1}
       const vals = y.values()
@@ -3220,9 +3083,8 @@ class LRSchedule extends PyObj {
     return s < ws ? (target - lr0) * (s / ws) + lr0 : decay(s - ws, target)
   }
   call(args: Value[], kw: Kw, h: Host): Value { return tfWrap(scalarT(this.at(h, h.num(args[0] ?? kw.step)))) }
-  getAttr(name: string, h: Host): Value | undefined {
+  getAttr(name: string): Value | undefined {
     if (name === 'get_config') return fnv(name, () => ({ k: 'dict', d: PyDict.from(Object.entries(this.P).map(([k, v]) => [py.str(k), v])) }))
-    void h
     return this.P[name]
   }
 }
@@ -3431,7 +3293,7 @@ class KOptimizer extends PyObj {
     return undefined
   }
   config(h: Host): { [k: string]: Json } {
-    const out: { [k: string]: Json } = { name: this.P.name.k === 'str' ? this.P.name.v : snake(this.cls), learning_rate: typeof this.lr === 'number' ? f32clean(Math.fround(this.lr)) : objConfig('keras.optimizers.schedules', this.lr.cls, Object.fromEntries(Object.entries(this.lr.P).map(([k, v]) => [k, pyToJs(h, v)]))) }
+    const out: { [k: string]: Json } = { name: this.P.name.k === 'str' ? this.P.name.v : snake(this.cls), learning_rate: typeof this.lr === 'number' ? jf(f32clean(Math.fround(this.lr))) : objConfig('keras.optimizers.schedules', this.lr.cls, Object.fromEntries(Object.entries(this.lr.P).map(([k, v]) => [k, pyToJs(h, v)]))) }
     for (const [k, v] of Object.entries(this.P)) if (k !== 'name' && k !== 'learning_rate') out[k] = pyToJs(h, v)
     return out
   }
@@ -3649,7 +3511,7 @@ class ReduceLROnPlateau extends MonitorCallback {
       this.wait++
       if (this.wait >= this.patience && old > Math.fround(this.minLr)) {
         const lr = Math.max(old * this.factor, this.minLr)
-        opt.lr = lr
+        opt.setAttr('learning_rate', py.float(lr), h)
         if (this.verbose > 0) h.print(`\nEpoch ${epoch + 1}: ReduceLROnPlateau reducing learning rate to ${lr}.\n`)
         this.cooldownCounter = this.cooldown
         this.wait = 0
@@ -3669,9 +3531,14 @@ class LearningRateScheduler extends KCallback {
   onEpochBegin(h: Host, epoch: number) {
     const opt = this.model!.compiled!.opt
     const lr = Math.fround(opt.currentLr(h))
-    const f = this.schedule
-    const nargs = f.k === 'func' ? f.params.length : f.k === 'bound' ? f.f.params.length - 1 : 2
-    const out = h.call(f, nargs >= 2 ? [py.int(epoch), py.float(lr)] : [py.int(epoch)])
+    let out: Value
+    try {
+      out = h.call(this.schedule, [py.int(epoch), py.float(lr)])
+    } catch (e) {
+      // the old one-argument form
+      if (!(e instanceof PyError) || e.pyType !== 'TypeError') throw e
+      out = h.call(this.schedule, [py.int(epoch)])
+    }
     if (out.k !== 'float') throw h.err('ValueError', `The output of the \`schedule\` function should be a float. Got: ${repr(out)}`)
     opt.setAttr('learning_rate', out, h)
     if (this.verbose > 0) h.print(`\nEpoch ${epoch + 1}: LearningRateScheduler setting learning rate to ${out.v}.\n`)
@@ -3758,14 +3625,17 @@ const USER_HOOKS: Record<string, string[]> = {
 }
 
 /** a user's class Foo(keras.callbacks.Callback): its logs go through a Python dict, and what it adds to logs is kept */
-const userCallback = (inst: InstValue): CallbackHooks => {
-  const fire = (h: Host, names: string[], before: Value[], logs: Logs) => {
+const userCallback = (h: Host, inst: InstValue): CallbackHooks => {
+  for (const n of ['on_test_batch_begin', 'on_test_batch_end', 'on_predict_batch_begin', 'on_predict_batch_end']) {
+    if (userMethod(inst.cls, n)) throw h.err('NotImplementedError', `Callback.${n} is not implemented in this sandbox: evaluation and prediction run in one pass`)
+  }
+  const fire = (hh: Host, names: string[], before: Value[], logs: Logs) => {
     for (const n of names) {
       const f = userMethod(inst.cls, n)
       if (!f) continue
       const d = logsDict(logs)
-      h.call({ k: 'bound', self: inst, f }, [...before, d])
-      if (d.k === 'dict') for (const [k, v] of d.d.items()) if (v.k === 'int' || v.k === 'float') logs[h.str(k)] = v.v
+      hh.call({ k: 'bound', self: inst, f }, [...before, d])
+      if (d.k === 'dict') for (const [k, v] of d.d.items()) if (v.k === 'int' || v.k === 'float') logs[hh.str(k)] = v.v
       return
     }
   }
@@ -3778,17 +3648,19 @@ const userCallback = (inst: InstValue): CallbackHooks => {
   const set = hooks as unknown as Record<string, unknown>
   for (const [hook, names] of Object.entries(USER_HOOKS)) {
     set[hook] = hook === 'onEpochBegin' || hook === 'onEpochEnd' || hook === 'onBatchBegin' || hook === 'onBatchEnd'
-      ? (h: Host, i: number, logs: Logs) => fire(h, names, [py.int(i)], logs)
-      : (h: Host, logs: Logs) => fire(h, names, [], logs)
+      ? (hh: Host, i: number, logs: Logs) => fire(hh, names, [py.int(i)], logs)
+      : (hh: Host, logs: Logs) => fire(hh, names, [], logs)
   }
   return hooks
 }
 
 const callbackHooks = (h: Host, v: Value): CallbackHooks => {
   if (v.k === 'obj' && v.o instanceof KCallback) return v.o
-  if (v.k === 'inst' && v.state[CALLBACK_STATE]) return userCallback(v)
+  if (v.k === 'inst' && v.state[CALLBACK_STATE]) return userCallback(h, v)
   throw h.err('TypeError', `Callback must be an instance of keras.callbacks.Callback, got ${repr(v)}`)
 }
+
+const hooksOf = (h: Host, v: Value): CallbackHooks[] => (isNone(v) ? [] : (isSeq(v) ? h.iterate(v) : [v]).map((c) => callbackHooks(h, c)))
 
 class History extends PyObj {
   readonly cls = 'History'
@@ -3843,7 +3715,7 @@ const stackStruct = (h: Host, items: Value[]): Value => {
   if (first.k === 'dict') return { k: 'dict', d: PyDict.from(first.d.keys().map((k) => [k, stackStruct(h, items.map((it) => (it as { d: PyDict }).d.get(k)!))])) }
   if (first.k === 'obj' && first.o instanceof TFString) return py.obj(new TFString(items.flatMap((it) => (it.k === 'obj' && it.o instanceof TFString ? it.o.strs : [])), [items.length]))
   const ts = items.map((x) => tfOf(x)!)
-  for (const t of ts) if (t.shape.join() !== ts[0].shape.join()) throw h.err('InvalidArgumentError', `Cannot batch tensors with different shapes in component 0. First element had shape [${ts[0].shape.join(',')}] and element ${ts.indexOf(t)} had shape [${t.shape.join(',')}].`)
+  for (const t of ts) if (t.shape.join() !== ts[0].shape.join()) throw tfErr(h, `Cannot batch tensors with different shapes in component 0. First element had shape [${ts[0].shape.join(',')}] and element ${ts.indexOf(t)} had shape [${t.shape.join(',')}].`)
   return tfWrap(TT.of(ts.flatMap((t) => t.values()), [ts.length, ...ts[0].shape], ts[0].dtype))
 }
 
@@ -3856,14 +3728,12 @@ const batchedSpec = (spec: string, d: number | null): string => spec.replace(/sh
 /** tf.data.Dataset: a generator of elements, its element_spec, and how many there are */
 class TFDataset extends PyObj {
   readonly cls: string
-  h: Host
   gen: (h: Host) => Generator<Value>
   spec: () => string
   infinite: boolean
   size: number | null
-  constructor(h: Host, cls: string, gen: (h: Host) => Generator<Value>, spec: () => string, infinite: boolean, size: number | null) {
+  constructor(cls: string, gen: (h: Host) => Generator<Value>, spec: () => string, infinite: boolean, size: number | null) {
     super()
-    this.h = h
     this.cls = cls
     this.gen = gen
     this.spec = spec
@@ -3890,9 +3760,9 @@ class TFDataset extends PyObj {
       case 'batch': return fn((args, kw) => {
         const P = bindArgs(h, 'batch', 'batch_size drop_remainder=False num_parallel_calls=None deterministic=None name=None', args, kw, null)
         const n = h.toInt(P.batch_size)
-        if (n <= 0) throw h.err('InvalidArgumentError', 'batch_size must be greater than zero.')
+        if (n <= 0) throw tfErr(h, 'batch_size must be greater than zero.')
         const drop = h.truthy(P.drop_remainder)
-        return py.obj(new TFDataset(h, '_BatchDataset', function* (hh) {
+        return py.obj(new TFDataset('_BatchDataset', function* (hh) {
           let buf: Value[] = []
           for (const x of parent(hh)) {
             buf.push(x)
@@ -3907,12 +3777,12 @@ class TFDataset extends PyObj {
       case 'shuffle': return fn((args, kw) => {
         const P = bindArgs(h, 'shuffle', 'buffer_size seed=None reshuffle_each_iteration=True name=None', args, kw, null)
         const buffer = h.toInt(P.buffer_size)
-        if (buffer < 1) throw h.err('InvalidArgumentError', 'buffer_size must be greater than zero.')
+        if (buffer < 1) throw tfErr(h, 'buffer_size must be greater than zero.')
         const again = h.truthy(P.reshuffle_each_iteration)
         // reshuffling draws afresh each pass; otherwise every pass replays one seed
         const seed = P.seed.k === 'none' ? (again ? null : Math.floor(h.rng.next() * 2 ** 31)) : h.toInt(P.seed)
         const stream = seed !== null && again ? new SandboxRandom(seed) : null
-        return py.obj(new TFDataset(h, '_ShuffleDataset', function* (hh) {
+        return py.obj(new TFDataset('_ShuffleDataset', function* (hh) {
           const r: SandboxRandom = stream ?? (seed !== null ? new SandboxRandom(seed) : hh.rng)
           // a fill-and-draw buffer, as tf.data's: buffer_size = 1 keeps the order
           const buf: Value[] = []
@@ -3933,7 +3803,7 @@ class TFDataset extends PyObj {
       case 'map': return fn((args, kw) => {
         const f = args[0] ?? kw.map_func
         const apply = (hh: Host, x: Value) => hh.call(f, x.k === 'tuple' ? x.items : [x])
-        return py.obj(new TFDataset(h, '_MapDataset', function* (hh) {
+        return py.obj(new TFDataset('_MapDataset', function* (hh) {
           for (const x of parent(hh)) yield apply(hh, x)
         }, () => {
           const it = parent(h).next()
@@ -3942,7 +3812,7 @@ class TFDataset extends PyObj {
       })
       case 'filter': return fn((args, kw) => {
         const f = args[0] ?? kw.predicate
-        return py.obj(new TFDataset(h, '_FilterDataset', function* (hh) {
+        return py.obj(new TFDataset('_FilterDataset', function* (hh) {
           for (const x of parent(hh)) if (hh.truthy(hh.call(f, x.k === 'tuple' ? x.items : [x]))) yield x
         }, this.spec, this.infinite, null))
       })
@@ -3950,7 +3820,7 @@ class TFDataset extends PyObj {
         const n = h.toInt(args[0] ?? kw.count)
         const take = name === 'take'
         const size = this.size === null ? null : take ? (n < 0 ? this.size : Math.min(n, this.size)) : Math.max(0, this.size - n)
-        return py.obj(new TFDataset(h, take ? '_TakeDataset' : '_SkipDataset', function* (hh) {
+        return py.obj(new TFDataset(take ? '_TakeDataset' : '_SkipDataset', function* (hh) {
           let i = 0
           if (take && n === 0) return
           for (const x of parent(hh)) {
@@ -3963,7 +3833,7 @@ class TFDataset extends PyObj {
       case 'repeat': return fn((args, kw) => {
         const cv = args[0] ?? kw.count
         const count = isNone(cv) ? -1 : h.toInt(cv!)
-        return py.obj(new TFDataset(h, '_RepeatDataset', function* (hh) {
+        return py.obj(new TFDataset('_RepeatDataset', function* (hh) {
           for (let i = 0; count < 0 || i < count; i++) {
             let any = false
             for (const x of parent(hh)) {
@@ -3974,8 +3844,8 @@ class TFDataset extends PyObj {
           }
         }, this.spec, count < 0 || this.infinite, count < 0 || this.size === null ? null : this.size * count))
       })
-      case 'prefetch': case 'cache': return fn(() => py.obj(new TFDataset(h, name === 'cache' ? '_CacheDataset' : '_PrefetchDataset', parent, this.spec, this.infinite, this.size)))
-      case 'unbatch': return fn(() => py.obj(new TFDataset(h, '_UnbatchDataset', function* (hh) {
+      case 'prefetch': case 'cache': return fn(() => py.obj(new TFDataset(name === 'cache' ? '_CacheDataset' : '_PrefetchDataset', parent, this.spec, this.infinite, this.size)))
+      case 'unbatch': return fn(() => py.obj(new TFDataset('_UnbatchDataset', function* (hh) {
         const E = stateOf(hh).E
         for (const x of parent(hh)) {
           const parts = x.k === 'tuple' ? x.items : [x]
@@ -3993,6 +3863,27 @@ class TFDataset extends PyObj {
       case 'cardinality': return fn(() => tfWrap(TT.scalar(this.infinite ? -1 : this.size ?? -2, 'int64')))
       case 'element_spec': return py.str(this.spec())
     }
+    return undefined
+  }
+}
+
+/** tf.TensorSpec(shape, dtype): what from_generator declares */
+class TensorSpec extends PyObj {
+  readonly cls = 'TensorSpec'
+  shape: KShape | null
+  dtype: TDType | 'string'
+  name: Value
+  constructor(shape: KShape | null, dtype: TDType | 'string', name: Value) {
+    super()
+    this.shape = shape
+    this.dtype = dtype
+    this.name = name
+  }
+  repr() { return `TensorSpec(shape=${this.shape ? shapeStr(this.shape) : '<unknown>'}, dtype=tf.${this.dtype}, name=${repr(this.name)})` }
+  getAttr(name: string): Value | undefined {
+    if (name === 'shape') return py.obj(new TensorShape(this.shape ?? []))
+    if (name === 'dtype') return py.obj(new TFDtype(this.dtype))
+    if (name === 'name') return this.name
     return undefined
   }
 }
@@ -4037,7 +3928,6 @@ interface Batch { xs: TT[]; ys: TT[]; sw: TT | null }
 interface Source {
   /** the batches of one epoch */
   epoch(shuffle: boolean): Iterable<Batch>
-  size: number
   steps: number
   /** arrays can be scored in one forward pass */
   whole: Batch | null
@@ -4267,7 +4157,7 @@ class KModel extends KLayer {
     this.inShape = this.inputsK[0].shape
     this.outShape = this.outputsK[0].shape
   }
-  runGraph(E: Engine, xs: TT[], training: boolean, h: Host): TT[] {
+  runGraph(E: Engine, xs: TT[], training: boolean | null, h: Host): TT[] {
     const known = new Map<KerasTensor, TT>(this.inputsK.map((t, i) => [t, xs[i]]))
     const done = new Map<KNode, TT[]>()
     const evalNode = (n: KNode): TT[] => {
@@ -4283,7 +4173,9 @@ class KModel extends KLayer {
   }
 
   // ---- forward
-  run(E: Engine, xs: TT[], training: boolean, h: Host, kw: Kw): TT[] {
+  run(E: Engine, xs: TT[], _training: boolean, h: Host, kw: Kw): TT[] {
+    // what the caller said, which may be nothing: the flag invoke left in force
+    const training = stateOf(h).training
     if (this.mode === 'sequential') {
       let y = xs[0]
       for (const l of this.layers) y = l.invoke(E, [y], training, h)[0]
@@ -4301,7 +4193,7 @@ class KModel extends KLayer {
     if (!x) throw h.err('TypeError', `${this.kind}.call() missing 1 required positional argument: 'inputs'`)
     if (kerasOf(x) || (isSeq(x) && x.items.some((v) => kerasOf(v)))) return super.call(args, kw, h)
     const S = stateOf(h)
-    const training = !isNone(kw.training) ? h.truthy(kw.training!) : S.training ?? false
+    const training = !isNone(kw.training) ? h.truthy(kw.training!) : S.training
     const out = this.invoke(S.E, this.prepare(h, this.inputsOf(h, x)), training, h)
     return out.length === 1 ? tfWrap(out[0]) : py.list(out.map(tfWrap))
   }
@@ -4510,7 +4402,6 @@ class KModel extends KLayer {
     const n = xs[0].shape[0]
     const whole: Batch = { xs, ys, sw }
     return {
-      size: n,
       steps: Math.ceil(n / bs),
       whole,
       epoch: (shuffle: boolean) => ({
@@ -4537,7 +4428,6 @@ class KModel extends KLayer {
     }
     const steps = stepsLimit ?? ds.size ?? 0
     return {
-      size: 0,
       steps,
       whole: null,
       epoch: () => ({
@@ -4568,9 +4458,9 @@ class KModel extends KLayer {
   }
 
   fit(h: Host, args: Value[], kw: Kw): Value {
+    const P = bindArgs(h, 'fit', 'x=None y=None batch_size=None epochs=1 verbose=auto callbacks=None validation_split=0.0 validation_data=None shuffle=True class_weight=None sample_weight=None initial_epoch=0 steps_per_epoch=None validation_steps=None validation_batch_size=None validation_freq=1', args, kw, null)
     if (!this.compiled) throw h.err('RuntimeError', 'You must call `compile()` before using the model.')
     if (this.inst && userMethod(this.inst.cls, 'train_step')) throw h.err('NotImplementedError', 'a custom train_step() is not implemented in this sandbox: write the loop yourself with tf.GradientTape')
-    const P = bindArgs(h, 'fit', 'x=None y=None batch_size=None epochs=1 verbose=auto callbacks=None validation_split=0.0 validation_data=None shuffle=True class_weight=None sample_weight=None initial_epoch=0 steps_per_epoch=None validation_steps=None validation_batch_size=None validation_freq=1', args, kw, null)
     const S = stateOf(h)
     const E = S.E
     const epochs = h.toInt(P.epochs)
@@ -4583,10 +4473,17 @@ class KModel extends KLayer {
     let src: Source
     let val: Source | null = null
     const xv = P.x
-    const dataset = xv.k === 'obj' && xv.o instanceof TFDataset ? xv.o : null
+    let dataset = xv.k === 'obj' && xv.o instanceof TFDataset ? xv.o : null
+    if (xv.k === 'iter') {
+      const next = h.iterOf(xv)
+      dataset = new TFDataset('generator', function* () {
+        for (let el = next(); el !== undefined; el = next()) yield el
+      }, () => 'generator', true, null)
+    }
     const vbs = !isNone(P.validation_batch_size) ? h.toInt(P.validation_batch_size) : !isNone(P.batch_size) ? h.toInt(P.batch_size) : 32
     const valFrom = (v: Value): Source => {
       if (v.k === 'obj' && v.o instanceof TFDataset) return this.datasetSource(h, v.o, isNone(P.validation_steps) ? null : h.toInt(P.validation_steps))
+      if (!isNone(P.validation_steps)) throw h.err('NotImplementedError', 'fit: validation_steps with arrays is not implemented in this sandbox: pass a tf.data.Dataset')
       const parts = h.iterate(v)
       if (parts.length < 2) throw h.err('ValueError', `Data is expected to be in format \`x\`, \`(x,)\`, \`(x, y)\`, or \`(x, y, sample_weight)\`, found: ${repr(v)}`)
       const vx = this.prepare(h, this.inputsOf(h, parts[0]))
@@ -4594,13 +4491,17 @@ class KModel extends KLayer {
       return this.arraySource(h, vx, vy, parts[2] && parts[2].k !== 'none' ? asFloat(h, parts[2]) : null, vbs)
     }
     if (dataset) {
-      if (!isNone(P.batch_size)) throw h.err('ValueError', `The \`batch_size\` argument must not be specified for the given input type. Received input: ${dataset.repr()}, batch_size: ${repr(P.batch_size)}`)
+      if (!isNone(P.batch_size)) throw h.err('ValueError', `The \`batch_size\` argument must not be specified for the given input type. Received input: ${repr(xv)}, batch_size: ${repr(P.batch_size)}`)
+      if (xv.k === 'iter' && stepsLimit === null) throw h.err('NotImplementedError', 'model.fit(generator) without steps_per_epoch is not implemented in this sandbox: a generator may never end')
       if (split > 0) throw h.err('ValueError', '`validation_split` is only supported for Tensors or NumPy arrays')
       if (!isNone(P.y)) throw h.err('ValueError', 'When providing `x` as a tf.data.Dataset, `y` should not be passed. Instead, the targets should be included as part of the tf.data.Dataset.')
       if (!isNone(P.sample_weight)) throw h.err('ValueError', '`sample_weight` argument is not supported when using a tf.data.Dataset as input.')
-      const first = dataset.gen(h).next()
-      if (first.done) throw h.err('ValueError', 'Unexpected result of `train_function` (Empty logs). This could be due to issues in input pipeline that resulted in an empty dataset.')
-      this.batchFrom(h, first.value)
+      // a generator is walked once: its first batch must not be lost to building the model, so only a dataset is peeked at
+      if (xv.k !== 'iter') {
+        const first = dataset.gen(h).next()
+        if (first.done) throw h.err('ValueError', 'Unexpected result of `train_function` (Empty logs). This could be due to issues in input pipeline that resulted in an empty dataset.')
+        this.batchFrom(h, first.value)
+      }
       src = this.datasetSource(h, dataset, stepsLimit)
       if (!src.steps) src.steps = dataset.infinite ? 0 : dataset.items(h).length
     } else {
@@ -4638,7 +4539,7 @@ class KModel extends KLayer {
     if (!isNone(P.validation_data)) val = valFrom(P.validation_data)
     const freq = h.toInt(P.validation_freq)
     const params = { epochs, steps: src.steps, verbose }
-    const cbs = isNone(P.callbacks) ? [] : h.iterate(P.callbacks).map((c) => callbackHooks(h, c))
+    const cbs = hooksOf(h, P.callbacks)
     for (const c of cbs) c.setup?.(this, params, h)
     this.stopTraining = false
     this.inst?.attrs.delete('stop_training')
@@ -4709,13 +4610,14 @@ class KModel extends KLayer {
       src = this.datasetSource(h, P.x.o, isNone(P.steps) ? null : h.toInt(P.steps))
       if (!src.steps) src.steps = P.x.o.items(h).length
     } else {
+      if (!isNone(P.steps)) throw h.err('NotImplementedError', 'evaluate: steps= with arrays is not implemented in this sandbox: pass a tf.data.Dataset')
       const xs = this.prepare(h, this.inputsOf(h, P.x))
       const ys = this.targetsOf(h, P.y, this.nOutputs(h, xs))
       if (!ys.length) throw h.err('ValueError', 'evaluate() needs targets: pass y')
       for (const c of ys) if (xs[0].shape[0] !== c.shape[0]) throw h.err('ValueError', `Data cardinality is ambiguous. Make sure all arrays contain the same number of samples.'x' sizes: ${xs[0].shape[0]}\n'y' sizes: ${c.shape[0]}`)
       src = this.arraySource(h, xs, ys, isNone(P.sample_weight) ? null : asFloat(h, P.sample_weight), isNone(P.batch_size) ? 32 : h.toInt(P.batch_size))
     }
-    const cbs = isNone(P.callbacks) ? [] : h.iterate(P.callbacks).map((c) => callbackHooks(h, c))
+    const cbs = hooksOf(h, P.callbacks)
     for (const c of cbs) {
       c.setup?.(this, { epochs: 1, steps: src.steps, verbose }, h)
       c.onTestBegin?.(h, {})
@@ -4744,18 +4646,20 @@ class KModel extends KLayer {
   predict(h: Host, args: Value[], kw: Kw): Value {
     const P = bindArgs(h, 'predict', 'x batch_size=None verbose=auto steps=None callbacks=None', args, kw, null)
     const verbose = P.verbose.k === 'str' ? 1 : h.toInt(P.verbose)
-    const cbs = isNone(P.callbacks) ? [] : h.iterate(P.callbacks).map((c) => callbackHooks(h, c))
+    const cbs = hooksOf(h, P.callbacks)
     for (const c of cbs) c.onPredictBegin?.(h, {})
     let outs: TT[]
     let steps: number
     if (P.x.k === 'obj' && P.x.o instanceof TFDataset) {
-      const parts = P.x.o.items(h).map((el) => {
+      const limit = isNone(P.steps) ? Infinity : h.toInt(P.steps)
+      const parts = P.x.o.items(h).slice(0, limit).map((el) => {
         return this.infer(h, this.batchFrom(h, el).xs)
       })
       if (!parts.length) throw h.err('ValueError', 'Unexpected result of `predict_function` (Empty batch_outputs). Please use `Model.compile(..., run_eagerly=True)`, or `tf.config.run_functions_eagerly(True)` for more information of where went wrong, or file a issue/bug to `tf.keras`.')
       outs = parts[0].map((_, i) => C.catT({ grad: false } as Engine, parts.map((p) => p[i]), 0))
       steps = parts.length
     } else {
+      if (!isNone(P.steps)) throw h.err('NotImplementedError', 'predict: steps= with arrays is not implemented in this sandbox: pass a tf.data.Dataset')
       const xs = this.prepare(h, this.inputsOf(h, P.x))
       outs = this.infer(h, xs)
       steps = Math.ceil(xs[0].shape[0] / (isNone(P.batch_size) ? 32 : h.toInt(P.batch_size)))
@@ -4770,8 +4674,8 @@ class KModel extends KLayer {
     if (this.mode === 'subclass') throw h.err('NotImplementedError', `Layer ${this.kind} has arguments in \`__init__\` and therefore must override \`get_config()\`.`)
     const base = super.getConfig(h)
     if (this.mode === 'sequential') {
-      const input = this.inShape ? [objConfig('keras.layers', 'InputLayer', { batch_shape: this.inShape, dtype: 'float32', sparse: false, name: this.inputsK[0]?.layer.name ?? 'input_layer' })] : []
-      return { ...base, layers: [...input, ...this.layers.map((l) => l.serialize(h))], ...(this.inShape ? { build_input_shape: this.inShape } : {}) }
+      const input = this.inShape ? [objConfig('keras.layers', 'InputLayer', { batch_shape: new JTuple(this.inShape), dtype: 'float32', sparse: false, name: this.inputsK[0]?.layer.name ?? 'input_layer' })] : []
+      return { ...base, layers: [...input, ...this.layers.map((l) => l.serialize(h))], ...(this.inShape ? { build_input_shape: new JTuple(this.inShape) } : {}) }
     }
     const history = (t: KerasTensor): Json => [t.layer.name, t.node.index, t.outIndex]
     const tensorCfg = (t: KerasTensor): Json => ({ class_name: '__keras_tensor__', config: { shape: t.shape, dtype: t.dtype, keras_history: history(t) } })
@@ -5031,7 +4935,7 @@ const cloneLayer = (h: Host, l: KLayer, seen: Map<KLayer, KLayer>): KLayer => {
       kw.layer = inner.self()
     } else if (l instanceof TimeDistributed) kw.layer = cloneLayer(h, l.inner, seen).self()
     out = stateOf(h).make(l.kind, kw)
-    if (l instanceof TextVectorization && out instanceof TextVectorization) out.setVocab(l.vocab.slice(2))
+    if (l instanceof TextVectorization && out instanceof TextVectorization) out.setVocab(l.vocab.slice(l.specials.length))
   }
   seen.set(l, out)
   return out
@@ -5374,9 +5278,8 @@ const build = (h: Host): Record<string, Value> => {
       const mode = h.str(P.mode)
       if (!['horizontal', 'vertical', 'horizontal_and_vertical'].includes(mode)) throw h.err('ValueError', `RandomFlip layer ${kw.name ? h.str(kw.name) : 'random_flip'} received an unknown mode=${mode}`)
       const r = seeded(P)
-      const l = new Simple(h, 'RandomFlip', kw, P, same, (e, x, training) => {
+      const l = new Simple(h, 'RandomFlip', kw, P, same, (_e, x, training) => {
         if (!training) return x
-        void e
         return perImage(x, (img, H, W, Cc) => {
           const fh = mode !== 'vertical' && r.next() < 0.5
           const fv = mode !== 'horizontal' && r.next() < 0.5
@@ -5462,18 +5365,15 @@ const build = (h: Host): Record<string, Value> => {
   }
   function spatialDropout(P: Params, kw: Kw, kind: string, nd: number): KLayer {
     const rate = num(P.rate)
-    const r = seeded(P)
     return new Simple(h, kind, kw, P, (s, hh) => {
       if (s.length !== nd) throw hh.err('ValueError', `Input 0 of layer "${snake(kind)}" is incompatible with the layer: expected ndim=${nd}, found ndim=${s.length}. Full shape received: ${shapeStr(s)}`)
       return s
     }, (e, x, training) => {
-      if (!training || !rate) return x
-      // whole channels drop together: one draw per sample and channel
-      const [N] = x.shape
-      const Cc = x.shape[x.ndim - 1]
-      const keep = allOf(N * Cc).map(() => (r.next() >= rate ? 1 / (1 - rate) : 0))
-      const shape = x.shape.map((d, i) => (i === 0 || i === x.ndim - 1 ? d : 1))
-      return C.binary(e, '*', x, TT.of(keep, shape, x.dtype))
+      // whole channels drop together: the engine's channels are on axis 1
+      const last = x.ndim - 1
+      const toFront = [0, last, ...allOf(last - 1).map((i) => i + 1)]
+      const back = toFront.map((_, i) => toFront.indexOf(i))
+      return C.permuteT(e, C.dropoutChannels(e, C.permuteT(e, x, toFront), rate, training), back)
     }, `${kind}(${rate})`)
   }
   function globalPool(P: Params, kw: Kw, kind: string, rank: 1 | 2, mode: 'avg' | 'max'): KLayer {
@@ -5482,7 +5382,7 @@ const build = (h: Host): Record<string, Value> => {
     return new Simple(h, kind, kw, P, (s, hh) => {
       if (s.length !== rank + 2) throw hh.err('ValueError', `Input 0 of layer "${snake(kind)}" is incompatible with the layer: expected ndim=${rank + 2}, found ndim=${s.length}. Full shape received: ${shapeStr(s)}`)
       return keep ? s.map((d, i) => (axes.includes(i) ? 1 : d)) : [s[0], s[s.length - 1]]
-    }, (e, x) => (mode === 'avg' ? C.reduceSum(e, x, axes, keep, true) : reduceExtreme(e, x, axes, keep, false)), `${kind}()`)
+    }, (e, x) => (mode === 'avg' ? C.reduceSum(e, x, axes, keep, true) : C.extremeT(e, x, axes, keep, false, 'MaxBackward')), `${kind}()`)
   }
   const layerType = (name: string, cls = name): Value => ({
     k: 'type', name: cls, call: (args, kw) => makers[cls](bindArgs(h, cls, LAYER_SIG[cls], args, kw), kw).self(),
@@ -5840,7 +5740,7 @@ const build = (h: Host): Record<string, Value> => {
         ;[order[i], order[j]] = [order[j], order[i]]
       }
     }
-    const of = (idx: number[]) => datasetOf(h, '_TensorSliceDataset', idx.map((i) => elements[i]))
+    const of = (idx: number[]) => datasetOf('_TensorSliceDataset', idx.map((i) => elements[i]))
     return py.tuple([of(order.slice(0, left)), of(order.slice(total - right))])
   })
   const utils: Value = {
@@ -5855,14 +5755,8 @@ const build = (h: Host): Record<string, Value> => {
         const order = num(P.order)
         const e2 = new Engine(h.rng)
         e2.grad = false
-        const a = axis < 0 ? axis + x.ndim : axis
-        const { groups, keep } = reduceGroups(x.shape, [a])
-        const v = x.values()
-        const norms = groups.map((g) => {
-          const n = order === 2 ? Math.sqrt(g.reduce((s, i) => s + v[i] * v[i], 0)) : order === 1 ? g.reduce((s, i) => s + Math.abs(v[i]), 0) : g.reduce((s, i) => s + Math.abs(v[i]) ** order, 0) ** (1 / order)
-          return n === 0 ? 1 : n
-        })
-        const out = C.binary(e2, '/', x, TT.of(norms, keep, x.dtype))
+        const norms = C.vectorNorm(e2, isFloatT(x.dtype) ? x : TT.of(x.values(), x.shape, 'float32'), order, [axis], true)
+        const out = C.binary(e2, '/', x, TT.of(norms.values().map((n) => (n === 0 ? 1 : n)), norms.shape, x.dtype))
         return tfOf(P.x) ? tfWrap(out) : py.arr(ndFor(out))
       }),
       img_to_array: fnv('img_to_array', (args) => {
@@ -5888,7 +5782,7 @@ const build = (h: Host): Record<string, Value> => {
     const kw: Kw = {}
     for (const [k, v] of Object.entries(cfg as Record<string, Json>)) {
       if (k === 'dtype') continue
-      if (k === 'layer' && v && typeof v === 'object' && !Array.isArray(v)) kw[k] = layerFromJson(v).self()
+      if (k === 'layer' && v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof JFloat) && !(v instanceof JTuple)) kw[k] = layerFromJson(v).self()
       else kw[k] = jsToPy(v)
     }
     return kw
@@ -6114,32 +6008,14 @@ const sliceElements = (h: Host, v: Value): Value[] => {
   return unstackT(E, t, 0).map(tfWrap)
 }
 
-const datasetOf = (h: Host, cls: string, elements: Value[]): Value => py.obj(new TFDataset(h, cls, function* () {
+const datasetOf = (cls: string, elements: Value[]): Value => py.obj(new TFDataset(cls, function* () {
   yield* elements
 }, () => (elements.length ? specOf(elements[0]) : 'TensorSpec(shape=<unknown>, dtype=tf.float32, name=None)'), false, elements.length))
 
 // ---------------------------------------------------------------- tensorflow
 
 /** the namedtuples TF ops return: TopKV2(values=…, indices=…) */
-class TFNamed extends PyObj {
-  readonly cls: string
-  fields: [string, Value][]
-  constructor(cls: string, fields: [string, Value][]) {
-    super()
-    this.cls = cls
-    this.fields = fields
-  }
-  repr() { return `${this.cls}(${this.fields.map(([k, v]) => `${k}=${repr(v)}`).join(', ')})` }
-  iter() { return this.fields.map(([, v]) => v) }
-  len() { return this.fields.length }
-  getItem(idx: Value, h: Host) {
-    const i = h.toInt(idx)
-    const f = this.fields[i < 0 ? i + this.fields.length : i]
-    if (!f) throw h.err('IndexError', 'tuple index out of range')
-    return f[1]
-  }
-  getAttr(name: string) { return this.fields.find(([k]) => k === name)?.[1] }
-}
+const named = (tname: string, names: string[], items: Value[]): Value => ({ k: 'tuple', items, names, tname })
 
 /** with tf.device('/CPU:0'): / with tf.name_scope('x'): nothing changes here */
 class NoScope extends PyObj {
@@ -6177,58 +6053,6 @@ const tfPrintTensor = (t: TT, summarize: number): string => {
   return rec(0, 0, 0)
 }
 
-const invMatrix = (h: Host, a: number[], n: number): number[] => {
-  const m = [...a]
-  const inv = new Array<number>(n * n).fill(0)
-  for (let i = 0; i < n; i++) inv[i * n + i] = 1
-  for (let c = 0; c < n; c++) {
-    let p = c
-    for (let r = c + 1; r < n; r++) if (Math.abs(m[r * n + c]) > Math.abs(m[p * n + c])) p = r
-    if (Math.abs(m[p * n + c]) < 1e-30) throw h.err('InvalidArgumentError', 'Input is not invertible. [Op:MatrixInverse]')
-    if (p !== c) {
-      for (let k = 0; k < n; k++) {
-        ;[m[p * n + k], m[c * n + k]] = [m[c * n + k], m[p * n + k]]
-        ;[inv[p * n + k], inv[c * n + k]] = [inv[c * n + k], inv[p * n + k]]
-      }
-    }
-    const d = m[c * n + c]
-    for (let k = 0; k < n; k++) {
-      m[c * n + k] /= d
-      inv[c * n + k] /= d
-    }
-    for (let r = 0; r < n; r++) {
-      if (r === c) continue
-      const f = m[r * n + c]
-      if (!f) continue
-      for (let k = 0; k < n; k++) {
-        m[r * n + k] -= f * m[c * n + k]
-        inv[r * n + k] -= f * inv[c * n + k]
-      }
-    }
-  }
-  return inv
-}
-
-const detMatrix = (a: number[], n: number): number => {
-  const m = [...a]
-  let det = 1
-  for (let c = 0; c < n; c++) {
-    let p = c
-    for (let r = c + 1; r < n; r++) if (Math.abs(m[r * n + c]) > Math.abs(m[p * n + c])) p = r
-    if (m[p * n + c] === 0) return 0
-    if (p !== c) {
-      for (let k = 0; k < n; k++) [m[p * n + k], m[c * n + k]] = [m[c * n + k], m[p * n + k]]
-      det = -det
-    }
-    det *= m[c * n + c]
-    for (let r = c + 1; r < n; r++) {
-      const f = m[r * n + c] / m[c * n + c]
-      if (f) for (let k = c; k < n; k++) m[r * n + k] -= f * m[c * n + k]
-    }
-  }
-  return det
-}
-
 const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Value>, K: { Sequential: Value; Model: Value; shapeOf: (v: Value) => number[]; models: Value; optimizers: Value; callbacks: Value; utils: Value; datasets: Value; activations: Value; regularizers: Value; initializers: Value; backend: Value; preprocessing: Value }): Record<string, Value> => {
   const S = stateOf(h)
   const E = S.E
@@ -6254,7 +6078,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
   }
   /** a shape op: every output element is one input element */
   const moved = (api: string, v: Value | undefined, t: TT, src: ArrayLike<number>, shape: number[], fill = 0): Value => {
-    const out = takeT(E, t, src, shape, fill)
+    const out = C.takeT(E, t, src, shape, 'TakeBackward', fill)
     if (h.tracing && out.size <= 240 && t.size <= 240) traceTF(h, `tf.${api}`, 'group', [{ label: label(v), t }], out, null, Array.from(src, (s) => (s < 0 ? [] : [[0, s] as [number, number]])))
     return tfWrap(out)
   }
@@ -6271,7 +6095,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const axes = axisArg(P.axis)
     const keep = h.truthy(P.keepdims)
     let out: TT
-    if (f) out = reduceExtreme(E, t, axes, keep, f === 'min')
+    if (f) out = C.extremeT(E, t, axes, keep, f === 'min', f === 'min' ? 'MinBackward' : 'MaxBackward')
     else if (mean && !isFloatT(t.dtype)) {
       // TensorFlow keeps the integer dtype: the mean is truncated (a classic surprise)
       const m = C.reduceSum(E, C.toDtype(E, t, 'float64'), axes, keep, true)
@@ -6286,7 +6110,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const P = bindArgs(h, 'reduce_prod', REDUCE_SIG, args, kw, null)
     const t = T(P.input_tensor, 'reduce_prod')
     const axes = axisArg(P.axis)
-    return traced('reduce_prod', 'reduce', [{ label: label(P.input_tensor), t }], prodT(E, t, axes, h.truthy(P.keepdims)), axes && axes.length === 1 ? C.normDim(axes[0], t.ndim) : null)
+    return traced('reduce_prod', 'reduce', [{ label: label(P.input_tensor), t }], prodAxes(E, t, axes, h.truthy(P.keepdims)), axes && axes.length === 1 ? C.normDim(axes[0], t.ndim) : null)
   })
   const reduceSpread = (name: string, sqrt: boolean) => fnv(name, (args, kw) => {
     const P = bindArgs(h, name, REDUCE_SIG, args, kw, null)
@@ -6298,17 +6122,14 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
   const reduceBool = (name: string, op: 'Any' | 'All') => fnv(name, (args, kw) => {
     const P = bindArgs(h, name, REDUCE_SIG, args, kw, null)
     const t = T(P.input_tensor, name)
-    if (t.dtype !== 'bool') throw h.err('InvalidArgumentError', `cannot compute ${op} as input #0(zero-based) was expected to be a bool tensor but is a ${TF_KIND[t.dtype]} tensor [Op:${op}]`)
+    if (t.dtype !== 'bool') throw tfErr(h, `cannot compute ${op} as input #0(zero-based) was expected to be a bool tensor but is a ${TF_KIND[t.dtype]} tensor [Op:${op}]`)
     const axes = axisArg(P.axis)
-    const ds = axes === null ? t.shape.map((_, d) => d) : [...new Set(axes.map((a) => C.normDim(a, t.ndim)))]
-    const { groups, keep, drop } = reduceGroups(t.shape, ds)
-    const v = t.values()
-    const out = TT.of(groups.map((g) => (op === 'Any' ? g.some((i) => v[i]) : g.every((i) => v[i])) ? 1 : 0), h.truthy(P.keepdims) ? keep : drop, 'bool')
+    const out = C.countReduce(t, axes, h.truthy(P.keepdims), 'bool', op === 'Any' ? (nz) => (nz > 0 ? 1 : 0) : (nz, total) => (nz === total ? 1 : 0))
     return traced(name, 'reduce', [{ label: label(P.input_tensor), t }], out, axes && axes.length === 1 ? C.normDim(axes[0], t.ndim) : null)
   })
   const FLOAT_ALLOWED = 'bfloat16, half, float, double, complex64, complex128'
   const floatOnly = (t: TT, op: string) => {
-    if (!isFloatT(t.dtype)) throw h.err('InvalidArgumentError', `Value for attr 'T' of ${t.dtype} is not in the list of allowed values: ${FLOAT_ALLOWED}\n\t; NodeDef: {{node ${op}}}; Op<name=${op}; signature=x:T -> y:T; attr=T:type,allowed=[DT_BFLOAT16, DT_HALF, DT_FLOAT, DT_DOUBLE, DT_COMPLEX64, DT_COMPLEX128]> [Op:${op}] name: `)
+    if (!isFloatT(t.dtype)) throw tfErr(h, `Value for attr 'T' of ${t.dtype} is not in the list of allowed values: ${FLOAT_ALLOWED}\n\t; NodeDef: {{node ${op}}}; Op<name=${op}; signature=x:T -> y:T; attr=T:type,allowed=[DT_BFLOAT16, DT_HALF, DT_FLOAT, DT_DOUBLE, DT_COMPLEX64, DT_COMPLEX128]> [Op:${op}] name: `)
   }
   const elem = (name: string, op: C.UnOpT, tfOp: string | null) => fnv(name, (args, kw) => {
     const v = args[0] ?? kw.x
@@ -6341,12 +6162,12 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const a = T(args[0] ?? kw.x, name)
     const b = T(args[1] ?? kw.y, name)
     const tfOp = name === 'logical_and' ? 'LogicalAnd' : name === 'logical_or' ? 'LogicalOr' : 'LogicalXor'
-    for (const t of [a, b]) if (t.dtype !== 'bool') throw h.err('InvalidArgumentError', `cannot compute ${tfOp} as input #${t === a ? 0 : 1}(zero-based) was expected to be a bool tensor but is a ${TF_KIND[t.dtype]} tensor [Op:${tfOp}]`)
-    return traced(name, 'elementwise', [{ label: label(args[0]), t: a }, { label: label(args[1], 'y'), t: b }], logical(a, b, op))
+    for (const t of [a, b]) if (t.dtype !== 'bool') throw tfErr(h, `cannot compute ${tfOp} as input #${t === a ? 0 : 1}(zero-based) was expected to be a bool tensor but is a ${TF_KIND[t.dtype]} tensor [Op:${tfOp}]`)
+    return traced(name, 'elementwise', [{ label: label(args[0]), t: a }, { label: label(args[1], 'y'), t: b }], logical(h, a, b, op))
   })
   const logicalNot = fnv('logical_not', (args, kw) => {
     const t = T(args[0] ?? kw.x, 'logical_not')
-    if (t.dtype !== 'bool') throw h.err('InvalidArgumentError', `cannot compute LogicalNot as input #0(zero-based) was expected to be a bool tensor but is a ${TF_KIND[t.dtype]} tensor [Op:LogicalNot]`)
+    if (t.dtype !== 'bool') throw tfErr(h, `cannot compute LogicalNot as input #0(zero-based) was expected to be a bool tensor but is a ${TF_KIND[t.dtype]} tensor [Op:LogicalNot]`)
     return traced('logical_not', 'elementwise', [{ label: label(args[0]), t }], TT.of(t.values().map((v) => (v ? 0 : 1)), t.shape, 'bool'))
   })
   const argExtreme = (name: string, min: boolean) => fnv(name, (args, kw) => {
@@ -6373,17 +6194,6 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const out = lo.size === 1 && hi.size === 1 ? C.clamp(E, t, lo.values()[0], hi.values()[0]) : C.binary(E, 'minimum', C.binary(E, 'maximum', t, lo), hi)
     return traced('clip_by_value', 'elementwise', [{ label: label(P.t), t }], out)
   })
-  const sortLines = (t: TT, axis: number, desc: boolean): { order: number[]; groups: number[][] } => {
-    const v = t.values()
-    const a = C.normDim(axis, t.ndim)
-    const { groups } = reduceGroups(t.shape, [a])
-    const order = new Array<number>(t.size)
-    for (const g of groups) {
-      const sorted = g.map((_, k) => k).sort((x, y) => (desc ? v[g[y]] - v[g[x]] : v[g[x]] - v[g[y]]) || x - y)
-      g.forEach((pos, k) => { order[pos] = sorted[k] })
-    }
-    return { order, groups }
-  }
   const direction = (v: Value): boolean => {
     const d = h.str(v)
     if (d !== 'ASCENDING' && d !== 'DESCENDING') throw h.err('ValueError', `\`direction\` must be one of ['ASCENDING', 'DESCENDING']. Received: direction=${repr(v)}`)
@@ -6392,16 +6202,14 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
   const sortFn = fnv('sort', (args, kw) => {
     const P = bindArgs(h, 'sort', 'values axis=-1 direction=ASCENDING name=None', args, kw, null)
     const t = T(P.values, 'sort')
-    const { order, groups } = sortLines(t, h.toInt(P.axis), direction(P.direction))
-    const src = new Array<number>(t.size)
-    for (const g of groups) g.forEach((pos) => { src[pos] = g[order[pos]] })
+    const { src } = C.sortT(E, t, h.toInt(P.axis), direction(P.direction))
     return moved('sort', P.values, t, src, t.shape)
   })
   const argsortFn = fnv('argsort', (args, kw) => {
     const P = bindArgs(h, 'argsort', 'values axis=-1 direction=ASCENDING stable=False name=None', args, kw, null)
     const t = T(P.values, 'argsort')
-    const { order } = sortLines(t, h.toInt(P.axis), direction(P.direction))
-    return traced('argsort', 'sort', [{ label: label(P.values), t }], TT.of(order, t.shape, 'int32'), h.toInt(P.axis))
+    const { indices } = C.sortT(E, t, h.toInt(P.axis), direction(P.direction))
+    return traced('argsort', 'sort', [{ label: label(P.values), t }], TT.of(indices.values(), t.shape, 'int32'), h.toInt(P.axis))
   })
   const topK = fnv('top_k', (args, kw) => {
     const P = bindArgs(h, 'top_k', 'input k=1 sorted=True index_type=None name=None', args, kw, null)
@@ -6409,29 +6217,15 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const k = h.toInt(P.k)
     if (!t.ndim) throw h.err('ValueError', 'Shape must be at least rank 1 but is rank 0')
     const d = t.shape[t.ndim - 1]
-    if (k > d) throw h.err('InvalidArgumentError', `input must have at least k columns. had ${d}, needed ${k} [Op:TopKV2]`)
-    const v = t.values()
-    const rows = t.size / Math.max(1, d)
-    const src: number[] = []
-    const idx: number[] = []
-    for (let r = 0; r < rows; r++) {
-      const best = allOf(d).sort((a, b) => v[r * d + b] - v[r * d + a] || a - b).slice(0, k)
-      for (const j of best) {
-        src.push(r * d + j)
-        idx.push(j)
-      }
-    }
-    const shape = [...t.shape.slice(0, -1), k]
-    return py.obj(new TFNamed('TopKV2', [['values', tfWrap(takeT(E, t, src, shape))], ['indices', tfWrap(TT.of(idx, shape, 'int32'))]]))
+    if (k > d) throw tfErr(h, `input must have at least k columns. had ${d}, needed ${k} [Op:TopKV2]`)
+    const { values, indices } = C.topkT(E, t, k, -1, true)
+    return named('TopKV2', ['values', 'indices'], [tfWrap(values), tfWrap(TT.of(indices.values(), indices.shape, 'int32'))])
   })
   const countNonzero = fnv('count_nonzero', (args, kw) => {
     const P = bindArgs(h, 'count_nonzero', 'input axis=None keepdims=None dtype=int64 name=None', args, kw, null)
     const t = T(P.input, 'count_nonzero')
     const axes = axisArg(P.axis)
-    const ds = axes === null ? t.shape.map((_, d) => d) : [...new Set(axes.map((a) => C.normDim(a, t.ndim)))]
-    const { groups, keep, drop } = reduceGroups(t.shape, ds)
-    const v = t.values()
-    return traced('count_nonzero', 'reduce', [{ label: label(P.input), t }], TT.of(groups.map((g) => g.filter((i) => v[i] !== 0).length), !isNone(P.keepdims) && h.truthy(P.keepdims) ? keep : drop, dt(P.dtype) ?? 'int64'), axes && axes.length === 1 ? C.normDim(axes[0], t.ndim) : null)
+    return traced('count_nonzero', 'reduce', [{ label: label(P.input), t }], C.countReduce(t, axes, !isNone(P.keepdims) && h.truthy(P.keepdims), dt(P.dtype) ?? 'int64', (nz) => nz), axes && axes.length === 1 ? C.normDim(axes[0], t.ndim) : null)
   })
   const cumsum = fnv('cumsum', (args, kw) => {
     const P = bindArgs(h, 'cumsum', 'x axis=0 exclusive=False reverse=False name=None', args, kw, null)
@@ -6439,29 +6233,13 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const axis = h.toInt(P.axis)
     const excl = h.truthy(P.exclusive)
     const rev = h.truthy(P.reverse)
-    const { groups } = reduceGroups(t.shape, [C.normDim(axis, t.ndim)])
-    const lines = groups.map((g) => (rev ? [...g].reverse() : g))
-    const v = t.values()
-    const out = new Array<number>(t.size)
-    for (const g of lines) {
-      let acc = 0
-      for (const i of g) {
-        if (excl) out[i] = acc
-        acc += v[i]
-        if (!excl) out[i] = acc
-      }
-    }
-    const res = opT(E, TT.of(out, t.shape, t.dtype), 'CumsumBackward', [t], (gr) => {
-      const ga = new Array<number>(t.size)
-      for (const g of lines) {
-        let acc = 0
-        for (let k = g.length - 1; k >= 0; k--) {
-          acc += gr[g[k]]
-          ga[g[k]] = excl ? acc - gr[g[k]] : acc
-        }
-      }
-      return [ga]
-    })
+    const d = C.normDim(axis, t.ndim)
+    const n = t.shape[d]
+    // reverse runs the sum from the far end; exclusive shifts it one place along, starting from zero
+    const flip = (x: TT) => (rev ? flipAxes(E, x, [d]) : x)
+    const sum = flip(C.cumT(E, flip(t), d, false))
+    const shifted = excl ? gridT(E, sum, sum.shape.map((m, k) => (k === d ? allOf(n).map((i) => (rev ? (i + 1 < n ? i + 1 : -1) : i - 1)) : allOf(m)))) : sum
+    const res = shifted.dtype === t.dtype ? shifted : C.toDtype(E, shifted, t.dtype)
     return traced('cumsum', excl || rev ? 'info' : 'scan', [{ label: label(P.x), t }], res, C.normDim(axis, t.ndim))
   })
 
@@ -6470,7 +6248,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const P = bindArgs(h, 'expand_dims', 'input axis name=None', args, kw, null)
     const t = T(P.input, 'expand_dims')
     const axis = h.toInt(P.axis)
-    if (axis > t.ndim || axis < -t.ndim - 1) throw h.err('InvalidArgumentError', `Tried to expand dim index ${axis} for tensor with ${t.ndim} dimensions. [Op:ExpandDims]`)
+    if (axis > t.ndim || axis < -t.ndim - 1) throw tfErr(h, `Tried to expand dim index ${axis} for tensor with ${t.ndim} dimensions. [Op:ExpandDims]`)
     return tfWrap(C.unsqueezeT(E, t, axis))
   })
   const squeeze = fnv('squeeze', (args, kw) => {
@@ -6480,8 +6258,8 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     if (axes === null) return tfWrap(C.squeezeT(E, t, null))
     const ds = axes.map((a) => {
       const d = a < 0 ? a + t.ndim : a
-      if (d < 0 || d >= t.ndim) throw h.err('InvalidArgumentError', `Tried to squeeze dim index ${a} for tensor with ${t.ndim} dimensions. [Op:Squeeze]`)
-      if (t.shape[d] !== 1) throw h.err('InvalidArgumentError', `Can not squeeze dim[${a}], expected a dimension of 1, got ${t.shape[d]} [Op:Squeeze]`)
+      if (d < 0 || d >= t.ndim) throw tfErr(h, `Tried to squeeze dim index ${a} for tensor with ${t.ndim} dimensions. [Op:Squeeze]`)
+      if (t.shape[d] !== 1) throw tfErr(h, `Can not squeeze dim[${a}], expected a dimension of 1, got ${t.shape[d]} [Op:Squeeze]`)
       return d
     })
     return tfWrap(C.reshapeT(E, t, t.shape.filter((_, d) => !ds.includes(d)), false))
@@ -6496,10 +6274,10 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     if (spec) {
       const known = spec.filter((s) => s !== -1).reduce((a, b) => a + b, 0)
       sizes = spec.map((s) => (s === -1 ? n - known : s))
-      if (sizes.reduce((a, b) => a + b, 0) !== n) throw h.err('InvalidArgumentError', `Determined shape must either match input shape along split_dim exactly if fully specified, or be less than the size of the input along split_dim if not fully specified.  Got: ${known} [Op:SplitV]`)
+      if (sizes.reduce((a, b) => a + b, 0) !== n) throw tfErr(h, `Determined shape must either match input shape along split_dim exactly if fully specified, or be less than the size of the input along split_dim if not fully specified.  Got: ${known} [Op:SplitV]`)
     } else {
       const k = h.toInt(P.num_or_size_splits)
-      if (k <= 0 || n % k !== 0) throw h.err('InvalidArgumentError', `Number of ways to split should evenly divide the split dimension, but got split_dim ${axis} (size = ${n}) and num_split ${k} [Op:Split]`)
+      if (k <= 0 || n % k !== 0) throw tfErr(h, `Number of ways to split should evenly divide the split dimension, but got split_dim ${axis} (size = ${n}) and num_split ${k} [Op:Split]`)
       sizes = new Array<number>(k).fill(n / k)
     }
     let at = 0
@@ -6513,26 +6291,26 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const P = bindArgs(h, 'tile', 'input multiples name=None', args, kw, null)
     const t = T(P.input, 'tile')
     const m = shapeOf(P.multiples)
-    if (m.length !== t.ndim) throw h.err('InvalidArgumentError', `Expected multiples argument to be a vector of length ${t.ndim} but got length ${m.length} [Op:Tile]`)
+    if (m.length !== t.ndim) throw tfErr(h, `Expected multiples argument to be a vector of length ${t.ndim} but got length ${m.length} [Op:Tile]`)
     const maps = t.shape.map((n, d) => Array.from({ length: n * m[d] }, (_, i) => i % n))
-    return moved('tile', P.input, t, gridIndex(t.shape, maps), maps.map((x) => x.length))
+    return moved('tile', P.input, t, C.crossSrc(t.shape, maps), maps.map((x) => x.length))
   })
   const broadcastTo = fnv('broadcast_to', (args, kw) => {
     const P = bindArgs(h, 'broadcast_to', 'input shape name=None', args, kw, null)
     const t = T(P.input, 'broadcast_to')
     const target = shapeOf(P.shape)
     const off = target.length - t.ndim
-    if (off < 0 || t.shape.some((d, i) => d !== 1 && d !== target[i + off])) throw h.err('InvalidArgumentError', `Incompatible shapes: [${t.shape.join(',')}] vs. [${target.join(',')}] [Op:BroadcastTo]`)
+    if (off < 0 || t.shape.some((d, i) => d !== 1 && d !== target[i + off])) throw tfErr(h, `Incompatible shapes: [${t.shape.join(',')}] vs. [${target.join(',')}] [Op:BroadcastTo]`)
     const full = [...new Array<number>(off).fill(1), ...t.shape]
     const maps = target.map((n, d) => (full[d] === 1 ? new Array<number>(n).fill(0) : allOf(n)))
-    return moved('broadcast_to', P.input, t, gridIndex(full, maps), target)
+    return moved('broadcast_to', P.input, t, C.crossSrc(full, maps), target)
   })
   const reverse = fnv('reverse', (args, kw) => {
     const P = bindArgs(h, 'reverse', 'tensor axis name=None', args, kw, null)
     const t = T(P.tensor, 'reverse')
     const axes = (axisArg(P.axis) ?? []).map((a) => C.normDim(a, t.ndim))
     const maps = t.shape.map((n, d) => (axes.includes(d) ? allOf(n).reverse() : allOf(n)))
-    return moved('reverse', P.tensor, t, gridIndex(t.shape, maps), t.shape)
+    return moved('reverse', P.tensor, t, C.crossSrc(t.shape, maps), t.shape)
   })
   const gather = fnv('gather', (args, kw) => {
     const P = bindArgs(h, 'gather', 'params indices validate_indices=None axis=None !batch_dims=0 name=None', args, kw, null)
@@ -6541,9 +6319,9 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     if (isFloatT(iv.dtype)) throw h.err('TypeError', `Value for attr 'Tindices' of ${iv.dtype} is not in the list of allowed values: int16, int32, int64`)
     const axis = isNone(P.axis) ? 0 : C.normDim(h.toInt(P.axis), t.ndim)
     const n = t.shape[axis]
-    for (const [i, c] of iv.values().entries()) if (c < 0 || c >= n) throw h.err('InvalidArgumentError', `indices[${i}] = ${c} is not in [0, ${n}) [Op:GatherV2]`)
+    for (const [i, c] of iv.values().entries()) if (c < 0 || c >= n) throw tfErr(h, `indices[${i}] = ${c} is not in [0, ${n}) [Op:GatherV2]`)
     const st = cStrides(t.shape)[axis]
-    const rest = gridIndex(t.shape, t.shape.map((d, k) => (k === axis ? [0] : allOf(d))))
+    const rest = C.crossSrc(t.shape, t.shape.map((d, k) => (k === axis ? [0] : allOf(d))))
     const inner = prod(t.shape.slice(axis + 1))
     const before = rest.length / Math.max(1, inner)
     const src: number[] = []
@@ -6563,7 +6341,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       let base = 0
       for (let d = 0; d < depth; d++) {
         const c = v[n * depth + d]
-        if (c < 0 || c >= t.shape[d]) throw h.err('InvalidArgumentError', `indices[${n},${d}] = ${c} does not index into param shape [${t.shape.join(',')}] [Op:GatherNd]`)
+        if (c < 0 || c >= t.shape[d]) throw tfErr(h, `indices[${n},${d}] = ${c} does not index into param shape [${t.shape.join(',')}] [Op:GatherNd]`)
         base += c * st[d]
       }
       for (let k = 0; k < inner; k++) src.push(base + k)
@@ -6594,34 +6372,20 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       })
       return tfWrap(TT.of(hits, [hits.length / Math.max(1, c.ndim), c.ndim], 'int64'))
     }
-    if (c.dtype !== 'bool') throw h.err('InvalidArgumentError', `cannot compute SelectV2 as input #0(zero-based) was expected to be a bool tensor but is a ${TF_KIND[c.dtype]} tensor [Op:SelectV2]`)
+    if (c.dtype !== 'bool') throw tfErr(h, `cannot compute SelectV2 as input #0(zero-based) was expected to be a bool tensor but is a ${TF_KIND[c.dtype]} tensor [Op:SelectV2]`)
     const xT = tfOf(P.x)
     const yT = tfOf(P.y)
     const x = xT ?? tfOperand(h, P.x, yT) ?? T(P.x, 'where')
     const y = yT ?? tfOperand(h, P.y, x) ?? T(P.y, 'where')
-    if (x.dtype !== y.dtype) throw h.err('InvalidArgumentError', `cannot compute SelectV2 as input #2(zero-based) was expected to be a ${TF_KIND[x.dtype]} tensor but is a ${TF_KIND[y.dtype]} tensor [Op:SelectV2]`)
-    const shape = bcast(bcast(c.shape, x.shape), y.shape)
-    const ic = C.bcastIndex(c.shape, shape)
-    const ix = C.bcastIndex(x.shape, shape)
-    const iy = C.bcastIndex(y.shape, shape)
-    const [cv, xv, yv] = [c.values(), x.values(), y.values()]
-    const n = prod(shape)
-    const out = TT.of(Array.from({ length: n }, (_, i) => (cv[ic[i]] ? xv[ix[i]] : yv[iy[i]])), shape, x.dtype)
-    return tfWrap(opT(E, out, 'SelectBackward', [x, y], (g) => {
-      const gx = new Array<number>(x.size).fill(0)
-      const gy = new Array<number>(y.size).fill(0)
-      for (let i = 0; i < n; i++) {
-        if (cv[ic[i]]) gx[ix[i]] += g[i]
-        else gy[iy[i]] += g[i]
-      }
-      return [gx, gy]
-    }))
+    if (x.dtype !== y.dtype) throw tfErr(h, `cannot compute SelectV2 as input #2(zero-based) was expected to be a ${TF_KIND[x.dtype]} tensor but is a ${TF_KIND[y.dtype]} tensor [Op:SelectV2]`)
+    bcast(h, bcast(h, c.shape, x.shape), y.shape)
+    return tfWrap(C.whereT(E, c, x, y, x.dtype, 'SelectBackward'))
   })
   const padFn = fnv('pad', (args, kw) => {
     const P = bindArgs(h, 'pad', 'tensor paddings mode=CONSTANT constant_values=0 name=None', args, kw, null)
     const t = T(P.tensor, 'pad')
     const pads = T(P.paddings, 'pad')
-    if (pads.shape.join() !== [t.ndim, 2].join()) throw h.err('InvalidArgumentError', `The first dimension of paddings must be the rank of inputs${repr(py.int(t.ndim))} and the second dimension of paddings must be 2 ${shapeStr(pads.shape)} [Op:Pad]`)
+    if (pads.shape.join() !== [t.ndim, 2].join()) throw tfErr(h, `The first dimension of paddings must be the rank of inputs${repr(py.int(t.ndim))} and the second dimension of paddings must be 2 ${shapeStr(pads.shape)} [Op:Pad]`)
     const pv = pads.values()
     const mode = h.str(P.mode).toUpperCase()
     if (!['CONSTANT', 'REFLECT', 'SYMMETRIC'].includes(mode)) throw h.err('ValueError', `Value of argument \`mode\` expected to be one of "CONSTANT", "REFLECT", or "SYMMETRIC". Received \`mode\` = ${h.str(P.mode)}`)
@@ -6630,19 +6394,19 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       const hi = pv[d * 2 + 1]
       if (mode === 'CONSTANT') return [...new Array<number>(lo).fill(-1), ...allOf(n), ...new Array<number>(hi).fill(-1)]
       const limit = mode === 'REFLECT' ? n - 1 : n
-      if (lo > limit || hi > limit) throw h.err('InvalidArgumentError', `paddings must be no greater than ${limit === n ? 'tensor dim' : 'tensor dim - 1'}, got ${Math.max(lo, hi)} for dim ${n} [Op:MirrorPad]`)
+      if (lo > limit || hi > limit) throw tfErr(h, `paddings must be no greater than ${limit === n ? 'tensor dim' : 'tensor dim - 1'}, got ${Math.max(lo, hi)} for dim ${n} [Op:MirrorPad]`)
       const shift = mode === 'REFLECT' ? 0 : 1
       const before = Array.from({ length: lo }, (_, i) => lo - i - shift)
       const after = Array.from({ length: hi }, (_, i) => n - 1 - (i + 1) + shift)
       return [...before, ...allOf(n), ...after]
     })
-    return moved('pad', P.tensor, t, gridIndex(t.shape, maps), maps.map((m) => m.length), mode === 'CONSTANT' ? h.num(P.constant_values) : 0)
+    return moved('pad', P.tensor, t, C.crossSrc(t.shape, maps), maps.map((m) => m.length), mode === 'CONSTANT' ? h.num(P.constant_values) : 0)
   })
   const tensordot = fnv('tensordot', (args, kw) => {
     const P = bindArgs(h, 'tensordot', 'a b axes name=None', args, kw, null)
     const a = T(P.a, 'tensordot')
     const b = T(P.b, 'tensordot')
-    if (a.dtype !== b.dtype) throw h.err('InvalidArgumentError', `cannot compute MatMul as input #1(zero-based) was expected to be a ${TF_KIND[a.dtype]} tensor but is a ${TF_KIND[b.dtype]} tensor [Op:MatMul]`)
+    if (a.dtype !== b.dtype) throw tfErr(h, `cannot compute MatMul as input #1(zero-based) was expected to be a ${TF_KIND[a.dtype]} tensor but is a ${TF_KIND[b.dtype]} tensor [Op:MatMul]`)
     let axA: number[]
     let axB: number[]
     if (P.axes.k === 'int') {
@@ -6656,7 +6420,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       axA = (axisArg(parts[0]) ?? []).map((x) => C.normDim(x, a.ndim))
       axB = (axisArg(parts[1]) ?? []).map((x) => C.normDim(x, b.ndim))
     }
-    if (axA.length !== axB.length || axA.some((x, i) => a.shape[x] !== b.shape[axB[i]])) throw h.err('InvalidArgumentError', `Matrix size-incompatible: In[0]: [${a.shape.join(',')}], In[1]: [${b.shape.join(',')}] [Op:MatMul]`)
+    if (axA.length !== axB.length || axA.some((x, i) => a.shape[x] !== b.shape[axB[i]])) throw tfErr(h, `Matrix size-incompatible: In[0]: [${a.shape.join(',')}], In[1]: [${b.shape.join(',')}] [Op:MatMul]`)
     const freeA = a.shape.map((_, i) => i).filter((i) => !axA.includes(i))
     const freeB = b.shape.map((_, i) => i).filter((i) => !axB.includes(i))
     const c = prod(axA.map((x) => a.shape[x]))
@@ -6668,24 +6432,16 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
   const norm = fnv('norm', (args, kw) => {
     const P = bindArgs(h, 'norm', 'tensor ord=euclidean axis=None keepdims=None name=None', args, kw, null)
     const t = T(P.tensor, 'norm')
-    if (!isFloatT(t.dtype)) throw h.err('InvalidArgumentError', `Value for attr 'T' of ${t.dtype} is not in the list of allowed values: float, double`)
+    if (!isFloatT(t.dtype)) throw tfErr(h, `Value for attr 'T' of ${t.dtype} is not in the list of allowed values: float, double`)
     const axes = axisArg(P.axis)
     const keep = !isNone(P.keepdims) && h.truthy(P.keepdims)
     const ord = P.ord
     const isEuclid = (ord.k === 'str' && (ord.v === 'euclidean' || ord.v === 'fro')) || (ord.k !== 'str' && num2(ord) === 2)
     if (ord.k === 'str' && !isEuclid) throw h.err('ValueError', `'ord' must be a supported vector norm, got ${ord.v}.`)
     if (axes && axes.length === 2 && !(ord.k === 'str')) throw h.err('NotImplementedError', `tf.norm: a matrix norm with ord=${repr(ord)} is not implemented in this sandbox`)
-    let out: TT
-    if (isEuclid) out = C.unary(E, 'sqrt', C.reduceSum(E, C.unary(E, 'square', t), axes, keep, false))
-    else {
-      const p = num2(ord)
-      if (p === Infinity) out = reduceExtreme(E, C.unary(E, 'abs', t), axes, keep, false)
-      else if (p === 1) out = C.reduceSum(E, C.unary(E, 'abs', t), axes, keep, false)
-      else if (p > 0) {
-        const s = C.reduceSum(E, C.binary(E, '**', C.unary(E, 'abs', t), TT.scalar(p, t.dtype), false, true), axes, keep, false)
-        out = C.binary(E, '**', s, TT.scalar(1 / p, t.dtype), false, true)
-      } else throw h.err('ValueError', `'ord' must be a supported vector norm, got ${p}.`)
-    }
+    if (!isEuclid && num2(ord) <= 0) throw h.err('ValueError', `'ord' must be a supported vector norm, got ${num2(ord)}.`)
+    // the Euclidean norm is built from sqrt and sum, so at zero its gradient is NaN, as TensorFlow's is
+    const out = isEuclid ? C.unary(E, 'sqrt', C.reduceSum(E, C.unary(E, 'square', t), axes, keep, false)) : C.vectorNorm(E, t, num2(ord), axes, keep)
     return traced('norm', 'reduce', [{ label: label(P.tensor), t }], out, axes && axes.length === 1 ? C.normDim(axes[0], t.ndim) : null)
   })
   const num2 = (v: Value) => h.num(v)
@@ -6693,11 +6449,11 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const P = bindArgs(h, 'matmul', 'a b transpose_a=False transpose_b=False !adjoint_a=False !adjoint_b=False a_is_sparse=False b_is_sparse=False output_type=None grad_a=False grad_b=False name=None', args, kw, null)
     let a = T(P.a, 'matmul')
     let b = T(P.b, 'matmul')
-    if (a.dtype !== b.dtype) throw h.err('InvalidArgumentError', `cannot compute MatMul as input #1(zero-based) was expected to be a ${TF_KIND[a.dtype]} tensor but is a ${TF_KIND[b.dtype]} tensor [Op:MatMul]`)
-    if (a.ndim < 2 || b.ndim < 2) throw h.err('InvalidArgumentError', `In[0] and In[1] has different ndims: [${a.shape.join(',')}] vs. [${b.shape.join(',')}] [Op:MatMul]`)
+    if (a.dtype !== b.dtype) throw tfErr(h, `cannot compute MatMul as input #1(zero-based) was expected to be a ${TF_KIND[a.dtype]} tensor but is a ${TF_KIND[b.dtype]} tensor [Op:MatMul]`)
+    if (a.ndim < 2 || b.ndim < 2) throw tfErr(h, `In[0] and In[1] has different ndims: [${a.shape.join(',')}] vs. [${b.shape.join(',')}] [Op:MatMul]`)
     if (h.truthy(P.transpose_a)) a = C.transposeT(E, a, -1, -2)
     if (h.truthy(P.transpose_b)) b = C.transposeT(E, b, -1, -2)
-    if (a.shape[a.ndim - 1] !== b.shape[b.ndim - 2]) throw h.err('InvalidArgumentError', `Matrix size-incompatible: In[0]: [${a.shape.join(',')}], In[1]: [${b.shape.join(',')}] [Op:MatMul]`)
+    if (a.shape[a.ndim - 1] !== b.shape[b.ndim - 2]) throw tfErr(h, `Matrix size-incompatible: In[0]: [${a.shape.join(',')}], In[1]: [${b.shape.join(',')}] [Op:MatMul]`)
     return traced('matmul', 'matmul', [{ label: label(P.a, 'a'), t: a }, { label: label(P.b, 'b'), t: b }], C.matmul(E, a, b, 'MatMul'))
   })
 
@@ -6716,9 +6472,9 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     reduce_prod: reduceProd, reduce_std: reduceSpread('reduce_std', true), reduce_variance: reduceSpread('reduce_variance', false), reduce_any: reduceBool('reduce_any', 'Any'), reduce_all: reduceBool('reduce_all', 'All'),
     exp: elem('exp', 'exp', 'Exp'), log: elem('log', 'log', 'Log'), sqrt: elem('sqrt', 'sqrt', 'Sqrt'), square: elem('square', 'square', null), abs: elem('abs', 'abs', null), negative: elem('negative', 'neg', null),
     sin: elem('sin', 'sin', 'Sin'), cos: elem('cos', 'cos', 'Cos'), tanh: elem('tanh', 'tanh', 'Tanh'), sigmoid: elem('sigmoid', 'sigmoid', 'Sigmoid'),
-    tan: smooth('tan', 'Tan', (t) => elementT(E, t, 'TanBackward', Math.tan, (v) => 1 / Math.cos(v) ** 2)),
-    log1p: smooth('log1p', 'Log1p', (t) => elementT(E, t, 'Log1pBackward', Math.log1p, (v) => 1 / (1 + v))),
-    expm1: smooth('expm1', 'Expm1', (t) => elementT(E, t, 'Expm1Backward', Math.expm1, (v) => Math.exp(v))),
+    tan: smooth('tan', 'Tan', (t) => C.mapT(E, t, Math.tan, (v) => 1 / Math.cos(v) ** 2, 'TanBackward')),
+    log1p: smooth('log1p', 'Log1p', (t) => C.mapT(E, t, Math.log1p, (v) => 1 / (1 + v), 'Log1pBackward')),
+    expm1: smooth('expm1', 'Expm1', (t) => C.mapT(E, t, Math.expm1, (v) => Math.exp(v), 'Expm1Backward')),
     softplus: smooth('softplus', 'Softplus', (t) => softplusT(E, t)),
     round, floor: floorFn, ceil: ceilFn, sign: signFn,
     is_nan: plain('is_nan', null, (v) => (Number.isNaN(v) ? 1 : 0)), is_inf: plain('is_inf', null, (v) => (Math.abs(v) === Infinity ? 1 : 0)), is_finite: plain('is_finite', null, (v) => (Number.isFinite(v) ? 1 : 0)),
@@ -6729,7 +6485,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     divide_no_nan: fnv('divide_no_nan', (args) => {
       const a = T(args[0], 'divide_no_nan')
       const b = tfOperand(h, args[1], a) ?? T(args[1], 'divide_no_nan')
-      const shape = bcast(a.shape, b.shape)
+      const shape = bcast(h, a.shape, b.shape)
       const [ia, ib] = [C.bcastIndex(a.shape, shape), C.bcastIndex(b.shape, shape)]
       const [av, bv] = [a.values(), b.values()]
       return tfWrap(TT.of(Array.from({ length: prod(shape) }, (_, i) => (bv[ib[i]] ? av[ia[i]] / bv[ib[i]] : 0)), shape, a.dtype))
@@ -6770,7 +6526,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const P = bindArgs(h, 'softmax_cross_entropy_with_logits', 'labels logits axis=-1 name=None', args, kw, null)
     const z = T(P.logits, 'softmax_cross_entropy_with_logits')
     const y = toTF(h, P.labels, z.dtype)
-    if (y.shape.join() !== z.shape.join()) throw h.err('InvalidArgumentError', `logits and labels must be broadcastable: logits_size=[${z.shape.join(',')}] labels_size=[${y.shape.join(',')}] [Op:SoftmaxCrossEntropyWithLogits]`)
+    if (y.shape.join() !== z.shape.join()) throw tfErr(h, `logits and labels must be broadcastable: logits_size=[${z.shape.join(',')}] labels_size=[${y.shape.join(',')}] [Op:SoftmaxCrossEntropyWithLogits]`)
     const axis = h.toInt(P.axis)
     return tfWrap(C.reduceSum(E, C.binary(E, '*', C.unary(E, 'neg', y), C.softmax(E, z, axis, true)), [axis], false, false))
   })
@@ -6778,11 +6534,11 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const P = bindArgs(h, 'sparse_softmax_cross_entropy_with_logits', 'labels logits name=None', args, kw, null)
     const z = T(P.logits, 'sparse_softmax_cross_entropy_with_logits')
     const y = T(P.labels, 'sparse_softmax_cross_entropy_with_logits')
-    if (isFloatT(y.dtype)) throw h.err('InvalidArgumentError', `Value for attr 'Tlabels' of ${y.dtype} is not in the list of allowed values: int32, int64`)
+    if (isFloatT(y.dtype)) throw tfErr(h, `Value for attr 'Tlabels' of ${y.dtype} is not in the list of allowed values: int32, int64`)
     if (y.shape.join() !== z.shape.slice(0, -1).join()) throw h.err('ValueError', `\`labels.shape.rank\` must equal \`logits.shape.rank - 1\`. Received: labels.shape=${shapeStr(y.shape)} and logits.shape=${shapeStr(z.shape)}`)
     const d = z.shape[z.ndim - 1]
     const labels = y.values()
-    for (const l of labels) if (l < 0 || l >= d) throw h.err('InvalidArgumentError', `Received a label value of ${l} which is outside the valid range of [0, ${d}).  Label values: ${labels.join(' ')} [Op:SparseSoftmaxCrossEntropyWithLogits]`)
+    for (const l of labels) if (l < 0 || l >= d) throw tfErr(h, `Received a label value of ${l} which is outside the valid range of [0, ${d}).  Label values: ${labels.join(' ')} [Op:SparseSoftmaxCrossEntropyWithLogits]`)
     const per = C.nllLoss(E, C.reshapeT(E, C.softmax(E, z, -1, true), [labels.length, d], false), TT.of(labels, [labels.length], 'int64'), 'none')
     return tfWrap(C.reshapeT(E, per, y.shape, false))
   })
@@ -6797,9 +6553,9 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const P = bindArgs(h, 'conv2d', 'input filters strides padding !data_format=NHWC dilations=None name=None', args, kw, null)
     const x = T(P.input, 'conv2d')
     const w = T(P.filters, 'conv2d')
-    if (x.dtype !== w.dtype) throw h.err('InvalidArgumentError', `cannot compute Conv2D as input #1(zero-based) was expected to be a ${TF_KIND[x.dtype]} tensor but is a ${TF_KIND[w.dtype]} tensor [Op:Conv2D]`)
+    if (x.dtype !== w.dtype) throw tfErr(h, `cannot compute Conv2D as input #1(zero-based) was expected to be a ${TF_KIND[x.dtype]} tensor but is a ${TF_KIND[w.dtype]} tensor [Op:Conv2D]`)
     if (x.ndim !== 4 || w.ndim !== 4) throw h.err('ValueError', `Shape must be rank 4 but is rank ${x.ndim !== 4 ? x.ndim : w.ndim}`)
-    if (x.shape[3] !== w.shape[2]) throw h.err('InvalidArgumentError', `input and filter must have the same depth: ${x.shape[3]} vs ${w.shape[2]} [Op:Conv2D]`)
+    if (x.shape[3] !== w.shape[2]) throw tfErr(h, `input and filter must have the same depth: ${x.shape[3]} vs ${w.shape[2]} [Op:Conv2D]`)
     return tfWrap(convNHWC(E, x, w, null, hw(P.strides, 'strides'), isNone(P.dilations) ? [1, 1] : hw(P.dilations, 'dilations'), tfPad(P.padding, 'conv2d')))
   })
   const nnFns: Record<string, Value> = {
@@ -6896,18 +6652,18 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       shuffle: fnv('shuffle', (args, kw) => {
         const P = bindArgs(h, 'shuffle', 'value seed=None name=None', args, kw, null)
         const t = T(P.value, 'shuffle')
-        if (!t.ndim) throw h.err('InvalidArgumentError', 'input must be at least 1-D, got shape [] [Op:RandomShuffle]')
+        if (!t.ndim) throw tfErr(h, 'input must be at least 1-D, got shape [] [Op:RandomShuffle]')
         const order = allOf(t.shape[0])
         for (let i = order.length - 1; i > 0; i--) {
           const j = Math.floor(h.rng.next() * (i + 1))
           ;[order[i], order[j]] = [order[j], order[i]]
         }
-        return moved('random.shuffle', P.value, t, gridIndex(t.shape, [order, ...t.shape.slice(1).map(allOf)]), t.shape)
+        return moved('random.shuffle', P.value, t, C.crossSrc(t.shape, [order, ...t.shape.slice(1).map(allOf)]), t.shape)
       }),
       categorical: fnv('categorical', (args, kw) => {
         const P = bindArgs(h, 'categorical', 'logits num_samples dtype=int64 seed=None name=None', args, kw, null)
         const z = T(P.logits, 'categorical')
-        if (z.ndim !== 2) throw h.err('InvalidArgumentError', `logits should be a matrix, got shape ${shapeStr(z.shape)} [Op:Multinomial]`)
+        if (z.ndim !== 2) throw tfErr(h, `logits should be a matrix, got shape ${shapeStr(z.shape)} [Op:Multinomial]`)
         const [B, Cc] = z.shape
         const k = h.toInt(P.num_samples)
         const v = z.values()
@@ -6928,55 +6684,31 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
   }
 
   // ---- tf.linalg
-  const perMatrix = (t: TT, api: string, f: (a: number[], n: number) => void) => {
-    const n = t.shape[t.ndim - 1]
-    if (t.ndim < 2 || t.shape[t.ndim - 2] !== n) throw h.err('InvalidArgumentError', `Input matrix must be square. [Op:${api}]`)
-    const v = t.values()
-    const size = n * n
-    for (let b = 0; b < v.length / size; b++) f(v.slice(b * size, (b + 1) * size), n)
+  const square = (t: TT, api: string) => {
+    if (t.ndim < 2 || t.shape[t.ndim - 2] !== t.shape[t.ndim - 1]) throw tfErr(h, `Input matrix must be square. [Op:${api}]`)
+  }
+  /** the engine's factorisation fails only on a singular matrix, once squareness is checked */
+  const invertible = (run: () => TT, message: string): TT => {
+    try {
+      return run()
+    } catch (e) {
+      if (e instanceof PyError) throw tfErr(h, message)
+      throw e
+    }
   }
   const inverse = fnv('inv', (args, kw) => {
     const P = bindArgs(h, 'inv', 'input adjoint=False name=None', args, kw, null)
     const t = T(P.input, 'inv')
     floatOnly(t, 'MatrixInverse')
-    const invs: number[][] = []
-    perMatrix(t, 'MatrixInverse', (a, n) => invs.push(invMatrix(h, a, n)))
-    const n = t.shape[t.ndim - 1]
-    const out = TT.of(invs.flat(), t.shape, t.dtype)
-    return traced('linalg.inv', 'linalg', [{ label: label(P.input), t }], opT(E, out, 'MatrixInverseBackward', [t], (g) => {
-      // d⟨G, A⁻¹⟩ = −A⁻ᵀ G A⁻ᵀ
-      const ga: number[] = []
-      invs.forEach((inv, b) => {
-        const G = g.slice(b * n * n, (b + 1) * n * n)
-        const res = new Array<number>(n * n).fill(0)
-        const tmp = new Array<number>(n * n).fill(0)
-        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) for (let k = 0; k < n; k++) tmp[i * n + j] += inv[k * n + i] * G[k * n + j]
-        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) for (let k = 0; k < n; k++) res[i * n + j] -= tmp[i * n + k] * inv[j * n + k]
-        ga.push(...res)
-      })
-      return [ga]
-    }))
+    square(t, 'MatrixInverse')
+    const a = h.truthy(P.adjoint) ? C.transposeT(E, t, -1, -2) : t
+    return traced('linalg.inv', 'linalg', [{ label: label(P.input), t }], invertible(() => C.invT(E, a), 'Input is not invertible. [Op:MatrixInverse]'))
   })
   const determinant = fnv('det', (args, kw) => {
     const t = T(args[0] ?? kw.input, 'det')
     floatOnly(t, 'MatrixDeterminant')
-    const dets: number[] = []
-    const invs: (number[] | null)[] = []
-    perMatrix(t, 'MatrixDeterminant', (a, n) => {
-      const d = detMatrix(a, n)
-      dets.push(d)
-      invs.push(d !== 0 ? invMatrix(h, a, n) : null)
-    })
-    const n = t.shape[t.ndim - 1]
-    const out = TT.of(dets, t.shape.slice(0, -2), t.dtype)
-    return traced('linalg.det', 'linalg', [{ label: label(args[0]), t }], opT(E, out, 'MatrixDeterminantBackward', [t], (g) => {
-      const ga: number[] = []
-      dets.forEach((d, b) => {
-        const inv = invs[b]
-        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) ga.push(inv ? g[b] * d * inv[j * n + i] : 0)
-      })
-      return [ga]
-    }))
+    square(t, 'MatrixDeterminant')
+    return traced('linalg.det', 'linalg', [{ label: label(args[0]), t }], C.detT(E, t))
   })
   const traceFn = fnv('trace', (args, kw) => {
     const t = T(args[0] ?? kw.x, 'trace')
@@ -7022,27 +6754,29 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
         return moved('linalg.diag_part', args[0], t, src, [...t.shape.slice(0, -2), m])
       }),
       matrix_transpose: fnv('matrix_transpose', (args) => tfWrap(C.transposeT(E, T(args[0], 'matrix_transpose'), -1, -2))),
-      solve: fnv('solve', (args) => {
-        const a = T(args[0], 'solve')
-        const b = T(args[1], 'solve')
-        return h.call(matmul, [h.call(inverse, [tfWrap(a)]), tfWrap(b)])
+      solve: fnv('solve', (args, kw) => {
+        const P = bindArgs(h, 'solve', 'matrix rhs !adjoint=False name=None', args, kw, null)
+        const a = T(P.matrix, 'solve')
+        const b = T(P.rhs, 'solve')
+        square(a, 'MatrixSolve')
+        if (b.ndim !== a.ndim) throw tfErr(h, `Input matrix and rhs must have the same rank, got ${a.ndim} != ${b.ndim} [Op:MatrixSolve]`)
+        return tfWrap(invertible(() => C.solveT(E, a, b), 'Input matrix is not invertible. [Op:MatrixSolve]'))
       }),
     },
   }
 
   // ---- tf.image
-  const imageRank = (t: TT, what: string) => {
+  const imageRank = (t: TT) => {
     if (t.ndim !== 3 && t.ndim !== 4) throw h.err('ValueError', `'image' (shape ${shapeStr(t.shape)}) must have either 3 or 4 dimensions.`)
-    void what
   }
   const toFloatImage = (t: TT): TT => (isFloatT(t.dtype) ? t : TT.of(t.dtype === 'uint8' ? t.values().map((v) => v / 255) : t.values(), t.shape, 'float32'))
   const flip = (name: string, axisFromEnd: number) => fnv(name, (args, kw) => {
     const v = args[0] ?? kw.image
     const t = T(v, name)
-    imageRank(t, name)
+    imageRank(t)
     const axis = t.ndim - axisFromEnd
     const maps = t.shape.map((n, d) => (d === axis ? allOf(n).reverse() : allOf(n)))
-    return moved(`image.${name}`, v, t, gridIndex(t.shape, maps), t.shape)
+    return moved(`image.${name}`, v, t, C.crossSrc(t.shape, maps), t.shape)
   })
   const image: Value = {
     k: 'module', name: 'tensorflow.image', attrs: {
@@ -7060,7 +6794,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       rgb_to_grayscale: fnv('rgb_to_grayscale', (args, kw) => {
         const v = args[0] ?? kw.images
         const t = T(v, 'rgb_to_grayscale')
-        if (t.shape[t.ndim - 1] !== 3) throw h.err('InvalidArgumentError', `Dimensions must be equal, but are ${t.shape[t.ndim - 1]} and 3`)
+        if (t.shape[t.ndim - 1] !== 3) throw tfErr(h, `Dimensions must be equal, but are ${t.shape[t.ndim - 1]} and 3`)
         const f = toFloatImage(t)
         const w = TT.of([0.2989, 0.587, 0.114], [3], f.dtype)
         const gray = C.unsqueezeT(E, C.reduceSum(E, C.binary(E, '*', f, w), [-1], false, false), -1)
@@ -7072,7 +6806,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
         const t = T(v, 'grayscale_to_rgb')
         if (t.shape[t.ndim - 1] !== 1) throw h.err('ValueError', `Dimension -1 in both shapes must be equal, but are ${t.shape[t.ndim - 1]} and 1.`)
         const maps = t.shape.map((n, d) => (d === t.ndim - 1 ? [0, 0, 0] : allOf(n)))
-        return moved('image.grayscale_to_rgb', v, t, gridIndex(t.shape, maps), [...t.shape.slice(0, -1), 3])
+        return moved('image.grayscale_to_rgb', v, t, C.crossSrc(t.shape, maps), [...t.shape.slice(0, -1), 3])
       }),
       convert_image_dtype: fnv('convert_image_dtype', (args, kw) => {
         const P = bindArgs(h, 'convert_image_dtype', 'image dtype saturate=False name=None', args, kw, null)
@@ -7086,7 +6820,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       rot90: fnv('rot90', (args, kw) => {
         const P = bindArgs(h, 'rot90', 'image k=1 name=None', args, kw, null)
         let t = T(P.image, 'rot90')
-        imageRank(t, 'rot90')
+        imageRank(t)
         const k = ((h.toInt(P.k) % 4) + 4) % 4
         const hAx = t.ndim - 3
         const wAx = t.ndim - 2
@@ -7107,16 +6841,36 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
   // ---- tf.data
   const Dataset: Value = {
     k: 'module', name: 'tensorflow.data.Dataset', attrs: {
-      from_tensor_slices: fnv('from_tensor_slices', (args, kw) => datasetOf(h, '_TensorSliceDataset', sliceElements(h, args[0] ?? kw.tensors))),
+      from_tensor_slices: fnv('from_tensor_slices', (args, kw) => datasetOf('_TensorSliceDataset', sliceElements(h, args[0] ?? kw.tensors))),
       from_tensors: fnv('from_tensors', (args, kw) => {
         const v = args[0] ?? kw.tensors
-        return datasetOf(h, '_TensorDataset', [v.k === 'tuple' ? py.tuple(v.items.map((x) => tfWrap(T(x, 'from_tensors')))) : tfWrap(T(v, 'from_tensors'))])
+        return datasetOf('_TensorDataset', [v.k === 'tuple' ? py.tuple(v.items.map((x) => tfWrap(T(x, 'from_tensors')))) : tfWrap(T(v, 'from_tensors'))])
+      }),
+      from_generator: fnv('from_generator', (args, kw) => {
+        const P = bindArgs(h, 'from_generator', 'generator output_types=None output_shapes=None args=None output_signature=None name=None', args, kw, null)
+        if (isNone(P.output_signature) && isNone(P.output_types)) throw h.err('TypeError', 'To specify the output signature you need to provide either the `output_signature` argument or the `output_types` argument.')
+        const f = P.generator
+        const given = isNone(P.args) ? [] : h.iterate(P.args)
+        // each element is cast to the dtype the signature declares
+        const typeOf = (sig: Value): TDType | null => (sig.k === 'obj' && sig.o instanceof TensorSpec ? (sig.o.dtype === 'string' ? null : sig.o.dtype) : dt(sig))
+        const conv = (x: Value, sig: Value): Value => {
+          if (isSeq(sig)) return py.tuple(h.iterate(x).map((p, i) => conv(p, sig.items[i])))
+          const strs = strsOf(x)
+          if (strs) return py.obj(new TFString(strs, x.k === 'str' ? [] : [strs.length]))
+          return tfWrap(toTF(h, x, typeOf(sig)))
+        }
+        const sig = isNone(P.output_signature) ? P.output_types : P.output_signature
+        const specText = (v: Value): string => (isSeq(v) ? `(${v.items.map(specText).join(', ')}${v.items.length === 1 ? ',' : ''})` : v.k === 'obj' && v.o instanceof TensorSpec ? v.o.repr() : new TensorSpec(null, typeOf(v) ?? 'string', py.NONE).repr())
+        return py.obj(new TFDataset('_FlatMapDataset', function* (hh) {
+          const next = hh.iterOf(hh.call(f, given))
+          for (let x = next(); x !== undefined; x = next()) yield conv(x, sig)
+        }, () => specText(sig), false, null))
       }),
       range: fnv('range', (args) => {
         const nums = args.map((a) => h.toInt(a))
         const [a, b, s] = nums.length === 1 ? [0, nums[0], 1] : [nums[0], nums[1], nums[2] ?? 1]
         const n = Math.max(0, Math.ceil((b - a) / s))
-        return datasetOf(h, '_RangeDataset', allOf(n).map((i) => tfWrap(TT.scalar(a + i * s, 'int64'))))
+        return datasetOf('_RangeDataset', allOf(n).map((i) => tfWrap(TT.scalar(a + i * s, 'int64'))))
       }),
     },
   }
@@ -7169,6 +6923,8 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     },
   }
 
+  const errors: Value = { k: 'module', name: 'tensorflow.errors', attrs: { ...tfErrorClasses(h) } }
+
   // ---- tf itself
   const fill = (name: string, v: number) => fnv(name, (args, kw) => {
     const P = bindArgs(h, name, 'shape dtype=float32 name=None', args, kw, null)
@@ -7194,7 +6950,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     ...tfd,
     ...mathFns,
     __version__: py.str('2.20 (sandbox)'),
-    keras, math: tfMath, nn: tfNN, random, linalg, image, data, config, test: testMod, strings,
+    keras, math: tfMath, nn: tfNN, random, linalg, image, data, config, test: testMod, strings, errors,
     losses: kerasAttrs.losses, metrics: kerasAttrs.metrics, optimizers: K.optimizers, initializers: K.initializers, layers: kerasAttrs.layers,
     newaxis: py.NONE,
     constant: fnv('constant', (args, kw) => {
@@ -7239,35 +6995,35 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     linspace: fnv('linspace', (args, kw) => {
       const P = bindArgs(h, 'linspace', 'start stop num name=None axis=0', args, kw, null)
       const startT = T(P.start, 'linspace')
-      if (!isFloatT(startT.dtype)) throw h.err('InvalidArgumentError', `cannot compute AddV2 as input #1(zero-based) was expected to be a ${TF_KIND[startT.dtype]} tensor but is a double tensor [Op:AddV2]`)
+      if (!isFloatT(startT.dtype)) throw tfErr(h, `cannot compute AddV2 as input #1(zero-based) was expected to be a ${TF_KIND[startT.dtype]} tensor but is a double tensor [Op:AddV2]`)
       if (startT.size !== 1) throw h.err('NotImplementedError', 'tf.linspace with non-scalar start and stop is not implemented in this sandbox')
       const lo = startT.values()[0]
       const hi = h.num(P.stop)
       const n = h.toInt(P.num)
-      if (n < 1) throw h.err('InvalidArgumentError', `Requires num > 0: ${n} [Op:LinSpace]`)
+      if (n < 1) throw tfErr(h, `Requires num > 0: ${n} [Op:LinSpace]`)
       const delta = n > 1 ? (hi - lo) / (n - 1) : 0
       return traced('linspace', 'create', [], TT.of(Array.from({ length: n }, (_, i) => (i === n - 1 && n > 1 ? hi : lo + i * delta)), [n], startT.dtype))
     }),
     eye, matmul, norm, tensordot, sort: sortFn, argsort: argsortFn, clip_by_value: clipByValue, unique: fnv('unique', (args, kw) => {
       const P = bindArgs(h, 'unique', 'x out_idx=int32 name=None', args, kw, null)
       const t = T(P.x, 'unique')
-      if (t.ndim !== 1) throw h.err('InvalidArgumentError', 'unique expects a 1D vector. [Op:UniqueV2]')
+      if (t.ndim !== 1) throw tfErr(h, 'unique expects a 1D vector. [Op:UniqueV2]')
       const seen = new Map<number, number>()
       const idx = t.values().map((v) => {
         let i = seen.get(v)
         if (i === undefined) seen.set(v, (i = seen.size))
         return i
       })
-      return py.obj(new TFNamed('Unique', [['y', tfWrap(TT.of([...seen.keys()], [seen.size], t.dtype))], ['idx', tfWrap(TT.of(idx, t.shape, dt(P.out_idx) ?? 'int32'))]]))
+      return named('Unique', ['y', 'idx'], [tfWrap(TT.of([...seen.keys()], [seen.size], t.dtype)), tfWrap(TT.of(idx, t.shape, dt(P.out_idx) ?? 'int32'))])
     }),
     reshape: fnv('reshape', (args, kw) => {
       const P = bindArgs(h, 'reshape', 'tensor shape name=None', args, kw, null)
       const t = T(P.tensor, 'reshape')
       const shape = shapeOf(P.shape)
-      if (shape.filter((d) => d === -1).length > 1) throw h.err('InvalidArgumentError', 'only one input size may be -1, not both 0 and 1 [Op:Reshape]')
+      if (shape.filter((d) => d === -1).length > 1) throw tfErr(h, 'only one input size may be -1, not both 0 and 1 [Op:Reshape]')
       const known = shape.reduce((a, d) => (d === -1 ? a : a * d), 1)
       const size = shape.includes(-1) ? (known ? t.size / known : 0) : known
-      if ((shape.includes(-1) && !Number.isInteger(size)) || (!shape.includes(-1) && size !== t.size)) throw h.err('InvalidArgumentError', `Input to reshape is a tensor with ${t.size} values, but the requested shape has ${known} [Op:Reshape]`)
+      if ((shape.includes(-1) && !Number.isInteger(size)) || (!shape.includes(-1) && size !== t.size)) throw tfErr(h, `Input to reshape is a tensor with ${t.size} values, but the requested shape has ${known} [Op:Reshape]`)
       return tfWrap(C.reshapeT(E, t, shape, false))
     }),
     transpose: fnv('transpose', (args, kw) => {
@@ -7287,7 +7043,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     size: fnv('size', (args, kw) => tfWrap(TT.scalar(T(args[0] ?? kw.input, 'size').size, dt(kw.out_type) ?? 'int32'))),
     concat: fnv('concat', (args, kw) => {
       const parts = h.iterate(args[0] ?? kw.values).map((v) => T(v, 'concat'))
-      for (const t of parts) if (t.dtype !== parts[0].dtype) throw h.err('InvalidArgumentError', `cannot compute ConcatV2 as input #${parts.indexOf(t)}(zero-based) was expected to be a ${TF_KIND[parts[0].dtype]} tensor but is a ${TF_KIND[t.dtype]} tensor [Op:ConcatV2]`)
+      for (const t of parts) if (t.dtype !== parts[0].dtype) throw tfErr(h, `cannot compute ConcatV2 as input #${parts.indexOf(t)}(zero-based) was expected to be a ${TF_KIND[parts[0].dtype]} tensor but is a ${TF_KIND[t.dtype]} tensor [Op:ConcatV2]`)
       return tfWrap(C.catT(E, parts, h.toInt(kw.axis ?? args[1] ?? py.int(0))))
     }),
     stack: fnv('stack', (args, kw) => tfWrap(C.catT(E, h.iterate(args[0] ?? kw.values).map((v) => T(v, 'stack')), h.toInt(kw.axis ?? args[1] ?? py.int(0)), true))),
@@ -7331,10 +7087,8 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       return py.list(ts.map((t, k) => {
         const flat = C.reshapeT(E, t, [t.size], false)
         const axis = ix === 'xy' && k < 2 ? 1 - k : k
-        const src = gridIndex(shape, shape.map((n) => new Array<number>(n).fill(0)))
-        const st = cStrides(shape)
-        const out = src.map((_, f) => Math.floor(f / st[axis]) % shape[axis])
-        return tfWrap(takeT(E, flat, out, shape))
+        const src = C.crossSrc(shape.map((n, d) => (d === axis ? n : 1)), shape.map((n, d) => (d === axis ? allOf(n) : new Array<number>(n).fill(0))))
+        return tfWrap(C.takeT(E, flat, src, shape, 'TakeBackward'))
       }))
     }),
     is_tensor: fnv('is_tensor', (args) => py.bool(!!tfOf(args[0]) || !!kerasOf(args[0]) || (args[0].k === 'obj' && args[0].o instanceof TFString))),
@@ -7348,6 +7102,11 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     device: fnv('device', () => py.obj(new NoScope('device'))),
     name_scope: fnv('name_scope', () => py.obj(new NoScope('name_scope'))),
     TensorShape: { k: 'type', name: 'TensorShape', call: (args) => py.obj(new TensorShape(h.iterate(args[0]).map((v) => (v.k === 'none' ? null : h.toInt(v))))) },
+    TensorSpec: { k: 'type', name: 'TensorSpec', call: (args, kw) => {
+      const P = bindArgs(h, 'TensorSpec', 'shape dtype=float32 name=None', args, kw, null)
+      const d = P.dtype.k === 'obj' && P.dtype.o instanceof TFDtype ? P.dtype.o.d : h.str(P.dtype)
+      return py.obj(new TensorSpec(isNone(P.shape) ? null : h.iterate(P.shape).map((v) => (v.k === 'none' ? null : h.toInt(v))), d as TDType | 'string', P.name))
+    } },
     Tensor: { k: 'type', name: 'Tensor', call: () => { throw h.err('TypeError', 'use tf.constant(...) to make a tensor') } },
   }
   // every op shows in the step-through: those that did not record a finer view appear as a plain step
@@ -7402,27 +7161,13 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     },
   }
   kerasAttrs.ops = ops
-  const now = new Date()
-  const datetime: Value = {
-    k: 'module', name: 'datetime', attrs: {
-      datetime: { k: 'module', name: 'datetime.datetime', attrs: {
-        now: fnv('now', () => ({ k: 'module', name: 'datetime', attrs: {
-          strftime: fnv('strftime', (args) => {
-            const p = (n: number) => String(n).padStart(2, '0')
-            const map: Record<string, string> = { Y: String(now.getFullYear()), m: p(now.getMonth() + 1), d: p(now.getDate()), H: p(now.getHours()), M: p(now.getMinutes()), S: p(now.getSeconds()) }
-            return py.str(h.str(args[0]).replace(/%([YmdHMS])/g, (_, c: string) => map[c]))
-          }),
-        } })),
-      } },
-    },
-  }
   const schedules = (K.optimizers as { attrs: Record<string, Value> }).attrs.schedules
   const sequence = (K.preprocessing as { attrs: Record<string, Value> }).attrs.sequence
   const kerasMods: Record<string, Value> = {
     '': keras, layers: kerasAttrs.layers, models: K.models, optimizers: K.optimizers, 'optimizers.schedules': schedules, losses: kerasAttrs.losses, callbacks: K.callbacks, utils: K.utils, datasets: K.datasets,
     activations: K.activations, metrics: kerasAttrs.metrics, regularizers: K.regularizers, initializers: K.initializers, backend: K.backend, preprocessing: K.preprocessing, 'preprocessing.sequence': sequence, ops,
   }
-  const mods: Record<string, Value> = { tensorflow: tfMod, 'tensorflow.math': tfMath, 'tensorflow.nn': tfNN, 'tensorflow.random': random, 'tensorflow.linalg': linalg, 'tensorflow.image': image, 'tensorflow.data': data, 'tensorflow.config': config, datetime }
+  const mods: Record<string, Value> = { tensorflow: tfMod, 'tensorflow.math': tfMath, 'tensorflow.nn': tfNN, 'tensorflow.random': random, 'tensorflow.linalg': linalg, 'tensorflow.image': image, 'tensorflow.data': data, 'tensorflow.config': config, 'tensorflow.errors': errors }
   for (const [k, v] of Object.entries(kerasMods)) {
     mods[k ? `keras.${k}` : 'keras'] = v
     mods[k ? `tensorflow.keras.${k}` : 'tensorflow.keras'] = v
@@ -7433,6 +7178,6 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
 const KERAS_SUBMODULES = ['layers', 'models', 'optimizers', 'optimizers.schedules', 'losses', 'callbacks', 'utils', 'datasets', 'activations', 'metrics', 'regularizers', 'initializers', 'backend', 'preprocessing', 'preprocessing.sequence', 'ops']
 
 export const KERAS: PyLib = {
-  modules: ['keras', 'tensorflow', 'tensorflow.keras', ...KERAS_SUBMODULES.flatMap((m) => [`keras.${m}`, `tensorflow.keras.${m}`]), 'tensorflow.math', 'tensorflow.nn', 'tensorflow.random', 'tensorflow.linalg', 'tensorflow.image', 'tensorflow.data', 'tensorflow.config', 'datetime'],
+  modules: ['keras', 'tensorflow', 'tensorflow.keras', ...KERAS_SUBMODULES.flatMap((m) => [`keras.${m}`, `tensorflow.keras.${m}`]), 'tensorflow.math', 'tensorflow.nn', 'tensorflow.random', 'tensorflow.linalg', 'tensorflow.image', 'tensorflow.data', 'tensorflow.config', 'tensorflow.errors'],
   load: build,
 }
