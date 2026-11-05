@@ -84,14 +84,14 @@ export const loadWorkbench = memo(() => import('./Workbench'))
 
 function buildSpec(id: LibId): Promise<LibSpec> {
   if (id === 'numpy') {
-    return Promise.all([ensurePacks(i18n, ['numpy_api', ...SHARED]), import('../../data/numpyApis'), import('../../lib/minipy')]).then(([, d, py]) => ({
+    return Promise.all([ensurePacks(i18n, ['numpy_api', ...SHARED]), import('../../data/numpyApis'), import('../../lib/minipy'), import('../../lib/pyLazy')]).then(([, d, py, lazy]) => ({
       entries: d.NUMPY_APIS.map((e) => ({ id: e.id, cat: e.cat, label: e.label, code: e.code, focus: e.match, focusFirst: true })),
       cats: d.API_CATS,
       start: d.NUMPY_APIS.find((e) => e.cat === 'reduce')!.id,
       catKey: (c) => `numpy_api.cat.${c}`,
       explainKey: (e) => `numpy_api.api.${e}`,
       noteKey: 'numpy_api.sandbox_note',
-      run: (code) => py.runPython(code),
+      run: (code) => py.runPython(code, { libs: lazy.loadedLibs() }),
       callApis: null,
       debounce: 300,
       realOk: true,

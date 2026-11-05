@@ -12,6 +12,7 @@ import type { StepKind } from './kinds'
 import { RealConsole, RealFigures } from './RealOutput'
 import { realErrorLine, useEngineChoice, useEngineState, useRealRun, useWarmEngine } from './useEngine'
 import { LIBS } from './libs'
+import { useLazyLibs } from './useLazyLibs'
 import type { BenchEntry, BenchProps, LibId, LibSpec } from './libs'
 
 // /playground/ as a workbench: examples on the left (folds away), code in the middle,
@@ -317,7 +318,9 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
   // the click (highlight, new code) paints first; the run follows in a deferred render
   const deferredRan = useDeferredValue(ran)
   const stale = deferredRan !== ran
-  const result = useMemo(() => spec.run(realOn ? '' : deferredRan), [spec, deferredRan, realOn])
+  const libs = useLazyLibs(deferredRan, !realOn)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- libs.tick: the libraries the program imports have arrived
+  const result = useMemo(() => spec.run(realOn || libs.waiting ? '' : deferredRan), [spec, deferredRan, realOn, libs.waiting, libs.tick])
   const runNow = () => {
     if (code !== ran) setRan(code)
     else if (realOn) real.rerun()

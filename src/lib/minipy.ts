@@ -1208,8 +1208,10 @@ export abstract class PyObj {
   abstract readonly cls: string
   abstract repr(): string
   str?(): string
-  /** format(x, spec) — f'{x:.3f}' */
+  /** format(x, spec) — f'{x:.3f}'; spec may be empty; undefined = the usual rules */
   format?(spec: string): string | undefined
+  /** __index__: the integer this is when used as a list index or in range() */
+  asIndex?(h: Host): number
   getAttr?(name: string, h: Host): Value | undefined
   setAttr?(name: string, v: Value, h: Host): boolean
   getItem?(idx: Value, h: Host): Value
@@ -1521,11 +1523,12 @@ const groupThousands = (s: string, sep: string) => s.replace(/^(-?\d+)/, (m) => 
 
 /** Python's format-spec mini-language for numbers and strings: [[fill]align][sign][0][width][,][.precision][type] */
 export const formatSpec = (v: Value, spec: string): string => {
-  if (!spec) return str(v)
+  // a library type decides first, as __format__ does: f'{torch.tensor(1.5)}' is 1.5
   if (v.k === 'obj') {
     const s = v.o.format?.(spec)
     if (s !== undefined) return s
   }
+  if (!spec) return str(v)
   const m = /^(?:(.)?([<>^=]))?([+\- ])?(#)?(0)?(\d+)?([,_])?(?:\.(\d+))?([bcdeEfFgGnosxX%])?$/.exec(spec)
   if (!m) throw new PyError('ValueError', `Invalid format specifier '${spec}'`)
   const [, fill0, align0, sign, alt, zero, widthS, group, precS, type] = m
@@ -2346,6 +2349,11 @@ class Interp implements Host {
   toInt(v: Value, what = 'an integer'): number {
     if (v.k === 'int') return v.v
     if (v.k === 'bool') return v.v ? 1 : 0
+    if (v.k === 'obj' && v.o.asIndex) return v.o.asIndex(this)
+    if (v.k === 'inst') {
+      const f = this.classAttr(v.cls, '__index__')
+      if (f) return this.toInt(this.call(f, [v]), what)
+    }
     if (v.k === 'array' && v.a.ndim === 0 && v.a.dtype !== 'float64') return v.a.values()[0]
     throw this.err('TypeError', `'${typeName(v)}' object cannot be interpreted as ${what}`)
   }
@@ -2686,7 +2694,10 @@ class Interp implements Host {
     return out
   }
 
-  getItem(node: Node & { k: 'sub' }, obj: Value, idx: Value): Value {
+  getItem(node: Node & { k: 'sub' }, obj: Value, idx0: Value): Value {
+    // anything with __index__ (a 0-d integer tensor, say) indexes a sequence as that integer
+    const asIndex = (obj.k === 'list' || obj.k === 'tuple' || obj.k === 'str') && ((idx0.k === 'obj' && idx0.o.asIndex) || (idx0.k === 'inst' && this.classAttr(idx0.cls, '__index__')))
+    const idx = asIndex ? int(this.toInt(idx0)) : idx0
     if (obj.k === 'array') {
       const a = obj.a
       const before = snap(a)
@@ -5315,6 +5326,11 @@ class Interp implements Host {
         if (x.k === 'inst') {
           const f = this.classAttr(x.cls, '__abs__')
           if (f) return this.call(f, [x])
+        }
+        if (x.k === 'obj') {
+          const f = this.getAttrOr(x, '__abs__') ?? this.getAttrOr(x, 'abs')
+          if (f) return this.call(f, [])
+          throw this.err('TypeError', `bad operand type for abs(): '${x.o.cls}'`)
         }
         if (x.k === 'array') return arr(NDArray.create(x.a.values().map(Math.abs), x.a.shape, x.a.dtype === 'bool' ? 'int64' : x.a.dtype))
         if (x.k === 'obj') return this.call(this.getAttr(x, 'abs'), [])
