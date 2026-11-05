@@ -73,6 +73,8 @@ export interface LegendEntry {
   kind: 'line' | 'patch' | 'scatter'
   color: string; width: number; dash: Dash; line: boolean; marker: Marker; ms: number; mfc: string; mec: string; mew: number
   fc: string; ec: string; lw: number; size: number; alpha: number
+  /** colour of the upright bar an errorbar or stem shows */
+  bar?: string
 }
 
 export interface LegendSpec {

@@ -218,7 +218,8 @@ export const delaunay = (xs: number[], ys: number[]): number[][] => {
   const py = [...ys, my - 2e4 * d, my + 2e4 * d, my - 2e4 * d]
   interface T { a: number; b: number; c: number; cx: number; cy: number; r2: number }
   const make = (a0: number, b0: number, c0: number): T => {
-    let [a, b, c] = [a0, b0, c0]
+    const a = a0
+    let [b, c] = [b0, c0]
     const area = (px[b] - px[a]) * (py[c] - py[a]) - (py[b] - py[a]) * (px[c] - px[a])
     if (area < 0) [b, c] = [c, b]
     const bx = px[b] - px[a]

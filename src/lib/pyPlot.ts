@@ -4,6 +4,7 @@
  * SubplotParams), so what get_xlim() prints is what gets drawn. Text widths are estimated, since nothing is rendered here.
  */
 import { NDArray } from './ndarray'
+import type { DType } from './ndarray'
 import { PyDict, PyObj, formatSpec, isNum, objId, py, repr as pyRepr, toArray } from './minipy'
 import type { Host, Kw, PyLib, Value } from './minipy'
 import type { Artist, AxesSpec, AxisSpec, BarArtist, Coord, Dash, Display, FigureSpec, ImageArtist, LegendEntry, LegendSpec, LineArtist, Marker, MeshArtist, PolyArtist, ScatterArtist, SegsArtist, SpineSpec, TextArrow, TextArtist } from './pyEvents'
@@ -46,7 +47,7 @@ const oneOf = (h: Host, v: string, name: string, allowed: string[]) => {
 export const CYCLE = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 const NAMED: Record<string, string> = {
-  ...Object.fromEntries(CSS4.split(' ').map((e) => { const [n, c] = e.split(':'); return [n, `#${c}`] })),
+  ...Object.fromEntries(CSS4.split(' ').map((e) => { const [n, c] = e.split(':'); return [n, `#${c.toLowerCase()}`] })),
   b: '#0000ff', g: '#008000', r: '#ff0000', c: '#00bfbf', m: '#bf00bf', y: '#bfbf00', k: '#000000', w: '#ffffff',
   'tab:blue': CYCLE[0], 'tab:orange': CYCLE[1], 'tab:green': CYCLE[2], 'tab:red': CYCLE[3], 'tab:purple': CYCLE[4],
   'tab:brown': CYCLE[5], 'tab:pink': CYCLE[6], 'tab:gray': CYCLE[7], 'tab:olive': CYCLE[8], 'tab:cyan': CYCLE[9],
@@ -54,6 +55,13 @@ const NAMED: Record<string, string> = {
 
 const hex2 = (x: number) => Math.round(Math.max(0, Math.min(1, x)) * 255).toString(16).padStart(2, '0')
 const rgbHex = (r: number, g: number, b: number, a = 1) => `#${hex2(r)}${hex2(g)}${hex2(b)}${a < 1 ? hex2(a) : ''}`
+
+/**
+ * Colours travel as 8-bit strings, which the figure needs; what matplotlib would hand back for one that is not a whole
+ * byte ('g' is 0.5, a tuple keeps its floats) is remembered here. intAlpha: names and tuples give alpha as the integer 1.
+ */
+const EXACT = new Map<string, { rgba: number[]; intAlpha: boolean }>()
+const BASE_RGB: Record<string, number[]> = { b: [0, 0, 1], g: [0, 0.5, 0], r: [1, 0, 0], c: [0, 0.75, 0.75], m: [0.75, 0, 0.75], y: [0.75, 0.75, 0], k: [0, 0, 0], w: [1, 1, 1] }
 
 const BAD_COLOR = "supported inputs are (r, g, b) and (r, g, b, a) 0-1 float tuples; '#rrggbb', '#rrggbbaa', '#rgb', '#rgba' strings; named color strings; string reprs of 0-1 floats for grayscale values; 'C0', 'C1', ... strings for colors of the color cycle; and pairs combining one of the above with an alpha value"
 
@@ -63,8 +71,19 @@ const parseColor = (s0: string): string | null => {
   if (/^#[0-9a-fA-F]{3,4}$/.test(s)) return `#${[...s.slice(1)].map((c) => c + c).join('')}`.toLowerCase().replace(/^(#.{6})ff$/, '$1')
   if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(s)) return s.toLowerCase().replace(/^(#.{6})ff$/, '$1')
   if (/^C\d+$/.test(s)) return CYCLE[Number(s.slice(1)) % 10]
-  if (/^(\d*\.?\d+)$/.test(s) && Number(s) >= 0 && Number(s) <= 1) return rgbHex(Number(s), Number(s), Number(s))
-  return NAMED[s] ?? NAMED[s.toLowerCase()] ?? null
+  if (/^(\d*\.?\d+)$/.test(s) && Number(s) >= 0 && Number(s) <= 1) {
+    const g = Number(s)
+    const hex = rgbHex(g, g, g)
+    EXACT.set(hex, { rgba: [g, g, g, 1], intAlpha: true })
+    return hex
+  }
+  const named = NAMED[s] ?? NAMED[s.toLowerCase()] ?? null
+  if (named) {
+    const base = BASE_RGB[s]
+    if (base) EXACT.set(named, { rgba: [...base, 1], intAlpha: true })
+    else EXACT.delete(named)
+  }
+  return named
 }
 
 /** a matplotlib colour spec → CSS colour ('#rrggbb', '#rrggbbaa' or 'none') */
@@ -84,7 +103,9 @@ export const toColor = (h: Host, v: Value, what = 'color'): string => {
     const xs = v.k === 'array' ? v.a.values() : v.items.map((x) => (isNum(x) ? h.num(x) : NaN))
     if (xs.length !== 3 && xs.length !== 4) throw bad()
     if (xs.some((x) => !(x >= 0 && x <= 1))) throw h.err('ValueError', 'RGBA values should be within 0-1 range')
-    return rgbHex(xs[0], xs[1], xs[2], xs[3] ?? 1)
+    const hex = rgbHex(xs[0], xs[1], xs[2], xs[3] ?? 1)
+    EXACT.set(hex, { rgba: [xs[0], xs[1], xs[2], xs[3] ?? 1], intAlpha: xs.length === 3 })
+    return hex
   }
   throw bad()
 }
@@ -92,9 +113,15 @@ export const toColor = (h: Host, v: Value, what = 'color'): string => {
 /** '#rrggbb[aa]' → floats; 'none' → all zero */
 const rgbaOf = (c: string): [number, number, number, number] => {
   if (!c.startsWith('#')) return [0, 0, 0, 0]
+  const exact = EXACT.get(c)
+  if (exact) return exact.rgba as [number, number, number, number]
   return [parseInt(c.slice(1, 3), 16) / 255, parseInt(c.slice(3, 5), 16) / 255, parseInt(c.slice(5, 7), 16) / 255, c.length > 7 ? parseInt(c.slice(7, 9), 16) / 255 : 1]
 }
-const rgbaValue = (c: string): Value => py.tuple(rgbaOf(c).map(py.float))
+/** a colour as matplotlib returns it, with an artist's alpha in place of its own */
+const rgbaValue = (c: string, alpha: number | null = null): Value => {
+  const [r, g, b, a] = rgbaOf(c)
+  return py.tuple([py.float(r), py.float(g), py.float(b), alpha !== null ? py.float(alpha) : EXACT.get(c)?.intAlpha ? py.int(1) : py.float(a)])
+}
 /** several colours from one argument: a single colour, a list of colours, or an N×3 / N×4 array */
 const toColors = (h: Host, v: Value, what = 'color'): string[] => {
   if (v.k === 'array' && v.a.ndim === 2) {
@@ -119,6 +146,8 @@ export interface Lut {
   over: string | null
   bad: string | null
   hex?: string[]
+  /** a ListedColormap's colours as they were given */
+  raw?: Value
 }
 
 const b64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0))
@@ -271,6 +300,7 @@ class ColormapObj extends PyObj {
       case 'name': return py.str(l.name)
       case 'colors':
         if (!l.listed) return undefined
+        if (l.raw) return l.raw
         return py.list(Array.from({ length: l.n }, (_, i) => py.tuple([l.rgb[i * 3], l.rgb[i * 3 + 1], l.rgb[i * 3 + 2]].map(py.float))))
       case 'reversed': return fnv(name, () => py.obj(new ColormapObj(reverseLut(l, l.name.endsWith('_r') ? l.name.slice(0, -2) : `${l.name}_r`))))
       case 'copy': return fnv(name, () => py.obj(new ColormapObj({ ...l })))
@@ -441,6 +471,7 @@ const stateOf = (h: Host): PlotState => {
   let s = h.state.get('pyplot') as PlotState | undefined
   if (!s) {
     s = { figs: [], cur: null, rc: new Map(), interactive: false, image: null }
+    EXACT.clear()
     h.state.set('pyplot', s)
   }
   return s
@@ -517,7 +548,7 @@ const alias = <T>(p: Props<T>, names: Record<string, string>): Props<T> => {
   return p
 }
 /** accepted as keyword arguments and setters, with no effect on the drawing */
-const COSMETIC = new Set(['antialiased', 'aa', 'antialiaseds', 'rasterized', 'snap', 'gid', 'url', 'urls', 'picker', 'pickradius', 'animated', 'in_layout', 'mouseover', 'path_effects', 'sketch_params', 'agg_filter', 'clip_box', 'clip_path', 'solid_capstyle', 'solid_joinstyle', 'dash_capstyle', 'dash_joinstyle', 'capstyle', 'joinstyle', 'hatch', 'hatch_linewidth', 'gapcolor', 'figure', 'fontproperties', 'font_properties', 'font', 'family', 'fontfamily', 'fontname', 'name', 'stretch', 'fontstretch', 'variant', 'fontvariant', 'math_fontfamily', 'wrap', 'linespacing', 'multialignment', 'ma', 'rotation_mode', 'usetex', 'parse_math', 'transform_rotates_text', 'fontsize_', 'offset_transform', 'pickable', 'capprops_', 'fill_', 'dash_offset', 'markerfacecoloralt', 'mfcalt'])
+const COSMETIC = new Set(['antialiased', 'aa', 'antialiaseds', 'rasterized', 'snap', 'gid', 'url', 'urls', 'picker', 'pickradius', 'animated', 'in_layout', 'mouseover', 'path_effects', 'sketch_params', 'agg_filter', 'clip_box', 'clip_path', 'solid_capstyle', 'solid_joinstyle', 'dash_capstyle', 'dash_joinstyle', 'capstyle', 'joinstyle', 'hatch', 'hatch_linewidth', 'gapcolor', 'figure', 'fontproperties', 'font_properties', 'font', 'family', 'fontfamily', 'fontname', 'name', 'stretch', 'fontstretch', 'variant', 'fontvariant', 'math_fontfamily', 'wrap', 'linespacing', 'multialignment', 'ma', 'rotation_mode', 'usetex', 'parse_math', 'transform_rotates_text', 'offset_transform', 'pickable', 'dash_offset', 'markerfacecoloralt', 'mfcalt'])
 
 const LS_NAMES: Record<string, string> = { solid: '-', dashed: '--', dashdot: '-.', dotted: ':', '-': '-', '--': '--', '-.': '-.', ':': ':', None: 'None', none: 'None', ' ': 'None', '': 'None' }
 const LS_DASH: Record<string, Dash> = { '-': null, '--': [3.7, 1.6], '-.': [6.4, 1.6, 1, 1.6], ':': [1, 1.65], None: null }
@@ -603,12 +634,13 @@ abstract class ArtistObj extends PyObj {
     const f = this.figure()
     if (f) emitFig(h, f, this.ax, this.ax ? this.ax.children.indexOf(this) : null)
   }
-  applyKw(kw: Kw, h: Host) {
+  /** update: the wording of Artist.update, which Text's constructor goes through */
+  applyKw(kw: Kw, h: Host, update = false) {
     const table = this.props()
     for (const [k, v] of Object.entries(kw)) {
       const p = table[k] ?? BASE[k]
       if (p?.s) p.s(this, [v], h, {})
-      else if (!COSMETIC.has(k)) throw h.err('AttributeError', `${this.cls}.set() got an unexpected keyword argument '${k}'`)
+      else if (!COSMETIC.has(k)) throw h.err('AttributeError', update ? `'${this.cls}' object has no property '${k}'` : `${this.cls}.set() got an unexpected keyword argument '${k}'`)
     }
   }
   /** the artist's python-level position bounds, for relim */
@@ -653,7 +685,6 @@ abstract class ArtistObj extends PyObj {
       case 'figure': { const f = this.figure(); return f ? py.obj(f) : py.NONE }
       case 'get_figure': return fnv(name, () => { const f = this.figure(); return f ? py.obj(f) : py.NONE })
       case 'get_axes': return fnv(name, () => (this.ax ? py.obj(this.ax) : py.NONE))
-      case 'sticky_edges': return py.NONE
       case 'stale': return py.bool(false)
     }
     return undefined
@@ -669,17 +700,26 @@ const newLine = (h: Host, x: number[], y: number[], color: string): LineArtist =
   mfc: 'auto', mec: 'auto', mew: rcn(h, 'lines.markeredgewidth'), steps: null, markevery: null, label: null, alpha: 1,
 })
 
-const dtypeArr = (xs: number[], dtype: 'int64' | 'float64' | 'bool'): Value => py.arr(NDArray.create(xs, [xs.length], dtype))
+const dtypeArr = (xs: number[], dtype: DType): Value => py.arr(NDArray.create(xs, [xs.length], dtype))
 
 class LineObj extends ArtistObj {
   cls = 'Line2D'
   spec: LineArtist
   raw: Value | null = null
   lsName = '-'
-  dtypes: ['int64' | 'float64' | 'bool', 'int64' | 'float64' | 'bool'] = ['float64', 'float64']
+  dtypes: [DType, DType] = ['float64', 'float64']
+  /** set_data and the constructor keep a list as given, and get_xdata returns it */
+  orig: [Value | null, Value | null] = [null, null]
   constructor(spec: LineArtist) {
     super()
     this.spec = spec
+  }
+  setCoord(i: 0 | 1, v: Value) {
+    const a = toArray(v)
+    if (i === 0) this.spec.x = a.values()
+    else this.spec.y = a.values()
+    this.dtypes[i] = a.dtype
+    this.orig[i] = v.k === 'list' ? py.list([...v.items]) : null
   }
   props() { return LINE_PROPS as unknown as Props<ArtistObj> }
   repr() { return `<matplotlib.lines.${this.cls} object at ${addr(this)}>` }
@@ -693,12 +733,19 @@ class LineObj extends ArtistObj {
 
 const STEPS: Record<string, LineArtist['steps']> = { default: null, steps: 'pre', 'steps-pre': 'pre', 'steps-mid': 'mid', 'steps-post': 'post' }
 const LINE_PROPS: Props<LineObj> = alias({
-  color: { g: (o) => o.raw ?? py.str(o.spec.color), s: (o, [v], h) => { o.spec.color = toColor(h, v); o.raw = v } },
-  linewidth: { g: (o) => py.float(o.spec.width), s: (o, [v], h) => { o.spec.width = h.num(v) } },
+  color: {
+    g: (o) => o.raw ?? py.str(o.spec.color),
+    s: (o, [v], h) => {
+      const c = isNone(v) ? rcv(h, 'lines.color') : v
+      o.spec.color = toColor(h, c)
+      o.raw = c
+    },
+  },
+  linewidth: { g: (o) => py.float(o.spec.width), s: (o, [v], h) => { o.spec.width = isNone(v) ? rcn(h, 'lines.linewidth') : h.num(v) } },
   linestyle: {
     g: (o) => py.str(o.lsName),
     s: (o, a, h) => {
-      const st = lineStyle(h, a.length === 2 ? py.tuple(a) : a[0], 'ls')
+      const st = lineStyle(h, a.length === 2 ? py.tuple(a) : isNone(a[0]) ? rcv(h, 'lines.linestyle') : a[0], 'ls')
       o.lsName = st.name
       o.spec.line = st.line
       o.spec.dash = st.dash
@@ -706,10 +753,10 @@ const LINE_PROPS: Props<LineObj> = alias({
   },
   dashes: { s: (o, [v], h) => { o.spec.dash = h.iterate(v).map((x) => h.num(x)) } },
   marker: { g: (o) => py.str(o.spec.marker ?? 'None'), s: (o, [v], h) => { o.spec.marker = markerOf(h, v) } },
-  markersize: { g: (o) => py.float(o.spec.ms), s: (o, [v], h) => { o.spec.ms = h.num(v) } },
-  markerfacecolor: { g: (o) => py.str(o.spec.mfc === 'auto' ? o.spec.color : o.spec.mfc), s: (o, [v], h) => { o.spec.mfc = v.k === 'str' && v.v === 'auto' ? 'auto' : toColor(h, v, 'markerfacecolor') } },
-  markeredgecolor: { g: (o) => py.str(o.spec.mec === 'auto' ? o.spec.color : o.spec.mec), s: (o, [v], h) => { o.spec.mec = v.k === 'str' && v.v === 'auto' ? 'auto' : toColor(h, v, 'markeredgecolor') } },
-  markeredgewidth: { g: (o) => py.float(o.spec.mew), s: (o, [v], h) => { o.spec.mew = h.num(v) } },
+  markersize: { g: (o) => py.float(o.spec.ms), s: (o, [v], h) => { o.spec.ms = isNone(v) ? rcn(h, 'lines.markersize') : h.num(v) } },
+  markerfacecolor: { g: (o) => py.str(o.spec.mfc === 'auto' ? o.spec.color : o.spec.mfc), s: (o, [v], h) => { o.spec.mfc = isNone(v) || (v.k === 'str' && v.v === 'auto') ? 'auto' : toColor(h, v, 'markerfacecolor') } },
+  markeredgecolor: { g: (o) => py.str(o.spec.mec === 'auto' ? o.spec.color : o.spec.mec), s: (o, [v], h) => { o.spec.mec = isNone(v) || (v.k === 'str' && v.v === 'auto') ? 'auto' : toColor(h, v, 'markeredgecolor') } },
+  markeredgewidth: { g: (o) => py.float(o.spec.mew), s: (o, [v], h) => { o.spec.mew = isNone(v) ? rcn(h, 'lines.markeredgewidth') : h.num(v) } },
   fillstyle: {
     s: (o, [v], h) => {
       const f = h.str(v)
@@ -733,23 +780,14 @@ const LINE_PROPS: Props<LineObj> = alias({
       else throw h.err('NotImplementedError', 'markevery: only an integer step is drawn in this sandbox')
     },
   },
-  xdata: {
-    g: (o) => dtypeArr(o.spec.x, o.dtypes[0]),
-    s: (o, [v]) => { const a = toArray(v); o.spec.x = a.values(); o.dtypes[0] = a.dtype },
-  },
-  ydata: {
-    g: (o) => dtypeArr(o.spec.y, o.dtypes[1]),
-    s: (o, [v]) => { const a = toArray(v); o.spec.y = a.values(); o.dtypes[1] = a.dtype },
-  },
+  xdata: { g: (o) => o.orig[0] ?? dtypeArr(o.spec.x, o.dtypes[0]), s: (o, [v]) => { o.setCoord(0, v) } },
+  ydata: { g: (o) => o.orig[1] ?? dtypeArr(o.spec.y, o.dtypes[1]), s: (o, [v]) => { o.setCoord(1, v) } },
   data: {
-    g: (o) => py.tuple([dtypeArr(o.spec.x, o.dtypes[0]), dtypeArr(o.spec.y, o.dtypes[1])]),
+    g: (o) => py.tuple([o.orig[0] ?? dtypeArr(o.spec.x, o.dtypes[0]), o.orig[1] ?? dtypeArr(o.spec.y, o.dtypes[1])]),
     s: (o, a, h) => {
       const [xv, yv] = a.length === 2 ? a : h.iterate(a[0])
-      const xa = toArray(xv)
-      const ya = toArray(yv)
-      o.spec.x = xa.values()
-      o.spec.y = ya.values()
-      o.dtypes = [xa.dtype, ya.dtype]
+      o.setCoord(0, xv)
+      o.setCoord(1, yv)
     },
   },
   xydata: { g: (o) => floats(o.spec.x.flatMap((x, i) => [x, o.spec.y[i]]), [o.spec.x.length, 2]) },
@@ -818,11 +856,12 @@ const shapePath = (s: Shape): number[] => {
 /** extent of a shape: curves' true extrema rather than their polygon's */
 const shapeBounds = (s: Shape): [number[], number[]] => {
   if (s.t === 'ellipse') {
+    // matplotlib looks for extrema on the unit circle, before rotating: its eight Bezier end points
     const c = Math.cos((s.angle * Math.PI) / 180)
     const n = Math.sin((s.angle * Math.PI) / 180)
-    const dx = Math.hypot((s.w / 2) * c, (s.h / 2) * n)
-    const dy = Math.hypot((s.w / 2) * n, (s.h / 2) * c)
-    return [[s.x - dx, s.x + dx], [s.y - dy, s.y + dy]]
+    const r = Math.SQRT1_2
+    const pts = [[1, 0], [r, r], [0, 1], [-r, r], [-1, 0], [-r, -r], [0, -1], [r, -r]].map(([u, v]) => [(u * s.w) / 2, (v * s.h) / 2])
+    return [pts.map(([u, v]) => s.x + u * c - v * n), pts.map(([u, v]) => s.y + u * n + v * c)]
   }
   const p = shapePath(s)
   return [p.filter((_, i) => i % 2 === 0), p.filter((_, i) => i % 2 === 1)]
@@ -837,6 +876,7 @@ class PatchObj extends ArtistObj {
   spec: PolyArtist
   shape: Shape
   fill = true
+  face: string
   fcSet = false
   ecSet = false
   /** a named constructor's str(): 'Rectangle(xy=(0, 0), width=1, height=2, angle=0)' */
@@ -845,7 +885,8 @@ class PatchObj extends ArtistObj {
     super()
     this.cls = cls
     this.shape = shape
-    this.spec = newPoly(rcc(h, 'patch.facecolor'), 'none', rcn(h, 'patch.linewidth'))
+    this.face = rcc(h, 'patch.facecolor')
+    this.spec = newPoly(this.face, 'none', rcn(h, 'patch.linewidth'))
     this.rebuild()
   }
   rebuild() {
@@ -861,7 +902,7 @@ class PatchObj extends ArtistObj {
     switch (s.t) {
       case 'rect': return `Rectangle(xy=(${g(s.x)}, ${g(s.y)}), width=${g(s.w)}, height=${g(s.h)}, angle=${g(s.angle)})`
       case 'ellipse': return s.cls === 'Circle' ? `Circle(xy=(${g(s.x)}, ${g(s.y)}), radius=${g(s.w / 2)})` : `Ellipse(xy=(${g(s.x)}, ${g(s.y)}), width=${g(s.w)}, height=${g(s.h)}, angle=${g(s.angle)})`
-      case 'polygon': return `Polygon${s.pts.length / 2}((${g(s.pts[0])}, ${g(s.pts[1])}) ...)`
+      case 'polygon': return s.pts.length ? `Polygon${s.pts.length / 2 + (s.closed ? 1 : 0)}((${g(s.pts[0])}, ${g(s.pts[1])}) ...)` : 'Polygon0()'
       case 'wedge': return `Wedge(center=(${g(s.x)}, ${g(s.y)}), r=${g(s.r)}, theta1=${g(s.t1)}, theta2=${g(s.t2)}, width=${s.width === null ? 'None' : g(s.width)})`
       default: return `${this.cls}()`
     }
@@ -869,12 +910,13 @@ class PatchObj extends ArtistObj {
   bounds(): [number[], number[]] { return shapeBounds(this.shape) }
   legendEntry(): LegendEntry {
     const a = this.spec
+    if (this.cls === 'StepPatch' && !this.fill) return { label: a.label ?? '', kind: 'line', color: a.ecs[0], width: a.lw, dash: a.dash, line: true, marker: null, ms: 0, mfc: 'none', mec: 'none', mew: 0, fc: 'none', ec: 'none', lw: 0, size: 0, alpha: a.alpha }
     return { label: a.label ?? '', kind: 'patch', color: a.fcs[0], width: 0, dash: a.dash, line: false, marker: null, ms: 0, mfc: 'none', mec: 'none', mew: 0, fc: a.fcs[0], ec: a.ecs[0], lw: a.lw, size: 0, alpha: a.alpha }
   }
   /** the rules of Patch._set_edgecolor: no edge unless asked for or unfilled */
   refreshEdge(h: Host) {
     if (!this.ecSet) this.spec.ecs = [this.fill ? 'none' : rcc(h, 'patch.edgecolor')]
-    if (!this.fill) this.spec.fcs = ['none']
+    this.spec.fcs = [this.fill ? this.face : 'none']
   }
 }
 
@@ -884,9 +926,16 @@ const geomNum = (read: (s: Shape) => number | undefined, write: (s: Shape, v: nu
 })
 
 const PATCH_PROPS: Props<PatchObj> = alias({
-  facecolor: { g: (o) => rgbaValue(o.spec.fcs[0]), s: (o, [v], h) => { o.spec.fcs = [toColor(h, v, 'facecolor')]; o.fcSet = true; if (o.spec.fcs[0] !== 'none') o.fill = true } },
-  edgecolor: { g: (o) => rgbaValue(o.spec.ecs[0]), s: (o, [v], h) => { if (isNone(v)) { o.ecSet = false; o.refreshEdge(h) } else { o.spec.ecs = [toColor(h, v, 'edgecolor')]; o.ecSet = true } } },
-  color: { s: (o, [v], h) => { const c = toColor(h, v); o.spec.fcs = [c]; o.spec.ecs = [c]; o.ecSet = true; o.fcSet = true } },
+  facecolor: {
+    g: (o) => (o.fill ? rgbaValue(o.face, o.alphaSet) : rgbaValue(o.face, 0)),
+    s: (o, [v], h) => {
+      o.face = toColor(h, v, 'facecolor')
+      o.fcSet = true
+      if (o.fill) o.spec.fcs = [o.face]
+    },
+  },
+  edgecolor: { g: (o) => rgbaValue(o.spec.ecs[0], o.alphaSet), s: (o, [v], h) => { if (isNone(v)) { o.ecSet = false; o.refreshEdge(h) } else { o.spec.ecs = [toColor(h, v, 'edgecolor')]; o.ecSet = true } } },
+  color: { s: (o, [v], h) => { const c = toColor(h, v); o.face = c; o.spec.fcs = [c]; o.spec.ecs = [c]; o.ecSet = true; o.fcSet = true } },
   linewidth: { g: (o) => py.float(o.spec.lw), s: (o, [v], h) => { o.spec.lw = optNum(h, v) ?? rcn(h, 'patch.linewidth') } },
   linestyle: { s: (o, [v], h) => { const st = lineStyle(h, v); o.spec.dash = st.dash; if (!st.line) o.spec.lw = 0 } },
   fill: { g: (o) => py.bool(o.fill), s: (o, [v], h) => { o.fill = h.truthy(v); o.refreshEdge(h) } },
@@ -960,12 +1009,11 @@ const MAPPED_PROPS: Props<ArtistObj & Mapped> = {
   },
   array: {
     g: (o) => (o.values ? floats(o.values, o.shape) : py.NONE),
-    s: (o, [v], h) => {
+    s: (o, [v]) => {
       if (isNone(v)) { o.values = null; return }
       const a = toArray(v, 'float64')
       o.values = a.values()
       o.shape = a.shape
-      void h
       o.recolor()
     },
   },
@@ -1002,7 +1050,6 @@ const normArg = (h: Host, kw: Kw): NormObj => {
 
 // ---- scatter
 
-const FACE = 'face'
 class ScatterObj extends ArtistObj implements Mapped {
   cls = 'PathCollection'
   spec: ScatterArtist
@@ -1010,14 +1057,14 @@ class ScatterObj extends ArtistObj implements Mapped {
   norm: NormObj
   values: number[] | null = null
   shape: number[] = []
-  fixed: string[]
-  edgeMode = FACE
+  sizeType: DType = 'float64'
+  lwType: DType = 'float64'
+  hollow = false
   constructor(spec: ScatterArtist, lut: Lut, norm: NormObj) {
     super()
     this.spec = spec
     this.lut = lut
     this.norm = norm
-    this.fixed = spec.colors
   }
   recolor() {
     if (this.values) this.spec.colors = this.values.map((v) => this.norm.color(this.lut, v))
@@ -1031,23 +1078,28 @@ class ScatterObj extends ArtistObj implements Mapped {
     return { label: a.label ?? '', kind: 'scatter', color: a.colors[0] ?? '#000000', width: 0, dash: null, line: false, marker: a.marker, ms: 0, mfc: a.colors[0] ?? 'none', mec: a.edges?.[0] ?? a.colors[0] ?? 'none', mew: a.lw[0] ?? 1, fc: a.colors[0] ?? 'none', ec: a.edges?.[0] ?? 'none', lw: a.lw[0] ?? 1, size: a.sizes[0] ?? 36, alpha: a.alpha }
   }
 }
-const rgbaArr = (cs: string[]): Value => floats(cs.flatMap((c) => rgbaOf(c)), [cs.length, 4])
+/** an N×4 array with the artist's alpha; 'none' leaves it empty, as to_rgba_array does */
+const rgbaArr = (cs: string[], alpha: number | null = null): Value => {
+  const list = cs.filter((c) => c !== 'none')
+  return floats(list.flatMap((c) => { const [r, g, b, a] = rgbaOf(c); return [r, g, b, alpha ?? a] }), [list.length, 4])
+}
+/** before a drawing, a colour-mapped collection still holds the default face: matplotlib maps colours at draw time */
+const faceNow = (o: ArtistObj & Mapped, cs: string[], h: Host): Value => (o.values && !o.figure()?.drew ? rgbaArr([rcc(h, 'patch.facecolor')], o.alphaSet) : rgbaArr(cs, o.alphaSet))
 const SCATTER_PROPS: Props<ScatterObj> = alias(mappedProps<ScatterObj>({
   offsets: {
     g: (o) => floats(o.spec.x.flatMap((x, i) => [x, o.spec.y[i]]), [o.spec.x.length, 2]),
-    s: (o, [v], h) => {
+    s: (o, [v]) => {
       const a = toArray(v, 'float64')
       const n = a.size / 2
       const xs = a.values()
       o.spec.x = Array.from({ length: n }, (_, i) => xs[i * 2])
       o.spec.y = Array.from({ length: n }, (_, i) => xs[i * 2 + 1])
-      void h
     },
   },
-  sizes: { g: (o) => floats(o.spec.sizes), s: (o, [v], h) => { o.spec.sizes = nums(h, v, 'sizes') } },
-  facecolor: { g: (o) => rgbaArr(o.spec.colors), s: (o, [v], h) => { o.values = null; o.spec.colors = toColors(h, v, 'facecolor') } },
+  sizes: { g: (o) => dtypeArr(o.spec.sizes, o.sizeType), s: (o, [v], h) => { o.spec.sizes = nums(h, v, 'sizes'); o.sizeType = toArray(v).dtype } },
+  facecolor: { g: (o, h) => (o.hollow ? rgbaArr(['none']) : faceNow(o, o.spec.colors, h)), s: (o, [v], h) => { o.values = null; o.spec.colors = toColors(h, v, 'facecolor') } },
   edgecolor: {
-    g: (o) => (o.spec.edges ? rgbaArr(o.spec.edges) : rgbaArr(o.spec.colors)),
+    g: (o, h) => (o.spec.edges ? rgbaArr(o.spec.edges, o.alphaSet) : faceNow(o, o.spec.colors, h)),
     s: (o, [v], h) => {
       if (v.k === 'str' && v.v === 'face') o.spec.edges = null
       else if (isNone(v)) o.spec.edges = null
@@ -1055,7 +1107,7 @@ const SCATTER_PROPS: Props<ScatterObj> = alias(mappedProps<ScatterObj>({
     },
   },
   color: { s: (o, [v], h) => { const c = toColors(h, v); o.values = null; o.spec.colors = c; o.spec.edges = c } },
-  linewidth: { g: (o) => floats(o.spec.lw), s: (o, [v], h) => { o.spec.lw = nums(h, v, 'linewidth') } },
+  linewidth: { g: (o) => dtypeArr(o.spec.lw, o.lwType), s: (o, [v], h) => { o.spec.lw = nums(h, v, 'linewidth'); o.lwType = toArray(v).dtype } },
   linestyle: { s: () => {} },
   paths: {},
 }), { fc: 'facecolor', facecolors: 'facecolor', ec: 'edgecolor', edgecolors: 'edgecolor', lw: 'linewidth', linewidths: 'linewidth', ls: 'linestyle', linestyles: 'linestyle' })
@@ -1089,8 +1141,8 @@ class PolyObj extends ArtistObj implements Mapped {
   }
 }
 const POLY_PROPS: Props<PolyObj> = alias(mappedProps<PolyObj>({
-  facecolor: { g: (o) => rgbaArr(o.spec.fcs), s: (o, [v], h) => { o.values = null; o.spec.fcs = toColors(h, v, 'facecolor') } },
-  edgecolor: { g: (o) => rgbaArr(o.spec.ecs), s: (o, [v], h) => { o.spec.ecs = v.k === 'str' && v.v === 'face' ? o.spec.fcs : isNone(v) ? ['none'] : toColors(h, v, 'edgecolor') } },
+  facecolor: { g: (o, h) => faceNow(o, o.spec.fcs, h), s: (o, [v], h) => { o.values = null; o.spec.fcs = toColors(h, v, 'facecolor') } },
+  edgecolor: { g: (o) => rgbaArr(o.spec.ecs, o.alphaSet), s: (o, [v], h) => { o.spec.ecs = v.k === 'str' && v.v === 'face' ? o.spec.fcs : isNone(v) ? ['none'] : toColors(h, v, 'edgecolor') } },
   color: { s: (o, [v], h) => { const c = toColors(h, v); o.values = null; o.spec.fcs = c; o.spec.ecs = c } },
   linewidth: { g: (o) => floats([o.spec.lw]), s: (o, [v], h) => { o.spec.lw = nums(h, v, 'linewidth')[0] } },
   linestyle: { s: (o, [v], h) => { o.spec.dash = lineStyle(h, v).dash } },
@@ -1174,7 +1226,8 @@ class ImageObj extends ArtistObj implements Mapped {
   norm: NormObj
   values: number[] | null
   shape: number[]
-  rgbData: number[] | null = null
+  source: NDArray | null = null
+  extentRaw: Value | null = null
   origin = 'upper'
   constructor(spec: ImageArtist, lut: Lut, norm: NormObj, values: number[] | null, shape: number[]) {
     super()
@@ -1219,6 +1272,7 @@ const IMAGE_PROPS: Props<ImageObj> = mappedProps<ImageObj>({
         }
         o.values = a.values()
         o.shape = a.shape
+        o.source = a.copy()
         o.recolor()
       } else {
         const pix = imagePixels(h, a)
@@ -1227,16 +1281,18 @@ const IMAGE_PROPS: Props<ImageObj> = mappedProps<ImageObj>({
         s.pixels = pix.pixels
         s.values = pix.values
         s.rgb = pix.rgb
+        o.source = pix.a.copy()
         if (!pix.rgb) { o.values = pix.values; o.recolor() }
       }
     },
   },
-  array: { g: (o) => (o.values ? floats(o.values, o.shape) : py.NONE), s: (o, [v], h) => { IMAGE_PROPS.data.s!(o, [v], h, {}) } },
+  array: { g: (o) => (o.source ? py.arr(o.source.copy()) : py.NONE), s: (o, [v], h) => { IMAGE_PROPS.data.s!(o, [v], h, {}) } },
   extent: {
-    g: (o) => py.tuple(o.spec.extent.map(py.float)),
+    g: (o) => o.extentRaw ?? py.list(o.spec.extent.map(py.float)),
     s: (o, [v], h) => {
       const e = nums(h, v, 'extent')
       if (e.length !== 4) throw h.err('ValueError', 'extent must be a 4-tuple')
+      o.extentRaw = py.list(h.iterate(v))
       o.spec.extent = e as [number, number, number, number]
       o.ax?.imageExtent(o, e)
     },
@@ -1269,6 +1325,8 @@ class TextObj extends ArtistObj {
   /** drawn by its owner (a title, an axis label), not as a child of the Axes */
   owned = false
   xy: [number, number] | null = null
+  xyValue: Value | null = null
+  colorRaw: Value | null = null
   constructor(spec: TextArtist, xs?: string, ys?: string) {
     super()
     this.spec = spec
@@ -1278,14 +1336,21 @@ class TextObj extends ArtistObj {
   props() { return TEXT_PROPS as unknown as Props<ArtistObj> }
   repr() { return `Text(${this.xs}, ${this.ys}, ${pyRepr(py.str(this.spec.text))})` }
   str() { return this.cls === 'Annotation' ? `Annotation(${formatG(this.xy![0])}, ${formatG(this.xy![1])}, ${pyRepr(py.str(this.spec.text))})` : this.repr() }
+  getAttr(name: string, h: Host): Value | undefined {
+    if (name === 'xy' && this.xyValue) return this.xyValue
+    return super.getAttr(name, h)
+  }
   labelOf() { return this.textLabel }
   setLabel(l: string | null) { this.textLabel = l ?? '' }
   textLabel = ''
 }
 
+/** a number as it was written ('3' stays an int) */
+const numText = (t: string): Value => (/^-?\d+$/.test(t) ? py.int(Number(t)) : py.float(Number(t)))
+
 const TEXT_PROPS: Props<TextObj> = alias({
   text: { g: (o) => py.str(o.spec.text), s: (o, [v], h) => { o.spec.text = isNone(v) ? '' : h.str(v) } },
-  color: { g: (o) => py.str(o.spec.color), s: (o, [v], h) => { o.spec.color = toColor(h, v) } },
+  color: { g: (o) => o.colorRaw ?? py.str(o.spec.color), s: (o, [v], h) => { o.spec.color = toColor(h, v); o.colorRaw = v } },
   fontsize: { g: (o) => py.float(o.spec.size), s: (o, [v], h) => { o.spec.size = fontPt(h, v) } },
   fontweight: {
     g: (o) => py.str(o.spec.weight),
@@ -1319,11 +1384,17 @@ const TEXT_PROPS: Props<TextObj> = alias({
     },
   },
   position: {
-    g: (o) => py.tuple([py.float(o.spec.x), py.float(o.spec.y)]),
-    s: (o, [v], h) => { const [x, y] = nums(h, v, 'position'); o.spec.x = x; o.spec.y = y; o.xs = String(x); o.ys = String(y) },
+    g: (o) => py.tuple([numText(o.xs), numText(o.ys)]),
+    s: (o, [v], h) => {
+      const [xv, yv] = h.iterate(v)
+      o.spec.x = h.num(xv)
+      o.spec.y = h.num(yv)
+      o.xs = h.str(xv)
+      o.ys = h.str(yv)
+    },
   },
-  x: { g: (o) => py.float(o.spec.x), s: (o, [v], h) => { o.spec.x = h.num(v); o.xs = String(o.spec.x) } },
-  y: { g: (o) => py.float(o.spec.y), s: (o, [v], h) => { o.spec.y = h.num(v); o.ys = String(o.spec.y) } },
+  x: { s: (o, [v], h) => { o.spec.x = h.num(v); o.xs = h.str(v) } },
+  y: { s: (o, [v], h) => { o.spec.y = h.num(v); o.ys = h.str(v) } },
   bbox: {
     s: (o, [v], h) => {
       if (isNone(v)) { o.spec.bbox = null; return }
@@ -1566,6 +1637,7 @@ class Bbox extends PyObj {
     this.y1 = y1
   }
   repr() { return `Bbox([[${pyRepr(py.float(this.x0))}, ${pyRepr(py.float(this.y0))}], [${pyRepr(py.float(this.x1))}, ${pyRepr(py.float(this.y1))}]])` }
+  str() { return `Bbox(x0=${pyRepr(py.float(this.x0))}, y0=${pyRepr(py.float(this.y0))}, x1=${pyRepr(py.float(this.x1))}, y1=${pyRepr(py.float(this.y1))})` }
   getAttr(name: string): Value | undefined {
     const { x0, y0, x1, y1 } = this
     switch (name) {
@@ -1596,7 +1668,7 @@ class Bbox extends PyObj {
 type Locator =
   | { k: 'auto' }
   | { k: 'maxn'; m: MaxN }
-  | { k: 'fixed'; at: number[]; nbins?: number }
+  | { k: 'fixed'; at: number[]; nbins?: number; dtype?: DType }
   | { k: 'null' }
   | { k: 'multiple'; base: number; offset: number }
   | { k: 'log'; base: number; subs: number[] | 'auto' | null }
@@ -1723,6 +1795,7 @@ class Axis extends PyObj {
   hi = -Infinity
   minpos = Infinity
   margin: number
+  marginValue: Value | null = null
   scale = 'linear'
   base = 10
   ticker: { loc: Locator; fmt: Formatter; minorLoc: Locator; minorFmt: Formatter }
@@ -1851,17 +1924,24 @@ class Axis extends PyObj {
   /** the distance across the axis in points, as get_tick_space uses it */
   tickSpace(rect: Rect): number {
     const [W, H] = this.ax.fig.spec.size
-    const len = (this.name === 'y' ? rect[3] * H : rect[2] * W) * 72
-    const size = this.style.labelSize * (this.name === 'y' ? 2 : 3)
+    // a 3D Axes's three axes all count as x axes here
+    const vertical = this.name === 'y' && !(this.ax instanceof Axes3D)
+    const len = (vertical ? rect[3] * H : rect[2] * W) * 72
+    const size = this.style.labelSize * (vertical ? 2 : 3)
     return size > 0 ? Math.floor(len / size) : 2147483647
   }
   majorLocs(view: [number, number], space: number): number[] {
     const l = this.ticker.loc
     if (l.k === 'cats') return [...(this.cats?.values() ?? [])]
+    if (l.k === 'auto' && this.ax instanceof Axes3D) return maxNTicks(view[0], view[1], { ...AUTO, rawScale: 23 / 24 }, space)
     return locatorTicks(l, view[0], view[1], space, this.minPos())
   }
+  /** Axis.get_minorticklocs: minor ticks that fall on a major tick are dropped */
   minorLocs(view: [number, number], space: number, major: number[]): number[] {
-    return locatorTicks(this.ticker.minorLoc, view[0], view[1], space, this.minPos(), major)
+    const minor = locatorTicks(this.ticker.minorLoc, view[0], view[1], space, this.minPos(), major)
+    const t = (v: number) => (this.isLog() ? Math.log10(v) : v)
+    const tol = Math.abs(t(view[1]) - t(view[0])) * 1e-5
+    return minor.filter((m) => !major.some((v) => Math.abs(t(m) - t(v)) <= tol))
   }
   formatTicks(h: Host, fmt: Formatter, locs: number[], view: [number, number]): { labels: string[]; offset: string } {
     switch (fmt.k) {
@@ -1874,7 +1954,7 @@ class Axis extends PyObj {
       case 'str': return {
         labels: locs.map((l, i) => fmt.fmt.replace(/\{(x|pos)(?::([^}]*))?\}/g, (_m, key: string, spec?: string) => {
           const v = key === 'x' ? py.float(l) : py.int(i)
-          return spec ? formatSpec(v, spec) : h.str(v)
+          return (spec ? formatSpec(v, spec) : h.str(v)).replace(/-/g, '\u2212')
         })),
         offset: '',
       }
@@ -1883,7 +1963,7 @@ class Axis extends PyObj {
           const pct = (x: number) => (100 * x) / fmt.xmax
           const range = pct(Math.abs(view[1] - view[0]))
           const d = fmt.decimals ?? (range <= 0 ? 0 : Math.min(5, Math.max(0, Math.ceil(2 - Math.log10(2 * range)))))
-          return `${pct(l).toFixed(d)}${fmt.symbol}`
+          return `${pct(l).toFixed(d)}${fmt.symbol}`.replace(/-/g, '\u2212')
         }),
         offset: '',
       }
@@ -1916,9 +1996,8 @@ class Axis extends PyObj {
     })
     const mAt: number[] = []
     const mOut: string[] = []
-    const majorSet = new Set(major)
     minor.forEach((v, i) => {
-      if (!within(v) || majorSet.has(v)) return
+      if (!within(v)) return
       mAt.push(v)
       mOut.push(minorText[i])
     })
@@ -1928,6 +2007,14 @@ class Axis extends PyObj {
       label: lab.text ? { text: lab.text, size: lab.size, color: lab.color, weight: lab.weight, italic: lab.italic, loc: this.labelLoc, rotation: lab.rotation } : null,
     }
   }
+  /** get_xticks(): an array of the locator's dtype; category axes give a plain list, as matplotlib's locator does */
+  tickValue(h: Host): Value {
+    const { locs } = this.current(h)
+    const l = this.ticker.loc
+    if (l.k === 'cats') return py.list(locs.map(py.int))
+    if (l.k === 'null') return py.list([])
+    return py.arr(NDArray.create(locs, [locs.length], l.k === 'fixed' && l.dtype ? l.dtype : 'float64'))
+  }
   /** current tick positions and labels, before any drawing has applied the aspect */
   current(h: Host): { locs: number[]; labels: string[] } {
     const view = this.view()
@@ -1936,9 +2023,10 @@ class Axis extends PyObj {
   }
   setTicks(h: Host, tv: Value, labels: Value | undefined, minor: boolean, kw: Kw = {}) {
     const at = nums(h, tv, `${this.name}ticks`)
+    const dtype = at.length ? toArray(tv).dtype : 'float64'
     if (at.length) this.grow(minOf(at), maxOf(at))
-    if (minor) this.ticker.minorLoc = { k: 'fixed', at }
-    else this.ticker.loc = { k: 'fixed', at }
+    if (minor) this.ticker.minorLoc = { k: 'fixed', at, dtype }
+    else this.ticker.loc = { k: 'fixed', at, dtype }
     if (!isNone(labels)) this.setTickLabels(h, labels!, minor, kw)
     return at
   }
@@ -2014,13 +2102,16 @@ class Axis extends PyObj {
     const major = this.majorLocs(view, space)
     const locs = minor ? this.minorLocs(view, space, major) : major
     const labels = this.formatTicks(h, minor ? this.ticker.minorFmt : this.ticker.fmt, locs, view).labels
-    return locs.map((l, i) => py.obj(new TickLabel(this, i, l, labels[i], minor)))
+    // Axis.get_majorticklabels: only the sides that show labels, the low side first
+    const one = () => locs.map((l, i) => py.obj(new TickLabel(this, i, l, labels[i], minor)))
+    return [...(this.style.label1 ? one() : []), ...(this.style.label2 ? one() : [])]
   }
   getAttr(name: string, h: Host): Value | undefined {
     const st = this.style
     switch (name) {
       case 'axes': return py.obj(this.ax)
       case 'label': return py.obj(this.labelObj)
+      case 'labelpad': return py.float(this.style.labelPad)
       case 'axis_name': return py.str(this.name)
       case 'set_visible': return fnv(name, (args) => { this.visible = h.truthy(args[0]); emitFig(h, this.ax.fig, this.ax); return py.NONE })
       case 'get_visible': return fnv(name, () => py.bool(this.visible))
@@ -2031,7 +2122,7 @@ class Axis extends PyObj {
         emitFig(h, this.ax.fig, this.ax)
         return py.list(at.map((_, i) => py.obj(new TickObj(this, i))))
       })
-      case 'get_ticklocs': case 'get_majorticklocs': return fnv(name, () => floats(this.current(h).locs))
+      case 'get_ticklocs': case 'get_majorticklocs': return fnv(name, () => this.tickValue(h))
       case 'get_minorticklocs': return fnv(name, () => { const v = this.view(); const sp = this.tickSpace(this.ax.position()); return floats(this.minorLocs(v, sp, this.majorLocs(v, sp))) })
       case 'set_ticklabels': return fnv(name, (args, kw) => {
         const minor = flag(h, pop(kw, 'minor'), false)
@@ -2095,12 +2186,12 @@ class Axis extends PyObj {
       case 'get_label': return fnv(name, () => py.obj(this.labelObj))
       case 'get_label_position': return fnv(name, () => py.str(st.labelSide === 'high' ? (this.name === 'y' ? 'right' : 'top') : (this.name === 'y' ? 'left' : 'bottom')))
       case 'get_offset_text': return fnv(name, () => {
-        const self = this
+        const hide = (a: Value[]) => { this.offsetVisible = h.truthy(a[0]); return py.NONE }
         return py.obj(new (class extends PyObj {
           readonly cls = 'Text'
-          repr() { return 'Text(0, 0.5, ' + "'')" }
+          repr() { return "Text(0, 0.5, '')" }
           getAttr(n: string): Value | undefined {
-            if (n === 'set_visible') return fnv(n, (a) => { self.offsetVisible = h.truthy(a[0]); return py.NONE })
+            if (n === 'set_visible') return fnv(n, hide)
             if (n.startsWith('set_')) return fnv(n, () => py.NONE)
             return undefined
           }
@@ -2124,6 +2215,11 @@ class Axis extends PyObj {
       case 'minorticks_off': return fnv(name, () => { this.ticker.minorLoc = { k: 'null' }; return py.NONE })
     }
     return undefined
+  }
+  setAttr(name: string, v: Value, h: Host): boolean {
+    if (name !== 'labelpad') return false
+    this.style.labelPad = h.num(v)
+    return true
   }
   minorOn() {
     if (this.isLog()) this.ticker.minorLoc = { k: 'log', base: this.base, subs: 'auto' }
@@ -2472,7 +2568,6 @@ const buildLegend = (h: Host, candidates: Value[], args: Value[], kw0: Kw, owner
   } else {
     handles = candidates.filter((c) => { const l = labelOfHandle(c); return l && !l.startsWith('_') })
     labels = handles.map(labelOfHandle)
-    if (!handles.length) h.print('No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.\n')
   }
   const entries: LegendEntry[] = []
   handles.forEach((handle, i) => {
@@ -2516,6 +2611,7 @@ const buildLegend = (h: Host, candidates: Value[], args: Value[], kw0: Kw, owner
   for (const k of ['fancybox', 'shadow', 'numpoints', 'scatterpoints', 'scatteryoffsets', 'markerfirst', 'reverse', 'mode', 'alignment', 'draggable', 'handleheight', 'handler_map', 'ncol', 'ncols']) pop(kw, k)
   const left = Object.keys(kw)
   if (left.length) throw h.err('TypeError', `Legend.__init__() got an unexpected keyword argument '${left[0]}'`)
+  if (!args.length && !handlesKw && !labelsKw && !handles.length) h.print('No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.\n')
   return new LegendObj(spec, owner.ax, owner.fig)
 }
 
@@ -2645,9 +2741,12 @@ class Axes extends PyObj {
   children: ArtistObj[] = []
   containers: ContainerObj[] = []
   dynamic = new Map<ArtistObj, () => void>()
+  /** runs before the limits are read (a colorbar follows its mappable's clim) */
+  before: (() => void)[] = []
   lineCycle = 0
   patchCycle = 0
   cycle: string[]
+  cycleRaw: Value[] | null = null
   tight = false
   useSticky = true
   titles: Record<'center' | 'left' | 'right', TextObj>
@@ -2679,6 +2778,8 @@ class Axes extends PyObj {
     this.x = new Axis('x', this, h)
     this.y = new Axis('y', this, h)
     this.cycle = defaultCycle(h)
+    const rcCycle = stateOf(h).rc.get('axes.prop_cycle')
+    if (rcCycle && rcCycle.k === 'obj' && rcCycle.o instanceof CyclerObj) this.cycleRaw = rcCycle.o.raw
     this.facecolor = rcc(h, 'axes.facecolor')
     this.titlePad = rcn(h, 'axes.titlepad')
     this.titles = {
@@ -2961,6 +3062,7 @@ class Axes extends PyObj {
   /** what the view adds for its own decoration (3D panes …) */
   extraArtists(): Artist[] { return [] }
   resolve(h: Host): AxesSpec {
+    for (const fn of this.before) fn()
     const g = this.geometry()
     this.drawn = g
     for (const fn of this.dynamic.values()) fn()
@@ -2983,6 +3085,7 @@ class Axes extends PyObj {
     this.children = []
     this.containers = []
     this.dynamic.clear()
+    this.before = []
     this.legendObj = null
     this.extraLegends = []
     this.current = null
@@ -3053,7 +3156,6 @@ class Axes extends PyObj {
       case 'viewLim': { const [a, b] = this.x.view(); const [c, d] = this.y.view(); return py.obj(new Bbox(a, c, b, d)) }
       case 'name': return py.str('rectilinear')
       case 'patch': return py.obj(new AxesPatch(this))
-      case 'margins_': return py.NONE
     }
     return undefined
   }
@@ -3156,7 +3258,8 @@ class Canvas extends PyObj {
   }
   repr() { return `<matplotlib.backends.backend_agg.FigureCanvasAgg object at ${addr(this)}>` }
   getAttr(name: string): Value | undefined {
-    if (['draw', 'draw_idle', 'flush_events', 'start_event_loop', 'stop_event_loop'].includes(name)) return fnv(name, () => py.NONE)
+    if (name === 'draw') return fnv(name, () => { this.fig.drew = true; return py.NONE })
+    if (['draw_idle', 'flush_events', 'start_event_loop', 'stop_event_loop'].includes(name)) return fnv(name, () => py.NONE)
     if (name === 'get_width_height') return fnv(name, () => py.tuple([py.int(Math.round(this.fig.spec.size[0] * 100)), py.int(Math.round(this.fig.spec.size[1] * 100))]))
     if (name === 'figure') return py.obj(this.fig)
     if (name === 'mpl_connect' || name === 'manager') return name === 'manager' ? py.NONE : fnv(name, () => py.int(0))
@@ -3178,6 +3281,8 @@ class Figure extends PyObj {
   sup: Record<'title' | 'xlabel' | 'ylabel', TextObj | null> = { title: null, xlabel: null, ylabel: null }
   engine: 'tight' | 'constrained' | null = null
   label = ''
+  /** canvas.draw() or savefig has run: colour-mapped artists report their mapped colours */
+  drew = false
   constructor(h: Host, num: number, size: [number, number], facecolor: string) {
     super()
     this.h = h
@@ -3215,8 +3320,8 @@ class Figure extends PyObj {
     }
     const ax = makeAxes(h, this, ss, null, projection, polar)
     ax.label = label
-    if (sharex && sharex.k === 'obj' && sharex.o instanceof Axes) shareAxis(h, ax.x, sharex.o.x)
-    if (sharey && sharey.k === 'obj' && sharey.o instanceof Axes) shareAxis(h, ax.y, sharey.o.y)
+    if (sharex && sharex.k === 'obj' && sharex.o instanceof Axes) shareAxis(ax.x, sharex.o.x)
+    if (sharey && sharey.k === 'obj' && sharey.o instanceof Axes) shareAxis(ax.y, sharey.o.y)
     setKw(ax, kw, h)
     this.cur = ax
     return ax
@@ -3273,15 +3378,16 @@ class Figure extends PyObj {
         const ax = makeAxes(h, this, null, r as Rect, pop(kw, 'projection'), flag(h, pop(kw, 'polar'), false))
         const sx = pop(kw, 'sharex')
         const sy = pop(kw, 'sharey')
-        if (sx && sx.k === 'obj' && sx.o instanceof Axes) shareAxis(h, ax.x, sx.o.x)
-        if (sy && sy.k === 'obj' && sy.o instanceof Axes) shareAxis(h, ax.y, sy.o.y)
+        if (sx && sx.k === 'obj' && sx.o instanceof Axes) shareAxis(ax.x, sx.o.x)
+        if (sy && sy.k === 'obj' && sy.o instanceof Axes) shareAxis(ax.y, sy.o.y)
         ax.label = optStr(h, pop(kw, 'label')) ?? ''
         setKw(ax, kw, h)
         this.cur = ax
         emitFig(h, this, null)
         return py.obj(ax)
       })
-      case 'subplots': return fnv(name, (args, kw) => subplotsOn(h, this, args, { ...kw }, false))
+      case 'subplots': return fnv(name, (args, kw) => (subplotsOn(h, this, args, { ...kw }, false) as { items: Value[] }).items[1])
+      case 'subplot_mosaic': return fnv(name, (args, kw0) => { const kw = { ...kw0 }; return mosaicOn(h, this, args[0] ?? pop(kw, 'mosaic')!, kw) })
       case 'add_gridspec': case 'gridspec': return fnv(name, (args, kw) => py.obj(gridSpecOf(h, this, args, kw)))
       case 'suptitle': return fnv(name, (args, kw) => this.supText(h, 'title', args, kw))
       case 'supxlabel': return fnv(name, (args, kw) => this.supText(h, 'xlabel', args, kw))
@@ -3340,6 +3446,7 @@ class Figure extends PyObj {
       case 'savefig': return fnv(name, (args, kw) => {
         const f = args[0] ?? kw.fname
         if (!f) throw h.err('TypeError', "savefig() missing 1 required positional argument: 'fname'")
+        this.drew = true
         h.print(`(sandbox) figure would be saved as ${h.str(f)}\n`)
         return py.NONE
       })
@@ -3467,7 +3574,7 @@ const cellSpec = (fig: Figure, r: number, c: number, i: number, j: number): Subp
   return new SubplotSpec(g, Math.floor(a / c), Math.floor(b / c) + 1, Math.min(a % c, b % c), Math.max(a % c, b % c) + 1)
 }
 
-const shareAxis = (h: Host, a: Axis, b: Axis) => {
+const shareAxis = (a: Axis, b: Axis) => {
   const all = [...new Set([...b.siblings, ...a.siblings])]
   for (const s of all) s.siblings = all
   a.ticker = b.ticker
@@ -3476,7 +3583,6 @@ const shareAxis = (h: Host, a: Axis, b: Axis) => {
   a.base = b.base
   a.lim = b.view()
   a.auto = b.auto
-  void h
 }
 
 /** Axes.set(**kw) and Axes constructor keywords */
@@ -3510,7 +3616,24 @@ const gca = (h: Host): Axes => gcf(h).gca()
 
 const axesSpec = (f: Figure, h: Host): AxesSpec[] => f.axes.map((a) => a.resolve(h))
 
-const snapshot = (f: Figure): FigureSpec => {
+/** run fn as a look at the figure: pending autoscales stay pending, as they do in matplotlib until it really draws */
+const untouched = <T>(f: Figure, fn: () => T): T => {
+  const saved = f.axes.flatMap((a) => a.axisList().map((x) => ({ x, lim: x.lim, stale: x.stale })))
+  const tight = f.axes.map((a) => a.tight)
+  const params = { ...f.params }
+  try {
+    return fn()
+  } finally {
+    for (const s of saved) {
+      s.x.lim = s.lim
+      s.x.stale = s.stale
+    }
+    f.axes.forEach((a, i) => { a.tight = tight[i] })
+    f.params = params
+  }
+}
+
+const snapshot = (f: Figure): FigureSpec => untouched(f, () => {
   const h = f.h
   if (f.engine) applyTight(h, f, {})
   const texts = [...(f.sup.title ? [f.sup.title] : []), ...(f.sup.xlabel ? [f.sup.xlabel] : []), ...(f.sup.ylabel ? [f.sup.ylabel] : []), ...f.texts]
@@ -3518,7 +3641,7 @@ const snapshot = (f: Figure): FigureSpec => {
     num: f.spec.num, size: f.spec.size, facecolor: f.spec.facecolor, suptitle: f.sup.title?.spec.text ?? null, texts: texts.map((t) => ({ ...t.spec })),
     legends: f.legends.map((l) => l.spec), axes: axesSpec(f, h),
   }
-}
+})
 
 /** record the figure after a call; focus = the axes and the artists the call added */
 const emitFig = (h: Host, f: Figure, ax: Axes | null, artist: number | null = null, last?: number) => {
@@ -3744,7 +3867,8 @@ const plotLines = (ax: Axes, args0: Value[], kw0: Kw, h: Host): LineObj[] => {
     const xs = xv ? (xCat ? axisNums(h, ax.x, xv, 'x') : xArr!.values()) : Array.from({ length: n }, (_, i) => i)
     const ys = yCat ? axisNums(h, ax.y, yv, 'y') : yArr!.values()
     const f = fmt !== null ? parseFmt(h, fmt) : { ls: null, marker: null, color: null }
-    const kwc = kw.color ?? kw.c
+    const kwc0 = kw.color ?? kw.c
+    const kwc = isNone(kwc0) ? undefined : kwc0
     let labels: (string | null)[] = new Array<string | null>(cols).fill(null)
     const lv = kw.label
     if (lv && !isNone(lv)) {
@@ -3756,12 +3880,13 @@ const plotLines = (ax: Axes, args0: Value[], kw0: Kw, h: Host): LineObj[] => {
     for (let c = 0; c < cols; c++) {
       const colX = ncx === 1 ? xs : Array.from({ length: n }, (_, r) => xs[r * ncx + c])
       const colY = ncy === 1 ? ys : Array.from({ length: n }, (_, r) => ys[r * ncy + c])
+      const cycled = kwc || f.color ? null : ax.lineCycle
       const color = kwc ? toColor(h, kwc) : f.color ? toColor(h, f.color) : ax.nextLineColor()
       const o = new LineObj(newLine(h, colX, colY, color))
       if (xArr) o.dtypes[0] = xArr.dtype
       else o.dtypes[0] = 'int64'
       if (yArr) o.dtypes[1] = yArr.dtype
-      o.raw = kwc ?? f.color
+      o.raw = kwc ?? f.color ?? (cycled !== null && ax.cycleRaw ? ax.cycleRaw[cycled % ax.cycleRaw.length] : null)
       const rcLs = rcv(h, 'lines.linestyle')
       LINE_PROPS.linestyle.s!(o, [f.ls !== null ? py.str(f.ls) : rcLs], h, {})
       if (f.marker !== null) o.spec.marker = markerOf(h, py.str(f.marker))
@@ -3881,7 +4006,7 @@ const patchKw = (o: PatchObj, kw0: Kw, h: Host) => {
   o.applyKw(kw, h)
 }
 
-const addPatch = (ax: Axes, o: PatchObj, h: Host) => {
+const addPatch = (ax: Axes, o: PatchObj) => {
   ax.add(o)
   const skip = o.shape.t === 'rect' && !o.shape.w && !o.shape.h
   if (!skip) {
@@ -3889,7 +4014,6 @@ const addPatch = (ax: Axes, o: PatchObj, h: Host) => {
     if (o.spec.tx === 'data') ax.x.update(xs)
     if (o.spec.ty === 'data') ax.y.update(ys)
   }
-  void h
   return o
 }
 
@@ -3948,7 +4072,7 @@ const arrow: AxMethod = (ax, args, kw, h) => {
   const pts = arrowVerts(h, x, y, dx, dy, kw)
   const o = new PatchObj('FancyArrow', { t: 'polygon', pts, closed: true }, h)
   patchKw(o, kw, h)
-  addPatch(ax, o, h)
+  addPatch(ax, o)
   ax.request()
   added(h, ax, ax.children.length - 1)
   return py.obj(o)
@@ -4001,7 +4125,8 @@ const patchTypes = (h: Host): Record<string, Value> => {
       const v = args[0] ?? pop(kw, 'xy')
       if (!v) throw h.err('TypeError', "Polygon.__init__() missing 1 required positional argument: 'xy'")
       const a = toArray(v, 'float64')
-      if (a.ndim !== 2 || a.shape[1] !== 2) throw h.err('ValueError', `'xy' must be a 2D array with 2 columns`)
+      if (a.ndim !== 2) throw h.err('ValueError', `not enough values to unpack (expected 2, got ${a.ndim})`)
+      if (a.shape[1] !== 2) throw h.err('ValueError', `'vertices' must be 2D with shape (N, 2), but your input has shape (${a.shape.join(', ')})`)
       return make('Polygon', { t: 'polygon', pts: a.values(), closed: flag(h, args[1] ?? pop(kw, 'closed'), true) }, kw)
     }),
     Wedge: typ('Wedge', (args, kw0) => {
@@ -4082,8 +4207,9 @@ const scatter: AxMethod = (ax, args, kw, h) => {
   if (cv && !isNone(cv) && colorKw) throw h.err('ValueError', "Supply a 'c' argument or a 'color' kwarg but not both; they differ but their functionalities overlap.")
   const norm = normArg(h, kw)
   const lut = cmapArg(h, cmapV)
+  const hollow = !!faceKw && faceKw.k === 'str' && faceKw.v.toLowerCase() === 'none'
   const marker = isNone(mv) ? rcs(h, 'scatter.marker') : markerOf(h, mv!) ?? 'None'
-  const sizes = isNone(sv) ? [rcn(h, 'lines.markersize') ** 2] : nums(h, sv!, 'scatter s')
+  const sizes = isNone(sv) ? [rcn(h, 'lines.markersize') ** 2] : toArray(sv!, 'float64').values()
   if (sizes.length !== 1 && sizes.length !== x.length) throw h.err('ValueError', 's must be a scalar, or float array-like with the same size as x and y')
   let colors: string[]
   let mapped: number[] | null = null
@@ -4104,7 +4230,7 @@ const scatter: AxMethod = (ax, args, kw, h) => {
         mapped = a.values()
         norm.autoscaleNone(mapped)
         colors = mapped.map((v) => norm.color(lut, v))
-      } else if (a.ndim === 1 && (a.size === 3 || a.size === 4)) colors = [toColor(h, py.arr(a))]
+      } else if (a.ndim === 1 && (a.size === 3 || a.size === 4) && a.values().every((v) => v >= 0 && v <= 1)) colors = [toColor(h, py.arr(a))]
       else throw h.err('ValueError', `'c' argument has ${a.size} elements, which is inconsistent with 'x' and 'y' with size ${x.length}.`)
     }
   } else colors = toColors(h, sources)
@@ -4118,6 +4244,9 @@ const scatter: AxMethod = (ax, args, kw, h) => {
   o.alphaSet = alpha
   if (mapped) o.values = mapped
   o.shape = [x.length]
+  o.hollow = hollow
+  if (!isNone(sv)) o.sizeType = toArray(sv!).dtype
+  if (!isNone(lwV)) o.lwType = toArray(lwV!).dtype
   o.applyKw(kw, h)
   ax.add(o)
   const keep = x.map((vx, i) => Number.isFinite(vx) && Number.isFinite(y[i]))
@@ -4190,8 +4319,9 @@ const barImpl = (ax: Axes, horizontal: boolean, posV: Value, hv: Value, wv: Valu
   o.applyKw(kw, h)
   if (labelV && !isNone(labelV) && labelV.k !== 'list' && labelV.k !== 'tuple') spec.label = h.str(labelV)
   ax.add(o)
-  const along = x.flatMap((l, i) => [l, l + widths[i]])
-  const across = bottoms.flatMap((b, i) => [b, b + heights[i]])
+  const far = (start: number, size: number) => start + size - start + start
+  const along = x.flatMap((l, i) => [l, far(l, widths[i])])
+  const across = bottoms.flatMap((b, i) => [b, far(b, heights[i])])
   const live = heights.map((v, i) => v !== 0 || widths[i] !== 0)
   posAxis.update(along.filter((_, i) => live[Math.floor(i / 2)]))
   valAxis.update(across.filter((_, i) => live[Math.floor(i / 2)]))
@@ -4210,7 +4340,7 @@ const barImpl = (ax: Axes, horizontal: boolean, posV: Value, hv: Value, wv: Valu
     const ek: Kw = { fmt: py.str('none'), ...errorKw }
     if (errX && !isNone(errX)) ek.xerr = errX
     if (errY && !isNone(errY)) ek.yerr = errY
-    ek.ecolor = ecolor ?? errorKw.ecolor ?? py.str(rcs(h, 'errorbar.capsize') ? 'k' : 'k')
+    ek.ecolor = ecolor ?? errorKw.ecolor ?? py.str('k')
     if (capsize) ek.capsize = capsize
     const ev = errorbar(ax, horizontal ? [floats(ends), floats(center)] : [floats(center), floats(ends)], ek, h)
     o.errorbar = ev
@@ -4502,7 +4632,7 @@ const hist: AxMethod = (ax, args, kw, h) => {
         o.spec.fcs = ['none']
       }
       o.spec.label = labels[k] ?? '_nolegend_'
-      addPatch(ax, o, h)
+      addPatch(ax, o)
       if (horizontal) o.sticky.x = [0]
       else o.sticky.y = [0]
       patches.unshift(py.list([py.obj(o)]))
@@ -4510,14 +4640,9 @@ const hist: AxMethod = (ax, args, kw, h) => {
     ax.request()
   }
   added(h, ax, first)
-  if (nx === 1) return py.tuple([floats(tops[0]), floats(edges), patches[0].k === 'list' ? new SilentListValue('Polygon', patches[0].items) : patches[0]])
+  if (nx === 1) return py.tuple([floats(tops[0]), floats(edges), patches[0].k === 'list' ? py.obj(new SilentList('Polygon', patches[0].items)) : patches[0]])
   return py.tuple([floats(tops.flat(), [nx, edges.length - 1]), floats(edges), py.obj(new SilentList(histtype.startsWith('bar') ? 'BarContainer' : 'list[Polygon]', patches))])
 }
-const SilentListValue = class {
-  constructor(what: string, items: Value[]) {
-    return py.obj(new SilentList(what, items)) as unknown as object
-  }
-} as unknown as new (what: string, items: Value[]) => Value
 
 // ---------------------------------------------------------------- images
 
@@ -4530,11 +4655,12 @@ const imagePixels = (h: Host, a0: NDArray): { pixels: string[]; values: number[]
   const cols = a.shape[1]
   const vals = a.values()
   if (a.ndim === 2) return { pixels: [], values: vals, rgb: false, rows, cols, a }
-  const top = a.dtype === 'int64' ? 255 : 1
+  const isInt = a.dtype === 'int64' || a.dtype === 'uint8'
+  const top = isInt ? 255 : 1
   const ch = a.shape[2]
   const lo = minOf(vals)
   const hi = maxOf(vals)
-  if (lo < 0 || hi > top) h.print(`Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers). Got range [${pyRepr(a.dtype === 'int64' ? py.int(lo) : py.float(lo))}..${pyRepr(a.dtype === 'int64' ? py.int(hi) : py.float(hi))}].\n`)
+  if (lo < 0 || hi > top) h.print(`Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers). Got range [${pyRepr(isInt ? py.int(lo) : py.float(lo))}..${pyRepr(isInt ? py.int(hi) : py.float(hi))}].\n`)
   const clip = (v: number) => (Number.isNaN(v) ? 0 : Math.max(0, Math.min(top, v))) / top
   const pixels = Array.from({ length: rows * cols }, (_, p) => {
     const i = p * ch
@@ -4571,6 +4697,8 @@ const imshow: AxMethod = (ax, args, kw, h) => {
     smooth: !!interp && !['nearest', 'none', 'antialiased', 'auto', 'data'].includes(interp),
   }
   const o = new ImageObj(spec, lut, norm, pix.rgb ? null : pix.values, [rows, cols])
+  o.source = pix.a.copy()
+  if (!isNone(extV)) o.extentRaw = py.list(h.iterate(extV!))
   o.origin = origin
   o.alphaSet = alpha
   if (!pix.rgb) {
@@ -4785,7 +4913,7 @@ const fill: AxMethod = (ax, args0, kw, h) => {
     if (!given) k.facecolor = py.str(ax.nextPatchColor())
     else if (c) k.facecolor = c
     patchKw(o, k, h)
-    addPatch(ax, o, h)
+    addPatch(ax, o)
     out.push(py.obj(o))
   }
   ax.request()
@@ -4860,7 +4988,7 @@ const stairs: AxMethod = (ax, args, kw, h) => {
     patchKw(o, { edgecolor: color, ...kw, fill: py.bool(false) }, h)
     o.spec.fcs = ['none']
   }
-  addPatch(ax, o, h)
+  addPatch(ax, o)
   const b = baseline ?? 0
   if (vertical) {
     o.sticky.y = [b]
@@ -5015,7 +5143,7 @@ const errorbar: AxMethod = (ax, args, kw, h) => {
   const lineValue = hasLine ? py.obj(dataLine) : py.NONE
   const c = new ContainerObj('ErrorbarContainer', [lineValue, py.tuple(caps), py.tuple(bars)], { lines: py.tuple([lineValue, py.tuple(caps), py.tuple(bars)]), has_xerr: py.bool(!!ex), has_yerr: py.bool(!!ey) }, isNone(label) ? null : h.str(label!))
   c.ax = ax
-  c.entry = { ...dataLine.legendEntry(), line: hasLine && dataLine.spec.line, marker: hasLine ? dataLine.spec.marker : null }
+  c.entry = { ...dataLine.legendEntry(), line: hasLine && dataLine.spec.line, marker: hasLine ? dataLine.spec.marker : null, bar: ecolor }
   ax.containers.push(c)
   added(h, ax, first)
   return py.obj(c)
@@ -5063,10 +5191,29 @@ const stem: AxMethod = (ax, args0, kw, h) => {
   const baseLine = plotLines(ax, [floats(bx), floats(by)], { color: bf.color ?? py.str(CYCLE[3]), linestyle: py.str(bf.ls ?? '-'), marker: py.str(bf.marker ?? 'None'), label: py.str('_nolegend_') }, h)[0]
   const c = new ContainerObj('StemContainer', [py.obj(markerLine), stemlines, py.obj(baseLine)], { markerline: py.obj(markerLine), stemlines, baseline: py.obj(baseLine) }, isNone(label) ? null : h.str(label!))
   c.ax = ax
-  c.entry = markerLine.legendEntry()
+  const face = markerLine.spec.color
+  c.entry = { ...baseLine.legendEntry(), marker: markerLine.spec.marker, ms: markerLine.spec.ms, mfc: face, mec: face, mew: markerLine.spec.mew, bar: toColor(h, lc) }
   ax.containers.push(c)
   added(h, ax, first)
   return py.obj(c)
+}
+
+const brokenBarh: AxMethod = (ax, args, kw, h) => {
+  const xr = args[0] ?? pop(kw, 'xranges')
+  const yr = args[1] ?? pop(kw, 'yrange')
+  if (!xr || !yr) throw h.err('TypeError', "broken_barh() missing required positional arguments: 'xranges' and 'yrange'")
+  const ranges = h.iterate(xr).map((r) => nums(h, r, 'xranges'))
+  const [y0, yh] = nums(h, yr, 'yrange')
+  const spec = newPoly(rcc(h, 'patch.facecolor'), 'none', rcn(h, 'patch.linewidth'))
+  spec.paths = ranges.map(([x0, w]) => [x0, y0, x0 + w, y0, x0 + w, y0 + yh, x0, y0 + yh])
+  const o = new PolyObj('PolyCollection', spec)
+  o.applyKw(kw, h)
+  ax.add(o)
+  ax.x.update(ranges.flatMap(([x0, w]) => [x0, x0 + w]))
+  ax.y.update([y0, y0 + yh])
+  ax.request()
+  added(h, ax, ax.children.length - 1)
+  return py.obj(o)
 }
 
 const eventplot: AxMethod = (ax, args, kw, h) => {
@@ -5163,9 +5310,11 @@ const pie: AxMethod = (ax, args, kw, h) => {
   if (shadow && h.truthy(shadow)) throw h.err('NotImplementedError', 'pie(shadow=True) is not drawn in this sandbox')
   if (x.some((v) => v < 0)) throw h.err('ValueError', "Wedge sizes 'x' must be non negative values")
   if (radius <= 0) throw h.err('ValueError', `'radius' must be a positive number, not ${radius}`)
-  const total = x.reduce((s, v) => s + v, 0)
+  // x goes through np.float32, and the angles with it (they end up in the label positions)
+  const f32 = Math.fround
+  const total = x.reduce((s, v) => f32(s + f32(v)), 0)
   if (!normalize && total > 1) throw h.err('ValueError', 'Cannot plot an unnormalized pie with sum(x) > 1')
-  const fracs = normalize ? x.map((v) => v / total) : x
+  const fracs = normalize ? x.map((v) => f32(f32(v) / total)) : x.map(f32)
   const labels = isNone(labelsV) ? x.map(() => '') : h.iterate(labelsV!).map((v) => h.str(v))
   const explode = isNone(explodeV) ? x.map(() => 0) : nums(h, explodeV!, 'explode')
   if (labels.length !== x.length) throw h.err('ValueError', `'labels' must be of length 'x', not ${labels.length}`)
@@ -5178,14 +5327,14 @@ const pie: AxMethod = (ax, args, kw, h) => {
   const autotexts: Value[] = []
   let theta1 = startangle / 360
   fracs.forEach((frac, i) => {
-    const theta2 = counterclock ? theta1 + frac : theta1 - frac
-    const thetam = 2 * Math.PI * 0.5 * (theta1 + theta2)
+    const theta2 = f32(counterclock ? theta1 + frac : theta1 - frac)
+    const thetam = f32(2 * Math.PI * 0.5 * f32(theta1 + theta2))
     const cx = center[0] + explode[i] * Math.cos(thetam)
     const cy = center[1] + explode[i] * Math.sin(thetam)
     const w = new PatchObj('Wedge', { t: 'wedge', x: cx, y: cy, r: radius, t1: 360 * Math.min(theta1, theta2), t2: 360 * Math.max(theta1, theta2), width: null }, h)
     patchKw(w, { facecolor: py.str(colorList ? colorList[i % colorList.length] : ax.nextPatchColor()), clip_on: py.bool(false), label: py.str(labels[i]) }, h)
     w.applyKw(wedgeprops, h)
-    addPatch(ax, w, h)
+    addPatch(ax, w)
     slices.push(py.obj(w))
     if (labeldistance !== null) {
       const xt = cx + labeldistance * radius * Math.cos(thetam)
@@ -5203,7 +5352,7 @@ const pie: AxMethod = (ax, args, kw, h) => {
     if (!isNone(autopct)) {
       const xt = cx + pctdistance * radius * Math.cos(thetam)
       const yt = cy + pctdistance * radius * Math.sin(thetam)
-      const s = autopct!.k === 'str' ? printf(autopct!.v, 100 * frac) : h.str(h.call(autopct!, [py.float(100 * frac)]))
+      const s = autopct!.k === 'str' ? printf(autopct!.v, f32(100 * frac)) : h.str(h.call(autopct!, [py.float(f32(100 * frac))]))
       const t = newText(h, xt, yt, s)
       t.ha = 'center'
       t.va = 'center'
@@ -5231,7 +5380,7 @@ const pie: AxMethod = (ax, args, kw, h) => {
 /** matplotlib's MaxNLocator(nbins) with its default steps, as contour uses it to pick levels */
 export const maxNLocator = (vmin: number, vmax: number, nbins: number): number[] => {
   if (vmin === vmax) return [vmin]
-  return maxNTicks(vmin, vmax, { nbins, steps: MAXN_STEPS, integer: false, minN: 1, prune: null, symmetric: false }).map((v) => +v.toPrecision(12))
+  return maxNTicks(vmin, vmax, { nbins, steps: MAXN_STEPS, integer: false, minN: 1, prune: null, symmetric: false })
 }
 
 /** ContourSet._autolev: the levels span the data, with the locator's excess trimmed */
@@ -5329,8 +5478,7 @@ const CONTOUR_PROPS: Props<ContourObj> = mappedProps<ContourObj>({
 })
 
 /** levels, colours and the artist for contour, contourf, tricontour and tricontourf */
-const contourSet = (ax: Axes, h: Host, cls: string, filled: boolean, z: number[], kw: Kw, levelArg: Value | undefined, geo: { lines: (l: number) => Path[]; bands: (ls: number[]) => Path[][] }, bounds: { x: [number, number]; y: [number, number] }, shapeOk = true): ContourObj => {
-  void shapeOk
+const contourSet = (ax: Axes, h: Host, cls: string, filled: boolean, z: number[], kw: Kw, levelArg: Value | undefined, geo: { lines: (l: number) => Path[]; bands: (ls: number[]) => Path[][] }, bounds: { x: [number, number]; y: [number, number] }): ContourObj => {
   const f = finiteOf(z)
   const zmin = f.length ? minOf(f) : 0
   const zmax = f.length ? maxOf(f) : 0
@@ -5359,8 +5507,7 @@ const contourSet = (ax: Axes, h: Host, cls: string, filled: boolean, z: number[]
   if (!filled && norm.vmin === norm.vmax && levels.length === 1) norm.vmin = norm.vmax = levels[0]
   const lut = cmapArg(h, cmapV)
   const fixed = isNone(colorsV) ? null : toColors(h, colorsV!)
-  const zTop = zmax
-  const byLevel: Path[][] = filled ? geo.bands(allLevels) : levels.map((l) => (l > zmin && l < zTop ? geo.lines(l) : l === zmin && zmin === zmax ? geo.lines(l) : geo.lines(l)))
+  const byLevel: Path[][] = filled ? geo.bands(allLevels) : levels.map((l) => geo.lines(l))
   let spec: PolyArtist | SegsArtist
   const alpha = optNum(h, pop(kw, 'alpha'))
   if (filled) {
@@ -5369,7 +5516,7 @@ const contourSet = (ax: Axes, h: Host, cls: string, filled: boolean, z: number[]
     spec.closed = true
   } else {
     const lwV = pop(kw, 'linewidths', 'linewidth')
-    spec = newSegs([], isNone(lwV) ? (isNone(RC_DEFAULTS['contour.linewidth'] as Value) ? rcn(h, 'lines.linewidth') : rcn(h, 'lines.linewidth')) : nums(h, lwV!, 'linewidths')[0])
+    spec = newSegs([], isNone(lwV) ? rcn(h, 'lines.linewidth') : nums(h, lwV!, 'linewidths')[0])
     const lsV = pop(kw, 'linestyles', 'linestyle')
     if (lsV) spec.dash = lineStyle(h, lsV).dash
     spec.z = 2
@@ -5452,7 +5599,7 @@ const triangulation = (h: Host, xv: Value, yv: Value, trisV?: Value): TriObj => 
 }
 
 /** the (triangulation, z, rest) a tri* call starts with */
-const triArgs = (h: Host, args: Value[], kw: Kw): { t: TriObj; z: number[]; rest: Value[] } => {
+const triArgs = (h: Host, args: Value[], kw: Kw, wantZ = true): { t: TriObj; z: number[]; rest: Value[] } => {
   const a = [...args]
   let t: TriObj
   const first = a[0]
@@ -5466,6 +5613,7 @@ const triArgs = (h: Host, args: Value[], kw: Kw): { t: TriObj; z: number[]; rest
     a.splice(0, 2)
     if (a[0] && a[0].k === 'array' && a[0].a.ndim === 2 && a[0].a.shape[1] === 3 && a[0].a.dtype === 'int64' && a[1]) t = triangulation(h, args[0], args[1], a.shift())
   }
+  if (!wantZ) return { t, z: [], rest: a }
   const zv = a.shift() ?? pop(kw, 'z')
   if (!zv) return { t, z: [], rest: a }
   const z = nums(h, zv, 'z')
@@ -5484,31 +5632,38 @@ const tricontour = (filled: boolean): AxMethod => (ax, args, kw, h) => {
 }
 
 const triplot: AxMethod = (ax, args, kw, h) => {
-  const { t, rest } = triArgs(h, args, kw)
-  const fmt = rest[0]?.k === 'str' ? rest[0].v : ''
-  const f = fmt ? parseFmt(h, fmt) : { ls: null, marker: null, color: null }
-  const colorV = pop(kw, 'color', 'c')
-  const color = colorV ?? f.color ?? py.str(ax.nextLineColor())
-  const label = pop(kw, 'label')
+  const { t, rest } = triArgs(h, args, kw, false)
+  const f = rest[0]?.k === 'str' ? parseFmt(h, rest[0].v) : { ls: null, marker: null, color: null }
+  const k: Kw = { ...kw }
+  // keyword arguments win over the format string; lines and markers are separate plots, so each takes its own colour
+  const color = pop(k, 'color', 'c') ?? f.color
+  const lsV = pop(k, 'linestyle', 'ls') ?? (f.ls ? py.str(f.ls) : rcv(h, 'lines.linestyle'))
+  const markerV = pop(k, 'marker') ?? (f.marker ? py.str(f.marker) : rcv(h, 'lines.marker'))
+  const common: Kw = color && !isNone(color) ? { ...k, color } : { ...k }
   const edges = new Map<string, [number, number]>()
   for (const tri of t.tris) for (let e = 0; e < 3; e++) { const [p, q] = [tri[e], tri[(e + 1) % 3]]; edges.set(p < q ? `${p}_${q}` : `${q}_${p}`, p < q ? [p, q] : [q, p]) }
   const xs: number[] = []
   const ys: number[] = []
-  for (const [p, q] of edges.values()) xs.push(t.x[p], t.x[q], NaN), ys.push(t.y[p], t.y[q], NaN)
+  const hasLine = lsV.k !== 'none' && !(lsV.k === 'str' && ['None', '', ' '].includes(lsV.v))
+  if (hasLine) for (const [p, q] of edges.values()) {
+    xs.push(t.x[p], t.x[q], NaN)
+    ys.push(t.y[p], t.y[q], NaN)
+  }
   const first = ax.children.length
-  const lineStyleV = f.ls ?? '-'
-  const lines = plotLines(ax, [floats(xs), floats(ys)], { color, linestyle: py.str(lineStyleV), marker: py.str('None'), ...kw, ...(label ? { label } : {}) }, h)
-  const pts = plotLines(ax, [floats(t.x), floats(t.y)], { color, linestyle: py.str('None'), marker: py.str(f.marker ?? 'None'), label: py.str('_nolegend_') }, h)
+  const lines = plotLines(ax, [floats(xs), floats(ys)], { zorder: py.int(1), ...common, linestyle: lsV, marker: py.str('None') }, h)
+  const hasMarker = markerV.k !== 'none' && !(markerV.k === 'str' && ['None', '', ' '].includes(markerV.v))
+  const markerKw: Kw = { ...common, linestyle: py.str('None'), marker: markerV }
+  delete markerKw.label
+  const pts = plotLines(ax, hasMarker ? [floats(t.x), floats(t.y)] : [floats([]), floats([])], markerKw, h)
   added(h, ax, first)
   return py.list([py.obj(lines[0]), py.obj(pts[0])])
 }
 
 const tripcolor: AxMethod = (ax, args, kw, h) => {
-  const { t, z, rest } = triArgs(h, args, kw)
+  const { t, z } = triArgs(h, args, kw)
   const facecolors = pop(kw, 'facecolors')
   const shading = optStr(h, pop(kw, 'shading')) ?? 'flat'
   if (shading !== 'flat') throw h.err('NotImplementedError', `tripcolor(shading='${shading}') is not drawn in this sandbox`)
-  void rest
   const faceVals = !isNone(facecolors) ? nums(h, facecolors!, 'facecolors') : t.tris.map((tri) => (z[tri[0]] + z[tri[1]] + z[tri[2]]) / 3)
   const cmapV = pop(kw, 'cmap')
   const norm = normArg(h, kw)
@@ -5523,16 +5678,15 @@ const tripcolor: AxMethod = (ax, args, kw, h) => {
   o.recolor()
   o.applyKw(kw, h)
   ax.add(o)
-  o.sticky = { x: [minOf(t.x), maxOf(t.x)], y: [minOf(t.y), maxOf(t.y)] }
   ax.x.update(t.x)
   ax.y.update(t.y)
-  ax.request()
+  ax.autoscaleView(h, null)
   added(h, ax, ax.children.length - 1)
   return py.obj(o)
 }
 
 /** contour's X, Y, Z in any accepted form, flattened row-major */
-const contourArgs = (ax: Axes, args: Value[], kw: Kw, h: Host): { X: number[]; Y: number[]; Z: number[]; nx: number; ny: number; level?: Value } => {
+const contourArgs = (args: Value[], kw: Kw, h: Host): { X: number[]; Y: number[]; Z: number[]; nx: number; ny: number; level?: Value } => {
   const n = args.length
   const zv = n >= 3 ? args[2] : args[0] ?? kw.Z
   if (!zv) throw h.err('TypeError', 'contour() takes contour(Z), contour(X, Y, Z) with optional levels')
@@ -5579,12 +5733,11 @@ const contourArgs = (ax: Axes, args: Value[], kw: Kw, h: Host): { X: number[]; Y
     X = Array.from({ length: nx * ny }, (_, i) => xs[i % nx])
     Y = Array.from({ length: nx * ny }, (_, i) => ys[Math.floor(i / nx)])
   }
-  void ax
   return { X, Y, Z, nx, ny, level: n === 2 || n === 4 ? args[n - 1] : undefined }
 }
 
 const contourOf = (filled: boolean): AxMethod => (ax, args, kw, h) => {
-  const { X, Y, Z, nx, ny, level } = contourArgs(ax, args, kw, h)
+  const { X, Y, Z, nx, ny, level } = contourArgs(args, kw, h)
   const fx = finiteOf(X)
   const fy = finiteOf(Y)
   const c = contourSet(ax, h, 'QuadContourSet', filled, Z, kw, level, {
@@ -5614,7 +5767,7 @@ const clabel: AxMethod = (ax, args, kw, h) => {
     for (const p of paths.length ? [paths.reduce((a, b) => (b.length > a.length ? b : a))] : []) {
       if (p.length < 8) continue
       const m = Math.floor(p.length / 4) * 2
-      const s = fmtV ? (fmtV.k === 'str' ? printf(fmtV.v, lev) : fmtV.k === 'dict' ? h.str(fmtV.d.get(py.float(lev)) ?? py.str(fallback[i])) : h.str(h.call(fmtV, [py.float(lev)]))) : fallback[i].replace('−', '−')
+      const s = fmtV ? (fmtV.k === 'str' ? printf(fmtV.v, lev) : fmtV.k === 'dict' ? h.str(fmtV.d.get(py.float(lev)) ?? py.str(fallback[i])) : h.str(h.call(fmtV, [py.float(lev)]))) : fallback[i]
       const t = newText(h, p[m], p[m + 1], s)
       t.ha = 'center'
       t.va = 'center'
@@ -5649,8 +5802,6 @@ const meshArgs = (h: Host, args: Value[], kw: Kw, fn: string): { X: number[]; Y:
   if (shading === 'gouraud') throw h.err('NotImplementedError', "pcolormesh(shading='gouraud') is not drawn in this sandbox: use 'flat' or 'nearest'")
   let xs: number[]
   let ys: number[]
-  let sx = cols + 1
-  let sy = rows + 1
   if (n === 1) {
     xs = Array.from({ length: (rows + 1) * (cols + 1) }, (_, i) => i % (cols + 1))
     ys = Array.from({ length: (rows + 1) * (cols + 1) }, (_, i) => Math.floor(i / (cols + 1)))
@@ -5660,9 +5811,8 @@ const meshArgs = (h: Host, args: Value[], kw: Kw, fn: string): { X: number[]; Y:
   const ya = toArray(args[1], 'float64')
   const [xc, yr] = xa.ndim === 1 ? [xa.size, ya.size] : [xa.shape[1], xa.shape[0]]
   const mid = (shading === 'nearest' || shading === 'auto') && xc === cols && yr === rows
-  if (shading === 'flat' && (xc !== cols + 1 || yr !== rows + 1)) throw h.err('TypeError', `Dimensions of C (${rows}, ${cols}) should be one smaller than X(${xc}) and Y(${yr}) while using shading='flat' see help(pcolormesh)`)
+  if ((shading === 'flat' || (shading === 'auto' && !mid)) && (xc !== cols + 1 || yr !== rows + 1)) throw h.err('TypeError', `Dimensions of C (${rows}, ${cols}) should be one smaller than X(${xc}) and Y(${yr}) while using shading='flat' see help(pcolormesh)`)
   if (shading === 'nearest' && !mid) throw h.err('TypeError', `Dimensions of C (${rows}, ${cols}) are incompatible with X (${xc}) and/or Y (${yr}); see help(pcolormesh)`)
-  if (shading === 'auto' && !mid && (xc !== cols + 1 || yr !== rows + 1)) throw h.err('TypeError', `Dimensions of C (${rows}, ${cols}) are incompatible with X (${xc}) and/or Y (${yr}); see help(pcolormesh)`)
   const toGrid = (a: NDArray, vertical: boolean): number[] => {
     if (a.ndim === 2) return a.values()
     const v = a.values()
@@ -5692,12 +5842,7 @@ const meshArgs = (h: Host, args: Value[], kw: Kw, fn: string): { X: number[]; Y:
     }
     xs = edge(xs, yr, xc)
     ys = edge(ys, yr, xc)
-  } else {
-    sx = xc
-    sy = yr
   }
-  void sx
-  void sy
   return { X: xs, Y: ys, C, nx: cols, ny: rows }
 }
 
@@ -6086,7 +6231,7 @@ const boxplot: AxMethod = (ax, args, kw, h) => {
     axis.update([minOf(pos) - 0.5, maxOf(pos) + 0.5])
     const prevAt = axis.ticker.loc.k === 'fixed' ? axis.ticker.loc.at : []
     const prevLabels = axis.ticker.fmt.k === 'fixed' ? axis.ticker.fmt.labels : []
-    axis.ticker.loc = { k: 'fixed', at: [...prevAt, ...pos] }
+    axis.ticker.loc = { k: 'fixed', at: [...prevAt, ...pos], dtype: posInt ? 'int64' : 'float64' }
     axis.ticker.fmt = { k: 'fixed', labels: [...prevLabels, ...pos.map((p, i) => labels?.[i] ?? (posInt ? String(p) : pyRepr(py.float(p))))] }
     ax.request()
   }
@@ -6327,8 +6472,8 @@ const text: AxMethod = (ax, args, kw, h) => {
   const fd = args[3] ?? pop(kw, 'fontdict')
   const t = newText(h, h.num(xv), h.num(yv), h.str(s))
   const o = new TextObj(t, h.str(xv), h.str(yv))
-  if (fd) o.applyKw(kwOfDict(h, fd), h)
-  o.applyKw(kw, h)
+  if (fd) o.applyKw(kwOfDict(h, fd), h, true)
+  o.applyKw(kw, h, true)
   ax.add(o)
   added(h, ax, ax.children.length - 1)
   return py.obj(o)
@@ -6371,10 +6516,12 @@ const annotate: AxMethod = (ax, args, kw, h) => {
     t.tx = targetC
     t.ty = targetC
   }
-  const o = new TextObj(t, h.str(py.float(xy[0])).replace(/\.0$/, ''), h.str(py.float(xy[1])).replace(/\.0$/, ''))
+  const posV = hasText ? h.iterate(xtV!) : h.iterate(xyV)
+  const o = new TextObj(t, h.str(posV[0]), h.str(posV[1]))
   o.cls = 'Annotation'
   o.xy = [xy[0], xy[1]]
-  o.applyKw(kw, h)
+  o.xyValue = xyV
+  o.applyKw(kw, h, true)
   if (!isNone(apV)) {
     const ap = kwOfDict(h, apV)
     const style = optStr(h, pop(ap, 'arrowstyle'))
@@ -6404,6 +6551,8 @@ const setTitle: AxMethod = (ax, args, kw, h) => {
   const y = optNum(h, pop(kw, 'y'))
   const o = ax.titles[loc]
   o.spec.text = h.str(label)
+  o.spec.size = rcFont(h, 'axes.titlesize')
+  o.spec.weight = rcs(h, 'axes.titleweight')
   if (pad !== null) ax.titlePad = pad
   if (y !== null) ax.titleY = y
   if (fd) o.applyKw(kwOfDict(h, fd), h)
@@ -6519,11 +6668,12 @@ const fillColorbar = (cax: Axes, h: Host, m: ArtistObj & Mapped, long: Axis, ver
     if (levs.length === 1) long.setLim(h, levs[0] - 0.05 * Math.abs(levs[0] || 1), levs[0] + 0.05 * Math.abs(levs[0] || 1), false)
     long.ticker.loc = { k: 'fixed', at: levs, nbins: 10 }
     cax.add(body)
-    cax.dynamic.set(body, () => { (body as SegsObj).spec.colors = m.levels.map((_, i) => m.layerColor(i)) })
+    cax.before.push(() => { (body as SegsObj).spec.colors = m.levels.map((_, i) => m.layerColor(i)) })
     return
   }
   const spec: MeshArtist = { kind: 'mesh', ...artistBase(1), nx: 1, ny: 1, X: [], Y: [], colors: [], alpha: 1, uniform: true, edge: null, lw: 0 }
   const refresh = () => {
+    spec.alpha = m.alphaSet ?? 1
     let edges: number[]
     let colors: string[]
     if (m instanceof ContourObj) {
@@ -6567,7 +6717,7 @@ const fillColorbar = (cax: Axes, h: Host, m: ArtistObj & Mapped, long: Axis, ver
   body = new MeshObj(spec, [], [], m.lut, m.norm)
   ;(body as MeshObj).values = null
   cax.add(body)
-  cax.dynamic.set(body, refresh)
+  cax.before.push(refresh)
   if (m instanceof ContourObj) long.ticker.loc = { k: 'fixed', at: m.levels, nbins: 10 }
 }
 
@@ -6872,7 +7022,7 @@ const getters = (n: AxisName): Record<string, AxMethod> => ({
       const sp = axis.tickSpace(ax.position())
       return floats(axis.minorLocs(v, sp, axis.majorLocs(v, sp)))
     }
-    return floats(axis.current(h).locs)
+    return axis.tickValue(h)
   },
   [`get_${n}ticklabels`]: (ax, _a, kw, h) => py.list(ax.axisOf(n).tickLabels(h, flag(h, kw.minor, false))),
   [`get_${n}majorticklabels`]: (ax, _a, _k, h) => py.list(ax.axisOf(n).tickLabels(h)),
@@ -6886,11 +7036,12 @@ const getters = (n: AxisName): Record<string, AxMethod> => ({
     emitFig(h, ax.fig, ax)
     return py.NONE
   },
-  [`get_${n}margin`]: (ax) => py.float(ax.axisOf(n).margin),
+  [`get_${n}margin`]: (ax) => ax.axisOf(n).marginValue ?? py.float(ax.axisOf(n).margin),
   [`set_${n}margin`]: (ax, args, _k, h) => {
     const m = h.num(args[0])
     if (m <= -0.5) throw h.err('ValueError', 'margin must be greater than -0.5')
     ax.axisOf(n).margin = m
+    ax.axisOf(n).marginValue = args[0]
     ax.requestAxis(n)
     return py.NONE
   },
@@ -6942,7 +7093,7 @@ const twin = (axisName: 'x' | 'y'): AxMethod => (ax, _a, _k, h) => {
   f.cur = t
   t.patchVisible = false
   if (axisName === 'x') {
-    shareAxis(h, t.x, ax.x)
+    shareAxis(t.x, ax.x)
     t.y.style.tick1 = false
     t.y.style.label1 = false
     t.y.style.tick2 = true
@@ -6954,7 +7105,7 @@ const twin = (axisName: 'x' | 'y'): AxMethod => (ax, _a, _k, h) => {
     ax.y.style.label2 = false
     t.x.visible = false
   } else {
-    shareAxis(h, t.y, ax.y)
+    shareAxis(t.y, ax.y)
     t.x.style.tick1 = false
     t.x.style.label1 = false
     t.x.style.tick2 = true
@@ -7027,7 +7178,7 @@ const axisCall: AxMethod = (ax, args, kw, h) => {
 }
 
 const AXES_METHODS: Record<string, AxMethod> = {
-  plot, scatter, bar, barh, hist, imshow, pie, errorbar, boxplot, annotate, step, text, stem, stairs, stackplot, fill, arrow, quiver, eventplot, ecdf, matshow, spy, hexbin, hist2d, violinplot, axline,
+  plot, scatter, bar, barh, hist, imshow, pie, errorbar, boxplot, annotate, step, text, stem, stairs, stackplot, fill, arrow, quiver, eventplot, ecdf, broken_barh: brokenBarh, matshow, spy, hexbin, hist2d, violinplot, axline,
   bar_label: barLabel, contour: contourOf(false), contourf: contourOf(true), clabel, tricontour: tricontour(false), tricontourf: tricontour(true), triplot, tripcolor,
   pcolormesh: pcolormesh('pcolormesh'), pcolor: pcolormesh('pcolor'),
   semilogx: scaleThen(true, false), semilogy: scaleThen(false, true), loglog: scaleThen(true, true),
@@ -7079,9 +7230,9 @@ const AXES_METHODS: Record<string, AxMethod> = {
   set_facecolor: (ax, args, _k, h) => { ax.facecolor = toColor(h, args[0], 'facecolor'); emitFig(h, ax.fig, ax); return py.NONE },
   get_facecolor: (ax) => rgbaValue(ax.facecolor),
   set_fc: (ax, args, _k, h) => { ax.facecolor = toColor(h, args[0], 'facecolor'); return py.NONE },
+  get_fc: (ax) => rgbaValue(ax.facecolor),
   set_axis_off: (ax, _a, _k, h) => { ax.axisOff = true; emitFig(h, ax.fig, ax); return py.NONE },
   set_axis_on: (ax, _a, _k, h) => { ax.axisOff = false; emitFig(h, ax.fig, ax); return py.NONE },
-  axison_: () => py.NONE,
   set_frame_on: (ax, args, _k, h) => {
     if (!args.length) throw h.err('TypeError', "_AxesBase.set_frame_on() missing 1 required positional argument: 'b'")
     ax.frame = h.truthy(args[0])
@@ -7099,10 +7250,17 @@ const AXES_METHODS: Record<string, AxMethod> = {
   get_zorder: (ax) => py.float(ax.zorder),
   set_alpha: () => py.NONE,
   get_figure: (ax) => py.obj(ax.fig),
+  remove: (ax, _a, _k, h) => {
+    ax.fig.axes = ax.fig.axes.filter((a) => a !== ax)
+    if (ax.fig.cur === ax) ax.fig.cur = ax.fig.axes[ax.fig.axes.length - 1] ?? null
+    emitFig(h, ax.fig, null)
+    return py.NONE
+  },
   set_prop_cycle: (ax, args, kw, h) => {
-    if (args.length === 1 && isNone(args[0])) { ax.cycle = defaultCycle(h); ax.lineCycle = 0; ax.patchCycle = 0; return py.NONE }
+    if (args.length === 1 && isNone(args[0])) { ax.cycle = defaultCycle(h); ax.cycleRaw = null; ax.lineCycle = 0; ax.patchCycle = 0; return py.NONE }
     const c = args.length === 1 && args[0].k === 'obj' && args[0].o instanceof CyclerObj ? args[0].o : cyclerOf(h, args, kw)
     ax.cycle = c.colors
+    ax.cycleRaw = c.raw
     ax.lineCycle = 0
     ax.patchCycle = 0
     return py.NONE
@@ -7115,13 +7273,14 @@ const AXES_METHODS: Record<string, AxMethod> = {
     if (args.length > 2) throw h.err('TypeError', 'Must pass a single positional argument for all margins, or one for each margin (x, y).')
     const mx = args.length === 1 ? args[0] : args.length === 2 ? args[0] : xk
     const my = args.length === 1 ? args[0] : args.length === 2 ? args[1] : yk
-    if (isNone(mx) && isNone(my)) return py.tuple([py.float(ax.x.margin), py.float(ax.y.margin)])
+    if (isNone(mx) && isNone(my)) return py.tuple([ax.x.marginValue ?? py.float(ax.x.margin), ax.y.marginValue ?? py.float(ax.y.margin)])
     if (tight !== null) ax.tight = tight
     for (const [m, a, n] of [[mx, ax.x, 'x'], [my, ax.y, 'y']] as [Value | undefined, Axis, 'x' | 'y'][]) {
       if (isNone(m)) continue
       const v = h.num(m!)
       if (v <= -0.5) throw h.err('ValueError', 'margin must be greater than -0.5')
       a.margin = v
+      a.marginValue = m!
       ax.requestAxis(n)
     }
     emitFig(h, ax.fig, ax)
@@ -7172,7 +7331,7 @@ const AXES_METHODS: Record<string, AxMethod> = {
     const v = args[0]
     if (v.k !== 'obj' || !(v.o instanceof PatchObj)) throw h.err('TypeError', 'add_patch() needs a Patch')
     if (v.o.ax && v.o.ax !== ax) throw h.err('RuntimeError', 'Can not reset the Axes. You are probably trying to re-use an artist in more than one Axes which is not supported')
-    addPatch(ax, v.o, h)
+    addPatch(ax, v.o)
     added(h, ax, ax.children.length - 1)
     return v
   },
@@ -7246,7 +7405,7 @@ const AXES_METHODS: Record<string, AxMethod> = {
   minorticks_on: (ax, _a, _k, h) => { ax.x.minorOn(); ax.y.minorOn(); emitFig(h, ax.fig, ax); return py.NONE },
   minorticks_off: (ax, _a, _k, h) => { ax.x.ticker.minorLoc = { k: 'null' }; ax.y.ticker.minorLoc = { k: 'null' }; emitFig(h, ax.fig, ax); return py.NONE },
   get_position: (ax, args, kw, h) => {
-    const r = flag(h, args[0] ?? kw.original, false) ? ax.position() : ax.position()
+    const r = flag(h, args[0] ?? kw.original, false) ? ax.position() : untouched(ax.fig, () => ax.geometry().rect)
     return py.obj(new Bbox(r[0], r[1], r[0] + r[2], r[1] + r[3]))
   },
   set_position: (ax, args, _k, h) => {
@@ -7282,11 +7441,10 @@ const AXES_METHODS: Record<string, AxMethod> = {
     if (ss.c1 !== ss.gs.ncols) ax.y.style.label2 = false
     return py.NONE
   },
-  sharex: (ax, args, _k, h) => { shareAxis(h, ax.x, (args[0] as unknown as { o: Axes }).o.x); return py.NONE },
-  sharey: (ax, args, _k, h) => { shareAxis(h, ax.y, (args[0] as unknown as { o: Axes }).o.y); return py.NONE },
+  sharex: (ax, args) => { shareAxis(ax.x, (args[0] as unknown as { o: Axes }).o.x); return py.NONE },
+  sharey: (ax, args) => { shareAxis(ax.y, (args[0] as unknown as { o: Axes }).o.y); return py.NONE },
   get_xaxis_transform: () => py.obj(new TransformObj('data', 'axes')),
   get_yaxis_transform: () => py.obj(new TransformObj('axes', 'data')),
-  get_transform_: () => py.NONE,
   get_shared_x_axes: (ax) => py.obj(sharedView(ax.x)),
   get_shared_y_axes: (ax) => py.obj(sharedView(ax.y)),
   inset_axes: (ax, args, kw0, h) => {
@@ -7310,10 +7468,9 @@ const AXES_METHODS: Record<string, AxMethod> = {
 const sharedView = (a: Axis) => new (class extends PyObj {
   readonly cls = 'GrouperView'
   repr() { return '<matplotlib.cbook.GrouperView object>' }
-  getAttr(n: string, h: Host): Value | undefined {
+  getAttr(n: string): Value | undefined {
     if (n === 'joined') return fnv(n, (args) => py.bool(a.siblings.some((s) => s.ax === (args[1] as unknown as { o: Axes }).o)))
     if (n === 'get_siblings') return fnv(n, () => py.list(a.siblings.map((s) => py.obj(s.ax))))
-    void h
     return undefined
   }
 })()
@@ -7368,10 +7525,12 @@ class Axes3D extends Axes {
     for (const n of SPINE_NAMES) this.spines[n].spec.visible = false
     this.box = this.boxAspectOf([4, 4, 3], 1)
     const m = (0.05 * 10) / 11
-    for (const a of [this.x, this.y, this.z]) {
+    for (const a of [this.x, this.y]) {
       a.lo = m
       a.hi = 1 - m
     }
+    this.z.lo = 0
+    this.z.hi = 1
     this.autoscaleView(h, null)
   }
   boxAspectOf(v: number[], zoom: number) {
@@ -7607,10 +7766,14 @@ class Axes3D extends Axes {
     })
     return out
   }
-  resolve(h: Host): AxesSpec {
+  /** apply_aspect: a 3D Axes only keeps its box square */
+  geometry(): { rect: Rect; xlim: [number, number]; ylim: [number, number] } {
     const [W, H] = this.fig.spec.size
-    const rect = fitAspect(this.position(), 1, H / W, this.anchor)
     const lim2d: [number, number] = [-0.95 / this.dist, 0.9 / this.dist]
+    return { rect: fitAspect(this.position(), 1, H / W, this.anchor), xlim: lim2d, ylim: lim2d }
+  }
+  resolve(h: Host): AxesSpec {
+    const { rect, xlim: lim2d } = this.geometry()
     this.drawn = { rect, xlim: lim2d, ylim: lim2d }
     this.M = this.proj()
     this.depths.clear()
@@ -7951,7 +8114,7 @@ const contour3d: AxMethod = (ax0, args, kw, h) => {
   if (zdir !== 'z') throw h.err('NotImplementedError', `3D contour(zdir='${zdir}') is not available in this sandbox`)
   const offset = optNum(h, pop(kw, 'offset'))
   pop(kw, 'extend3d', 'stride', 'axlim_clip')
-  const { X, Y, Z, nx, ny, level } = contourArgs(ax, args, kw, h)
+  const { X, Y, Z, nx, ny, level } = contourArgs(args, kw, h)
   const f = finiteOf(Z)
   const lv = pop(kw, 'levels') ?? level
   const levels = isNone(lv) ? autoLevels(minOf(f), maxOf(f), 7) : isNum(lv!) ? autoLevels(minOf(f), maxOf(f), h.toInt(lv!)) : nums(h, lv!, 'levels')
@@ -8002,10 +8165,12 @@ const quiver3d: AxMethod = (ax0, args, kw, h) => {
   const spec = newSegs(colorsV ? toColors(h, colorsV) : [rcc(h, 'lines.color')], rcn(h, 'lines.linewidth'))
   const lines: number[][][] = []
   const [c, s] = [Math.cos((15 * Math.PI) / 180), Math.sin((15 * Math.PI) / 180)]
+  // the limits follow the arrows' positions, not their tips
   const all: number[][] = []
   for (let i = 0; i < n; i++) {
     const uvw = [U0[i] * scaleBy[i], V0[i] * scaleBy[i], W0[i] * scaleBy[i]]
     if (!uvw[0] && !uvw[1] && !uvw[2]) continue
+    all.push([X[i], Y[i], Z[i]])
     const shift = pivot === 'tail' ? 0 : pivot === 'tip' ? 1 : 0.5
     const start = [X[i] - shift * uvw[0], Y[i] - shift * uvw[1], Z[i] - shift * uvw[2]]
     const tip = start.map((v, k) => v + uvw[k])
@@ -8018,7 +8183,6 @@ const quiver3d: AxMethod = (ax0, args, kw, h) => {
     })
     lines.push([start, tip])
     for (const hv of heads) lines.push([tip, tip.map((v, k) => v - ratio * hv[k])])
-    all.push(start, tip)
   }
   const o = new SegsObj('Line3DCollection', spec)
   o.module = 'art3d'
@@ -8129,6 +8293,57 @@ const makeAxes = (h: Host, fig: Figure, ss: SubplotSpec | null, rect: Rect | nul
   return ax
 }
 
+/** Figure.subplot_mosaic: 'AB;CC' or nested lists of labels; each label must fill a rectangle */
+const mosaicOn = (h: Host, f: Figure, layout: Value, kw: Kw): Value => {
+  const empty = optStr(h, pop(kw, 'empty_sentinel')) ?? '.'
+  const rows: string[][] = layout.k === 'str'
+    ? layout.v.split(/[;\n]/).map((r) => r.trim()).filter((r) => r).map((r) => [...r])
+    : h.iterate(layout).map((r) => h.iterate(r).map((c) => (isNone(c) ? empty : h.str(c))))
+  const nrows = rows.length
+  const ncols = rows[0]?.length ?? 0
+  if (!nrows || !ncols || rows.some((r) => r.length !== ncols)) throw h.err('ValueError', `All of the rows must be the same length, however the first row (${pyRepr(py.str((rows[0] ?? []).join('')))}) has length ${ncols} and a later row does not.`)
+  const subKw = kwOfDict(h, pop(kw, 'subplot_kw'))
+  const gsKw = kwOfDict(h, pop(kw, 'gridspec_kw'))
+  const wr = pop(kw, 'width_ratios')
+  const hr = pop(kw, 'height_ratios')
+  if (wr) gsKw.width_ratios = wr
+  if (hr) gsKw.height_ratios = hr
+  const shareX = flag(h, pop(kw, 'sharex'), false)
+  const shareY = flag(h, pop(kw, 'sharey'), false)
+  const g = gridSpecOf(h, f, [py.int(nrows), py.int(ncols)], gsKw)
+  const seen = new Map<string, { r0: number; r1: number; c0: number; c1: number }>()
+  rows.forEach((row, r) => row.forEach((name, c) => {
+    if (name === empty) return
+    const b = seen.get(name)
+    if (!b) seen.set(name, { r0: r, r1: r + 1, c0: c, c1: c + 1 })
+    else {
+      b.r1 = Math.max(b.r1, r + 1)
+      b.c0 = Math.min(b.c0, c)
+      b.c1 = Math.max(b.c1, c + 1)
+    }
+  }))
+  const out: [string, Value][] = []
+  let first: Axes | null = null
+  for (const [name, b] of seen) {
+    for (let r = b.r0; r < b.r1; r++) for (let c = b.c0; c < b.c1; c++) {
+      if (rows[r][c] !== name) throw h.err('ValueError', `While trying to layout\narray([${rows.map((x) => `[${x.map((c) => `'${c}'`).join(', ')}]`).join(',\n       ')}], dtype=object)\nwe found that the label ${pyRepr(py.str(name))} specifies a non-rectangular or non-contiguous area.`)
+    }
+    const sk = { ...subKw }
+    const ax = makeAxes(h, f, new SubplotSpec(g, b.r0, b.r1, b.c0, b.c1), null, pop(sk, 'projection'), flag(h, pop(sk, 'polar'), false))
+    setKw(ax, sk, h)
+    ax.label = name
+    if (first) {
+      if (shareX) shareAxis(ax.x, first.x)
+      if (shareY) shareAxis(ax.y, first.y)
+    }
+    first ??= ax
+    out.push([name, py.obj(ax)])
+  }
+  f.cur = first
+  emitFig(h, f, null)
+  return dictOf(out)
+}
+
 const subplotsOn = (h: Host, f: Figure, args: Value[], kw: Kw, emit: boolean): Value => {
   const nrows = h.toInt(args[0] ?? pop(kw, 'nrows') ?? py.int(1))
   const ncols = h.toInt(args[1] ?? pop(kw, 'ncols') ?? py.int(1))
@@ -8168,11 +8383,11 @@ const subplotsOn = (h: Host, f: Figure, args: Value[], kw: Kw, emit: boolean): V
       setKw(a, sk, h)
       if (shareX !== 'none' && axes.length) {
         const leader = shareX === 'all' ? axes[0] : shareX === 'row' ? axes[r * ncols] : axes[c]
-        if (leader && leader !== a && (shareX === 'all' || (shareX === 'row' ? c > 0 : r > 0))) shareAxis(h, a.x, leader.x)
+        if (leader && leader !== a && (shareX === 'all' || (shareX === 'row' ? c > 0 : r > 0))) shareAxis(a.x, leader.x)
       }
       if (shareY !== 'none' && axes.length) {
         const leader = shareY === 'all' ? axes[0] : shareY === 'row' ? axes[r * ncols] : axes[c]
-        if (leader && leader !== a && (shareY === 'all' || (shareY === 'row' ? c > 0 : r > 0))) shareAxis(h, a.y, leader.y)
+        if (leader && leader !== a && (shareY === 'all' || (shareY === 'row' ? c > 0 : r > 0))) shareAxis(a.y, leader.y)
       }
       axes.push(a)
     }
@@ -8352,9 +8567,10 @@ class ScalarMappable extends ArtistObj implements Mapped {
   getAttr(name: string, h: Host): Value | undefined {
     if (name === 'to_rgba') return fnv(name, (args) => {
       const v = args[0]
-      if (isNum(v)) return rgbaValue(this.norm.color(this.lut, h.num(v)))
+      const cm = new ColormapObj(this.lut)
+      if (isNum(v)) return cm.call([py.float(this.norm.t(h.num(v)))], {}, h)
       const a = toArray(v, 'float64')
-      return floats(a.values().flatMap((x) => rgbaOf(this.norm.color(this.lut, x))), [...a.shape, 4])
+      return cm.call([floats(a.values().map((x) => this.norm.t(x)), a.shape)], {}, h)
     })
     return super.getAttr(name, h)
   }
@@ -8390,9 +8606,8 @@ const colorsModule = (h: Host): Record<string, Value> => {
     if (!cs.length) throw h.err('ValueError', 'A ListedColormap must have at least one color')
     if (nV !== null) cs = Array.from({ length: nV }, (_, i) => cs[i % cs.length])
     const rgb = cs.flatMap((c) => rgbaOf(c).slice(0, 3))
-    return py.obj(new ColormapObj({ name, n: cs.length, rgb, listed: true, under: null, over: null, bad: null }))
+    return py.obj(new ColormapObj({ name, n: cs.length, rgb, listed: true, under: null, over: null, bad: null, raw: cv }))
   }
-  const LSC = { ...(typ('LinearSegmentedColormap', () => { throw h.err('NotImplementedError', 'LinearSegmentedColormap(segmentdata): use LinearSegmentedColormap.from_list') }) as { k: 'type'; name: string; call: (a: Value[], k: Kw) => Value }) }
   const fromList = fnv('from_list', (args, kw) => {
     const name = h.str(args[0] ?? kw.name)
     const cv = args[1] ?? kw.colors
@@ -8488,7 +8703,6 @@ const colorsModule = (h: Host): Record<string, Value> => {
     CSS4_COLORS: dict(Object.fromEntries(CSS4.split(' ').map((e) => { const [n, c] = e.split(':'); return [n, `#${c.toUpperCase()}`] }))),
     TABLEAU_COLORS: dict(Object.fromEntries(['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan'].map((n, i) => [`tab:${n}`, CYCLE[i]]))),
     BASE_COLORS: { k: 'dict', d: PyDict.from(Object.entries({ b: [0, 0, 1], g: [0, 0.5, 0], r: [1, 0, 0], c: [0, 0.75, 0.75], m: [0.75, 0, 0.75], y: [0.75, 0.75, 0], k: [0, 0, 0], w: [1, 1, 1] }).map(([a, b]) => [py.str(a), py.tuple(b.map(py.float))])) },
-    ...{ _LSC: LSC as unknown as Value },
   }
 }
 
@@ -8524,7 +8738,7 @@ const tickerModule = (h: Host): Record<string, Value> => {
 
 const COLOR_SETTERS = ['autumn', 'bone', 'cool', 'copper', 'flag', 'gray', 'hot', 'hsv', 'jet', 'pink', 'prism', 'spring', 'summer', 'winter', 'magma', 'inferno', 'plasma', 'viridis', 'nipy_spectral']
 
-const pyplot = (h: Host, patches: Record<string, Value>, cm: Value, colors: Record<string, Value>, ticker: Record<string, Value>, rcParams: RcParams, gridspec: Value): Value => {
+const pyplot = (h: Host, patches: Record<string, Value>, cm: Value, colors: Record<string, Value>, ticker: Record<string, Value>, rcParams: RcParams): Value => {
   const attrs: Record<string, Value> = {}
   // every Axes method has a pyplot twin that acts on the current Axes; these also make the current image
   const sciTwins = new Set(['imshow', 'pcolor', 'pcolormesh', 'contour', 'contourf', 'scatter', 'hexbin', 'tricontour', 'tricontourf', 'tripcolor', 'spy'])
@@ -8532,7 +8746,7 @@ const pyplot = (h: Host, patches: Record<string, Value>, cm: Value, colors: Reco
     plot: 'plot', scatter: 'scatter', bar: 'bar', barh: 'barh', hist: 'hist', imshow: 'imshow', axhline: 'axhline', axvline: 'axvline', axhspan: 'axhspan', axvspan: 'axvspan', axline: 'axline',
     text: 'text', fill_between: 'fill_between', fill_betweenx: 'fill_betweenx', fill: 'fill', legend: 'legend', grid: 'grid', axis: 'axis', arrow: 'arrow', annotate: 'annotate', bar_label: 'bar_label',
     contour: 'contour', contourf: 'contourf', clabel: 'clabel', tricontour: 'tricontour', tricontourf: 'tricontourf', triplot: 'triplot', tripcolor: 'tripcolor', pie: 'pie', errorbar: 'errorbar', boxplot: 'boxplot', violinplot: 'violinplot', step: 'step', stem: 'stem', stairs: 'stairs', stackplot: 'stackplot',
-    pcolor: 'pcolor', pcolormesh: 'pcolormesh', hist2d: 'hist2d', hexbin: 'hexbin', quiver: 'quiver', hlines: 'hlines', vlines: 'vlines', eventplot: 'eventplot', ecdf: 'ecdf', spy: 'spy', streamplot: 'streamplot', barbs: 'barbs', table: 'table',
+    pcolor: 'pcolor', pcolormesh: 'pcolormesh', hist2d: 'hist2d', hexbin: 'hexbin', quiver: 'quiver', hlines: 'hlines', vlines: 'vlines', eventplot: 'eventplot', ecdf: 'ecdf', broken_barh: 'broken_barh', spy: 'spy', streamplot: 'streamplot', barbs: 'barbs', table: 'table',
     semilogx: 'semilogx', semilogy: 'semilogy', loglog: 'loglog', margins: 'margins', autoscale: 'autoscale', tick_params: 'tick_params', ticklabel_format: 'ticklabel_format', locator_params: 'locator_params', minorticks_on: 'minorticks_on', minorticks_off: 'minorticks_off',
     twinx: 'twinx', twiny: 'twiny', cla: 'cla', xscale: 'set_xscale', yscale: 'set_yscale',
   }
@@ -8599,6 +8813,13 @@ const pyplot = (h: Host, patches: Record<string, Value>, cm: Value, colors: Reco
     for (const k of FIG_KEYS) if (k in kw) { figKw[k] = kw[k]; delete kw[k] }
     const f = figureFrom(h, pop(figKw, 'num'), figKw)
     return subplotsOn(h, f, args, kw, true)
+  })
+  attrs.subplot_mosaic = fnv('subplot_mosaic', (args, kw0) => {
+    const kw = { ...kw0 }
+    const figKw: Kw = {}
+    for (const k of FIG_KEYS) if (k in kw) { figKw[k] = kw[k]; delete kw[k] }
+    const f = figureFrom(h, pop(figKw, 'num'), figKw)
+    return py.tuple([py.obj(f), mosaicOn(h, f, args[0] ?? pop(kw, 'mosaic')!, kw)])
   })
   attrs.axes = fnv('axes', (args, kw0) => {
     const kw = { ...kw0 }
@@ -8811,14 +9032,13 @@ const pyplot = (h: Host, patches: Record<string, Value>, cm: Value, colors: Reco
   attrs.Normalize = colors.Normalize
   attrs.Line2D = typ('Line2D', (args, kw) => line2dCtor(h, args, kw))
   attrs.Text = typ('Text', (args, kw) => textCtor(h, args, kw))
-  attrs.Annotation = typ('Annotation', (args, kw) => { throw h.err('NotImplementedError', `Annotation: use ax.annotate(...)${Object.keys(kw).length + args.length ? '' : ''}`) })
+  attrs.Annotation = typ('Annotation', () => { throw h.err('NotImplementedError', 'Annotation: use ax.annotate(...)') })
   attrs.Figure = typ('Figure', (_a, kw) => {
     const f = new Figure(h, 0, kw.figsize ? (nums(h, kw.figsize, 'figsize') as [number, number]) : (nums(h, rcv(h, 'figure.figsize'), 'figsize') as [number, number]), rcc(h, 'figure.facecolor'))
     return py.obj(f)
   })
   for (const n of ['Circle', 'Rectangle', 'Polygon', 'Arrow']) attrs[n] = patches[n]
   for (const n of ['AutoLocator', 'MaxNLocator', 'MultipleLocator', 'FixedLocator', 'NullLocator', 'LinearLocator', 'LogLocator', 'FuncFormatter', 'FormatStrFormatter', 'FixedFormatter', 'NullFormatter', 'ScalarFormatter', 'LogFormatter', 'LogFormatterMathtext', 'LogFormatterExponent']) if (ticker[n]) attrs[n] = ticker[n]
-  void gridspec
   return { k: 'module', name: 'matplotlib.pyplot', attrs }
 }
 
@@ -8830,7 +9050,8 @@ const line2dCtor = (h: Host, args: Value[], kw0: Kw): Value => {
   const xa = toArray(xv)
   const ya = toArray(yv)
   const o = new LineObj(newLine(h, xa.values(), ya.values(), rcc(h, 'lines.color')))
-  o.dtypes = [xa.dtype, ya.dtype]
+  o.setCoord(0, xv)
+  o.setCoord(1, yv)
   o.raw = rcv(h, 'lines.color')
   o.applyKw(kw, h)
   return py.obj(o)
@@ -8898,12 +9119,9 @@ export const MATPLOTLIB: PyLib = {
       const norm = nv && !isNone(nv) && nv.k === 'obj' && nv.o instanceof NormObj ? nv.o : new NormObj('Normalize', null, null)
       return py.obj(new ScalarMappable(lut, norm))
     })
-    cmAttrs.get_cmap_ = py.NONE
-    delete cmAttrs.get_cmap_
     const cm: Value = { k: 'module', name: 'matplotlib.cm', attrs: cmAttrs }
     const mod = (name: string, attrs: Record<string, Value>): Value => ({ k: 'module', name, attrs })
     const colorsMod = mod('matplotlib.colors', colors)
-    delete (colors as Record<string, Value>)._LSC
     const patches = mod('matplotlib.patches', patchesAttrs)
     const image = mod('matplotlib.image', { imread: imread(h), imsave: imsave(h) })
     const lines = mod('matplotlib.lines', { Line2D: typ('Line2D', (a, k) => line2dCtor(h, a, k)) })
@@ -8954,7 +9172,7 @@ export const MATPLOTLIB: PyLib = {
     })
     const axesMod = mod('matplotlib.axes', { Axes: typ('Axes', () => { throw h.err('NotImplementedError', 'matplotlib.axes.Axes: use plt.subplots() or fig.add_subplot()') }) })
     const style = styleModule(h)
-    const plt = pyplot(h, patchesAttrs, cm, colors, tickerAttrs, rcParams, gridspec)
+    const plt = pyplot(h, patchesAttrs, cm, colors, tickerAttrs, rcParams)
     const axes3dMod = mod('mpl_toolkits.mplot3d.axes3d', {
       Axes3D: typ('Axes3D', () => { throw h.err('NotImplementedError', "Axes3D(fig) directly: use fig.add_subplot(projection='3d')") }),
       get_test_data: fnv('get_test_data', (args, kw) => {

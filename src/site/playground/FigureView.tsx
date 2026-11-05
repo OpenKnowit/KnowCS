@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PT, textHeightPx, textWidthPx, tickLabelDepth } from '../../lib/pyPlot'
-import type { Artist, ArtistBase, AxesSpec, AxisSpec, Coord, Dash, FigureSpec, ImageArtist, LegendEntry, LegendSpec, MeshArtist, TextArrow, TextArtist } from '../../lib/pyEvents'
+import type { Artist, AxesSpec, AxisSpec, Coord, Dash, FigureSpec, ImageArtist, LegendEntry, LegendSpec, MeshArtist, TextArrow, TextArtist } from '../../lib/pyEvents'
 
 // --- 把沙盒里的 matplotlib 图（FigureSpec）画成 SVG。位置、刻度都已在 pyPlot 里按 matplotlib 算好，这里只负责落笔：1 pt = 100/72 px ---
 
@@ -238,7 +238,7 @@ const ImageArtistView = ({ a, X, Y, onPixel, labels, opacity }: { a: ImageArtist
   const texts = a.rgb ? [] : a.values.map(short)
   const fontSize = Math.min(11, cellW * 0.32, cellH * 0.45)
   const fits = texts.length <= 64 && texts.every((x) => x.length * fontSize * 0.62 <= cellW - 3)
-  const small = labels && a.rows * a.cols <= 64 && fontSize >= 7 && fits
+  const small = labels && !a.smooth && a.rows * a.cols <= 64 && fontSize >= 7 && fits
   const transform = flipX || flipY ? `translate(${flipX ? 2 * left + w : 0} ${flipY ? 2 * top + h : 0}) scale(${flipX ? -1 : 1} ${flipY ? -1 : 1})` : undefined
   return (
     <g
@@ -316,7 +316,7 @@ const legendSize = (l: LegendSpec) => {
 }
 
 /** Legend._find_best_position */
-const bestSpot = (l: LegendSpec, parent: Box, w: number, h: number, pad: number, occ: Occupied): { x: number; y: number } => {
+const bestSpot = (parent: Box, w: number, h: number, pad: number, occ: Occupied): { x: number; y: number } => {
   let best: { x: number; y: number } | null = null
   let bestScore = Infinity
   for (const name of BEST_ORDER) {
@@ -342,7 +342,6 @@ const bestSpot = (l: LegendSpec, parent: Box, w: number, h: number, pad: number,
     }
     if (score === 0) break
   }
-  void l
   return best ?? { x: parent.x, y: parent.y }
 }
 
@@ -389,6 +388,7 @@ const LegendHandle = ({ e, x, y, w, h, scale }: { e: LegendEntry; x: number; y: 
   return (
     <g opacity={e.alpha}>
       {e.line && <line x1={x} x2={x + w} y1={cy} y2={cy} stroke={e.color} strokeWidth={lineW} strokeDasharray={dashArray(e.dash, lineW)} />}
+      {e.bar && <line x1={x + w / 2} x2={x + w / 2} y1={y} y2={y + h} stroke={e.bar} strokeWidth={lineW} />}
       {m && <path d={m.d} fill={m.stroke ? 'none' : face} stroke={m.stroke ? edge : edge} strokeWidth={e.mew * PT} />}
     </g>
   )
@@ -409,7 +409,7 @@ const LegendBox = ({ l, parent, fig, occ }: { l: LegendSpec; parent: Box; fig: B
       const a = l.anchor
       ref = a.length === 4 ? { x: toPage(a[0], 0).x, y: toPage(0, a[1] + a[3]).y, w: a[2] * base.w, h: a[3] * base.h } : { ...toPage(a[0], a[1]), w: 0, h: 0 }
     }
-    spot = l.loc === 'best' ? bestSpot(l, ref, w, h, pad, occ) : anchored(l.loc, ref, w, h, pad)
+    spot = l.loc === 'best' ? bestSpot(ref, w, h, pad, occ) : anchored(l.loc, ref, w, h, pad)
   }
   if (!l.entries.length && !l.title) return null
   const handleH = 0.7 * F
@@ -514,7 +514,7 @@ const scaleFn = (lim: [number, number], log: boolean, from: number, len: number)
   return (v: number) => from + (t(v) - a) * k
 }
 
-const AxisTicks = ({ axis, horizontal, plot, X, gridSide, title }: { axis: AxisSpec; horizontal: boolean; plot: Box; X: (v: number) => number; gridSide: { low: number; high: number }; title?: boolean }) => {
+const AxisTicks = ({ axis, horizontal, X, gridSide }: { axis: AxisSpec; horizontal: boolean; X: (v: number) => number; gridSide: { low: number; high: number } }) => {
   const tick = (v: number, side: 'low' | 'high', len: number, width: number, k: string) => {
     const base = side === 'low' ? gridSide.low : gridSide.high
     const out = (side === 'low' ? 1 : -1) * (horizontal ? 1 : -1)
@@ -548,7 +548,6 @@ const AxisTicks = ({ axis, horizontal, plot, X, gridSide, title }: { axis: AxisS
     if (rotation) return <RotatedText key={k} x={x} y={p} s={s} size={size} color={color} rotation={rotation} ha={axis.ha ?? (side === 'low' ? 'right' : 'left')} va={axis.va ?? 'center'} weight={style?.weight} />
     return <TextNode key={k} x={x} y={p} s={s} size={size} color={color} anchor={anchor} va={axis.va === 'top' ? 'top' : axis.va === 'bottom' ? 'bottom' : 'center'} weight={style?.weight} />
   }
-  void title
   return (
     <g>
       {axis.tick1 && axis.minor.map((v, i) => tick(v, 'low', axis.minorLength, axis.minorWidth, `m1${i}`))}
@@ -574,8 +573,6 @@ const RotatedText = ({ x, y, s, size, color, rotation, ha, va, weight }: { x: nu
   const cy = va === 'top' ? y + hh : va === 'bottom' ? y - hh : y
   return <TextNode x={cx} y={cy} s={s} size={size} color={color} anchor="middle" va="center" rotate={rotation} weight={weight} />
 }
-
-const isTextVisible = (a: ArtistBase) => a.visible
 
 interface AxesProps {
   ax: AxesSpec
@@ -605,7 +602,7 @@ const AxesView = ({ ax, fig, focus, onPixel, clip }: AxesProps) => {
     const gx = (v: number) => coordX(a.tx, v)
     const gy = (v: number) => coordY(a.ty, v)
     const clipPath = a.clip ? clipUrl : undefined
-    const nodes = artistNode(a, i, o, gx, gy, X, Y, coordX, coordY, plot, ax, onPixel, occ)
+    const nodes = artistNode(a, o, gx, gy, X, Y, coordX, coordY, ax, onPixel, occ)
     if (nodes) items.push({ z: a.z, node: <g key={i} clipPath={clipPath}>{nodes}</g> })
   })
 
@@ -674,8 +671,8 @@ const AxesView = ({ ax, fig, focus, onPixel, clip }: AxesProps) => {
               ? <line key={n} x1={n2(at)} x2={n2(at)} y1={plot.y} y2={plot.y + plot.h} stroke={s.color} strokeWidth={s.width * PT} strokeDasharray={dashArray(s.dash, s.width * PT)} strokeLinecap="square" />
               : <line key={n} y1={n2(at)} y2={n2(at)} x1={plot.x} x2={plot.x + plot.w} stroke={s.color} strokeWidth={s.width * PT} strokeDasharray={dashArray(s.dash, s.width * PT)} strokeLinecap="square" />
           })}
-          {ax.xticks.visible && <AxisTicks axis={ax.xticks} horizontal plot={plot} X={X} gridSide={{ low: xLow, high: xHigh }} />}
-          {ax.yticks.visible && <AxisTicks axis={ax.yticks} horizontal={false} plot={plot} X={Y} gridSide={{ low: yLow, high: yHigh }} />}
+          {ax.xticks.visible && <AxisTicks axis={ax.xticks} horizontal X={X} gridSide={{ low: xLow, high: xHigh }} />}
+          {ax.yticks.visible && <AxisTicks axis={ax.yticks} horizontal={false} X={Y} gridSide={{ low: yLow, high: yHigh }} />}
           {label(ax.xticks, true)}
           {label(ax.yticks, false)}
           {offset(ax.xticks, true)}
@@ -707,7 +704,7 @@ const AxesView = ({ ax, fig, focus, onPixel, clip }: AxesProps) => {
 }
 
 /** one artist's drawing; also notes what it covers for legend(loc='best') */
-const artistNode = (a: Artist, i: number, o: number, gx: (v: number) => number, gy: (v: number) => number, X: (v: number) => number, Y: (v: number) => number, coordX: (c: Coord, v: number) => number, coordY: (c: Coord, v: number) => number, plot: Box, ax: AxesSpec, onPixel: (p: PixelInfo | null) => void, occ: Occupied): ReactNode => {
+const artistNode = (a: Artist, o: number, gx: (v: number) => number, gy: (v: number) => number, X: (v: number) => number, Y: (v: number) => number, coordX: (c: Coord, v: number) => number, coordY: (c: Coord, v: number) => number, ax: AxesSpec, onPixel: (p: PixelInfo | null) => void, occ: Occupied): ReactNode => {
   switch (a.kind) {
     case 'image':
       occ.boxes.push([Math.min(X(a.extent[0]), X(a.extent[1])), Math.min(Y(a.extent[2]), Y(a.extent[3])), Math.max(X(a.extent[0]), X(a.extent[1])), Math.max(Y(a.extent[2]), Y(a.extent[3]))])
@@ -788,7 +785,8 @@ const artistNode = (a: Artist, i: number, o: number, gx: (v: number) => number, 
         const c = a.colors[k % a.colors.length]
         const e = a.edges ? a.edges[k % a.edges.length] : c
         const lw = a.lw[k % a.lw.length] * PT
-        const m = markerPath(a.marker, px, py, size)
+        // only a line's ',' is a single pixel: a scatter sizes it like any other marker
+        const m = markerPath(a.marker === ',' ? 's' : a.marker, px, py, size)
         const f = m.stroke ? 'none' : c
         const s = m.stroke ? c : e
         const id = `${f}|${s}|${lw}`
@@ -923,8 +921,6 @@ const artistNode = (a: Artist, i: number, o: number, gx: (v: number) => number, 
       )
     }
   }
-  void plot
-  return null
 }
 
 const FigureText = ({ a, fig }: { a: TextArtist; fig: Box }) => {
@@ -957,7 +953,7 @@ const FigureBody = memo(({ fig, focus, onPixel, clip }: { fig: FigureSpec; focus
         return <AxesView key={k} ax={ax} fig={box} focus={f} onPixel={onPixel} clip={`${clip}-${k}`} />
       })}
       {fig.legends.map((l, k) => <LegendBox key={k} l={l} parent={box} fig={box} occ={{ points: [], boxes: [], paths: [] }} />)}
-      {fig.texts.filter(isTextVisible).map((a, k) => <FigureText key={k} a={a} fig={box} />)}
+      {fig.texts.map((a, k) => <FigureText key={k} a={a} fig={box} />)}
     </>
   )
 })

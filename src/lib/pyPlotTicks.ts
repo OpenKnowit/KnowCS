@@ -61,6 +61,8 @@ export interface MaxN {
   minN: number
   prune: 'upper' | 'lower' | 'both' | null
   symmetric: boolean
+  /** 3D axes ask for a slightly smaller step (23/24), to keep matplotlib 3.8's look */
+  rawScale?: number
 }
 
 /** AutoLocator's settings */
@@ -86,7 +88,7 @@ const rawTicks = (vmin: number, vmax: number, m: MaxN, space: number): number[] 
   const st = m.steps
   let steps = [...st.slice(0, -1).map((s) => s * 0.1), ...st, 10 * st[1]].map((s) => s * scale)
   if (m.integer) steps = steps.filter((s) => s < 1 || Math.abs(s - Math.round(s)) < 0.001)
-  const raw = (hi - lo) / nbins
+  const raw = ((hi - lo) / nbins) * (m.rawScale ?? 1)
   let istep = steps.findIndex((s) => s >= raw)
   if (istep < 0) istep = steps.length - 1
   let ticks: number[] = []
@@ -233,7 +235,7 @@ export const scalarLabels = (locs: number[], view: [number, number], opts: { use
         while (!(fd(absMax, oom) - fd(absMin, oom) > 1)) oom--
         oom += 1
       }
-      if (fd(absMax, oom) >= 10) offset = sign * fd(absMax, oom) * 10 ** oom
+      if (fd(absMax, oom) >= 1000) offset = sign * fd(absMax, oom) * 10 ** oom
     }
   }
   let order = 0

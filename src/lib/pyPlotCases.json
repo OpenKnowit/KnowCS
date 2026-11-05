@@ -1,0 +1,1310 @@
+[
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2, 3], [4, 5, 7])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.9, 3.1] [3.85, 7.15]\n[0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25] [3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5]\n['0.75', '1.00', '1.25', '1.50', '1.75', '2.00', '2.25', '2.50', '2.75', '3.00', '3.25'] ['3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0', '7.5']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 10], [0, 1000])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[-0.5, 10.5] [-50.0, 1050.0]\n[-2.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0] [-200.0, 0.0, 200.0, 400.0, 600.0, 800.0, 1000.0, 1200.0]\n['−2', '0', '2', '4', '6', '8', '10', '12'] ['−200', '0', '200', '400', '600', '800', '1000', '1200']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[-0.05500000000000001, 0.05500000000000001] [0.945, 1.0550000000000002]\n[-0.06, -0.039999999999999994, -0.019999999999999997, 0.0, 0.020000000000000004, 0.04000000000000001, 0.06] [0.9400000000000001, 0.9600000000000001, 0.9800000000000001, 1.0, 1.02, 1.04, 1.06]\n['−0.06', '−0.04', '−0.02', '0.00', '0.02', '0.04', '0.06'] ['0.94', '0.96', '0.98', '1.00', '1.02', '1.04', '1.06']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([], [])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[-0.05500000000000001, 0.05500000000000001] [-0.05500000000000001, 0.05500000000000001]\n[-0.06, -0.039999999999999994, -0.019999999999999997, 0.0, 0.020000000000000004, 0.04000000000000001, 0.06] [-0.06, -0.039999999999999994, -0.019999999999999997, 0.0, 0.020000000000000004, 0.04000000000000001, 0.06]\n['−0.06', '−0.04', '−0.02', '0.00', '0.02', '0.04', '0.06'] ['−0.06', '−0.04', '−0.02', '0.00', '0.02', '0.04', '0.06']\n"
+],
+[
+"fig, ax = plt.subplots()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.0, 1.0] [0.0, 1.0]\n[0.0, 0.2, 0.4, 0.6000000000000001, 0.8, 1.0] [0.0, 0.2, 0.4, 0.6000000000000001, 0.8, 1.0]\n['0.0', '0.2', '0.4', '0.6', '0.8', '1.0'] ['0.0', '0.2', '0.4', '0.6', '0.8', '1.0']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1e6, 2e6], [1e-6, 2e-6])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[950000.0, 2050000.0] [9.5e-07, 2.05e-06]\n[800000.0, 1000000.0, 1200000.0, 1400000.0, 1600000.0, 1800000.0, 2000000.0, 2200000.0] [8e-07, 1e-06, 1.2e-06, 1.4e-06, 1.6e-06, 1.8e-06, 2e-06, 2.2e-06]\n['0.8', '1.0', '1.2', '1.4', '1.6', '1.8', '2.0', '2.2'] ['0.8', '1.0', '1.2', '1.4', '1.6', '1.8', '2.0', '2.2']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1000000, 1000001], [5, 6])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[999999.95, 1000001.05] [4.95, 6.05]\n[999999.8, 1000000.0, 1000000.2, 1000000.4, 1000000.6, 1000000.8, 1000001.0, 1000001.2] [4.800000000000001, 5.000000000000001, 5.200000000000001, 5.4, 5.6000000000000005, 5.800000000000001, 6.000000000000001, 6.200000000000001]\n['−0.2', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0', '1.2'] ['4.8', '5.0', '5.2', '5.4', '5.6', '5.8', '6.0', '6.2']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot(np.linspace(-5, 5, 41), np.linspace(-5, 5, 41) ** 2)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[-5.5, 5.5] [-1.25, 26.25]\n[-6.0, -4.0, -2.0, 0.0, 2.0, 4.0, 6.0] [-5.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0]\n['−6', '−4', '−2', '0', '2', '4', '6'] ['−5', '0', '5', '10', '15', '20', '25', '30']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.scatter([1, 2, 3], [4, 5, 7])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.9, 3.1] [3.85, 7.15]\n[0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25] [3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5]\n['0.75', '1.00', '1.25', '1.50', '1.75', '2.00', '2.25', '2.50', '2.75', '3.00', '3.25'] ['3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0', '7.5']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.bar([1, 2, 3], [4, 5, 7])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.45999999999999996, 3.5400000000000005] [0.0, 7.35]\n[0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0] [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]\n['0.0', '0.5', '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0'] ['0', '1', '2', '3', '4', '5', '6', '7', '8']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.bar(['a', 'b', 'c'], [4, 5, 7])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[-0.54, 2.5400000000000005] [0.0, 7.35]\nAttributeError: 'list' object has no attribute 'tolist'"
+],
+[
+"fig, ax = plt.subplots()\nax.barh([1, 2, 3], [4, 5, 7])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.0, 7.35] [0.45999999999999996, 3.5400000000000005]\n[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0] [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]\n['0', '1', '2', '3', '4', '5', '6', '7', '8'] ['0.0', '0.5', '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.barh(['a', 'b'], [4, 5])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.0, 5.25] [-0.49, 1.49]\nAttributeError: 'list' object has no attribute 'tolist'"
+],
+[
+"fig, ax = plt.subplots()\nax.bar([1, 2], [3, 4], width=0.5, bottom=1, align='edge')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.925, 2.575] [1.0, 5.2]\n[0.8, 1.0, 1.2000000000000002, 1.4000000000000001, 1.6, 1.8, 2.0, 2.2, 2.4000000000000004, 2.6] [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5]\n['0.8', '1.0', '1.2', '1.4', '1.6', '1.8', '2.0', '2.2', '2.4', '2.6'] ['1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.bar([1, 2], [-3, 4])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.51, 2.49] [-3.35, 4.35]\n[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5] [-4.0, -3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0]\n['0.50', '0.75', '1.00', '1.25', '1.50', '1.75', '2.00', '2.25', '2.50'] ['−4', '−3', '−2', '−1', '0', '1', '2', '3', '4', '5']\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist([1, 2, 2, 3, 3, 3, 4, 4, 4, 4], bins=4)\nprint(n.tolist(), b.tolist(), p)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[1.0, 2.0, 3.0, 4.0] [1.0, 1.75, 2.5, 3.25, 4.0] <BarContainer object of 4 artists>\n[0.85, 4.15] [0.0, 4.2]\n[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5] [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]\n['0.5', '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5'] ['0.0', '0.5', '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5']\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist(np.arange(100) % 7, density=True)\nprint(n.tolist(), b.tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.25, 0.25, 0.0, 0.23333333333333328, 0.0, 0.23333333333333348, 0.23333333333333314, 0.0, 0.23333333333333348, 0.23333333333333314] [0.0, 0.6, 1.2, 1.7999999999999998, 2.4, 3.0, 3.5999999999999996, 4.2, 4.8, 5.3999999999999995, 6.0]\n[-0.29999999999999993, 6.299999999999999] [0.0, 0.2625]\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist([1, 2, 3, 4, 5, 5], bins=[0, 2, 4, 6], cumulative=True)\nprint(n.tolist(), b.tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[1.0, 3.0, 6.0] [0.0, 2.0, 4.0, 6.0]\n[-0.30000000000000004, 6.3] [0.0, 6.3]\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist([1, 2, 3, 4, 5, 5], bins=3, histtype='step')\nprint(n.tolist(), b.tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[2.0, 1.0, 3.0] [1.0, 2.333333333333333, 3.6666666666666665, 5.0]\n[0.8, 5.2] [0.0, 3.15]\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist([1, 2, 3, 4, 5, 5], bins=3, histtype='stepfilled', orientation='horizontal')\nprint(n.tolist(), b.tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[2.0, 1.0, 3.0] [1.0, 2.333333333333333, 3.6666666666666665, 5.0]\n[0.0, 3.15] [0.8, 5.2]\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist([[1, 2, 3], [2, 3, 4]], bins=3)\nprint(n.tolist(), b.tolist(), p)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[[1.0, 1.0, 1.0], [0.0, 1.0, 2.0]] [1.0, 2.0, 3.0, 4.0] <a list of 2 BarContainer objects>\n[0.9600000000000001, 4.04] [0.0, 2.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist([[1, 2, 3], [2, 3, 4]], bins=3, stacked=True)\nprint(n.tolist(), b.tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[[1.0, 1.0, 1.0], [1.0, 2.0, 3.0]] [1.0, 2.0, 3.0, 4.0]\n[0.85, 4.15] [0.0, 3.15]\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist([1, 2, 3, 4], bins=2, weights=[1, 2, 3, 4])\nprint(n.tolist(), b.tolist())\n",
+"[3.0, 7.0] [1.0, 2.5, 4.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist(np.arange(50) ** 1.5, bins='auto')\nprint(n.tolist(), b.tolist())\n",
+"[14.0, 8.0, 6.0, 6.0, 6.0, 5.0, 5.0] [0.0, 49.0, 98.0, 147.0, 196.0, 245.0, 294.0, 343.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist(np.arange(50) ** 1.5, bins='sturges', log=True)\nprint(n.tolist(), b.tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[14.0, 8.0, 6.0, 6.0, 6.0, 5.0, 5.0] [0.0, 49.0, 98.0, 147.0, 196.0, 245.0, 294.0, 343.0]\n[-17.150000000000002, 360.15] [4.749108620408445, 14.73960812334077]\n"
+],
+[
+"fig, ax = plt.subplots()\nn, b, p = ax.hist([1.5, 2.5], range=(0, 4), bins=4, rwidth=0.5, align='left')\nprint(n.tolist(), b.tolist())\nprint([r.get_x() for r in p], [r.get_width() for r in p], [r.get_height() for r in p])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 1.0, 1.0, 0.0] [0.0, 1.0, 2.0, 3.0, 4.0]\n[np.float64(-0.25), np.float64(0.75), np.float64(1.75), np.float64(2.75)] [np.float64(0.5), np.float64(0.5), np.float64(0.5), np.float64(0.5)] [np.float64(0.0), np.float64(1.0), np.float64(1.0), np.float64(0.0)]\n[-0.42500000000000004, 3.425] [0.0, 1.05]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.imshow(np.arange(6).reshape(2, 3))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\nprint(ax.get_aspect())\n",
+"[-0.5, 2.5] [1.5, -0.5]\n[-0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5] [-0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5]\n['−0.5', '0.0', '0.5', '1.0', '1.5', '2.0', '2.5'] ['−0.50', '−0.25', '0.00', '0.25', '0.50', '0.75', '1.00', '1.25', '1.50']\n1.0\n"
+],
+[
+"fig, ax = plt.subplots()\nax.imshow(np.arange(6).reshape(2, 3), origin='lower')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.5, 2.5] [-0.5, 1.5]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.imshow(np.arange(6).reshape(2, 3), extent=(0, 3, 0, 2), aspect='auto')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_aspect())\n",
+"[0.0, 3.0] [0.0, 2.0]\nauto\n"
+],
+[
+"fig, ax = plt.subplots()\nax.imshow(np.arange(100).reshape(10, 10))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[-0.5, 9.5] [9.5, -0.5]\n[-2.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0] [-2.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0]\n['−2', '0', '2', '4', '6', '8', '10'] ['−2', '0', '2', '4', '6', '8', '10']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.imshow(np.arange(6).reshape(2, 3))\nax.plot([0, 5], [0, 5])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.5, 5.275] [5.275, -0.5]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.fill_between([1, 2, 3], [1, 2, 3], [2, 3, 5])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.9, 3.1] [0.8, 5.2]\n[0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25] [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5]\n['0.75', '1.00', '1.25', '1.50', '1.75', '2.00', '2.25', '2.50', '2.75', '3.00', '3.25'] ['0.5', '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.fill_between([1, 2, 3], [1, 2, 3])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.9, 3.1] [-0.15000000000000002, 3.15]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.fill_betweenx([1, 2, 3], [1, 2, 3], [2, 3, 5])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.8, 5.2] [0.9, 3.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.fill([0, 1, 1], [0, 0, 1])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05, 1.05] [-0.05, 1.05]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.errorbar([1, 2, 3], [1, 2, 3], yerr=0.5, xerr=[0.1, 0.2, 0.3])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.78, 3.42] [0.35, 3.65]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.errorbar([1, 2], [3, 4], yerr=[[0.1, 0.2], [0.3, 0.4]], fmt='o', capsize=3)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.95, 2.05] [2.8249999999999997, 4.4750000000000005]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.axhline(2)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 1.0] [1.89, 2.1100000000000003]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.axhline(0.5)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 1.0] [0.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.axvline(2)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[1.89, 2.1100000000000003] [0.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.axhline(5)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05, 1.05] [-0.25, 5.25]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.axhspan(2, 3)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 1.0] [1.95, 3.05]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.axvspan(2, 3, ymin=0.1, ymax=0.9)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[1.9499999999999997, 3.05] [0.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.axline((0, 0), (1, 2))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05, 1.05] [-0.1, 2.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.axline((0, 0), slope=2)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05500000000000001, 0.05500000000000001] [-0.05500000000000001, 0.05500000000000001]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.hlines([1, 2], 0, 3)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.15000000000000002, 3.15] [0.95, 2.05]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.vlines([1, 2], 0, [3, 4])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.95, 2.05] [-0.2, 4.2]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.stem([1, 2, 3], [4, 5, 6])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.9, 3.1] [-0.30000000000000004, 6.3]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.stem([4, 5, 6])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.1, 2.1] [-0.30000000000000004, 6.3]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.step([1, 2, 3], [4, 5, 6])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.9, 3.1] [3.9, 6.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.stairs([1, 2, 3])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.15000000000000002, 3.15] [0.0, 3.15]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.stairs([1, 2, 3], [0, 1, 2, 4], fill=True)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.2, 4.2] [0.0, 3.15]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.stackplot([1, 2, 3], [1, 2, 3], [2, 3, 4])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.9, 3.1] [0.0, 7.35]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.stackplot([1, 2, 3], [[1, 2, 3], [2, 3, 4]], baseline='sym')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.9, 3.1] [-3.85, 3.85]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.pie([1, 2, 3])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_aspect())\n",
+"[-1.25, 1.25] [-1.25, 1.25]\n1.0\n"
+],
+[
+"fig, ax = plt.subplots()\nw, t, a = ax.pie([1, 2, 3], labels=['a', 'b', 'c'], autopct='%1.1f%%')\nprint([x.get_text() for x in t], [x.get_text() for x in a])\nprint([(round(x.get_position()[0], 5), round(x.get_position()[1], 5)) for x in t])\n",
+"['a', 'b', 'c'] ['16.7%', '33.3%', '50.0%']\n[(0.95263, 0.55), (-0.55, 0.95263), (0.0, -1.1)]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.boxplot([1, 2, 3, 4, 30])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.5, 1.5] [-0.4500000000000002, 31.45]\n[1] [-5.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0]\n['1'] ['−5', '0', '5', '10', '15', '20', '25', '30', '35']\n"
+],
+[
+"fig, ax = plt.subplots()\nbp = ax.boxplot([[1, 2, 3, 4, 30], [2, 3, 4, 5, 6]], labels=['a', 'b'])\nprint(sorted(bp.keys()), len(bp['whiskers']), len(bp['fliers']))\nprint(bp['fliers'][0].get_ydata().tolist(), bp['medians'][0].get_ydata().tolist(), bp['boxes'][0].get_xdata().tolist(), bp['caps'][0].get_ydata().tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"['boxes', 'caps', 'fliers', 'means', 'medians', 'whiskers'] 4 2\n[30] [3.0, 3.0] [0.925, 1.075, 1.075, 0.925, 0.925] [1, 1]\n[0.5, 2.5] [-0.4500000000000002, 31.45]\n[1, 2] [-5.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0]\n['a', 'b'] ['−5', '0', '5', '10', '15', '20', '25', '30', '35']\n"
+],
+[
+"fig, ax = plt.subplots()\nbp = ax.boxplot([1, 2, 3, 4], vert=False)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.85, 4.15] [0.5, 1.5]\n"
+],
+[
+"fig, ax = plt.subplots()\nbp = ax.boxplot(np.arange(12).reshape(4, 3), positions=[2, 4, 8], widths=0.5)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[1.5, 8.5] [-0.55, 11.55]\n[2, 4, 8] [-2.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0]\n['2', '4', '8'] ['−2', '0', '2', '4', '6', '8', '10', '12']\n"
+],
+[
+"fig, ax = plt.subplots()\nbp = ax.boxplot([1, 2, 3, 4], whis=(5, 95), showmeans=True)\nprint(bp['means'][0].get_ydata().tolist(), bp['caps'][0].get_ydata().tolist())\n",
+"[2.5] [1.75, 1.75]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.contour([[1, 2], [3, 4]])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 1.0] [0.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nc = ax.contour([[1, 2], [3, 4]])\nprint(c.levels.tolist())\n",
+"[0.8, 1.2000000000000002, 1.6, 2.0, 2.4000000000000004, 2.8, 3.2, 3.6000000000000005, 4.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nc = ax.contourf([[1, 2], [3, 4]])\nprint(c.levels.tolist(), c.layers.tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.8, 1.2000000000000002, 1.6, 2.0, 2.4000000000000004, 2.8, 3.2, 3.6000000000000005, 4.0] [1.0, 1.4000000000000001, 1.8, 2.2, 2.6, 3.0, 3.4000000000000004, 3.8000000000000003]\n[0.0, 1.0] [0.0, 1.0]\n"
+],
+[
+"x = np.linspace(-3, 3, 30)\nX, Y = np.meshgrid(x, x)\nZ = np.exp(-X**2 - Y**2)\nfig, ax = plt.subplots()\nc = ax.contour(X, Y, Z)\nprint(c.levels.tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\n",
+"[0.0, 0.15000000000000002, 0.30000000000000004, 0.45000000000000007, 0.6000000000000001, 0.7500000000000001, 0.9000000000000001, 1.0500000000000003]\n[-3.0, 3.0] [-3.0, 3.0]\n[-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0] [-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]\n"
+],
+[
+"x = np.linspace(-3, 3, 30)\nX, Y = np.meshgrid(x, x)\nZ = np.sin(X) * Y\nfig, ax = plt.subplots()\nc = ax.contourf(X, Y, Z, 5)\nprint(c.levels.tolist(), c.layers.tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0] [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5]\n[-3.0, 3.0] [-3.0, 3.0]\n"
+],
+[
+"x = np.linspace(-3, 3, 30)\nX, Y = np.meshgrid(x, x)\nZ = np.sin(X) * Y\nfig, ax = plt.subplots()\nc = ax.contour(X, Y, Z, levels=[-1, 0, 1], colors='k')\nprint(c.levels.tolist())\n",
+"[-1.0, 0.0, 1.0]\n"
+],
+[
+"x = np.linspace(-5, 5, 100); y = np.linspace(-5, 5, 100)\nX, Y = np.meshgrid(x, y)\nZ = np.sin(np.sqrt(X**2 + Y**2))\nc = plt.contour(X, Y, Z, levels=20, cmap='viridis')\nprint(c.levels.tolist())\ncb = plt.colorbar(label='Z')\nprint(len(plt.gcf().axes))\nax=plt.gcf().axes[1]\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.3999999999999999, -0.29999999999999993, -0.19999999999999996, -0.09999999999999998, 0.0, 0.10000000000000009, 0.20000000000000018, 0.30000000000000004, 0.40000000000000013, 0.5, 0.6000000000000001, 0.7000000000000002, 0.8, 0.9000000000000001, 1.0]\n2\n[0.0, 1.0] [-1.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nc = ax.contourf(np.arange(12).reshape(3, 4), levels=[0, 5, 11], extend='both')\nprint(c.levels.tolist(), c.layers.tolist())\n",
+"[0.0, 5.0, 11.0] [-5e+249, 2.5, 8.0, 5e+249]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.pcolormesh([[1, 2], [3, 4]])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 2.0] [0.0, 2.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.pcolor([[1, 2], [3, 4]])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 2.0] [0.0, 2.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.pcolormesh([0, 1, 3], [0, 2], [[1, 2]])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 3.0] [0.0, 2.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.pcolormesh([0, 1, 3], [0, 2, 3], [[1, 2, 3], [4, 5, 6], [7, 8, 9]], shading='nearest')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.5, 4.0] [-1.0, 3.5]\n"
+],
+[
+"fig, ax = plt.subplots()\nh1, xe, ye, im = ax.hist2d([1, 2, 3, 4], [1, 1, 2, 2], bins=2)\nprint(h1.tolist(), xe.tolist(), ye.tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[[2.0, 0.0], [0.0, 2.0]] [1.0, 2.5, 4.0] [1.0, 1.5, 2.0]\n[1.0, 4.0] [1.0, 2.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.matshow(np.arange(6).reshape(2, 3))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[-0.5, 2.5] [1.5, -0.5]\n[-1.0, 0.0, 1.0, 2.0, 3.0] [-1.0, 0.0, 1.0, 2.0]\n['−1', '0', '1', '2', '3'] ['−1', '0', '1', '2']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.quiver([0, 1], [0, 1], [1, 1], [1, 2])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05, 1.05] [-0.05, 1.05]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.quiver([[1, 2], [3, 4]], [[1, 0], [0, 1]])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05, 1.05] [-0.05, 1.05]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.hexbin([0, 1, 2, 3], [0, 1, 2, 3], gridsize=3)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.1500000033, 3.1500000032999997] [-0.15000000000000002, 3.15]\n"
+],
+[
+"fig, ax = plt.subplots()\nh1 = ax.hexbin([0, 1, 2, 3], [0, 1, 2, 3], gridsize=3, mincnt=1)\nprint(h1.get_array().tolist())\n",
+"[1.0, 1.0, 2.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nv = ax.violinplot([1, 2, 3, 4, 5])\nprint(sorted(v.keys()))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"['bodies', 'cbars', 'cmaxes', 'cmins']\n[0.725, 1.275] [0.8, 5.2]\n"
+],
+[
+"fig, ax = plt.subplots()\nv = ax.violinplot([[1, 2, 3], [2, 3, 5]], showmeans=True, showmedians=True)\nprint(sorted(v.keys()))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"['bodies', 'cbars', 'cmaxes', 'cmeans', 'cmedians', 'cmins']\n[0.675, 2.325] [0.8, 5.2]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.eventplot([1, 2, 3])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.9, 3.1] [-0.1, 2.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.eventplot([[1, 2], [3, 4]], colors=['r', 'b'])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.85, 4.15] [-1.15, 2.15]\n"
+],
+[
+"fig, ax = plt.subplots()\nl = ax.ecdf([3, 1, 2])\nprint(l.get_xdata().tolist(), l.get_ydata().tolist())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[1, 1, 2, 3] [0.0, 0.3333333333333333, 0.6666666666666666, 1.0]\n[0.9, 3.1] [0.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.arrow(0, 0, 1, 1)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05053033008588981, 1.0533587572106362] [-0.05053033008588981, 1.0533587572106362]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.arrow(0, 0, 1, 1, head_width=0.2)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.06097783277792105, 1.2727563137432922] [-0.06097783277792105, 1.2727563137432922]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.text(5, 5, 'a')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 1.0] [0.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.annotate('a', (5, 5))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 1.0] [0.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.spy(np.eye(3))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.5, 2.5] [2.5, -0.5]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.semilogy([1, 2, 3], [1, 10, 100])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.9, 3.1] [0.7943282347242815, 125.89254117941675]\n[0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25] [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]\n['0.75', '1.00', '1.25', '1.50', '1.75', '2.00', '2.25', '2.50', '2.75', '3.00', '3.25'] ['$\\\\mathdefault{10^{-2}}$', '$\\\\mathdefault{10^{-1}}$', '$\\\\mathdefault{10^{0}}$', '$\\\\mathdefault{10^{1}}$', '$\\\\mathdefault{10^{2}}$', '$\\\\mathdefault{10^{3}}$', '$\\\\mathdefault{10^{4}}$']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.semilogx([1, 10, 100], [1, 2, 3])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.7943282347242815, 125.89254117941675] [0.9, 3.1]\n[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0] [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25]\n['$\\\\mathdefault{10^{-2}}$', '$\\\\mathdefault{10^{-1}}$', '$\\\\mathdefault{10^{0}}$', '$\\\\mathdefault{10^{1}}$', '$\\\\mathdefault{10^{2}}$', '$\\\\mathdefault{10^{3}}$', '$\\\\mathdefault{10^{4}}$'] ['0.75', '1.00', '1.25', '1.50', '1.75', '2.00', '2.25', '2.50', '2.75', '3.00', '3.25']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.loglog([1, 10, 1000], [1, 100, 10000])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.7079457843841379, 1412.537544622754] [0.6309573444801932, 15848.93192461114]\n[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0] [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0]\n['$\\\\mathdefault{10^{-2}}$', '$\\\\mathdefault{10^{-1}}$', '$\\\\mathdefault{10^{0}}$', '$\\\\mathdefault{10^{1}}$', '$\\\\mathdefault{10^{2}}$', '$\\\\mathdefault{10^{3}}$', '$\\\\mathdefault{10^{4}}$', '$\\\\mathdefault{10^{5}}$'] ['$\\\\mathdefault{10^{-2}}$', '$\\\\mathdefault{10^{-1}}$', '$\\\\mathdefault{10^{0}}$', '$\\\\mathdefault{10^{1}}$', '$\\\\mathdefault{10^{2}}$', '$\\\\mathdefault{10^{3}}$', '$\\\\mathdefault{10^{4}}$', '$\\\\mathdefault{10^{5}}$', '$\\\\mathdefault{10^{6}}$']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2, 3], [1, 10, 100])\nax.set_yscale('log')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\nprint(ax.get_yscale())\n",
+"[0.9, 3.1] [0.7943282347242815, 125.89254117941675]\n[0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25] [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]\n['0.75', '1.00', '1.25', '1.50', '1.75', '2.00', '2.25', '2.50', '2.75', '3.00', '3.25'] ['$\\\\mathdefault{10^{-2}}$', '$\\\\mathdefault{10^{-1}}$', '$\\\\mathdefault{10^{0}}$', '$\\\\mathdefault{10^{1}}$', '$\\\\mathdefault{10^{2}}$', '$\\\\mathdefault{10^{3}}$', '$\\\\mathdefault{10^{4}}$']\nlog\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2, 3], [0.5, 2, 3])\nax.set_yscale('log')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.9, 3.1] [0.457153913380914, 3.2811706431793275]\n[0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25] [0.01, 0.1, 1.0, 10.0, 100.0]\n['0.75', '1.00', '1.25', '1.50', '1.75', '2.00', '2.25', '2.50', '2.75', '3.00', '3.25'] ['$\\\\mathdefault{10^{-2}}$', '$\\\\mathdefault{10^{-1}}$', '$\\\\mathdefault{10^{0}}$', '$\\\\mathdefault{10^{1}}$', '$\\\\mathdefault{10^{2}}$']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.set_xscale('log')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.8912509381337456, 11.220184543019636] [0.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.semilogy([1, 2, 3], [1, 10, 100], base=2)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.9, 3.1] [0.7943282347242815, 125.89254117941672]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.bar([1, 2], [10, 100], log=True)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.51, 2.49] [8.912509381337454, 112.2018454301963]\n"
+],
+[
+"fig, ax = plt.subplots()\nprint([float(v) for v in ax.set_xlim(1, 2)], [float(v) for v in ax.set_ylim(top=5)])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[1.0, 2.0] [0.0, 5.0]\n[1.0, 2.0] [0.0, 5.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2])\nax.set_xlim(left=0)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 1.05] [0.95, 2.05]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2])\nax.set_xlim((0, 5))\nax.plot([10, 20])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 5.0] [0.04999999999999993, 20.95]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.invert_yaxis()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.yaxis_inverted(), ax.xaxis_inverted())\n",
+"[-0.05, 1.05] [1.05, -0.05]\nTrue False\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.invert_xaxis()\nax.plot([0, 2], [0, 2])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[2.1, -0.1] [-0.1, 2.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.margins(0)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.margins())\n",
+"[0.0, 1.0] [0.0, 1.0]\n(0, 0)\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.margins(x=0.2, y=0.1)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.2, 1.2] [-0.1, 1.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.margins(0.1, 0.3)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.1, 1.1] [-0.3, 1.3]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.set_xmargin(0.5)\nprint(ax.get_xmargin())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"0.5\n[-0.5, 1.5] [-0.05, 1.05]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.autoscale(tight=True)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[0.0, 1.0] [0.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.set_xlim(5, 6)\nax.autoscale()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05, 1.05] [-0.05, 1.05]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.set_xlim(5, 6)\nax.autoscale(axis='y')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_autoscalex_on(), ax.get_autoscaley_on())\n",
+"[5.0, 6.0] [-0.05, 1.05]\nFalse True\n"
+],
+[
+"fig, ax = plt.subplots()\nl, = ax.plot([0, 1], [0, 1])\nl.set_data([0, 10], [0, 20])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nax.relim()\nax.autoscale_view()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05, 1.05] [-0.05, 1.05]\n[-0.5, 10.5] [-1.0, 21.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nprint([float(v) for v in ax.axis()])\nprint([float(v) for v in ax.axis([1, 2, 3, 4])])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05, 1.05, -0.05, 1.05]\n[1.0, 2.0, 3.0, 4.0]\n[1.0, 2.0] [3.0, 4.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 2])\nax.axis('equal')\nprint(ax.get_aspect(), ax.get_adjustable())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"1.0 datalim\n[-0.05, 1.05] [-0.1, 2.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 2])\nax.axis('tight')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05, 1.05] [-0.1, 2.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 2])\nax.axis('square')\nprint(ax.get_aspect())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"1.0\n[-0.05, 2.1500000000000004] [-0.1, 2.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 2])\nax.axis('scaled')\nprint(ax.get_aspect(), ax.get_autoscale_on())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"1.0 False\n[-0.05, 1.05] [-0.1, 2.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 2])\nax.axis('image')\nprint(ax.get_aspect())\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"1.0\n[-0.05, 1.05] [-0.1, 2.1]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 2])\nax.axis('off')\nprint(ax.axison if False else 1)\n",
+"1\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 2])\nprint([float(v) for v in ax.get_xbound()])\nax.set_xbound(0.5, 0.6)\nprint([float(v) for v in ax.get_xbound()])\n",
+"[-0.05, 1.05]\n[0.5, 0.6]\n"
+],
+[
+"fig, ax = plt.subplots()\nt = ax.set_xticks([1, 2, 3])\nprint(len(t))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"3\n[0.0, 3.0] [0.0, 1.0]\n[1, 2, 3] [0.0, 0.2, 0.4, 0.6000000000000001, 0.8, 1.0]\n['1', '2', '3'] ['0.0', '0.2', '0.4', '0.6', '0.8', '1.0']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.set_xticks([1, 2, 3], ['a', 'b', 'c'])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.0, 3.0] [0.0, 1.0]\n[1, 2, 3] [0.0, 0.2, 0.4, 0.6000000000000001, 0.8, 1.0]\n['a', 'b', 'c'] ['0.0', '0.2', '0.4', '0.6', '0.8', '1.0']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.set_xticks([0, 5])\nax.set_xticklabels(['l', 'h'])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.0, 5.0] [0.0, 1.0]\n[0, 5] [0.0, 0.2, 0.4, 0.6000000000000001, 0.8, 1.0]\n['l', 'h'] ['0.0', '0.2', '0.4', '0.6', '0.8', '1.0']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1])\nax.set_yticks([])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[-0.05, 1.05] [-0.05, 1.05]\n[-0.2, 0.0, 0.2, 0.4000000000000001, 0.6000000000000001, 0.8, 1.0000000000000002, 1.2000000000000002] []\n['−0.2', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0', '1.2'] []\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 10], [0, 10])\nax.set_xticks([2, 4], minor=True)\nprint(ax.get_xticks(minor=True).tolist(), ax.get_xticks().tolist())\n",
+"[] [-2.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 10], [0, 10])\nax.minorticks_on()\nprint(ax.get_xticks(minor=True).tolist())\nax.minorticks_off()\nprint(ax.get_xticks(minor=True).tolist())\n",
+"[-0.5, 0.5, 1.0, 1.5, 2.5, 3.0, 3.5, 4.5, 5.0, 5.5, 6.5, 7.0, 7.5, 8.5, 9.0, 9.5, 10.5]\n[]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.xaxis.set_ticks([0, 0.5, 1])\nprint(ax.xaxis.get_ticklocs().tolist())\nax.yaxis.set_ticks([0, 1], ['n', 'y'])\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[0.0, 0.5, 1.0]\n['0.0', '0.5', '1.0'] ['n', 'y']\n"
+],
+[
+"from matplotlib.ticker import MaxNLocator\nfig, ax = plt.subplots()\nax.plot([0, 7], [0, 9])\nax.xaxis.set_major_locator(MaxNLocator(integer=True))\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\n",
+"[-1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0] [-2.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0]\n"
+],
+[
+"from matplotlib.ticker import MaxNLocator\nfig, ax = plt.subplots()\nax.plot([0, 3], [0, 1])\nax.xaxis.set_major_locator(MaxNLocator(3))\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\n",
+"[-1.5, 0.0, 1.5, 3.0, 4.5] [-0.2, 0.0, 0.2, 0.4000000000000001, 0.6000000000000001, 0.8, 1.0000000000000002, 1.2000000000000002]\n"
+],
+[
+"from matplotlib.ticker import MultipleLocator\nfig, ax = plt.subplots()\nax.plot([0, 7], [0, 9])\nax.xaxis.set_major_locator(MultipleLocator(2))\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"[-2.0, 0.0, 2.0, 4.0, 6.0, 8.0] [-2.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0]\n['−2', '0', '2', '4', '6', '8'] ['−2', '0', '2', '4', '6', '8', '10']\n"
+],
+[
+"from matplotlib.ticker import FuncFormatter\nfig, ax = plt.subplots()\nax.plot([0, 4], [0, 4])\nax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: f'{x:.1f}!'))\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"['-0.5!', '0.0!', '0.5!', '1.0!', '1.5!', '2.0!', '2.5!', '3.0!', '3.5!', '4.0!', '4.5!'] ['−0.5', '0.0', '0.5', '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5']\n"
+],
+[
+"from matplotlib.ticker import PercentFormatter\nfig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.yaxis.set_major_formatter(PercentFormatter(1.0))\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"['−0.2', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0', '1.2'] ['−20%', '0%', '20%', '40%', '60%', '80%', '100%', '120%']\n"
+],
+[
+"from matplotlib.ticker import FormatStrFormatter\nfig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"['−0.2', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0', '1.2'] ['-0.20', '0.00', '0.20', '0.40', '0.60', '0.80', '1.00', '1.20']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.xaxis.set_major_formatter('{x:.3f}')\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"['−0.200', '0.000', '0.200', '0.400', '0.600', '0.800', '1.000', '1.200'] ['−0.2', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0', '1.2']\n"
+],
+[
+"from matplotlib.ticker import NullFormatter, NullLocator\nfig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.xaxis.set_major_formatter(NullFormatter())\nax.yaxis.set_major_locator(NullLocator())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\n",
+"['', '', '', '', '', '', '', ''] []\nAttributeError: 'list' object has no attribute 'tolist'"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 100000], [0, 1])\nax.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"['−0.2', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0', '1.2'] ['−0.2', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0', '1.2']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1000000, 1000001], [0, 1])\nax.ticklabel_format(useOffset=False)\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"['0.9999998', '1.0000000', '1.0000002', '1.0000004', '1.0000006', '1.0000008', '1.0000010', '1.0000012'] ['−0.2', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0', '1.2']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nax.locator_params(axis='x', nbins=3)\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\n",
+"[-0.5, 0.0, 0.5, 1.0, 1.5] [-0.2, 0.0, 0.2, 0.4000000000000001, 0.6000000000000001, 0.8, 1.0000000000000002, 1.2000000000000002]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.tick_params(axis='x', labelrotation=45, labelsize=8, length=0, colors='red')\nax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)\nprint(1)\n",
+"1\n"
+],
+[
+"plt.plot([1, 2])\nlocs, labels = plt.xticks()\nprint(locs.tolist(), [t.get_text() for t in labels])\n",
+"[-0.2, 0.0, 0.2, 0.4000000000000001, 0.6000000000000001, 0.8, 1.0000000000000002, 1.2000000000000002] ['−0.2', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0', '1.2']\n"
+],
+[
+"plt.plot([1, 2])\nlocs, labels = plt.xticks([0, 1], ['a', 'b'], rotation=45)\nprint(len(locs), [t.get_text() for t in labels], [t.get_rotation() for t in labels])\n",
+"2 ['a', 'b'] [45.0, 45.0]\n"
+],
+[
+"plt.plot([1, 2])\nplt.yticks([])\nprint(plt.gca().get_yticks().tolist())\n",
+"[]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.set_title('t')\nax.set_xlabel('x')\nax.set_ylabel('y')\nprint(ax.get_title(), ax.get_xlabel(), ax.get_ylabel())\nprint(ax)\nprint(repr(ax))\n",
+"t x y\nAxes(0.125,0.11;0.775x0.77)\n<Axes: title={'center': 't'}, xlabel='x', ylabel='y'>\n"
+],
+[
+"fig, ax = plt.subplots()\nprint(ax.set_title('t'), ax.set_xlabel('x'), ax.set_ylabel('y'))\nprint(repr(ax.set_title('l', loc='left')), ax.get_title('left'), ax.get_title())\n",
+"Text(0.5, 1.0, 't') Text(0.5, 0, 'x') Text(0, 0.5, 'y')\nText(0.0, 1.0, 'l') l t\n"
+],
+[
+"fig, ax = plt.subplots()\nax.set(title='t', xlabel='x', ylabel='y', xlim=(0, 1), ylim=(2, 3), xticks=[0, 1], yticks=[2, 3])\nprint(repr(ax))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist())\nprint([t.get_text() for t in ax.get_xticklabels()], [t.get_text() for t in ax.get_yticklabels()])\n",
+"<Axes: title={'center': 't'}, xlabel='x', ylabel='y'>\n[0.0, 1.0] [2.0, 3.0]\n[0, 1] [2, 3]\n['0', '1'] ['2', '3']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.set_facecolor('red')\nprint(ax.get_facecolor())\nax.set_aspect('equal')\nprint(ax.get_aspect())\nax.set_aspect(2)\nprint(ax.get_aspect())\nax.set_aspect('auto')\nprint(ax.get_aspect())\n",
+"(1.0, 0.0, 0.0, 1.0)\n1.0\n2.0\nauto\n"
+],
+[
+"fig, ax = plt.subplots()\nprint(ax.get_xscale(), ax.get_yscale(), ax.get_legend(), ax.get_lines(), ax.get_figure() is fig)\n",
+"linear linear None <a list of 0 Line2D objects> True\n"
+],
+[
+"fig, ax = plt.subplots()\na, = ax.plot([1, 2], label='p')\nb = ax.scatter([1], [2], label='s')\nc = ax.bar([1], [2], label='b')\nd = ax.fill_between([0, 1], [0, 1], label='f')\nh, l = ax.get_legend_handles_labels()\nprint(l, len(h))\nprint(a in h, b in h, c in h)\nprint(ax.get_lines(), len(ax.lines), len(ax.patches), len(ax.collections), len(ax.containers))\n",
+"['p', 's', 'f', 'b'] 4\nTrue True True\n<a list of 1 Line2D objects> 1 1 2 1\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2], label='p')\nlg = ax.legend()\nprint(lg is ax.get_legend(), [t.get_text() for t in lg.get_texts()])\n",
+"True ['p']\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2])\nax.plot([3, 4])\nlg = ax.legend(['a', 'b'])\nprint([t.get_text() for t in lg.get_texts()])\n",
+"['a', 'b']\n"
+],
+[
+"fig, ax = plt.subplots()\na, = ax.plot([1, 2])\nlg = ax.legend([a], ['z'], loc='upper left', ncol=2, title='T', fontsize=8, frameon=False)\nprint([t.get_text() for t in lg.get_texts()], lg.get_title().get_text())\n",
+"['z'] T\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2])\nax.clear()\nprint(len(ax.lines))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"0\n[0.0, 1.0] [0.0, 1.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2])\nax.cla()\nprint(len(ax.lines))\n",
+"0\n"
+],
+[
+"fig, ax = plt.subplots()\nax.spines['top'].set_visible(False)\nprint(ax.spines['top'].get_visible(), ax.spines['left'].get_visible())\nax.spines['left'].set_color('red')\nax.spines['left'].set_linewidth(4)\nprint(ax.spines['left'].get_linewidth(), ax.spines['left'].get_edgecolor())\nprint(sorted(ax.spines.keys()), 'top' in ax.spines, len(ax.spines))\nax.spines[['right', 'bottom']].set_visible(False)\nprint(ax.spines.right.get_visible(), ax.spines['bottom'].get_visible())\nfor s in ax.spines.values():\n    s.set_visible(True)\nprint(ax.spines['top'].get_visible())\nax.spines['bottom'].set_position('zero')\nax.spines['left'].set_position(('data', 1))\n",
+"False True\n4.0 (1.0, 0.0, 0.0, 1.0)\n['bottom', 'left', 'right', 'top'] True 4\nFalse False\nTrue\n"
+],
+[
+"fig, ax = plt.subplots()\nprint(ax.xaxis.get_visible())\nax.xaxis.set_visible(False)\nprint(ax.xaxis.get_visible(), ax.yaxis.get_scale())\nax.xaxis.tick_top()\nax.yaxis.tick_right()\nax.xaxis.set_label_position('top')\nax.set_xlabel('t')\nprint(ax.xaxis.get_label().get_text(), ax.xaxis.get_label_position())\n",
+"True\nFalse linear\nt top\n"
+],
+[
+"fig, ax = plt.subplots()\nprint(ax.get_position())\nprint(ax.get_position().x0, ax.get_position().width)\nax.set_position([0.1, 0.1, 0.5, 0.5])\nprint(ax.get_position().bounds)\n",
+"Bbox(x0=0.125, y0=0.10999999999999999, x1=0.9, y1=0.88)\n0.125 0.775\n(np.float64(0.1), np.float64(0.1), np.float64(0.5), np.float64(0.5))\n"
+],
+[
+"fig, axs = plt.subplots(2, 3)\nprint(axs[0, 0])\nprint(axs[1, 2].get_position().bounds)\nprint(axs.shape, axs.ndim, axs.size, axs.flatten().shape, len(axs.ravel()), len(axs[0]), axs[:, 0].shape, axs[1, :].shape)\nprint(len(fig.axes), len(fig.get_axes()))\n",
+"Axes(0.125,0.53;0.227941x0.35)\n(np.float64(0.6720588235294118), np.float64(0.10999999999999999), np.float64(0.2279411764705882), np.float64(0.35000000000000003))\n(2, 3) 2 6 (6,) 6 3 (2,) (3,)\n6 6\n"
+],
+[
+"fig, axs = plt.subplots(2, 1, figsize=(4, 8), gridspec_kw={'height_ratios': [1, 3]})\nprint(axs[0].get_position().bounds, axs[1].get_position().bounds)\n",
+"(np.float64(0.125), np.float64(0.7050000000000001), np.float64(0.775), np.float64(0.17499999999999993)) (np.float64(0.125), np.float64(0.1100000000000001), np.float64(0.775), np.float64(0.5249999999999999))\n"
+],
+[
+"fig, axs = plt.subplots(1, 3, width_ratios=[1, 2, 3], squeeze=False)\nprint(axs.shape, axs[0, 2].get_position().bounds)\n",
+"(1, 3) (np.float64(0.5580882352941177), np.float64(0.10999999999999999), np.float64(0.34191176470588225), np.float64(0.77))\n"
+],
+[
+"fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)\naxs[0, 0].plot([1, 2], [3, 4])\naxs[1, 1].plot([5, 6], [7, 8])\nax=axs[0,1]\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(axs[0, 0].get_xticklabels()[1].get_visible(), axs[1, 0].get_xticklabels()[1].get_visible())\n",
+"[0.75, 6.25] [2.75, 8.25]\nIndexError: list index out of range"
+],
+[
+"fig, axs = plt.subplots(2, 2, sharex='col')\naxs[0, 0].plot([1, 2], [3, 4])\naxs[1, 0].plot([5, 6], [7, 8])\naxs[0, 1].plot([50, 60], [7, 8])\nprint([float(v) for v in axs[0, 0].get_xlim()], [float(v) for v in axs[1, 1].get_xlim()], [float(v) for v in axs[1, 0].get_ylim()])\n",
+"[0.75, 6.25] [49.5, 60.5] [6.95, 8.05]\n"
+],
+[
+"fig, axs = plt.subplots(2, 2, sharey='row')\naxs[0, 0].plot([1, 2], [3, 4])\naxs[1, 1].plot([5, 6], [7, 8])\nprint([float(v) for v in axs[0, 1].get_ylim()], [float(v) for v in axs[1, 0].get_ylim()], [float(v) for v in axs[0, 1].get_xlim()])\n",
+"[2.95, 4.05] [6.95, 8.05] [0.0, 1.0]\n"
+],
+[
+"fig = plt.figure()\nax = fig.add_subplot(2, 2, 3)\nprint(ax)\nb = fig.add_subplot(223)\nprint(b is ax, len(fig.axes))\nc = plt.subplot(2, 2, 3)\nprint(c is ax or c is b)\nd = plt.subplot(2, 1, 1)\nprint(d, len(fig.axes), plt.gca() is d)\n",
+"Axes(0.125,0.11;0.352273x0.35)\nFalse 2\nTrue\nAxes(0.125,0.53;0.775x0.35) 3 True\n"
+],
+[
+"fig = plt.figure()\nax = fig.add_axes([0.1, 0.2, 0.3, 0.4])\nprint(ax, ax.get_position().bounds)\nprint(repr(fig))\n",
+"Axes(0.1,0.2;0.3x0.4) (np.float64(0.1), np.float64(0.2), np.float64(0.30000000000000004), np.float64(0.4000000000000001))\n<Figure size 640x with 1 Axes>\n"
+],
+[
+"ax = plt.subplot2grid((3, 3), (0, 0), colspan=2)\nb = plt.subplot2grid((3, 3), (1, 1), rowspan=2)\nprint(ax.get_position().bounds, b.get_position().bounds)\n",
+"(np.float64(0.125), np.float64(0.6535294117647059), np.float64(0.5014705882352941), np.float64(0.2264705882352941)) (np.float64(0.3985294117647059), np.float64(0.10999999999999999), np.float64(0.2279411764705882), np.float64(0.498235294117647))\n"
+],
+[
+"import matplotlib.gridspec as gs\nfig = plt.figure()\ng = gs.GridSpec(2, 3, figure=fig, wspace=0.5)\na = fig.add_subplot(g[0, :])\nb = fig.add_subplot(g[1, 1:])\nprint(a.get_position().bounds, b.get_position().bounds)\n",
+"(np.float64(0.125), np.float64(0.53), np.float64(0.775), np.float64(0.35)) (np.float64(0.415625), np.float64(0.10999999999999999), np.float64(0.484375), np.float64(0.35000000000000003))\n"
+],
+[
+"fig = plt.figure()\ng = fig.add_gridspec(2, 2)\na = fig.add_subplot(g[:, 0])\nb = fig.add_subplot(g[1])\nprint(a.get_position().bounds, b.get_position().bounds)\n",
+"(np.float64(0.125), np.float64(0.10999999999999999), np.float64(0.35227272727272724), np.float64(0.77)) (np.float64(0.5477272727272726), np.float64(0.53), np.float64(0.3522727272727273), np.float64(0.35))\n"
+],
+[
+"ax = plt.subplot(2, 3, (1, 2))\nprint(ax.get_position().bounds)\n",
+"(np.float64(0.125), np.float64(0.53), np.float64(0.5014705882352941), np.float64(0.35))\n"
+],
+[
+"fig, ax = plt.subplots()\nt = ax.twinx()\nprint(t.get_position().bounds == ax.get_position().bounds, len(fig.axes), plt.gca() is t)\nax.plot([1, 2], [3, 4])\nt.plot([1, 3], [30, 40])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in t.get_xlim()], [float(v) for v in ax.get_ylim()], [float(v) for v in t.get_ylim()])\n",
+"True 2 True\n[0.9, 3.1] [0.9, 3.1] [2.95, 4.05] [29.5, 40.5]\n"
+],
+[
+"fig, ax = plt.subplots()\nt = ax.twiny()\nax.plot([1, 2], [3, 4])\nt.plot([1, 3], [30, 40])\nprint([float(v) for v in ax.get_ylim()], [float(v) for v in t.get_ylim()], [float(v) for v in t.get_xlim()])\n",
+"[1.15, 41.85] [1.15, 41.85] [0.9, 3.1]\n"
+],
+[
+"fig = plt.figure(figsize=(4, 3))\nprint(fig, repr(fig))\nfig.set_size_inches(5, 6)\nprint(fig.get_size_inches().tolist(), fig.get_figwidth(), fig.get_figheight())\nfig.set_figwidth(2)\nfig.set_figheight(3)\nprint(fig.get_size_inches().tolist())\nfig.set_size_inches((1, 2))\nprint(fig.get_size_inches().tolist())\n",
+"Figure(400x) <Figure size 400x with 0 Axes>\n[5.0, 6.0] 5.0 6.0\n[2.0, 3.0]\n[1.0, 2.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nprint(fig.gca() is ax, fig.get_axes()[0] is ax, fig.axes[0] is ax)\nfig.clear()\nprint(len(fig.axes))\nb = fig.gca()\nprint(len(fig.axes))\nfig.clf()\nprint(fig.axes)\n",
+"True True True\n0\n1\n[]\n"
+],
+[
+"fig, ax = plt.subplots()\nfig.suptitle('s')\nprint(fig.get_suptitle())\nprint(fig.suptitle('z'))\nprint(fig.supxlabel('x'), fig.supylabel('y'))\nprint(fig.text(0.1, 0.2, 'u'))\nfig.legend(['a'])\nfig.set_facecolor('red')\nprint(fig.get_facecolor())\nfig.subplots_adjust(left=0.2, right=0.8, top=0.7, bottom=0.3)\nprint(ax.get_position().bounds)\nprint(fig.subplots(2, 2).shape)\n",
+"s\nText(0.5, 0.98, 'z')\nText(0.5, 0.01, 'x') Text(0.02, 0.5, 'y')\nText(0.1, 0.2, 'u')\n(1.0, 0.0, 0.0, 1.0)\n(np.float64(0.2), np.float64(0.3), np.float64(0.6000000000000001), np.float64(0.39999999999999997))\n(2, 2)\n"
+],
+[
+"fig, axs = plt.subplots(2, 2)\nfig.subplots_adjust(hspace=0.5, wspace=0.1)\nprint(axs[1, 1].get_position().bounds)\n",
+"(np.float64(0.530952380952381), np.float64(0.10999999999999999), np.float64(0.36904761904761907), np.float64(0.30800000000000005))\n"
+],
+[
+"fig, ax = plt.subplots()\nim = ax.imshow(np.arange(6).reshape(2, 3))\nc = fig.colorbar(im)\nprint(len(fig.axes), [round(v, 8) for v in ax.get_position(original=True).bounds])\nprint([float(v) for v in c.ax.get_ylim()], c.ax.get_yticks().tolist(), [t.get_text() for t in c.ax.get_yticklabels()])\nc.set_label('z')\nprint(c.ax.get_ylabel())\n",
+"2 [np.float64(0.125), np.float64(0.11), np.float64(0.62), np.float64(0.77)]\n[0.0, 5.0] [0.0, 1.0, 2.0, 3.0, 4.0, 5.0] ['0', '1', '2', '3', '4', '5']\nz\n"
+],
+[
+"fig, ax = plt.subplots()\nim = ax.imshow(np.arange(6).reshape(2, 3))\nc = fig.colorbar(im, orientation='horizontal')\nprint(c.ax.get_xticks().tolist(), [round(v, 8) for v in c.ax.get_position(original=True).bounds])\n",
+"[0.0, 1.0, 2.0, 3.0, 4.0, 5.0] [np.float64(0.125), np.float64(0.11), np.float64(0.775), np.float64(0.1155)]\n"
+],
+[
+"fig, axs = plt.subplots(1, 2)\nim = axs[0].imshow([[1, 2]])\nc = fig.colorbar(im, ax=axs.ravel().tolist(), shrink=0.5)\nprint([round(v, 8) for v in axs[0].get_position().bounds], [round(v, 8) for v in c.ax.get_position(original=True).bounds])\n",
+"[np.float64(0.125), np.float64(0.40106061), np.float64(0.28181818), np.float64(0.18787879)] [np.float64(0.78375), np.float64(0.3025), np.float64(0.11625), np.float64(0.385)]\n"
+],
+[
+"im = plt.scatter([1, 2], [3, 4], c=[5, 6])\nc = plt.colorbar()\nprint(c.ax.get_ylim()[0] == 5.0, c.ax.get_yticks().tolist())\n",
+"True [5.000000000000001, 5.200000000000001, 5.4, 5.6000000000000005, 5.800000000000001, 6.000000000000001]\n"
+],
+[
+"plt.imshow([[1, 2]], cmap='gray')\nplt.clim(0, 4)\nprint(plt.gci().get_clim())\nplt.hot()\nprint(plt.gci().get_cmap().name, plt.rcParams['image.cmap'])\nplt.set_cmap('jet')\nprint(plt.gci().get_cmap().name)\nplt.imshow([[1, 2]])\nprint(plt.gci().get_cmap().name)\n",
+"(0.0, 4.0)\nhot hot\njet\njet\n"
+],
+[
+"plt.figure(3)\nprint(plt.gcf().number, plt.get_fignums())\nplt.figure()\nprint(plt.gcf().number, plt.get_fignums(), plt.fignum_exists(3))\nplt.close(3)\nprint(plt.get_fignums())\nplt.close('all')\nprint(plt.get_fignums())\n",
+"3 [3]\n4 [3, 4] True\n[4]\n[]\n"
+],
+[
+"plt.plot([1, 2])\nplt.clf()\nprint(len(plt.gcf().axes))\nplt.plot([1, 2])\nplt.cla()\nprint(len(plt.gca().lines))\n",
+"0\n0\n"
+],
+[
+"f1 = plt.figure()\na = plt.subplot(211)\nb = plt.subplot(212)\nplt.sca(a)\nprint(plt.gca() is a)\nprint(plt.isinteractive())\nplt.ion()\nprint(plt.isinteractive())\nplt.ioff()\nprint(plt.isinteractive())\nplt.draw()\nplt.pause(0.01)\nf1.canvas.draw()\n",
+"True\nFalse\nTrue\nFalse\n"
+],
+[
+"print(plt.xscale('log'))\nprint(plt.gca().get_xscale())\nprint(plt.yscale('log'), plt.margins(0.1), plt.box(False), plt.gca().get_frame_on())\nplt.box()\nprint(plt.gca().get_frame_on())\n",
+"None\nlog\nNone None None False\nTrue\n"
+],
+[
+"print(plt.figaspect(2.0).tolist(), plt.figaspect(np.zeros((2, 5))).tolist())\nplt.matshow(np.zeros((2, 4)))\nprint(plt.gcf().get_size_inches().tolist(), plt.gca().get_position().bounds)\n",
+"[4.0, 8.0] [11.999999999999998, 4.8]\n[9.6, 4.8] (np.float64(0.15), np.float64(0.09), np.float64(0.775), np.float64(0.775))\n"
+],
+[
+"f, a = plt.subplots(2, 2, figsize=(10, 6))\nf.subplots_adjust(wspace=0.3)\nprint(f.get_size_inches().tolist())\n",
+"[10.0, 6.0]\n"
+],
+[
+"fig, ax = plt.subplots()\nl, = ax.plot([1, 2], [3, 4], 'r--', lw=2, label='a')\nprint(l, l.get_color(), l.get_linewidth(), l.get_linestyle(), l.get_marker(), l.get_label(), l.get_alpha(), l.get_visible(), l.get_zorder())\nprint(l.get_xdata().tolist(), l.get_ydata().tolist(), [x.tolist() for x in l.get_data()], l.get_xydata().tolist())\nl.set_data([5, 6], [7, 8])\nl.set_color('blue')\nl.set_linewidth(3)\nl.set_linestyle(':')\nl.set_marker('o')\nl.set_markersize(9)\nl.set_alpha(0.5)\nl.set_label('z')\nprint(l.get_xdata(), l.get_color(), l.get_linewidth(), l.get_linestyle(), l.get_marker(), l.get_markersize(), l.get_alpha(), l.get_label())\nl.set(color='g', lw=1)\nprint(l.get_color(), l.get_lw(), l.get_c(), l.get_ls(), l.get_ms(), l.get_ds(), l.get_drawstyle())\nl.remove()\nprint(len(ax.lines))\n",
+"Line2D(a) r 2.0 -- None a None True 2\n[1, 2] [3, 4] [[1, 2], [3, 4]] [[1.0, 3.0], [2.0, 4.0]]\n[5, 6] blue 3.0 : o 9.0 0.5 z\ng 1.0 g : 9.0 default default\n0\n"
+],
+[
+"fig, ax = plt.subplots()\nl, = ax.plot([1, 2])\nprint(l.get_color(), l.get_label(), l.get_ydata().tolist(), l.get_xdata().tolist(), l.get_markerfacecolor(), l.get_markeredgecolor(), l.get_markeredgewidth())\nm, = ax.plot([1.5, 2])\nprint(m.get_color(), m.get_label(), m.get_ydata().tolist())\nn, = ax.plot([1, 2], color='red')\nprint(n.get_color())\no, = ax.plot([1, 2], 'g')\nprint(o.get_color())\np, = ax.plot([1, 2], 'C3')\nprint(p.get_color())\nq, = ax.plot([1, 2], 'k-o')\nprint(q.get_color(), q.get_marker(), q.get_linestyle())\nr, = ax.plot([1, 2], 'o')\nprint(r.get_color(), r.get_marker(), r.get_linestyle())\n",
+"#1f77b4 _child0 [1, 2] [0.0, 1.0] #1f77b4 #1f77b4 1.0\n#ff7f0e _child1 [1.5, 2.0]\nred\n(0.0, 0.5, 0.0, 1)\n(0.8392156862745098, 0.15294117647058825, 0.1568627450980392, 1.0)\nk o -\n#2ca02c o None\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2])\ns = ax.scatter([1], [2])\nb = ax.bar([1], [2])\nprint(s.get_facecolor().tolist(), b[0].get_facecolor(), s.get_sizes().tolist(), s.get_linewidth().tolist(), s.get_edgecolor().tolist())\nl2, = ax.plot([2, 3])\nprint(l2.get_color())\ns2 = ax.scatter([1], [2])\nprint(s2.get_facecolor().tolist())\n",
+"[[0.12156862745098039, 0.4666666666666667, 0.7058823529411765, 1.0]] (1.0, 0.4980392156862745, 0.054901960784313725, 1.0) [36.0] [1.0] [[0.12156862745098039, 0.4666666666666667, 0.7058823529411765, 1.0]]\n#ff7f0e\n[[0.17254901960784313, 0.6274509803921569, 0.17254901960784313, 1.0]]\n"
+],
+[
+"fig, ax = plt.subplots()\nls = ax.plot(np.arange(6).reshape(3, 2))\nprint(len(ls), [l.get_color() for l in ls], ls[1].get_ydata().tolist(), ls[1].get_xdata().tolist())\nls2 = ax.plot([1, 2, 3], np.arange(6).reshape(3, 2), label=['a', 'b'])\nprint([l.get_label() for l in ls2])\nls3 = ax.plot([1, 2], [3, 4], 'r', [5, 6], [7, 8], 'b')\nprint(len(ls3), [l.get_xdata().tolist() for l in ls3], ls3[1].get_color())\n",
+"2 ['#1f77b4', '#ff7f0e'] [1, 3, 5] [0.0, 1.0, 2.0]\n['a', 'b']\n2 [[1, 2], [5, 6]] (0.0, 0.0, 1.0, 1)\n"
+],
+[
+"fig, ax = plt.subplots()\nt = ax.text(1, 2, 'a', fontsize=12, color='red', ha='center', va='top', rotation=30, fontweight='bold')\nprint(t, repr(t), t.get_text(), t.get_fontsize(), t.get_color(), t.get_ha(), t.get_va(), t.get_rotation(), t.get_fontweight(), t.get_position())\nt.set_text('b')\nt.set_fontsize('large')\nt.set_position((3, 4))\nt.set_color('b')\nt.set_rotation('vertical')\nprint(t, t.get_fontsize(), t.get_color(), t.get_rotation(), t.get_position())\nt.set(text='c', size=5)\nprint(t.get_text(), t.get_size())\nt.remove()\nprint(len(ax.texts))\n",
+"Text(1, 2, 'a') Text(1, 2, 'a') a 12.0 red center top 30.0 bold (1, 2)\nText(3, 4, 'b') 12.0 b 90.0 (3, 4)\nc 5.0\n0\n"
+],
+[
+"fig, ax = plt.subplots()\na = ax.annotate('a', xy=(1, 2), xytext=(3, 4), arrowprops=dict(arrowstyle='->'))\nprint(a, repr(a), a.get_text(), a.xy)\nb = ax.annotate('b', (0.5, 0.5), xycoords='axes fraction')\nc = ax.annotate('c', (1, 1), textcoords='offset points', xytext=(5, 5))\nprint(len(ax.texts))\n",
+"Annotation(1, 2, 'a') Text(3, 4, 'a') a (1, 2)\n3\n"
+],
+[
+"fig, ax = plt.subplots()\nax.bar([1, 2], [3, 4])\nprint(len(ax.patches), ax.patches[0].get_height(), ax.patches[1].get_x())\nb = ax.bar([1, 2], [3, 4])\nprint(b, len(b), b[0], b[1].get_height(), b[1].get_width(), b[1].get_x(), b[1].get_y(), b.datavalues.tolist(), b.orientation)\nfor r in b:\n    r.set_color('red')\nprint(b[0].get_facecolor(), b[0].get_edgecolor())\nb[0].set_height(9)\nprint(b[0].get_height())\nprint(b[1].get_xy())\n",
+"2 3 1.6\n<BarContainer object of 2 artists> 2 Rectangle(xy=(0.6, 0), width=0.8, height=3, angle=0) 4 0.8 1.6 0 [3, 4] vertical\n(1.0, 0.0, 0.0, 1.0) (1.0, 0.0, 0.0, 1.0)\n9\n(np.float64(1.6), np.int64(0))\n"
+],
+[
+"fig, ax = plt.subplots()\nb = ax.bar([1, 2], [3, 4])\nt = ax.bar_label(b)\nprint([x.get_text() for x in t], len(t))\nt = ax.bar_label(b, labels=['x', 'y'], padding=3, label_type='center')\nprint([x.get_text() for x in t])\nt = ax.bar_label(b, fmt='%.2f')\nprint([x.get_text() for x in t])\nprint(t[0].get_ha(), t[0].get_va())\nt = ax.bar_label(b, fmt='{:.1f}')\nprint([x.get_text() for x in t])\nbh = ax.barh([1], [-3])\nt = ax.bar_label(bh)\nprint(t[0].get_ha(), t[0].get_va(), t[0].get_text())\n",
+"['3', '4'] 2\n['x', 'y']\n['3.00', '4.00']\ncenter bottom\n['3.0', '4.0']\nright center -3\n"
+],
+[
+"from matplotlib.patches import Rectangle, Circle, Ellipse, Polygon, FancyArrow, Wedge, Patch\nr = Rectangle((1, 2), 3, 4)\nc = Circle((1, 2), 3)\ne = Ellipse((1, 2), 3, 4, angle=30)\np = Polygon([[0, 0], [1, 1], [1, 0]])\nw = Wedge((0, 0), 1, 0, 90)\nprint(r, c, e, p, w)\nprint(r.get_x(), r.get_y(), r.get_width(), r.get_height(), r.get_xy(), r.get_angle(), r.get_facecolor(), r.get_edgecolor(), r.get_linewidth())\nprint(c.get_radius(), c.get_center(), e.get_center(), e.get_width(), e.get_height(), e.get_angle(), p.get_xy().tolist())\nr.set_width(5)\nr.set_xy((0, 0))\nc.set_radius(2)\nprint(r, c)\n",
+"Rectangle(xy=(1, 2), width=3, height=4, angle=0) Circle(xy=(1, 2), radius=3) Ellipse(xy=(1, 2), width=3, height=4, angle=30) Polygon4((0, 0) ...) Wedge(center=(0, 0), r=1, theta1=0, theta2=90, width=None)\n1 2 3 4 (1, 2) 0.0 (0.12156862745098039, 0.4666666666666667, 0.7058823529411765, 1.0) (0.0, 0.0, 0.0, 0.0) 1.0\n3.0 (1, 2) (1, 2) 3 4 30 [[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]]\nRectangle(xy=(0, 0), width=5, height=4, angle=0) Circle(xy=(1, 2), radius=2)\n"
+],
+[
+"from matplotlib.patches import Rectangle, Circle, Ellipse, Polygon\nfig, ax = plt.subplots()\nax.add_patch(Rectangle((1, 2), 3, 4))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nax.autoscale_view()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nax.add_patch(Circle((10, 10), 2))\nax.autoscale_view()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nax.add_patch(Ellipse((20, 0), 4, 2, angle=45))\nax.autoscale_view()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nax.add_patch(Polygon([[30, 30], [31, 32], [33, 30]]))\nax.autoscale_view()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(len(ax.patches))\n",
+"[0.0, 1.0] [0.0, 1.0]\n[0.85, 4.15] [1.8, 6.2]\n[0.44999999999999996, 12.55] [1.5, 12.5]\n[-0.025000000000000133, 22.525] [-2.175, 12.675]\n[-0.6000000000000001, 34.6] [-3.175, 33.675]\n4\n"
+],
+[
+"from matplotlib.patches import Circle\nfig, ax = plt.subplots()\nax.add_artist(Circle((10, 10), 2))\nax.autoscale_view()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(len(ax.patches), len(ax.artists), len(ax.get_children()) > 0)\n",
+"[-0.05500000000000001, 0.05500000000000001] [-0.05500000000000001, 0.05500000000000001]\n1 0 True\n"
+],
+[
+"from matplotlib.patches import Rectangle\nr = Rectangle((0, 0), 1, 1, color='red', alpha=0.5)\nprint(r.get_facecolor(), r.get_edgecolor(), r.get_alpha())\nr = Rectangle((0, 0), 1, 1, fill=False)\nprint(r.get_facecolor(), r.get_edgecolor(), r.get_fill())\nr = Rectangle((0, 0), 1, 1, facecolor='none', edgecolor='b', lw=3)\nprint(r.get_facecolor(), r.get_edgecolor(), r.get_linewidth())\nr = Rectangle((0, 0), 1, 1, ec='k', fc='y', ls='--')\nprint(r.get_facecolor(), r.get_edgecolor())\n",
+"(1.0, 0.0, 0.0, 0.5) (1.0, 0.0, 0.0, 0.5) 0.5\n(0.12156862745098039, 0.4666666666666667, 0.7058823529411765, 0) (0.0, 0.0, 0.0, 1.0) False\n(0.0, 0.0, 0.0, 0.0) (0.0, 0.0, 1.0, 1) 3.0\n(0.75, 0.75, 0.0, 1) (0.0, 0.0, 0.0, 1)\n"
+],
+[
+"from matplotlib.lines import Line2D\nfig, ax = plt.subplots()\nl = Line2D([0, 1], [0, 5], color='r', label='q')\nax.add_line(l)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nax.autoscale_view()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nprint(l.get_label(), len(ax.lines), l.axes is ax, l.get_color())\nprint(Line2D([0], [0]).get_color())\n",
+"[0.0, 1.0] [0.0, 1.0]\n[-0.05, 1.05] [-0.25, 5.25]\nq 1 True r\nC0\n"
+],
+[
+"from matplotlib.lines import Line2D\nfrom matplotlib.patches import Patch\nfig, ax = plt.subplots()\nlg = ax.legend(handles=[Line2D([0], [0], color='r', label='a'), Patch(color='b', label='c')])\nprint([t.get_text() for t in lg.get_texts()])\n",
+"['a', 'c']\n"
+],
+[
+"fig, ax = plt.subplots()\nt = ax.text(0.5, 0.5, 'c', transform=ax.transAxes)\nax.plot([1, 2], [3, 4], transform=ax.transAxes)\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nax.axhline(1, xmin=0.2, xmax=0.4)\nax.autoscale_view()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"[-0.05500000000000001, 0.05500000000000001] [-0.05500000000000001, 0.05500000000000001]\n[-0.05500000000000001, 0.05500000000000001] [0.9450000000000002, 1.0550000000000002]\n"
+],
+[
+"fig, ax = plt.subplots()\ne = ax.errorbar([1, 2], [3, 4], yerr=1, label='q', capsize=2)\nprint(e, len(e), e.get_label(), len(e.lines), len(e[1]), len(e[2]), e[0].get_ydata().tolist(), e.has_yerr, e.has_xerr)\nd, c, b = e\nprint(d is e[0], len(ax.lines), len(ax.collections), len(ax.containers))\nprint(ax.get_legend_handles_labels()[1])\n",
+"<ErrorbarContainer object of 3 artists> 3 q 3 2 1 [3, 4] True False\nTrue 3 1 1\n['q']\n"
+],
+[
+"fig, ax = plt.subplots()\ns = ax.stem([1, 2], [3, 4], label='q', linefmt='r-', markerfmt='go', basefmt='k--')\nprint(s, len(s), s.get_label(), s.markerline.get_color(), s.baseline.get_color(), s.markerline.get_ydata().tolist(), s.baseline.get_xdata().tolist(), s.baseline.get_ydata().tolist())\nm, st, b = s\nprint(m is s.markerline)\n",
+"<StemContainer object of 3 artists> 3 q g k [3, 4] [1, 2] [0, 0]\nTrue\n"
+],
+[
+"fig, ax = plt.subplots()\nf = ax.fill_between([0, 1, 2], [0, 1, 0], where=[True, True, False], color='r', alpha=0.2)\nprint(f.get_alpha(), f.get_facecolor().tolist())\nf2 = ax.fill_between([0, 1], [1, 2], [0, 3], facecolor='b', edgecolor='g', interpolate=True)\nprint(f2.get_facecolor().tolist(), f2.get_edgecolor().tolist())\nf3 = ax.fill_between([0, 1, 2], [0, 1, 2], step='mid')\nprint(len(ax.collections))\n",
+"0.2 [[1.0, 0.0, 0.0, 0.2]]\n[[0.0, 0.0, 1.0, 1.0]] [[0.0, 0.5, 0.0, 1.0]]\n3\n"
+],
+[
+"fig, ax = plt.subplots()\ns = ax.scatter([1, 2], [3, 4], c=[5, 6], s=[10, 20], marker='^', cmap='gray', vmin=0, vmax=10, alpha=0.5, edgecolors='k', linewidths=2)\nprint(s.get_array().tolist(), s.get_sizes().tolist(), s.get_alpha(), s.get_edgecolor().tolist(), s.get_linewidth().tolist(), s.get_clim(), s.get_cmap().name, s.get_offsets().tolist())\nprint(s.get_facecolor().tolist())\ns.set_offsets([[0, 0], [1, 1]])\nprint(s.get_offsets().tolist())\ns.set_sizes([3])\ns.set_array(np.array([1, 2]))\ns.set_clim(0, 2)\ns.set_cmap('hot')\nprint(s.get_facecolor().tolist() is not None)\n",
+"[5.0, 6.0] [10, 20] 0.5 [[0.0, 0.0, 0.0, 0.5]] [2] (0.0, 10.0) gray [[1.0, 3.0], [2.0, 4.0]]\n[[0.12156862745098039, 0.4666666666666667, 0.7058823529411765, 0.5]]\n[[0.0, 0.0], [1.0, 1.0]]\nTrue\n"
+],
+[
+"fig, ax = plt.subplots()\ns = ax.scatter([1, 2], [3, 4], c=['r', 'b'])\nprint(s.get_facecolor().tolist(), s.get_array())\ns = ax.scatter([1, 2], [3, 4], color='g', marker='x')\nprint(s.get_facecolor().tolist(), s.get_edgecolor().tolist(), s.get_linewidth().tolist())\ns = ax.scatter([1, 2], [3, 4], facecolors='none', edgecolors='r')\nprint(s.get_facecolor().tolist(), s.get_edgecolor().tolist())\ns = ax.scatter([1, 2], [3, 4], c=[[1, 0, 0]])\nprint(s.get_facecolor().tolist())\ns = ax.scatter([1, 2, 3], [3, 4, 5], c=(0, 1, 0))\nprint(s.get_facecolor().tolist())\n",
+"[[1.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0]] None\n[[0.0, 0.5, 0.0, 1.0]] [[0.0, 0.5, 0.0, 1.0]] [1.5]\n[] [[1.0, 0.0, 0.0, 1.0]]\n[[1.0, 0.0, 0.0, 1.0]]\n[[0.12156862745098039, 0.4666666666666667, 0.7058823529411765, 1.0]]\n"
+],
+[
+"fig, ax = plt.subplots()\nim = ax.imshow(np.arange(4).reshape(2, 2), cmap='gray', vmin=0, vmax=6)\nprint(im, im.get_array().tolist(), im.get_clim(), im.get_cmap().name, im.get_extent(), im.get_size(), im.get_alpha())\nim.set_data(np.ones((2, 2)))\nim.set_clim(0, 1)\nim.set_cmap('hot')\nprint(im.get_array().tolist(), im.get_clim(), im.get_cmap().name)\nim.set_alpha(0.5)\nim.set_extent((0, 1, 0, 1))\nprint(im.get_extent(), im.get_alpha())\n",
+"AxesImage(shape=(2, 2)) [[0, 1], [2, 3]] (0.0, 6.0) gray [-0.5, 1.5, 1.5, -0.5] (2, 2) None\n[[1.0, 1.0], [1.0, 1.0]] (0.0, 1.0) hot\n[0, 1, 0, 1] 0.5\n"
+],
+[
+"import matplotlib as mpl\nfrom matplotlib import cm\nprint(cm.viridis(0.5), cm.gray(0.25), cm.jet(0.75), plt.cm.hot(0.1), mpl.cm.tab10(0.35), cm.viridis.N, cm.tab10.N, cm.viridis.name)\nprint(cm.viridis(0), cm.viridis(255), cm.viridis(1.0), cm.viridis(1), cm.viridis(-0.5), cm.viridis(1.5))\nprint(mpl.cm.tab10(np.linspace(0, 1, 3)).tolist())\nprint(cm.coolwarm(np.array([0.0, 0.5])).tolist(), cm.Blues(0.5), cm.RdBu(0.5), cm.bwr(0.5), cm.seismic(0.5), cm.spring(0.5), cm.autumn(0.5), cm.cool(0.5), cm.gray_r(0.25))\nprint(cm.viridis(0.5, alpha=0.2), cm.viridis(0.5, bytes=True))\n",
+"(np.float64(0.127568), np.float64(0.566949), np.float64(0.550556), np.float64(1.0)) (np.float64(0.25098039215686274), np.float64(0.25098039215686274), np.float64(0.25098039215686274), np.float64(1.0)) (np.float64(1.0), np.float64(0.5816993464052289), np.float64(0.0), np.float64(1.0)) (np.float64(0.2989711013608711), np.float64(0.0), np.float64(0.0), np.float64(1.0)) (np.float64(0.8392156862745098), np.float64(0.15294117647058825), np.float64(0.1568627450980392), np.float64(1.0)) 256 10 viridis\n(np.float64(0.267004), np.float64(0.004874), np.float64(0.329415), np.float64(1.0)) (np.float64(0.993248), np.float64(0.906157), np.float64(0.143936), np.float64(1.0)) (np.float64(0.993248), np.float64(0.906157), np.float64(0.143936), np.float64(1.0)) (np.float64(0.26851), np.float64(0.009605), np.float64(0.335427), np.float64(1.0)) (np.float64(0.267004), np.float64(0.004874), np.float64(0.329415), np.float64(1.0)) (np.float64(0.993248), np.float64(0.906157), np.float64(0.143936), np.float64(1.0))\n[[0.12156862745098039, 0.4666666666666667, 0.7058823529411765, 1.0], [0.5490196078431373, 0.33725490196078434, 0.29411764705882354, 1.0], [0.09019607843137255, 0.7450980392156863, 0.8117647058823529, 1.0]]\n[[0.2298057, 0.298717966, 0.753683153, 1.0], [0.8674276350862745, 0.864376599772549, 0.8626024620196079, 1.0]] (np.float64(0.41708573625528644), np.float64(0.6806305267204922), np.float64(0.8382314494425221), np.float64(1.0)) (np.float64(0.9657054978854287), np.float64(0.9672433679354094), np.float64(0.9680891964628989), np.float64(1.0)) (np.float64(1.0), np.float64(0.996078431372549), np.float64(0.996078431372549), np.float64(1.0)) (np.float64(1.0), np.float64(0.9921568627450981), np.float64(0.9921568627450981), np.float64(1.0)) (np.float64(1.0), np.float64(0.5019607843137255), np.float64(0.4980392156862745), np.float64(1.0)) (np.float64(1.0), np.float64(0.5019607843137255), np.float64(0.0), np.float64(1.0)) (np.float64(0.5019607843137255), np.float64(0.4980392156862745), np.float64(1.0), np.float64(1.0)) (np.float64(0.7490196078431373), np.float64(0.7490196078431373), np.float64(0.7490196078431373), np.float64(1.0))\n(np.float64(0.127568), np.float64(0.566949), np.float64(0.550556), np.float64(0.2)) (np.uint8(32), np.uint8(144), np.uint8(140), np.uint8(255))\n"
+],
+[
+"from matplotlib import cm\nprint(cm.plasma(0.2), cm.inferno(0.2), cm.magma(0.2), cm.cividis(0.2), cm.turbo(0.2), cm.bone(0.2), cm.copper(0.2), cm.pink(0.2), cm.summer(0.2), cm.winter(0.2), cm.hsv(0.2), cm.terrain(0.2), cm.Set1(0.2), cm.Paired(0.2), cm.tab20(0.2), cm.Greens(0.2), cm.Reds(0.2), cm.YlOrRd(0.2), cm.Spectral(0.2), cm.nipy_spectral(0.2), cm.gist_rainbow(0.2), cm.binary(0.2))\n",
+"(np.float64(0.417642), np.float64(0.000564), np.float64(0.65839), np.float64(1.0)) (np.float64(0.258234), np.float64(0.038571), np.float64(0.406485), np.float64(1.0)) (np.float64(0.232077), np.float64(0.059889), np.float64(0.437695), np.float64(1.0)) (np.float64(0.208926), np.float64(0.272546), np.float64(0.424809), np.float64(1.0)) (np.float64(0.24427), np.float64(0.60937), np.float64(0.99697), np.float64(1.0)) (np.float64(0.17500000000000002), np.float64(0.17499993152167065), np.float64(0.24347826086956523), np.float64(1.0)) (np.float64(0.24705876539793756), np.float64(0.15624000000000002), np.float64(0.0995), np.float64(1.0)) (np.float64(0.5675478726768727), np.float64(0.3650787833427833), np.float64(0.3650787833427833), np.float64(1.0)) (np.float64(0.2), np.float64(0.6), np.float64(0.4), np.float64(1.0)) (np.float64(0.0), np.float64(0.2), np.float64(0.9), np.float64(1.0)) (np.float64(0.8187488187488188), np.float64(1.0), np.float64(0.0), np.float64(1.0)) (np.float64(0.0), np.float64(0.7), np.float64(0.7), np.float64(1.0)) (np.float64(0.21568627450980393), np.float64(0.49411764705882355), np.float64(0.7215686274509804), np.float64(1.0)) (np.float64(0.6980392156862745), np.float64(0.8745098039215686), np.float64(0.5411764705882353), np.float64(1.0)) (np.float64(0.17254901960784313), np.float64(0.6274509803921569), np.float64(0.17254901960784313), np.float64(1.0)) (np.float64(0.8274509803921569), np.float64(0.9325490196078431), np.float64(0.8031372549019608), np.float64(1.0)) (np.float64(0.9913725490196079), np.float64(0.7913725490196079), np.float64(0.7082352941176471), np.float64(1.0)) (np.float64(0.9976470588235294), np.float64(0.8823529411764706), np.float64(0.5286274509803922), np.float64(1.0)) (np.float64(0.9568627450980393), np.float64(0.42745098039215684), np.float64(0.2627450980392157), np.float64(1.0)) (np.float64(0.0), np.float64(0.0), np.float64(0.8667), np.float64(1.0)) (np.float64(1.0), np.float64(0.918918918918919), np.float64(0.0), np.float64(1.0)) (np.float64(0.8), np.float64(0.8), np.float64(0.8), np.float64(1.0))\n"
+],
+[
+"print(plt.get_cmap('viridis').name, plt.get_cmap('viridis', 5).N, plt.get_cmap('viridis', 5)(0.5), plt.get_cmap('jet', 4).N, plt.get_cmap('jet', 4)(0.5), plt.get_cmap().name)\nprint(plt.get_cmap('tab10', 3)(0.5), plt.get_cmap('viridis_r')(0.25), plt.get_cmap('tab10').reversed()(0.0), plt.get_cmap('viridis').reversed().name)\nprint(plt.get_cmap('tab10').colors[0], len(plt.get_cmap('tab20').colors), plt.get_cmap('viridis').resampled(3).N)\nimport matplotlib\nprint(matplotlib.colormaps['hot'].name, 'hot' in matplotlib.colormaps, matplotlib.colormaps['hot'](0.5))\n",
+"viridis 5 (np.float64(0.127568), np.float64(0.566949), np.float64(0.550556), np.float64(1.0)) 4 (np.float64(1.0), np.float64(0.9012345679012345), np.float64(0.0), np.float64(1.0)) viridis\n(np.float64(0.5490196078431373), np.float64(0.33725490196078434), np.float64(0.29411764705882354), np.float64(1.0)) (np.float64(0.360741), np.float64(0.785964), np.float64(0.387814), np.float64(1.0)) (np.float64(0.09019607843137255), np.float64(0.7450980392156863), np.float64(0.8117647058823529), np.float64(1.0)) viridis_r\n(0.12156862745098039, 0.4666666666666667, 0.7058823529411765) 20 3\nhot True (np.float64(1.0), np.float64(0.359314099938117), np.float64(0.0), np.float64(1.0))\n"
+],
+[
+"from matplotlib.colors import Normalize, ListedColormap, LogNorm, BoundaryNorm, TwoSlopeNorm, LinearSegmentedColormap, to_rgb, to_rgba, to_hex, is_color_like\nn = Normalize(0, 4)\nprint(n(1), n(np.array([0, 2, 5])).tolist(), n.vmin, n.vmax, Normalize(0, 4, clip=True)(5), n.inverse(0.5))\nu = Normalize()\nprint(u.vmin, u(np.array([1, 3])).tolist(), u.vmin, u.vmax)\nl = ListedColormap(['r', 'g', 'b'])\nprint(l.N, l.name, l(0), l(0.5), l(0.99), l(2), l.colors)\nprint(ListedColormap(['r', 'g'], name='q', N=4).N)\nprint(LogNorm(1, 100)(10), BoundaryNorm([0, 1, 2], 2)(1.5), BoundaryNorm([0, 1, 2, 3], 256)(1.5), TwoSlopeNorm(0, -1, 4)(2))\nc = LinearSegmentedColormap.from_list('z', ['r', 'b'])\nprint(c.N, c.name, c(0.5), c(0.0))\nc = LinearSegmentedColormap.from_list('z', ['r', 'g', 'b'], N=3)\nprint(c.N, c(0.5))\nprint(to_rgb('r'), to_rgba('red', 0.5), to_hex('red'), to_hex((0, 1, 0)), to_rgb('#ff0080'), to_rgb('C1'), to_rgb('0.5'), to_rgb('tab:blue'), to_rgb('lightcoral'), is_color_like('foo'), is_color_like('b'))\n",
+"0.25 [0.0, 0.5, 1.25] 0.0 4.0 1.0 2.0\nNone [0.0, 1.0] 1.0 3.0\n3 from_list (np.float64(1.0), np.float64(0.0), np.float64(0.0), np.float64(1.0)) (np.float64(0.0), np.float64(0.5), np.float64(0.0), np.float64(1.0)) (np.float64(0.0), np.float64(0.0), np.float64(1.0), np.float64(1.0)) (np.float64(0.0), np.float64(0.0), np.float64(1.0), np.float64(1.0)) ['r', 'g', 'b']\n4\n0.5 1 127 0.75\n256 z (np.float64(0.4980392156862745), np.float64(0.0), np.float64(0.5019607843137255), np.float64(1.0)) (np.float64(1.0), np.float64(0.0), np.float64(0.0), np.float64(1.0))\n3 (np.float64(0.0), np.float64(0.5), np.float64(0.0), np.float64(1.0))\n(1.0, 0.0, 0.0) (1.0, 0.0, 0.0, 0.5) #ff0000 #00ff00 (1.0, 0.0, 0.5019607843137255) (1.0, 0.4980392156862745, 0.054901960784313725) (0.5, 0.5, 0.5) (0.12156862745098039, 0.4666666666666667, 0.7058823529411765) (0.9411764705882353, 0.5019607843137255, 0.5019607843137255) False True\n"
+],
+[
+"from matplotlib import cm\nfrom matplotlib.colors import Normalize\nm = cm.ScalarMappable(norm=Normalize(0, 1), cmap='hot')\nprint(m.to_rgba(0.5), m.get_clim(), m.get_cmap().name)\nm.set_array([])\nfig, ax = plt.subplots()\nc = fig.colorbar(m, ax=ax)\nprint(c.ax.get_yticks().tolist())\n",
+"(np.float64(1.0), np.float64(0.359314099938117), np.float64(0.0), np.float64(1.0)) (0.0, 1.0) hot\n[0.0, 0.2, 0.4, 0.6000000000000001, 0.8, 1.0]\n"
+],
+[
+"c = plt.cm.viridis.copy()\nc.set_bad('r')\nc.set_under('g')\nc.set_over('b')\nprint(c(np.nan), c(-1.0), c(2.0), c(0.5))\nprint(plt.cm.viridis(np.nan))\nprint(c.with_extremes(bad='k')(np.nan))\n",
+"(np.float64(1.0), np.float64(0.0), np.float64(0.0), np.float64(1.0)) (np.float64(0.0), np.float64(0.5), np.float64(0.0), np.float64(1.0)) (np.float64(0.0), np.float64(0.0), np.float64(1.0), np.float64(1.0)) (np.float64(0.127568), np.float64(0.566949), np.float64(0.550556), np.float64(1.0))\n(np.float64(0.0), np.float64(0.0), np.float64(0.0), np.float64(0.0))\n(np.float64(0.0), np.float64(0.0), np.float64(0.0), np.float64(1.0))\n"
+],
+[
+"import matplotlib as mpl\nprint(mpl.rcParams['font.size'], plt.rcParams['figure.figsize'], plt.rcParams['lines.linewidth'], plt.rcParams['image.cmap'], plt.rcParams['axes.grid'], plt.rcParams['axes.xmargin'])\nprint(plt.rcParams['axes.prop_cycle'].by_key()['color'][:2])\nmpl.rcParams['figure.figsize'] = (2, 3)\nprint(plt.figure().get_size_inches().tolist())\nplt.rcParams['lines.linewidth'] = 4\nl, = plt.plot([1, 2])\nprint(l.get_linewidth())\nplt.rcParams['axes.xmargin'] = 0\nf, ax = plt.subplots()\nax.plot([0, 1], [0, 1])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\nplt.rc('lines', lw=7, markersize=3, color='r')\nprint(plt.rcParams['lines.linewidth'], plt.rcParams['lines.markersize'])\nplt.rc('font', size=20)\nprint(plt.xlabel('a').get_fontsize(), plt.title('b').get_fontsize())\nmpl.rcdefaults()\nprint(plt.rcParams['font.size'])\nwith plt.rc_context({'font.size': 5}):\n    print(plt.rcParams['font.size'])\nprint(plt.rcParams['font.size'])\n",
+"10.0 [6.4, 4.8] 1.5 viridis False 0.05\n['#1f77b4', '#ff7f0e']\n[2.0, 3.0]\n4.0\n[0.0, 1.0] [-0.05, 1.05]\n7.0 3.0\n10.0 24.0\n10.0\n5.0\n10.0\n"
+],
+[
+"plt.rcParams['image.cmap'] = 'gray'\nim = plt.imshow([[1, 2]])\nprint(im.get_cmap().name)\nplt.rcParams['font.size'] = 20\nf, ax = plt.subplots()\nax.plot([0, 1])\nt = ax.get_xticklabels()[0]\nprint(t.get_fontsize(), ax.set_title('x').get_fontsize(), ax.set_xlabel('y').get_fontsize(), ax.get_xticks().tolist(), ax.text(0, 0, 'a').get_fontsize(), f.suptitle('s').get_fontsize())\nplt.rcParams['axes.grid'] = True\nplt.rcParams['axes.spines.top'] = False\nf, ax = plt.subplots()\nprint(ax.spines['top'].get_visible())\nplt.rcParams['axes.prop_cycle'] = plt.cycler(color=['r', 'g'])\nf, ax = plt.subplots()\nprint(ax.plot([1])[0].get_color(), ax.plot([1])[0].get_color(), ax.plot([1])[0].get_color())\n",
+"gray\n20.0 24.0 20.0 [-0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.25] 20.0 24.0\nFalse\nr g r\n"
+],
+[
+"fig, ax = plt.subplots()\nax.set_prop_cycle(color=['r', 'b'])\nprint(ax.plot([1])[0].get_color(), ax.plot([1])[0].get_color(), ax.plot([1])[0].get_color())\nax.set_prop_cycle(None)\nprint(ax.plot([1])[0].get_color())\n",
+"r b r\n#1f77b4\n"
+],
+[
+"fig, ax = plt.subplots()\nl, = ax.plot([1, 2])\nplt.setp(l, color='r', linewidth=2)\nprint(l.get_color(), l.get_linewidth())\nplt.setp([l], 'color', 'b')\nprint(l.get_color())\nplt.setp(ax.get_xticklabels(), rotation=45, ha='right')\nprint(ax.get_xticklabels()[1].get_rotation())\nprint(plt.getp(l, 'color'))\n",
+"r 2.0\nb\n45.0\nb\n"
+],
+[
+"fig, ax = plt.subplots()\nlg = ax.plot([1, 2], label='a')\nl1 = ax.legend()\nl2 = ax.add_artist(l1)\nl3 = ax.legend(['b'])\nprint(l2 is l1, ax.get_legend() is l3)\n",
+"True True\n"
+],
+[
+"f = plt.figure()\nax = f.add_subplot(projection='3d')\nprint(ax, repr(ax), type(ax).__name__, ax.name)\nprint(ax.get_position().bounds)\nax.set_zlabel('z')\nax.set_xlabel('x')\nprint(ax.get_zlabel(), repr(ax))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()], [float(v) for v in ax.get_zlim()])\nprint(ax.get_xticks().tolist(), ax.get_zticks().tolist())\nprint(ax.elev, ax.azim, ax.roll)\n",
+"Axes3D(0.125,0.11;0.775x0.77) <Axes3D: > Axes3D 3d\n(np.float64(0.22375), np.float64(0.10999999999999999), np.float64(0.5775), np.float64(0.77))\nz <Axes3D: xlabel='x', zlabel='z'>\n[-0.02083333333333334, 1.0208333333333333] [-0.02083333333333334, 1.0208333333333333] [-0.020833333333333332, 1.0208333333333333]\n[-0.2, 0.0, 0.2, 0.4000000000000001, 0.6000000000000001, 0.8, 1.0000000000000002, 1.2000000000000002] [-0.2, 0.0, 0.2, 0.4000000000000001, 0.6000000000000001, 0.8, 1.0000000000000002, 1.2000000000000002]\n30 -60 0\n"
+],
+[
+"f = plt.figure()\nax = f.add_subplot(111, projection='3d')\nl, = ax.plot([1, 2, 3], [4, 5, 6], [7, 8, 9])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()], [float(v) for v in ax.get_zlim()])\nprint(ax.get_xticks().tolist(), ax.get_yticks().tolist(), ax.get_zticks().tolist())\nprint(l.get_color())\nax.view_init(10, 20)\nprint(ax.elev, ax.azim)\nax.set_zlim(0, 1)\nprint([float(v) for v in ax.get_zlim()])\nax.set_xlim(0, 1)\nprint([float(v) for v in ax.get_xlim()])\n",
+"[0.8541666666666667, 3.1458333333333335] [3.8541666666666665, 6.145833333333333] [6.958333333333333, 9.041666666666666]\n[0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25] [3.75, 4.0, 4.25, 4.5, 4.75, 5.0, 5.25, 5.5, 5.75, 6.0, 6.25] [6.75, 7.0, 7.25, 7.5, 7.75, 8.0, 8.25, 8.5, 8.75, 9.0, 9.25]\n#1f77b4\n10 20\n[0.0, 1.0]\n[0.0, 1.0]\n"
+],
+[
+"f = plt.figure()\nax = f.add_subplot(projection='3d')\ns = ax.scatter([1, 2, 3], [4, 5, 6], [7, 8, 9], c='r', marker='o')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()], [float(v) for v in ax.get_zlim()], ax.get_zmargin())\nprint(s.get_sizes().tolist())\n",
+"[0.8541666666666667, 3.1458333333333335] [3.8541666666666665, 6.145833333333333] [6.854166666666667, 9.145833333333332] 0.05\n[20]\n"
+],
+[
+"f = plt.figure()\nax = f.add_subplot(projection='3d')\nx = np.linspace(-1, 1, 5)\nX, Y = np.meshgrid(x, x)\nZ = X ** 2 + Y ** 2\ns = ax.plot_surface(X, Y, Z, cmap='viridis')\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_zlim()])\nw = ax.plot_wireframe(X, Y, Z)\nprint(ax.get_zticks().tolist())\nf.colorbar(s)\nprint(len(f.axes))\n",
+"[-1.1458333333333335, 1.1458333333333335] [-0.041666666666666664, 2.0416666666666665]\n[-0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25]\n2\n"
+],
+[
+"f, ax = plt.subplots(subplot_kw={'projection': '3d'})\nprint(type(ax).__name__)\nax.bar3d([0, 1], [0, 1], [0, 0], 1, 1, [2, 3])\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_zlim()])\n",
+"Axes3D\n[-0.14583333333333334, 2.1458333333333335] [-0.0625, 3.0625]\n"
+],
+[
+"from mpl_toolkits.mplot3d import Axes3D\nfrom mpl_toolkits.mplot3d import axes3d\nX, Y, Z = axes3d.get_test_data(1.0)\nprint(X.shape, X[0, 0], Y[0, 0], round(float(Z[3, 3]), 6))\n",
+"(6, 6) -30.0 -30.0 -68.079267\n"
+],
+[
+"plt.plot([1], [1], color='foo')\n",
+"ValueError: 'foo' is not a valid value for color: supported inputs are (r, g, b) and (r, g, b, a) 0-1 float tuples; '#rrggbb', '#rrggbbaa', '#rgb', '#rgba' strings; named color strings; string reprs of 0-1 floats for grayscale values; 'C0', 'C1', ... strings for colors of the color cycle; and pairs combining one of the above with an alpha value"
+],
+[
+"plt.plot([1], [1], ls='foo')\n",
+"ValueError: 'foo' is not a valid value for ls; supported values are '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'"
+],
+[
+"plt.plot([1], [1], marker='q')\n",
+"ValueError: Unrecognized marker style 'q'"
+],
+[
+"plt.plot([1], [1], foo=1)\n",
+"AttributeError: Line2D.set() got an unexpected keyword argument 'foo'"
+],
+[
+"plt.plot([1, 2, 3], [1, 2])\n",
+"ValueError: x and y must have same first dimension, but have shapes (3,) and (2,)"
+],
+[
+"plt.plot([1, 2], 'q')\n",
+"ValueError: 'q' is not a valid format string (unrecognized character 'q')"
+],
+[
+"plt.plot(np.zeros((2, 2, 2)))\n",
+"ValueError: x and y can be no greater than 2D, but have shapes (2,) and (2, 2, 2)"
+],
+[
+"plt.plot([[1, 2], [3, 4]], [[1, 2, 3], [4, 5, 6]])\n",
+"ValueError: x has 2 columns but y has 3 columns"
+],
+[
+"plt.scatter([1], [1], c='foo')\n",
+"ValueError: 'c' argument must be a color, a sequence of colors, or a sequence of numbers, not 'foo'"
+],
+[
+"plt.bar([1], [1], color='foo')\n",
+"ValueError: 'facecolor' or 'color' argument must be a valid color or sequence of colors."
+],
+[
+"plt.subplot(5)\n",
+"ValueError: Single argument to subplot must be a three-digit integer, not 5"
+],
+[
+"plt.subplot(2, 2, 5)\n",
+"ValueError: num must be an integer with 1 <= num <= 4, not 5"
+],
+[
+"plt.subplots(0, 1)\n",
+"ValueError: Number of rows must be a positive integer, not 0"
+],
+[
+"plt.imshow(np.zeros((2, 2)), cmap='foo')\n",
+"ValueError: 'foo' is not a valid value for cmap; supported values are 'Accent', 'Accent_r', 'Blues', 'Blues_r', 'BrBG', 'BrBG_r', 'BuGn', 'BuGn_r', 'BuPu', 'BuPu_r', 'CMRmap', 'CMRmap_r', 'Dark2', 'Dark2_r', 'GnBu', 'GnBu_r', 'Grays', 'Grays_r', 'Greens', 'Greens_r', 'Greys', 'Greys_r', 'OrRd', 'OrRd_r', 'Oranges', 'Oranges_r', 'PRGn', 'PRGn_r', 'Paired', 'Paired_r', 'Pastel1', 'Pastel1_r', 'Pastel2', 'Pastel2_r', 'PiYG', 'PiYG_r', 'PuBu', 'PuBuGn', 'PuBuGn_r', 'PuBu_r', 'PuOr', 'PuOr_r', 'PuRd', 'PuRd_r', 'Purples', 'Purples_r', 'RdBu', 'RdBu_r', 'RdGy', 'RdGy_r', 'RdPu', 'RdPu_r', 'RdYlBu', 'RdYlBu_r', 'RdYlGn', 'RdYlGn_r', 'Reds', 'Reds_r', 'Set1', 'Set1_r', 'Set2', 'Set2_r', 'Set3', 'Set3_r', 'Spectral', 'Spectral_r', 'Wistia', 'Wistia_r', 'YlGn', 'YlGnBu', 'YlGnBu_r', 'YlGn_r', 'YlOrBr', 'YlOrBr_r', 'YlOrRd', 'YlOrRd_r', 'afmhot', 'afmhot_r', 'autumn', 'autumn_r', 'berlin', 'berlin_r', 'binary', 'binary_r', 'bone', 'bone_r', 'brg', 'brg_r', 'bwr', 'bwr_r', 'cividis', 'cividis_r', 'cool', 'cool_r', 'coolwarm', 'coolwarm_r', 'copper', 'copper_r', 'cubehelix', 'cubehelix_r', 'flag', 'flag_r', 'gist_earth', 'gist_earth_r', 'gist_gray', 'gist_gray_r', 'gist_grey', 'gist_grey_r', 'gist_heat', 'gist_heat_r', 'gist_ncar', 'gist_ncar_r', 'gist_rainbow', 'gist_rainbow_r', 'gist_stern', 'gist_stern_r', 'gist_yarg', 'gist_yarg_r', 'gist_yerg', 'gist_yerg_r', 'gnuplot', 'gnuplot2', 'gnuplot2_r', 'gnuplot_r', 'gray', 'gray_r', 'grey', 'grey_r', 'hot', 'hot_r', 'hsv', 'hsv_r', 'inferno', 'inferno_r', 'jet', 'jet_r', 'magma', 'magma_r', 'managua', 'managua_r', 'nipy_spectral', 'nipy_spectral_r', 'ocean', 'ocean_r', 'pink', 'pink_r', 'plasma', 'plasma_r', 'prism', 'prism_r', 'rainbow', 'rainbow_r', 'seismic', 'seismic_r', 'spring', 'spring_r', 'summer', 'summer_r', 'tab10', 'tab10_r', 'tab20', 'tab20_r', 'tab20b', 'tab20b_r', 'tab20c', 'tab20c_r', 'terrain', 'terrain_r', 'turbo', 'turbo_r', 'twilight', 'twilight_r', 'twilight_shifted', 'twilight_shifted_r', 'vanimo', 'vanimo_r', 'viridis', 'viridis_r', 'winter', 'winter_r'"
+],
+[
+"plt.imshow([1, 2])\n",
+"TypeError: Invalid shape (2,) for image data"
+],
+[
+"plt.imshow(np.zeros((2, 2, 2)))\n",
+"TypeError: Invalid shape (2, 2, 2) for image data"
+],
+[
+"plt.xscale('foo')\n",
+"ValueError: 'foo' is not a valid value for scale; supported values are 'linear', 'log', 'symlog', 'asinh', 'logit', 'function', 'functionlog'"
+],
+[
+"import matplotlib as mpl\nmpl.rcParams['foo'] = 1\n",
+"KeyError: 'foo is not a valid rc parameter (see rcParams.keys() for a list of valid parameters)'"
+],
+[
+"plt.rc('lines', bar=1)\n",
+"KeyError: 'Unrecognized key \"lines.bar\" for group \"lines\" and name \"bar\"'"
+],
+[
+"plt.hist([1, 2], bins=-1)\n",
+"ValueError: `bins` must be positive, when an integer"
+],
+[
+"plt.hist([1, 2], histtype='foo')\n",
+"ValueError: 'foo' is not a valid value for histtype; supported values are 'bar', 'barstacked', 'step', 'stepfilled'"
+],
+[
+"plt.gca().set_aspect('foo')\n",
+"ValueError: could not convert string to float: 'foo'"
+],
+[
+"plt.axis('foo')\n",
+"ValueError: Unrecognized string 'foo' to axis; try 'on' or 'off'"
+],
+[
+"plt.legend(loc='foo')\n",
+"ValueError: 'foo' is not a valid value for loc; supported values are 'best', 'upper right', 'upper left', 'lower left', 'lower right', 'right', 'center left', 'center right', 'lower center', 'upper center', 'center'"
+],
+[
+"plt.text(1, 2)\n",
+"TypeError: text() missing 1 required positional argument: 's'"
+],
+[
+"plt.annotate('a')\n",
+"TypeError: annotate() missing 1 required positional argument: 'xy'"
+],
+[
+"plt.contourf([1, 2, 3])\n",
+"TypeError: Input z must be 2D, not 1D"
+],
+[
+"plt.contour(np.zeros((1, 3)))\n",
+"TypeError: Input z must be at least a (2, 2) shaped array, but has shape (1, 3)"
+],
+[
+"plt.contour([[1, 2], [3, 4]], levels=[2, 1])\n",
+"ValueError: Contour levels must be increasing"
+],
+[
+"plt.contourf([[1, 2], [3, 4]], levels=[2])\n",
+"ValueError: Filled contours require at least 2 levels."
+],
+[
+"plt.contour(np.arange(3), np.arange(3), np.zeros((2, 2)))\n",
+"TypeError: Length of x (3) must match number of columns in z (2)"
+],
+[
+"plt.fill_between([1, 2], [1, 2, 3])\n",
+"ValueError: 'x' has size 2, but 'y1' has an unequal size of 3"
+],
+[
+"plt.pie([-1])\n",
+"ValueError: Wedge sizes 'x' must be non negative values"
+],
+[
+"plt.errorbar([1, 2], [1, 2], yerr=[-1, 1])\n",
+"ValueError: 'yerr' must not contain negative values"
+],
+[
+"plt.errorbar([1, 2], [1, 2], yerr=[1, 1, 1])\n",
+"ValueError: 'yerr' (shape: (3,)) must be a scalar or a 1D or (2, n) array-like whose shape matches 'y' (shape: (2,))"
+],
+[
+"plt.xticks([1, 2], ['a'])\n",
+"ValueError: The number of FixedLocator locations (2), usually from a call to set_ticks, does not match the number of labels (1)."
+],
+[
+"plt.gca().set_xticks([1, 2], ['a'])\n",
+"ValueError: The number of FixedLocator locations (2), usually from a call to set_ticks, does not match the number of labels (1)."
+],
+[
+"plt.colorbar()\n",
+"RuntimeError: No mappable was found to use for colorbar creation. First define a mappable such as an image (with imshow) or a contour set (with contourf)."
+],
+[
+"plt.gca().foo\n",
+"AttributeError: 'Axes' object has no attribute 'foo'"
+],
+[
+"plt.gcf().foo\n",
+"AttributeError: 'Figure' object has no attribute 'foo'"
+],
+[
+"plt.plot([1])[0].foo\n",
+"AttributeError: 'Line2D' object has no attribute 'foo'"
+],
+[
+"plt.get_cmap('foo')\n",
+"ValueError: 'foo' is not a valid value for name; supported values are 'Accent', 'Accent_r', 'Blues', 'Blues_r', 'BrBG', 'BrBG_r', 'BuGn', 'BuGn_r', 'BuPu', 'BuPu_r', 'CMRmap', 'CMRmap_r', 'Dark2', 'Dark2_r', 'GnBu', 'GnBu_r', 'Grays', 'Grays_r', 'Greens', 'Greens_r', 'Greys', 'Greys_r', 'OrRd', 'OrRd_r', 'Oranges', 'Oranges_r', 'PRGn', 'PRGn_r', 'Paired', 'Paired_r', 'Pastel1', 'Pastel1_r', 'Pastel2', 'Pastel2_r', 'PiYG', 'PiYG_r', 'PuBu', 'PuBuGn', 'PuBuGn_r', 'PuBu_r', 'PuOr', 'PuOr_r', 'PuRd', 'PuRd_r', 'Purples', 'Purples_r', 'RdBu', 'RdBu_r', 'RdGy', 'RdGy_r', 'RdPu', 'RdPu_r', 'RdYlBu', 'RdYlBu_r', 'RdYlGn', 'RdYlGn_r', 'Reds', 'Reds_r', 'Set1', 'Set1_r', 'Set2', 'Set2_r', 'Set3', 'Set3_r', 'Spectral', 'Spectral_r', 'Wistia', 'Wistia_r', 'YlGn', 'YlGnBu', 'YlGnBu_r', 'YlGn_r', 'YlOrBr', 'YlOrBr_r', 'YlOrRd', 'YlOrRd_r', 'afmhot', 'afmhot_r', 'autumn', 'autumn_r', 'berlin', 'berlin_r', 'binary', 'binary_r', 'bone', 'bone_r', 'brg', 'brg_r', 'bwr', 'bwr_r', 'cividis', 'cividis_r', 'cool', 'cool_r', 'coolwarm', 'coolwarm_r', 'copper', 'copper_r', 'cubehelix', 'cubehelix_r', 'flag', 'flag_r', 'gist_earth', 'gist_earth_r', 'gist_gray', 'gist_gray_r', 'gist_grey', 'gist_grey_r', 'gist_heat', 'gist_heat_r', 'gist_ncar', 'gist_ncar_r', 'gist_rainbow', 'gist_rainbow_r', 'gist_stern', 'gist_stern_r', 'gist_yarg', 'gist_yarg_r', 'gist_yerg', 'gist_yerg_r', 'gnuplot', 'gnuplot2', 'gnuplot2_r', 'gnuplot_r', 'gray', 'gray_r', 'grey', 'grey_r', 'hot', 'hot_r', 'hsv', 'hsv_r', 'inferno', 'inferno_r', 'jet', 'jet_r', 'magma', 'magma_r', 'managua', 'managua_r', 'nipy_spectral', 'nipy_spectral_r', 'ocean', 'ocean_r', 'pink', 'pink_r', 'plasma', 'plasma_r', 'prism', 'prism_r', 'rainbow', 'rainbow_r', 'seismic', 'seismic_r', 'spring', 'spring_r', 'summer', 'summer_r', 'tab10', 'tab10_r', 'tab20', 'tab20_r', 'tab20b', 'tab20b_r', 'tab20c', 'tab20c_r', 'terrain', 'terrain_r', 'turbo', 'turbo_r', 'twilight', 'twilight_r', 'twilight_shifted', 'twilight_shifted_r', 'vanimo', 'vanimo_r', 'viridis', 'viridis_r', 'winter', 'winter_r'"
+],
+[
+"plt.title()\n",
+"TypeError: title() missing 1 required positional argument: 'label'"
+],
+[
+"plt.xlabel()\n",
+"TypeError: xlabel() missing 1 required positional argument: 'xlabel'"
+],
+[
+"plt.bar([1, 2], [1, 2, 3])\n",
+"ValueError: shape mismatch: objects cannot be broadcast to a single shape.  Mismatch is between arg 0 with shape (2,) and arg 1 with shape (3,)."
+],
+[
+"plt.barh([1, 2], [1, 2, 3])\n",
+"ValueError: shape mismatch: objects cannot be broadcast to a single shape.  Mismatch is between arg 2 with shape (3,) and arg 3 with shape (2,)."
+],
+[
+"plt.scatter([1, 2], [1, 2, 3])\n",
+"ValueError: x and y must be the same size"
+],
+[
+"plt.scatter([1, 2], [1, 2], s=[1, 2, 3])\n",
+"ValueError: s must be a scalar, or float array-like with the same size as x and y"
+],
+[
+"plt.scatter([1, 2], [1, 2], c=[1, 2, 3])\n",
+"ValueError: 'c' argument has 3 elements, which is inconsistent with 'x' and 'y' with size 2."
+],
+[
+"plt.step([1, 2], [1, 2], where='x')\n",
+"ValueError: 'x' is not a valid value for where; supported values are 'pre', 'post', 'mid'"
+],
+[
+"plt.stem([1, 2], [1, 2], [3], [4])\n",
+"TypeError: stem() takes 1-3 positional arguments but 4 were given"
+],
+[
+"plt.quiver([1])\n",
+"TypeError: quiver() takes from 2 to 5 positional arguments but 1 were given"
+],
+[
+"plt.pcolormesh(np.arange(2), np.arange(9), np.zeros((3, 3)))\n",
+"TypeError: Dimensions of C (3, 3) should be one smaller than X(2) and Y(9) while using shading='flat' see help(pcolormesh)"
+],
+[
+"plt.hist2d([1, 2], [1, 2, 3])\n",
+"ValueError: x and y must have the same length."
+],
+[
+"plt.boxplot([[1, 2], [3]], positions=[1])\n",
+"ValueError: List of boxplot statistics and `positions` values must have same the length"
+],
+[
+"plt.margins(-1)\n",
+"ValueError: margin must be greater than -0.5"
+],
+[
+"plt.margins(1, 2, 3)\n",
+"TypeError: Must pass a single positional argument for all margins, or one for each margin (x, y)."
+],
+[
+"plt.gca().spines['foo']\n",
+"KeyError: 'foo'"
+],
+[
+"plt.tick_params(axis='z')\n",
+"ValueError: 'z' is not a valid value for axis; supported values are 'x', 'y', 'both'"
+],
+[
+"plt.subplot2grid((2, 2), (3, 0))\n",
+"IndexError: GridSpec slice would result in no space allocated for subplot"
+],
+[
+"plt.setp([plt.plot([1])[0]], foo=1)\n",
+"AttributeError: Line2D.set() got an unexpected keyword argument 'foo'"
+],
+[
+"plt.axline((0, 0))\n",
+"TypeError: Exactly one of 'xy2' and 'slope' must be given"
+],
+[
+"plt.axvspan(1)\n",
+"TypeError: axvspan() missing 1 required positional argument: 'xmax'"
+],
+[
+"plt.stackplot([1, 2], [1, 2, 3])\n",
+"ValueError: 'x' has size 2, but 'y2' has an unequal size of 3"
+],
+[
+"plt.stairs([1, 2], [1, 2])\n",
+"ValueError: Size mismatch between \"values\" and \"edges\". Expected `len(values) + 1 == len(edges)`, but `len(values) = 2` and `len(edges) = 2`."
+],
+[
+"plt.hlines(1)\n",
+"TypeError: hlines() missing 2 required positional arguments: 'xmin' and 'xmax'"
+],
+[
+"plt.vlines(1, 2)\n",
+"TypeError: vlines() missing 1 required positional argument: 'ymax'"
+],
+[
+"plt.grid(axis='z')\n",
+"ValueError: 'z' is not a valid value for axis; supported values are 'x', 'y', 'both'"
+],
+[
+"plt.grid(True, which='foo')\n",
+"ValueError: 'foo' is not a valid value for which; supported values are 'major', 'minor', 'both'"
+],
+[
+"plt.semilogx([1], [1], base=-1)\n",
+"ValueError: The log base cannot be <= 0 or == 1"
+],
+[
+"plt.figure().add_subplot(1, 2)\n",
+"TypeError: subplot() takes 1 or 3 positional arguments but 2 were given"
+],
+[
+"plt.figure().add_subplot(111, projection='foo')\n",
+"ValueError: Unknown projection 'foo'"
+],
+[
+"plt.subplots(1, 1, sharex='foo')\n",
+"ValueError: 'foo' is not a valid value for sharex; supported values are 'all', 'row', 'col', 'none', False, True"
+],
+[
+"from matplotlib.colors import Normalize\nNormalize(1, 0)(0.5)\n",
+"ValueError: minvalue must be less than or equal to maxvalue"
+],
+[
+"plt.scatter([1], [1]).set_foo(1)\n",
+"AttributeError: 'PathCollection' object has no attribute 'set_foo'"
+],
+[
+"plt.plot([1])[0].set(foo=1)\n",
+"AttributeError: Line2D.set() got an unexpected keyword argument 'foo'"
+],
+[
+"plt.figure(figsize=3)\n",
+"TypeError: Value after * must be an iterable, not int"
+],
+[
+"from matplotlib.patches import Polygon\nPolygon([1, 2, 3])\n",
+"ValueError: not enough values to unpack (expected 2, got 1)"
+],
+[
+"plt.xlim(1, 2, 3)\n",
+"TypeError: _AxesBase.set_xlim() takes from 1 to 3 positional arguments but 4 were given"
+],
+[
+"plt.imshow([[1, 2]]).set_foo(1)\n",
+"AttributeError: 'AxesImage' object has no attribute 'set_foo'"
+],
+[
+"plt.text(0, 0, 'a').foo\n",
+"AttributeError: 'Text' object has no attribute 'foo'"
+],
+[
+"plt.gca().set_frame_on()\n",
+"TypeError: _AxesBase.set_frame_on() missing 1 required positional argument: 'b'"
+],
+[
+"plt.bar([1], [2], foo=3)\n",
+"AttributeError: Rectangle.set() got an unexpected keyword argument 'foo'"
+],
+[
+"plt.fill_between([1], [2], foo=3)\n",
+"AttributeError: FillBetweenPolyCollection.set() got an unexpected keyword argument 'foo'"
+],
+[
+"plt.text(0, 0, 'a', foo=3)\n",
+"AttributeError: 'Text' object has no property 'foo'"
+],
+[
+"plt.imshow([[1]], foo=3)\n",
+"AttributeError: AxesImage.set() got an unexpected keyword argument 'foo'"
+],
+[
+"plt.axhline(1, foo=3)\n",
+"AttributeError: Line2D.set() got an unexpected keyword argument 'foo'"
+],
+[
+"plt.legend(foo=3)\n",
+"TypeError: Legend.__init__() got an unexpected keyword argument 'foo'"
+],
+[
+"plt.title('a', foo=3)\n",
+"AttributeError: Text.set() got an unexpected keyword argument 'foo'"
+],
+[
+"plt.gca().set(foo=1)\n",
+"AttributeError: Axes.set() got an unexpected keyword argument 'foo'"
+],
+[
+"plt.subplot(1, 1, 1, foo=1)\n",
+"AttributeError: Axes.set() got an unexpected keyword argument 'foo'"
+],
+[
+"img = np.array([[[255, 0, 0], [0, 128, 0]]], dtype=np.uint8)\nim = plt.imshow(img)\nprint(im.get_array().dtype, im.get_array().shape)\nprint(im.get_array().tolist())\n",
+"uint8 (1, 2, 3)\n[[[255, 0, 0], [0, 128, 0]]]\n"
+],
+[
+"img = np.array([[0, 128], [200, 255]], dtype=np.uint8)\nim = plt.imshow(img, cmap='gray')\nprint(im.get_clim(), im.get_array().dtype, im.get_array().tolist())\nprint([float(v) for v in plt.gca().get_xlim()])\n",
+"(0, 255) uint8 [[0, 128], [200, 255]]\n[-0.5, 1.5]\n"
+],
+[
+"img = np.array([[0, 300]], dtype=np.int64)\nim = plt.imshow(img, cmap='gray')\nprint(im.get_clim())\n",
+"(0, 300)\n"
+],
+[
+"args = ([1, 2], [3, 4])\nstyle = {'color': 'r', 'lw': 2}\nl, = plt.plot(*args, **style)\nprint(l.get_color(), l.get_linewidth())\n",
+"r 2.0\n"
+],
+[
+"try:\n    plt.plot([1], [2], color='foo')\nexcept ValueError as e:\n    print(type(e).__name__)\nfig, ax = plt.subplots()\ntry:\n    ax.set_aspect('foo')\nexcept ValueError as e:\n    print(str(e))\n",
+"ValueError\ncould not convert string to float: 'foo'\n"
+],
+[
+"def gen():\n    for i in range(3):\n        yield i\nplt.plot(list(gen()))\nprint(len(plt.gca().lines))\nprint(plt.gca().lines[0].get_ydata().tolist())\n",
+"1\n[0, 1, 2]\n"
+],
+[
+"with plt.rc_context({'lines.linewidth': 9}):\n    l, = plt.plot([1])\nprint(l.get_linewidth())\nm, = plt.plot([1])\nprint(m.get_linewidth())\n",
+"9.0\n1.5\n"
+],
+[
+"fig, axs = plt.subplots(2, 2)\nfor i, a in enumerate(axs.flat):\n    a.set_title(str(i))\nprint([a.get_title() for a in fig.axes])\nprint(fig.axes[0].get_subplotspec().is_first_row(), fig.axes[3].get_subplotspec().is_last_col())\n",
+"['0', '1', '2', '3']\nTrue True\n"
+],
+[
+"from matplotlib.ticker import AutoMinorLocator, LinearLocator, FixedLocator\nfig, ax = plt.subplots()\nax.plot([0, 10], [0, 1])\nax.xaxis.set_major_locator(LinearLocator(5))\nprint(ax.get_xticks().tolist())\nax.yaxis.set_major_locator(FixedLocator([0.2, 0.4]))\nprint(ax.get_yticks().tolist())\nax.xaxis.set_minor_locator(AutoMinorLocator(2))\nprint(ax.xaxis.get_minorticklocs().tolist())\n",
+"[-0.5, 2.25, 5.0, 7.75, 10.5]\n[0.2, 0.4]\n[0.875, 3.625, 6.375, 9.125]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2], [3, 4])\nax.set_xlabel('x', fontsize=14, color='r', labelpad=3)\nprint(ax.xaxis.label.get_fontsize(), ax.xaxis.label.get_color(), ax.xaxis.labelpad)\nprint(ax.title.get_text())\nax.title.set_text('z')\nprint(ax.get_title())\nax.xaxis.label.set_text('w')\nprint(ax.get_xlabel())\n",
+"14.0 r 3\n\nz\nw\n"
+],
+[
+"x = [1, 2]\nplt.scatter(x, x, c=[0.5, 0.7], cmap=plt.cm.coolwarm)\nplt.colorbar()\nplt.title('t', fontdict={'fontsize': 20, 'color': 'r'})\nprint(plt.gca().title.get_fontsize())\nprint(float(plt.gcf().axes[1].get_ylim()[0]), plt.gcf().axes[1].get_ylabel())\n",
+"20.0\n0.5 \n"
+],
+[
+"fig, ax = plt.subplots()\nc = ax.broken_barh([(1, 2), (5, 1)], (0, 3), facecolors='r')\nprint(len(ax.collections))\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"1\n[0.75, 6.25] [-0.15000000000000002, 3.15]\n"
+],
+[
+"fig, d = plt.subplot_mosaic('AB;CC')\nprint(sorted(d.keys()), [round(float(v), 8) for v in d['C'].get_position().bounds], d['A'].get_label())\nf2, e = plt.subplot_mosaic([['x', '.'], ['x', 'y']])\nprint(sorted(e.keys()), [round(float(v), 8) for v in e['x'].get_position().bounds])\n",
+"['A', 'B', 'C'] [0.125, 0.11, 0.775, 0.35] A\n['x', 'y'] [0.125, 0.11, 0.35227273, 0.77]\n"
+],
+[
+"from matplotlib.tri import Triangulation\nt = Triangulation([0, 1, 0, 1], [0, 0, 1, 1.5])\nprint(t.triangles.shape, t.edges.shape, t.x.tolist())\nl = plt.triplot(t, 'o-')\nprint(len(l), l[0].get_color(), l[1].get_color(), l[1].get_marker(), l[0].get_marker(), l[0].get_linestyle(), l[1].get_linestyle())\nc = plt.tricontour(t, [1, 2, 3, 4], levels=3)\nprint(c.levels.tolist())\nd = plt.tricontourf(t, [1, 2, 3, 4])\nprint(d.levels.tolist())\np = plt.tripcolor(t, [1, 2, 3, 4])\nprint(sorted(p.get_array().tolist()) == [2.0, 3.0] or len(p.get_array()))\nax = plt.gca()\nprint([float(v) for v in ax.get_xlim()], [float(v) for v in ax.get_ylim()])\n",
+"(2, 3) (5, 2) [0.0, 1.0, 0.0, 1.0]\n2 #1f77b4 #ff7f0e o None - None\n[0.8, 1.6, 2.4000000000000004, 3.2, 4.0]\n[0.8, 1.2000000000000002, 1.6, 2.0, 2.4000000000000004, 2.8, 3.2, 3.6000000000000005, 4.0]\nTrue\n[0.0, 1.0] [0.0, 1.5]\n"
+],
+[
+"fig, ax = plt.subplots()\nax.plot([1, 2])\nax.remove()\nprint(len(fig.axes))\n",
+"0\n"
+]
+]
