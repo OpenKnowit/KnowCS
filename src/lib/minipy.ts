@@ -1233,6 +1233,8 @@ export abstract class PyObj {
   exit?(h: Host): void
   /** np.asarray(x) — lets NumPy functions and plotting take this object */
   toArray?(): NDArray
+  /** np.name(…, this, …) handled by the object itself (a Series keeps its index); undefined = treat it as an array */
+  npCall?(name: string, args: Value[], kw: Kw, h: Host, impl: Fn): Value | undefined
   /** isinstance(x, T) for a library type named name */
   isa?(name: string): boolean
   /** a richer rendering for the output pane (a table, a figure …) when this is the cell's last value */
@@ -1337,6 +1339,8 @@ export interface Host {
   str(v: Value): string
   getAttr(obj: Value, name: string): Value
   module(name: string): Value
+  /** a variable visible at the current line, by name */
+  lookup(id: string): Value | undefined
   /** current line, and the source text of the call or operator being evaluated */
   readonly line: number
   readonly code: string
@@ -1606,6 +1610,7 @@ const EXCEPTIONS: [string, string[]][] = [
   ['SyntaxError', ['Exception']], ['IndentationError', ['SyntaxError']], ['TypeError', ['Exception']], ['ValueError', ['Exception']], ['UnicodeError', ['ValueError']],
   ['Warning', ['Exception']], ['UserWarning', ['Warning']], ['DeprecationWarning', ['Warning']], ['RuntimeWarning', ['Warning']], ['FutureWarning', ['Warning']],
   ['LinAlgError', ['ValueError']], ['AxisError', ['ValueError', 'IndexError']], ['UFuncTypeError', ['TypeError']],
+  ['MergeError', ['ValueError']], ['ParserError', ['ValueError']], ['EmptyDataError', ['ValueError']], ['DataError', ['ValueError']], ['IntCastingNaNError', ['ValueError']], ['UndefinedVariableError', ['NameError']], ['OptionError', ['AttributeError', 'KeyError']], ['IndexingError', ['Exception']], ['SpecificationError', ['Exception']],
 ]
 /** every exception keeps its constructor arguments in .args */
 const EXC_HOST: HostClass = {
@@ -4656,7 +4661,9 @@ class Interp implements Host {
   predicate(name: string, f: (x: number) => boolean): Value {
     return {
       k: 'fn', name, api: { name: `np.${name}`, kind: 'elementwise' },
-      call: keepMatrix((args) => {
+      call: keepMatrix((args, kw) => {
+        const viaObj = args[0].k === 'obj' ? args[0].o.npCall?.(name, args, kw, this, (a) => arr(NDArray.create(toArray(a[0]).values().map((x) => (f(x) ? 1 : 0)), toArray(a[0]).shape, 'bool'))) : undefined
+        if (viaObj) return viaObj
         const a = toArray(args[0])
         const res = NDArray.create(a.values().map((x) => (f(x) ? 1 : 0)), a.shape, 'bool')
         return args[0].k === 'array' || args[0].k === 'list' ? arr(res) : bool(res.values()[0] === 1)
@@ -4670,7 +4677,14 @@ class Interp implements Host {
     const api = (prefix: string) => (name: string, call: Fn, kind?: ApiKind, extra: Partial<ApiMeta> = {}): Value => ({
       k: 'fn', name, call: kind && KEEPS_MATRIX.includes(kind) && !DROPS_MATRIX.includes(name) ? keepMatrix(call) : call, api: kind ? { name: `${prefix}.${name}`, kind, ...extra } : undefined,
     })
-    const fn = api('np')
+    const npApi = api('np')
+    const fn: ReturnType<typeof api> = (name, call, kind, extra) => npApi(name, (args, kw) => {
+      for (const x of args) {
+        const res = x.k === 'obj' ? x.o.npCall?.(name, args, kw, this, call) : undefined
+        if (res) return res
+      }
+      return call(args, kw)
+    }, kind, extra)
     const asArr = (v: Value | undefined, name: string): NDArray => {
       if (!v) throw this.err('TypeError', `${name}() missing required argument`)
       return toArray(v)
