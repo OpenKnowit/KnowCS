@@ -260,7 +260,7 @@ const tfOf = (v: Value | undefined): TT | null => (v && v.k === 'obj' && v.o ins
 
 const OP_NAME: Record<string, string> = { '+': 'AddV2', '-': 'Sub', '*': 'Mul', '/': 'RealDiv', '@': 'MatMul', '**': 'Pow', '<': 'Less', '>': 'Greater', '<=': 'LessEqual', '>=': 'GreaterEqual', '==': 'Equal', '!=': 'NotEqual', maximum: 'Maximum', minimum: 'Minimum', '//': 'FloorDiv', '%': 'FloorMod' }
 /** the tensor dtype NumPy data keeps */
-const ND_TF: Record<DType, TDType> = { float64: 'float64', int64: 'int64', bool: 'bool', uint8: 'uint8' }
+const ND_TF: Record<DType, TDType> = { float64: 'float64', float32: 'float32', int64: 'int64', bool: 'bool', uint8: 'uint8' }
 const TF_KIND: Record<TDType, string> = { float32: 'float', float64: 'double', int32: 'int32', int64: 'int64', bool: 'bool', uint8: 'uint8' }
 
 /** a Python value as a TF operand: Python numbers take the tensor's dtype, tensors must match exactly */
@@ -295,7 +295,7 @@ const toTF = (h: Host, v: Value, dtype: TDType | null): TT => {
   } catch (e) {
     throw h.err('ValueError', `Can't convert to a Tensor: ${(e as Error).message}`)
   }
-  return TT.of(a.values(), a.shape, dtype ?? (a.dtype === 'float64' ? 'float32' : a.dtype === 'bool' ? 'bool' : 'int32'))
+  return TT.of(a.values(), a.shape, dtype ?? (a.dtype === 'float64' || a.dtype === 'float32' ? 'float32' : a.dtype === 'bool' ? 'bool' : 'int32'))
 }
 
 class TFTensor extends PyObj {

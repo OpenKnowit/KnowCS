@@ -1,7 +1,18 @@
 // --- 迷你 NumPy 内核：共享缓冲区 + shape/strides/offset，忠实复刻索引语义（View / Copy） ---
 // 只覆盖教学所需子集：int64 / float64 / bool 三种 dtype；每个结果都能追溯到源缓冲区地址，供可视化使用。
 
-export type DType = 'int64' | 'float64' | 'bool' | 'uint8'
+export type DType = 'int64' | 'float64' | 'bool' | 'uint8' | 'float32'
+export const isFloatD = (d: DType) => d === 'float64' || d === 'float32'
+
+/** the common type of two arrays, by NumPy's promotion table */
+export const promoteD = (a: DType, b: DType): DType => {
+  if (a === b) return a
+  if (a === 'bool') return b
+  if (b === 'bool') return a
+  if (a === 'float64' || b === 'float64') return 'float64'
+  if (a === 'float32' || b === 'float32') return a === 'int64' || b === 'int64' ? 'float64' : 'float32'
+  return 'int64'
+}
 
 /** 带 Python 异常类型名的错误（IndexError / ValueError / TypeError …） */
 export class PyError extends Error {
@@ -60,6 +71,7 @@ export const checkSize = (shape: readonly number[]): void => {
 
 export const castValue = (v: number, dtype: DType): number => {
   if (dtype === 'bool') return v !== 0 ? 1 : 0
+  if (dtype === 'float32') return Math.fround(v)
   // wraps around, as C does: 256 is 0, -1 is 255
   if (dtype === 'uint8') return Number.isFinite(v) ? ((Math.trunc(v) % 256) + 256) % 256 : 0
   if (dtype === 'int64') {
@@ -208,19 +220,19 @@ const UFUNC_NAME: Record<BinOp, string> = {
 export const resultDType = (op: BinOp, a: DType, b: DType): DType => {
   if (COMPARE.has(op)) return 'bool'
   if (op === '&' || op === '|' || op === '^') {
-    if (a === 'float64' || b === 'float64') {
+    if (isFloatD(a) || isFloatD(b)) {
       throw new PyError('TypeError', `ufunc '${UFUNC_NAME[op]}' not supported for the input types`)
     }
     return a === 'bool' && b === 'bool' ? 'bool' : a === 'int64' || b === 'int64' ? 'int64' : 'uint8'
   }
-  if (op === '/') return 'float64'
-  if (a === 'float64' || b === 'float64') return 'float64'
-  return (a === 'uint8' || b === 'uint8') && a !== 'int64' && b !== 'int64' ? 'uint8' : 'int64'
+  const common = promoteD(a, b)
+  if (op === '/') return isFloatD(common) ? common : 'float64'
+  return common === 'bool' ? 'int64' : common
 }
 
 /** 标量运算（Python 语义：// 向下取整，% 结果与除数同号） */
 export const applyOp = (op: BinOp, x: number, y: number, dtype: DType): number => {
-  const isInt = dtype !== 'float64'
+  const isInt = !isFloatD(dtype)
   switch (op) {
     case '+': return x + y
     case '-': return x - y
@@ -248,6 +260,8 @@ export const applyOp = (op: BinOp, x: number, y: number, dtype: DType): number =
 }
 
 /** a Python int beside a uint8 array takes the array's type (NumPy 2's rule), and must fit in it */
+const pythonNumber = (x: NDArray) => x.ndim === 0 && (x.dtype === 'int64' || x.dtype === 'float64')
+
 const pythonIntFits = (other: NDArray, op: BinOp): boolean => {
   if (other.ndim !== 0 || other.dtype !== 'int64') return false
   const v = other.values()[0]
@@ -259,8 +273,10 @@ export const binaryOp = (op: BinOp, a: NDArray, b: NDArray): NDArray => {
   const shape = broadcastShapes([a.shape, b.shape])
   checkSize(shape)
   const asUint8 = (a.dtype === 'uint8' && pythonIntFits(b, op)) || (b.dtype === 'uint8' && pythonIntFits(a, op))
-  const dtype = asUint8 ? resultDType(op, 'uint8', 'uint8') : resultDType(op, a.dtype, b.dtype)
-  const opType = COMPARE.has(op) ? (a.dtype === 'float64' || b.dtype === 'float64' ? 'float64' : 'int64') : dtype
+  // a Python number beside a float32 array keeps it float32
+  const asFloat32 = (a.dtype === 'float32' && pythonNumber(b)) || (b.dtype === 'float32' && pythonNumber(a))
+  const dtype = asUint8 ? resultDType(op, 'uint8', 'uint8') : asFloat32 ? resultDType(op, 'float32', 'float32') : resultDType(op, a.dtype, b.dtype)
+  const opType = COMPARE.has(op) ? (isFloatD(a.dtype) || isFloatD(b.dtype) ? 'float64' : 'int64') : dtype
   const av = broadcastTo(a, shape).values()
   const bv = broadcastTo(b, shape).values()
   return NDArray.create(av.map((x, i) => applyOp(op, x, bv[i], opType)), shape, dtype)
@@ -275,9 +291,9 @@ export const unaryOp = (op: UnaryOp, a: NDArray): NDArray => {
       throw new PyError('TypeError', 'The numpy boolean negative, the `-` operator, is not supported, use the `~` operator or the logical_not function instead.')
     }
     // floats keep -0.0, which NumPy prints; integers have no such thing
-    return NDArray.create(a.values().map((x) => (a.dtype === 'float64' ? -x : -x || 0)), a.shape, a.dtype)
+    return NDArray.create(a.values().map((x) => (isFloatD(a.dtype) ? -x : -x || 0)), a.shape, a.dtype)
   }
-  if (a.dtype === 'float64') throw new PyError('TypeError', "ufunc 'invert' not supported for the input types")
+  if (isFloatD(a.dtype)) throw new PyError('TypeError', "ufunc 'invert' not supported for the input types")
   return NDArray.create(a.values().map((x) => (a.dtype === 'bool' ? 1 - x : ~x)), a.shape, a.dtype)
 }
 
@@ -352,7 +368,7 @@ const reduceValues = (kind: ReduceKind, xs: number[]): number => {
 }
 
 export const reduceDType = (kind: ReduceKind, dtype: DType): DType => {
-  if (kind === 'mean' || kind === 'std' || kind === 'var') return 'float64'
+  if (kind === 'mean' || kind === 'std' || kind === 'var') return dtype === 'float32' ? 'float32' : 'float64'
   if (kind === 'any' || kind === 'all') return 'bool'
   if (kind === 'argmax' || kind === 'argmin' || kind === 'count_nonzero') return 'int64'
   if ((kind === 'sum' || kind === 'prod') && (dtype === 'bool' || dtype === 'uint8')) return 'int64'
@@ -398,7 +414,8 @@ export const dot = (a: NDArray, b: NDArray): NDArray | number => {
       out.push(s)
     }
   }
-  const dtype: DType = a.dtype === 'float64' || b.dtype === 'float64' ? 'float64' : a.dtype === 'uint8' && b.dtype === 'uint8' ? 'uint8' : 'int64'
+  const common = promoteD(a.dtype, b.dtype)
+  const dtype: DType = common === 'bool' ? 'int64' : common
   if (a.ndim === 1 && b.ndim === 1) return out[0]
   const shape = a.ndim === 1 ? [mm] : b.ndim === 1 ? [n] : [n, mm]
   return NDArray.create(out, shape, dtype)
@@ -550,7 +567,7 @@ export const planIndex = (a: NDArray, rawItems: IndexItem[]): IndexPlan => {
       mask ??= { arr: m, axes }
       ax += m.ndim
     } else {
-      if (it.arr.dtype === 'float64') {
+      if (isFloatD(it.arr.dtype)) {
         throw new PyError('IndexError', 'arrays used as indices must be of integer (or boolean) type')
       }
       const n = a.shape[ax]
@@ -693,7 +710,18 @@ const formatScientific = (values: number[]): string[] => {
   return parts.map((p, k) => (p ? `${p.i}.${p.f.padEnd(fracW, '0')}${p.e}` : fmtFloatRaw(values[k])))
 }
 
-export const formatElements = (values: number[], dtype: DType): string[] => {
+/** the shortest decimal that reads back as this float32, as a double: 1.1f is 1.10000002… but prints as 1.1 */
+export const shortestFloat32 = (v: number): number => {
+  if (!Number.isFinite(v) || v === 0) return v
+  for (let p = 1; p <= 9; p++) {
+    const t = Number(v.toPrecision(p))
+    if (Math.fround(t) === v) return t
+  }
+  return v
+}
+
+export const formatElements = (values0: number[], dtype: DType): string[] => {
+  const values = dtype === 'float32' ? values0.map(shortestFloat32) : values0
   let words: string[]
   if (dtype === 'bool') words = values.map((v) => (v ? ' True' : 'False'))
   else if (dtype === 'int64' || dtype === 'uint8') words = values.map(String)
@@ -764,7 +792,7 @@ export const formatScalar = (v: number, dtype: DType): string => {
   if (dtype === 'int64' || dtype === 'uint8') return String(v)
   if (Number.isNaN(v)) return 'nan'
   if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf'
-  return pyFloatRepr(v)
+  return pyFloatRepr(dtype === 'float32' ? shortestFloat32(v) : v)
 }
 
 /** Python's repr(float): shortest round-trip digits, exponent form below 1e-4 or from 1e16 */
@@ -784,7 +812,7 @@ export const arrayRepr = (a: NDArray): string => {
     return a.ndim === 1 ? `${name}([], dtype=${a.dtype})` : `${name}([], shape=${shapeStr(a.shape)}, dtype=${a.dtype})`
   }
   // the extras go on their own line if they would run past the line width
-  const extras = [...(a.size > printOptions.threshold ? [`shape=${shapeStr(a.shape)}`] : []), ...(a.dtype === 'uint8' ? ['dtype=uint8'] : [])]
+  const extras = [...(a.size > printOptions.threshold ? [`shape=${shapeStr(a.shape)}`] : []), ...(a.dtype === 'uint8' || a.dtype === 'float32' ? [`dtype=${a.dtype}`] : [])]
   const body = `${name}(${formatNested(a, true, name.length + 1)}`
   if (!extras.length) return `${body})`
   const extra = `${extras.join(', ')})`

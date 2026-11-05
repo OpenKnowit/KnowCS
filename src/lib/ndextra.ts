@@ -1,14 +1,14 @@
 // --- More NumPy for the sandbox: counting, histograms, order statistics, grids, differences, padding, membership ---
 // Each function returns its result and, where a result cell comes from a group of input cells, that group
 // (groups[o] = [operand, flat index] cells), so the API panel can show where every number came from.
-import { NDArray, PyError, cStrides, normAxis, prod, transpose, unravel } from './ndarray'
+import { NDArray, PyError, cStrides, normAxis, prod, transpose, unravel, isFloatD } from './ndarray'
 
 export type Cell = [number, number]
 export interface Grouped { out: NDArray; groups: Cell[][] }
 
 const ints = (a: NDArray, what: string): number[] => {
   const v = a.values()
-  if (a.dtype === 'float64' && v.some((x) => !Number.isInteger(x))) throw new PyError('TypeError', `Cannot cast array data from dtype('float64') to dtype('int64') according to the rule 'safe' (${what})`)
+  if (isFloatD(a.dtype) && v.some((x) => !Number.isInteger(x))) throw new PyError('TypeError', `Cannot cast array data from dtype('float64') to dtype('int64') according to the rule 'safe' (${what})`)
   return v
 }
 

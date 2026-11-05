@@ -1,10 +1,9 @@
 // --- 迷你 NumPy 扩展算子：拼接 / 平铺 / 翻转 / 排序 / 累加 / 线性代数 —— 语义与报错对齐真 numpy ---
-import { NDArray, PyError, cStrides, checkSize, normAxis, prod, transpose, unravel } from './ndarray'
+import { NDArray, PyError, cStrides, checkSize, isFloatD, normAxis, prod, promoteD, transpose, unravel } from './ndarray'
 import type { DType } from './ndarray'
 
 /** 多个数组合并后的 dtype：有 float 即 float64，否则有 int 即 int64，全 bool 才 bool */
-export const commonDType = (arrs: NDArray[]): DType =>
-  arrs.some((a) => a.dtype === 'float64') ? 'float64' : arrs.some((a) => a.dtype === 'int64') ? 'int64' : arrs.some((a) => a.dtype === 'uint8') ? 'uint8' : 'bool'
+export const commonDType = (arrs: NDArray[]): DType => arrs.reduce<DType>((d, a) => promoteD(d, a.dtype), arrs[0]?.dtype ?? 'bool')
 
 const flatIndex = (idx: number[], shape: readonly number[]): number => {
   const st = cStrides(shape)
@@ -174,7 +173,7 @@ export const unique = (a: NDArray): NDArray => {
 }
 
 export const cumsum = (a: NDArray, axis: number | null): NDArray => {
-  const dtype: DType = a.dtype === 'float64' ? 'float64' : 'int64'
+  const dtype: DType = isFloatD(a.dtype) ? a.dtype : 'int64'
   if (axis === null || a.ndim <= 1) {
     let s = 0
     const vals = a.values().map((v) => (s += v))
@@ -249,7 +248,7 @@ export const inv = (a: NDArray): NDArray => {
       for (let k = 0; k < 2 * n; k++) aug[r][k] -= f * aug[c][k]
     }
   }
-  return NDArray.create(aug.flatMap((r) => r.slice(n).map((v) => (Math.abs(v) < 1e-15 ? 0 : v))), [n, n], 'float64')
+  return NDArray.create(aug.flatMap((r) => r.slice(n).map((v) => (Math.abs(v) < 1e-15 ? 0 : v))), [n, n], a.dtype === 'float32' ? 'float32' : 'float64')
 }
 
 /** 2-范数（axis = null 时为 Frobenius 范数） */
@@ -260,7 +259,7 @@ export const norm = (a: NDArray, axis: number | null): NDArray | number => {
   const moved = transpose(a, [...rest, ax]).values()
   const n = a.shape[ax]
   const outShape = rest.map((k) => a.shape[k])
-  return NDArray.create(Array.from({ length: prod(outShape) }, (_, i) => Math.sqrt(moved.slice(i * n, i * n + n).reduce((s, v) => s + v * v, 0))), outShape, 'float64')
+  return NDArray.create(Array.from({ length: prod(outShape) }, (_, i) => Math.sqrt(moved.slice(i * n, i * n + n).reduce((s, v) => s + v * v, 0))), outShape, a.dtype === 'float32' ? 'float32' : 'float64')
 }
 
 export const outer = (a: NDArray, b: NDArray): NDArray => {

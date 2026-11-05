@@ -14,7 +14,8 @@ import type { SandboxRandom } from './ndops'
 export type TDType = 'float32' | 'float64' | 'int64' | 'int32' | 'uint8' | 'bool'
 
 export const isFloatT = (d: TDType) => d === 'float32' || d === 'float64'
-const storageOf = (d: TDType): DType => (isFloatT(d) ? 'float64' : d === 'bool' ? 'bool' : 'int64')
+// .numpy() hands out this array, so it carries the type NumPy would report
+const storageOf = (d: TDType): DType => (d === 'float32' || d === 'float64' || d === 'bool' || d === 'uint8' ? d : 'int64')
 const err = (type: string, msg: string) => new PyError(type, msg)
 
 /** round to the dtype: float32 storage keeps float32 precision, as torch.tensor(0.1).item() shows */

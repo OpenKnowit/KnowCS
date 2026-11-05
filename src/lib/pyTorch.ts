@@ -256,7 +256,7 @@ const operand = (h: Host, v: Value, like?: TDType): { t: TT; weak: boolean } | n
   return null
 }
 
-const ND_TO_T: Record<DType, TDType> = { float64: 'float64', int64: 'int64', bool: 'bool', uint8: 'uint8' }
+const ND_TO_T: Record<DType, TDType> = { float64: 'float64', float32: 'float32', int64: 'int64', bool: 'bool', uint8: 'uint8' }
 
 /** a NumPy array as a tensor; share = torch.from_numpy (same memory) */
 const fromNd = (a: NDArray, share: boolean): TT => (share ? new TT(a, ND_TO_T[a.dtype]) : TT.of(a.values(), a.shape, ND_TO_T[a.dtype]))
@@ -272,7 +272,7 @@ const tensorFrom = (h: Host, v: Value, dtype: TDType | null): TT => {
   } catch (e) {
     throw h.err('TypeError', `torch.tensor(): could not build a tensor from this data (${(e as Error).message})`)
   }
-  const inferred: TDType = a.dtype === 'float64' ? 'float32' : a.dtype === 'bool' ? 'bool' : 'int64'
+  const inferred: TDType = a.dtype === 'float64' || a.dtype === 'float32' ? 'float32' : a.dtype === 'bool' ? 'bool' : 'int64'
   return TT.of(a.values(), a.shape, dtype ?? inferred)
 }
 
@@ -4793,7 +4793,7 @@ const build = (h: Host): Record<string, Value> => {
       } },
       ToTensor: { k: 'type', name: 'ToTensor', call: () => fnv('ToTensor', (a) => {
         const arr = toArray(a[0])
-        const isInt = arr.dtype !== 'float64'
+        const isInt = arr.dtype !== 'float64' && arr.dtype !== 'float32'
         // (H, W) or (H, W, C) in 0..255 → (C, H, W) in 0..1
         const hw = arr.ndim === 2 ? [1, ...arr.shape] : [arr.shape[2], arr.shape[0], arr.shape[1]]
         const v = arr.values()

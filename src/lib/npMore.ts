@@ -1,9 +1,9 @@
 // The rest of NumPy that coursework reaches for: more ufuncs, shape and set routines, np.linalg's solvers,
 // np.random's distributions and generators. minipy.ts builds the core table and hands it here to extend.
-import { NDArray, arrayRepr, arrayStr, binaryOp, broadcastShapes, broadcastTo, cStrides, castValue, checkSize, dot, normAxis, printOptions, prod, reshape, transpose, unravel } from './ndarray'
+import { NDArray, arrayRepr, arrayStr, binaryOp, broadcastShapes, broadcastTo, cStrides, castValue, checkSize, dot, isFloatD, normAxis, printOptions, prod, reshape, transpose, unravel } from './ndarray'
 import type { BinOp, DType } from './ndarray'
 import { commonDType, concatenate, flip, roundHalfEven, sortAlong } from './ndops'
-import { PyDict, PyObj, formatSpec, isNum, py, repr, toArray } from './minipy'
+import { PyDict, PyObj, formatSpec, fromScalar, isNum, py, repr, toArray } from './minipy'
 import type { ApiKind, ApiMeta, Fn, Host, Kw, Value } from './minipy'
 import { cholesky, eigGeneral, eigh, identity, lu, mul, qr, solveM, svdFull, svdThin, transposeM } from './npLinalg'
 import type { Mat } from './npLinalg'
@@ -19,7 +19,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   const { fn, rnd, la } = api
   const wrap = (a: NDArray): Value => ({ k: 'array', a })
   const mk = (vals: number[], shape: number[], d: DType = 'float64') => wrap(NDArray.create(vals, shape, d))
-  const scalar = (x: number, d: DType): Value => (d === 'float64' ? float(x) : d === 'bool' ? bool(x !== 0) : int(x))
+  const scalar = fromScalar
   const A = (v: Value | undefined, what = 'a'): NDArray => {
     if (!v) throw h.err('TypeError', `missing required argument '${what}'`)
     return toArray(v)
@@ -42,7 +42,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     if (!v || v.k === 'none') return undefined
     if (v.k === 'dtype') return v.d
     if (v.k === 'type' && v.dtype) return v.dtype
-    if (v.k === 'str') return v.v === 'uint8' ? 'uint8' : ({ int: 'int64', float: 'float64', bool: 'bool' }[v.v.replace(/\d+$/, '')] as DType | undefined)
+    if (v.k === 'str') return ({ uint8: 'uint8', float32: 'float32', float64: 'float64', int: 'int64', int64: 'int64', int32: 'int64', float: 'float64', bool: 'bool' } as Record<string, DType>)[v.v]
     return undefined
   }
   const rows = (a: NDArray): Mat => {
@@ -113,7 +113,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   const ufunc1 = (name: string, f: (x: number) => number, out: 'float' | 'same' | 'bool' = 'float') =>
     fn(name, (args) => {
       const a = A(args[0], 'x')
-      const d: DType = out === 'bool' ? 'bool' : out === 'float' ? 'float64' : a.dtype === 'bool' ? 'int64' : a.dtype
+      const d: DType = out === 'bool' ? 'bool' : out === 'float' ? (a.dtype === 'float32' ? 'float32' : 'float64') : a.dtype === 'bool' ? 'int64' : a.dtype
       const res = a.values().map(f)
       return isNum(args[0]) ? scalar(res[0], d) : mk(res, a.shape, d)
     }, 'elementwise')
@@ -124,7 +124,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
       const shape = broadcastShapes([a.shape, b.shape])
       checkSize(shape)
       const y = broadcastTo(b, shape).values()
-      const d: DType = out === 'bool' ? 'bool' : out === 'float' ? 'float64' : commonDType([a, b])
+      const d: DType = out === 'bool' ? 'bool' : out === 'float' ? (isFloatD(commonDType([a, b])) ? commonDType([a, b]) : 'float64') : commonDType([a, b])
       const res = broadcastTo(a, shape).values().map((x, i) => f(x, y[i]))
       return isNum(args[0]) && isNum(args[1]) ? scalar(res[0], d) : mk(res, shape, d)
     }, 'elementwise')
@@ -141,7 +141,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   const keepInts = (name: string, f: (x: number) => number) => fn(name, (args) => {
     const a = A(args[0], 'x')
     const d: DType = a.dtype === 'bool' ? 'bool' : a.dtype
-    const res = a.dtype === 'float64' ? a.values().map(f) : a.values()
+    const res = isFloatD(a.dtype) ? a.values().map(f) : a.values()
     return isNum(args[0]) ? scalar(res[0], d) : mk(res, a.shape, d)
   }, 'elementwise')
   Object.assign(np, {
@@ -153,12 +153,12 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     signbit: ufunc1('signbit', (x) => (x < 0 || Object.is(x, -0) ? 1 : 0), 'bool'),
     negative: fn('negative', (args) => {
       const a = A(args[0], 'x')
-      const res = a.values().map((x) => (a.dtype === 'float64' ? -x : -x || 0))
+      const res = a.values().map((x) => (isFloatD(a.dtype) ? -x : -x || 0))
       return isNum(args[0]) ? scalar(res[0], a.dtype) : mk(res, a.shape, a.dtype)
     }, 'elementwise'), positive: ufunc1('positive', (x) => x, 'same'),
     reciprocal: fn('reciprocal', (args) => {
       const a = A(args[0], 'x')
-      const f = a.dtype === 'float64' ? (x: number) => 1 / x : (x: number) => Math.trunc(1 / x)
+      const f = isFloatD(a.dtype) ? (x: number) => 1 / x : (x: number) => Math.trunc(1 / x)
       return isNum(args[0]) ? scalar(f(a.values()[0]), a.dtype) : mk(a.values().map(f), a.shape, a.dtype)
     }, 'elementwise'),
     conj: ufunc1('conj', (x) => x, 'same'), conjugate: ufunc1('conjugate', (x) => x, 'same'), real: ufunc1('real', (x) => x, 'same'),
@@ -1076,7 +1076,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   // ---------- statistics and calculus ----------
 
   const nanSafe = (xs: number[]) => xs.filter((x) => !Number.isNaN(x))
-  const toFloat = () => 'float64' as DType
+  const toFloat = (a: NDArray): DType => (a.dtype === 'float32' ? 'float32' : 'float64')
   const sameOr = (a: NDArray) => (a.dtype === 'bool' ? 'int64' : a.dtype) as DType
   const meanOf = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length
   const varOf = (xs: number[], ddof: number) => {
@@ -1488,7 +1488,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
       for (let i = 0; i < total; i++) results.push(h.call(f, [mk(v.slice(i * n, i * n + n), [n], a.dtype), ...rest], kw))
       const arrs = results.map((r) => toArray(r))
       const inner = arrs[0]?.shape ?? []
-      const d: DType = arrs.some((x) => x.dtype === 'float64') ? 'float64' : arrs[0]?.dtype ?? 'float64'
+      const d: DType = commonDType(arrs)
       const res = NDArray.create(arrs.flatMap((x) => x.values()), [...outer, ...inner], d)
       if (!inner.length) return outer.length ? wrap(res) : results[0]
       // the function's axes take the place of the one it consumed
@@ -1559,7 +1559,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   const scalarKinds: Record<string, DType> = {
     int8: 'int64', int16: 'int64', intp: 'int64', intc: 'int64', int_: 'int64', short: 'int64', long: 'int64', longlong: 'int64', byte: 'int64',
     ubyte: 'uint8', ushort: 'int64', uint8: 'uint8', uint16: 'int64', uint32: 'int64', uint64: 'int64', uint: 'int64', uintc: 'int64', uintp: 'int64', ulong: 'int64', ulonglong: 'int64',
-    float16: 'float64', half: 'float64', single: 'float64', double: 'float64', longdouble: 'float64',
+    float16: 'float64', half: 'float64', single: 'float32', double: 'float64', longdouble: 'float64',
   }
   /** the width is honoured when converting; an array then holds its values as int64 */
   const fitWidth = (name: string) => {
@@ -1582,8 +1582,8 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   for (const [name, d] of Object.entries(scalarKinds)) np[name] ??= typeLike(name, d)
   // the abstract types are only asked about
   const FAMILY: Record<string, DType[]> = {
-    generic: ['int64', 'float64', 'bool', 'uint8'], number: ['int64', 'float64', 'uint8'], integer: ['int64', 'uint8'], signedinteger: ['int64'], unsignedinteger: ['uint8'],
-    inexact: ['float64'], floating: ['float64'], complexfloating: [], flexible: [], character: [],
+    generic: ['int64', 'float64', 'float32', 'bool', 'uint8'], number: ['int64', 'float64', 'float32', 'uint8'], integer: ['int64', 'uint8'], signedinteger: ['int64'], unsignedinteger: ['uint8'],
+    inexact: ['float64', 'float32'], floating: ['float64', 'float32'], complexfloating: [], flexible: [], character: [],
   }
   for (const name of Object.keys(FAMILY)) np[name] ??= { k: 'type', name: `numpy.${name}`, call: () => { throw h.err('TypeError', `cannot create 'numpy.${name}' instances`) } }
   Object.assign(np, {
@@ -1661,7 +1661,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     })) })),
     promote_types: fn('promote_types', (args) => ({ k: 'dtype', d: commonDType(args.map((v) => NDArray.create([], [0], dtypeArg(v) ?? 'float64'))) })),
     can_cast: fn('can_cast', (args) => {
-      const rank: Record<DType, number> = { bool: 0, uint8: 1, int64: 2, float64: 3 }
+      const rank: Record<DType, number> = { bool: 0, uint8: 1, int64: 2, float32: 3, float64: 4 }
       const from = dtypeArg(args[0]) ?? toArray(args[0]).dtype
       const to = dtypeArg(args[1]) ?? 'float64'
       return bool(rank[from] <= rank[to])
@@ -1806,7 +1806,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     call(args: Value[]) {
       const x = toArray(args[0])
       const res = x.values().map((v) => this.c.reduce((s, c) => s * v + c, 0))
-      const d: DType = this.d === 'float64' || x.dtype === 'float64' ? 'float64' : 'int64'
+      const d: DType = this.d === 'float64' || isFloatD(x.dtype) ? 'float64' : 'int64'
       return isNum(args[0]) ? scalar(res[0], d) : mk(res, x.shape, d)
     }
     binop(op: string, other: Value, reflected: boolean): Value | undefined {
@@ -1840,7 +1840,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   const coefOf = (v: Value) => (v.k === 'obj' && v.o instanceof Poly1d ? v.o.c : toArray(v).values())
   const polyResult = (args: Value[], c: number[]): Value => {
     if (args.some((v) => v.k === 'obj' && v.o instanceof Poly1d)) return py.obj(new Poly1d(c))
-    const d: DType = args.some((v) => (v.k === 'obj' ? false : toArray(v).dtype === 'float64')) ? 'float64' : 'int64'
+    const d: DType = args.some((v) => (v.k === 'obj' ? false : isFloatD(toArray(v).dtype))) ? 'float64' : 'int64'
     return mk(c, [c.length], d)
   }
   Object.assign(np, {
@@ -1850,7 +1850,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
         return py.obj(new Poly1d(out, 'float64'))
       }
       if (args[0].k === 'obj' && args[0].o instanceof Poly1d) return py.obj(new Poly1d(args[0].o.c, args[0].o.d))
-      return py.obj(new Poly1d(coefOf(args[0]), toArray(args[0]).dtype === 'float64' ? 'float64' : 'int64'))
+      return py.obj(new Poly1d(coefOf(args[0]), isFloatD(toArray(args[0]).dtype) ? 'float64' : 'int64'))
     } },
     poly: fn('poly', (args) => {
       const a = A(args[0], 'seq_of_zeros')
@@ -1925,6 +1925,9 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     return matrix(mul(scaled, transposeM(u)), m.length)
   }
   const normOf = (a: NDArray, ord: Value | undefined, axis: Value | undefined, keep: boolean): Value => {
+    // float32 data gives a float32 norm
+    const d: DType = a.dtype === 'float32' ? 'float32' : 'float64'
+    const one = (x: number) => fromScalar(x, d)
     const vectorNorm = (xs: number[]): number => {
       if (!ord || ord.k === 'none') return Math.sqrt(xs.reduce((s, x) => s + x * x, 0))
       if (ord.k === 'str') throw h.err('ValueError', `Invalid norm order '${ord.v}' for vectors`)
@@ -1952,18 +1955,18 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     if (!axis || axis.k === 'none') {
       if (!ord || ord.k === 'none') {
         const x = Math.sqrt(a.values().reduce((s, y) => s + y * y, 0))
-        return keep ? mk([x], a.shape.map(() => 1)) : float(x)
+        return keep ? mk([x], a.shape.map(() => 1), d) : one(x)
       }
-      if (a.ndim === 1) return keep ? mk([vectorNorm(a.values())], [1]) : float(vectorNorm(a.values()))
-      if (a.ndim === 2) return keep ? mk([matrixNorm(rows(a))], [1, 1]) : float(matrixNorm(rows(a)))
+      if (a.ndim === 1) return keep ? mk([vectorNorm(a.values())], [1], d) : one(vectorNorm(a.values()))
+      if (a.ndim === 2) return keep ? mk([matrixNorm(rows(a))], [1, 1], d) : one(matrixNorm(rows(a)))
       throw h.err('ValueError', 'Improper number of dimensions to norm.')
     }
     if (isNum(axis)) {
       const ax = normAxis(h.toInt(axis), a.ndim)
-      const res = lanes(a, ax, (lane) => [vectorNorm(lane)], 'float64')
+      const res = lanes(a, ax, (lane) => [vectorNorm(lane)], d)
       if (keep) return wrap(res)
       const shape = a.shape.filter((_, i) => i !== ax)
-      return shape.length ? wrap(reshape(res, shape)) : float(res.values()[0])
+      return shape.length ? wrap(reshape(res, shape)) : one(res.values()[0])
     }
     const [p, q] = h.iterate(axis).map((x) => normAxis(h.toInt(x), a.ndim))
     const moved = moveAxes(a, [p, q], [-2, -1])
@@ -1974,8 +1977,8 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
       const m = Array.from({ length: r }, (_x, i) => v.slice(b * r * c + i * c, b * r * c + i * c + c))
       return matrixNorm(m)
     })
-    if (keep) return mk(out, a.shape.map((d, i) => (i === p || i === q ? 1 : d)))
-    return outer.length ? mk(out, outer) : float(out[0])
+    if (keep) return mk(out, a.shape.map((n, i) => (i === p || i === q ? 1 : n)), d)
+    return outer.length ? mk(out, outer, d) : one(out[0])
   }
   const eigResult = (a: NDArray) => {
     const m = square(a, 'eig')

@@ -5,7 +5,7 @@
 import {
   NDArray, PyError, MAX_SIZE, arrayRepr, arrayStr, binaryOp, castValue, dot, formatScalar, getIndex, reduce,
   reshape, setIndex, sharesMemory, shapeStr, transpose, unaryOp, checkSize, applyOp, cStrides, broadcastShapes, broadcastTo,
-  reduceDType, setSizeLimit, normAxis, resetPrintOptions,
+  reduceDType, setSizeLimit, normAxis, resetPrintOptions, isFloatD, promoteD,
 } from './ndarray'
 import type { AxisNote, BinOp, DType, IndexItem, IndexPlan, ReduceKind } from './ndarray'
 import type { Display, PyEvent, PyEventInput } from './pyEvents'
@@ -1095,7 +1095,8 @@ export interface InstValue { k: 'inst'; cls: ClassValue; attrs: Map<string, Valu
 
 export type Value =
   | { k: 'int'; v: number }
-  | { k: 'float'; v: number }
+  /** f32: a NumPy float32 scalar, which prints its own shortest digits */
+  | { k: 'float'; v: number; f32?: boolean }
   | { k: 'bool'; v: boolean }
   | { k: 'none' }
   | { k: 'str'; v: string }
@@ -1130,9 +1131,11 @@ export type Value =
 
 export interface Frame { vars: Map<string, Value>; parent: Frame | null; isClass?: boolean; owner?: ClassValue | null; self?: Value; globals?: Set<string>; nonlocals?: Set<string> }
 
-/** the common type of two arrays; a Python int beside a uint8 array keeps it uint8 */
+/** the common type of two arrays; a Python number beside a uint8 or float32 array keeps its type */
 const pairDType = (x: NDArray, y: NDArray): DType => {
   const pythonInt = (t: NDArray) => t.ndim === 0 && t.dtype === 'int64'
+  const pythonNumber = (t: NDArray) => t.ndim === 0 && (t.dtype === 'int64' || t.dtype === 'float64')
+  if ((x.dtype === 'float32' && pythonNumber(y)) || (y.dtype === 'float32' && pythonNumber(x))) return 'float32'
   return (x.dtype === 'uint8' && pythonInt(y)) || (y.dtype === 'uint8' && pythonInt(x)) ? 'uint8' : commonDType([x, y])
 }
 
@@ -1432,13 +1435,13 @@ export const typeName = (v: Value): string => {
   }
 }
 
-const fromScalar = (x: number, dtype: DType): Value =>
-  dtype === 'bool' ? bool(x !== 0) : dtype === 'float64' ? float(x) : int(x)
+export const fromScalar = (x: number, dtype: DType): Value =>
+  dtype === 'bool' ? bool(x !== 0) : dtype === 'float64' ? float(x) : dtype === 'float32' ? { k: 'float', v: Math.fround(x), f32: true } : int(x)
 
 type NumValue = Extract<Value, { k: 'int' | 'float' | 'bool' }>
 export const isNum = (v: Value): v is NumValue => v.k === 'int' || v.k === 'float' || v.k === 'bool'
 export const numOf = (v: Value): number => (v.k === 'bool' ? (v.v ? 1 : 0) : v.k === 'int' || v.k === 'float' ? v.v : NaN)
-const scalarDType = (v: Value): DType => (v.k === 'bool' ? 'bool' : v.k === 'int' ? 'int64' : 'float64')
+const scalarDType = (v: Value): DType => (v.k === 'bool' ? 'bool' : v.k === 'int' ? 'int64' : v.k === 'float' && v.f32 ? 'float32' : 'float64')
 
 const reprStr = (s: string) => {
   const q = s.includes("'") && !s.includes('"') ? '"' : "'"
@@ -1465,7 +1468,7 @@ let instRepr: ((v: InstValue) => string | undefined) | null = null
 export const repr = (v: Value): string => {
   switch (v.k) {
     case 'int': return String(v.v)
-    case 'float': return formatScalar(v.v, 'float64')
+    case 'float': return formatScalar(v.v, v.f32 ? 'float32' : 'float64')
     case 'bool': return v.v ? 'True' : 'False'
     case 'none': return 'None'
     case 'str': return reprStr(v.v)
@@ -1524,7 +1527,8 @@ export const formatSpec = (v: Value, spec: string): string => {
     const s = v.o.format?.(spec)
     if (s !== undefined) return s
   }
-  if (!spec) return str(v)
+  // format() reads a float32 scalar as a Python float, unlike str()
+  if (!spec) return v.k === 'float' && v.f32 ? repr(float(v.v)) : str(v)
   const m = /^(?:(.)?([<>^=]))?([+\- ])?(#)?(0)?(\d+)?([,_])?(?:\.(\d+))?([bcdeEfFgGnosxX%])?$/.exec(spec)
   if (!m) throw new PyError('ValueError', `Invalid format specifier '${spec}'`)
   const [, fill0, align0, sign, alt, zero, widthS, group, precS, type] = m
@@ -1534,7 +1538,7 @@ export const formatSpec = (v: Value, spec: string): string => {
   const numeric = isNum(v) || (v.k === 'array' && v.a.size === 1)
   if (numeric) {
     const x = v.k === 'array' ? v.a.values()[0] : numOf(v)
-    const isInt = v.k === 'int' || v.k === 'bool' || (v.k === 'array' && v.a.dtype !== 'float64')
+    const isInt = v.k === 'int' || v.k === 'bool' || (v.k === 'array' && !isFloatD(v.a.dtype))
     const t = type ?? (isInt && prec === null ? 'd' : prec === null ? '' : 'g')
     const ax = Math.abs(x)
     const fixed = (p: number) => (ax === Infinity ? 'inf' : Number.isNaN(x) ? 'nan' : ax.toFixed(p))
@@ -1666,7 +1670,7 @@ export const toArray = (v0: Value, dtype?: DType): NDArray => {
   const flat: number[] = []
   let kind: DType = 'bool'
   const promote = (d: DType) => {
-    if (d === 'float64' || (d === 'int64' && kind === 'bool')) kind = d
+    kind = promoteD(kind, d)
   }
   const shapeOf = (x0: Value, prefix: number[]): number[] => {
     const x = asArrayLike(x0)
@@ -1699,7 +1703,7 @@ export const toArray = (v0: Value, dtype?: DType): NDArray => {
   if ((v.k === 'list' || v.k === 'tuple') && flat.length === 0) kind = 'float64'
   checkSize(shape)
   // NumPy 2 refuses a Python int that does not fit a uint8; floats and arrays wrap instead
-  if (dtype === 'uint8' && kind !== 'float64') {
+  if (dtype === 'uint8' && !isFloatD(kind)) {
     const bad = flat.find((x) => x < 0 || x > 255)
     if (bad !== undefined) throw new PyError('OverflowError', `Python integer ${bad} out of bounds for uint8`)
   }
@@ -2349,7 +2353,7 @@ class Interp implements Host {
       const f = this.classAttr(v.cls, '__index__')
       if (f) return this.toInt(this.call(f, [v]), what)
     }
-    if (v.k === 'array' && v.a.ndim === 0 && v.a.dtype !== 'float64') return v.a.values()[0]
+    if (v.k === 'array' && v.a.ndim === 0 && !isFloatD(v.a.dtype)) return v.a.values()[0]
     throw this.err('TypeError', `'${typeName(v)}' object cannot be interpreted as ${what}`)
   }
 
@@ -2439,7 +2443,7 @@ class Interp implements Host {
       if (l.k !== 'array' && r.k !== 'array') throw this.err('TypeError', `unsupported operand type(s) for @: '${typeName(l)}' and '${typeName(r)}'`)
       if (toArray(l).ndim === 0 || toArray(r).ndim === 0) throw this.err('ValueError', 'matmul: Input operand does not have enough dimensions')
       const res = dot(toArray(l), toArray(r))
-      return typeof res === 'number' ? fromScalar(res, toArray(l).dtype === 'float64' || toArray(r).dtype === 'float64' ? 'float64' : 'int64') : arr(res)
+      return typeof res === 'number' ? fromScalar(res, promoteD(toArray(l).dtype, toArray(r).dtype) === 'bool' ? 'int64' : promoteD(toArray(l).dtype, toArray(r).dtype)) : arr(res)
     }
     if (l.k === 'array' || r.k === 'array') {
       const la = this.operand(l, op)
@@ -2572,6 +2576,9 @@ class Interp implements Host {
       if (y < 0) throw this.err('ValueError', 'negative shift count')
       return int(op === '<<' ? x * 2 ** y : Math.floor(x / 2 ** y))
     }
+    // a NumPy float32 scalar stays one beside a Python number
+    const f32 = (l.k === 'float' && l.f32) || (r.k === 'float' && r.f32)
+    const result = (n: number): Value => (f32 ? fromScalar(n, 'float32') : float(n))
     if (op === '&' || op === '|' || op === '^') {
       if (isFloat) throw this.err('TypeError', `unsupported operand type(s) for ${op}: '${typeName(l)}' and '${typeName(r)}'`)
       const v = applyOp(op, x, y, 'int64')
@@ -2581,11 +2588,11 @@ class Interp implements Host {
       if (y === 0) {
         throw this.err('ZeroDivisionError', op === '/' ? (isFloat ? 'float division by zero' : 'division by zero') : isFloat ? 'float modulo by zero' : 'integer division or modulo by zero')
       }
-      if (op === '/') return float(x / y)
+      if (op === '/') return result(x / y)
     }
-    if (op === '**' && !isFloat && y < 0) return float(x ** y)
+    if (op === '**' && !isFloat && y < 0) return result(x ** y)
     const v = applyOp(op as BinOp, x, y, isFloat ? 'float64' : 'int64')
-    return isFloat ? float(v) : int(v)
+    return isFloat ? result(v) : int(v)
   }
 
   compare(op: string, l: Value, r: Value): Value {
@@ -2631,7 +2638,7 @@ class Interp implements Host {
         }
         case 'list': case 'tuple': case 'array': {
           const a = toArray(it.k === 'list' && it.items.length === 0 ? { k: 'array', a: NDArray.create([], [0], 'int64') } : it)
-          if (a.dtype === 'float64') throw this.err('IndexError', 'arrays used as indices must be of integer (or boolean) type')
+          if (isFloatD(a.dtype)) throw this.err('IndexError', 'arrays used as indices must be of integer (or boolean) type')
           return { kind: 'array', arr: a }
         }
         case 'bool': return { kind: 'array', arr: NDArray.create([it.v ? 1 : 0], [], 'bool') }
@@ -2643,7 +2650,7 @@ class Interp implements Host {
 
   sliceInt(x: Value): number {
     if (x.k === 'int' || x.k === 'bool') return numOf(x)
-    if (x.k === 'array' && x.a.ndim === 0 && x.a.dtype !== 'float64') return x.a.values()[0]
+    if (x.k === 'array' && x.a.ndim === 0 && !isFloatD(x.a.dtype)) return x.a.values()[0]
     throw this.err('TypeError', 'slice indices must be integers or None or have an __index__ method')
   }
 
@@ -2795,7 +2802,7 @@ class Interp implements Host {
   /** 原地增量赋值 b += 1：b 是视图时同样会改到原数组 */
   inplace(name: string, a: NDArray, op: string, rhs: Value, stmt: Span) {
     const res = a.matrix && (op === '**' || (op === '*' && !isNum(rhs))) ? toArray(this.matrixOp(op, arr(a), rhs)) : binaryOp(op as BinOp, plainView(a), this.operand(rhs, op + '='))
-    if (a.dtype !== 'float64' && res.dtype === 'float64') {
+    if (!isFloatD(a.dtype) && isFloatD(res.dtype)) {
       throw this.err('UFuncTypeError', `Cannot cast ufunc '${op === '/' ? 'divide' : op}' output from dtype('float64') to dtype('${a.dtype}') with casting rule 'same_kind'`)
     }
     if (res.size !== a.size || (a.matrix && res.shape.some((d, i) => d !== a.shape[i]))) {
@@ -3006,7 +3013,9 @@ class Interp implements Host {
           const spec = p.specX ? this.str(this.eval(p.specX)) : p.spec
           const shown = p.conv === 'r' || p.conv === 'a' ? str_(repr(v)) : p.conv === 's' ? str_(this.str(v)) : v
           if (spec) return formatSpec(shown, spec)
-          return shown === v ? this.str(v) : (shown as { v: string }).v
+          if (shown !== v) return (shown as { v: string }).v
+          // a library object or a NumPy scalar has a say in its own format, even with no spec
+          return v.k === 'obj' || (v.k === 'float' && v.f32) ? formatSpec(v, '') : this.str(v)
         }).join(''))
       case 'comp': return this.comprehension(n)
       case 'lambda':
@@ -3691,7 +3700,7 @@ class Interp implements Host {
         this.quiet--
       }
       const v = this.binop(st.op, cur, this.eval(st.x))
-      if (obj.k === 'array' && v.k === 'array' && obj.a.dtype !== 'float64' && v.a.dtype === 'float64') {
+      if (obj.k === 'array' && v.k === 'array' && !isFloatD(obj.a.dtype) && isFloatD(v.a.dtype)) {
         throw this.err('UFuncTypeError', `Cannot cast ufunc output from dtype('float64') to dtype('${obj.a.dtype}') with casting rule 'same_kind'`)
       }
       this.setItem(t, obj, idx, v, span)
@@ -3737,7 +3746,7 @@ class Interp implements Host {
     if (v.k === 'dtype') return v.d
     if (v.k === 'type' && v.dtype) return v.dtype
     if (v.k === 'str') {
-      const m: Record<string, DType> = { uint8: 'uint8', int: 'int64', int64: 'int64', int32: 'int64', float: 'float64', float64: 'float64', float32: 'float64', bool: 'bool' }
+      const m: Record<string, DType> = { uint8: 'uint8', int: 'int64', int64: 'int64', int32: 'int64', float: 'float64', float64: 'float64', float32: 'float32', single: 'float32', f4: 'float32', f8: 'float64', u1: 'uint8', bool: 'bool' }
       if (m[v.v]) return m[v.v]
       throw this.err('TypeError', `data type '${v.v}' not understood`)
     }
@@ -3770,7 +3779,7 @@ class Interp implements Host {
       const n = axis === null ? a.size : a.shape[normAxis(axis, a.ndim)]
       const corrected = (v: number) => (kind === 'var' ? (v * n) / (n - ddof) : Math.sqrt((v * n) / (n - ddof)))
       const variance = reduce(a, 'var', axis)
-      res = typeof variance === 'number' ? corrected(variance) : NDArray.create(variance.values().map(corrected), variance.shape, 'float64')
+      res = typeof variance === 'number' ? corrected(variance) : NDArray.create(variance.values().map(corrected), variance.shape, reduceDType(kind, a.dtype))
     }
     // keepdims=True leaves the reduced axis in place with length 1, so the result still broadcasts against a.
     // A matrix does this by itself along an axis: m.sum(axis=1) is a column
@@ -3881,9 +3890,11 @@ class Interp implements Host {
       case 'view': return M('move', (a) => () => arr(new NDArray(a.data, a.shape, a.strides, a.offset, a.dtype, a.base ?? a)))
       case 'trace': return M('info', (a) => () => fromScalar(trace(a), a.dtype === 'bool' ? 'int64' : a.dtype))
       case 'item': return M('info', (a) => (args) => {
-        if (args[0]) return fromScalar(a.values()[this.toInt(args[0])], a.dtype)
+        // a Python number: a float32 shows all its digits, as float() would
+        const asPython = (x: number) => (a.dtype === 'float32' ? float(x) : fromScalar(x, a.dtype))
+        if (args[0]) return asPython(a.values()[this.toInt(args[0])])
         if (a.size !== 1) throw this.err('ValueError', 'can only convert an array of size 1 to a Python scalar')
-        return fromScalar(a.values()[0], a.dtype)
+        return asPython(a.values()[0])
       })
       case 'nonzero': return M('info', (a) => () => this.nonzero(a))
       case 'sum': case 'mean': case 'max': case 'min': case 'argmax': case 'argmin': case 'any': case 'all': case 'prod': case 'std': case 'var':
@@ -4208,8 +4219,8 @@ class Interp implements Host {
       switch (name) {
         case 'real': return obj
         case 'imag': return arr(NDArray.create(new Array<number>(a.size).fill(0), a.shape, a.dtype))
-        case 'itemsize': return int(a.dtype === 'bool' || a.dtype === 'uint8' ? 1 : 8)
-        case 'nbytes': return int(a.size * (a.dtype === 'bool' || a.dtype === 'uint8' ? 1 : 8))
+        case 'itemsize': return int(a.dtype === 'bool' || a.dtype === 'uint8' ? 1 : a.dtype === 'float32' ? 4 : 8)
+        case 'nbytes': return int(a.size * (a.dtype === 'bool' || a.dtype === 'uint8' ? 1 : a.dtype === 'float32' ? 4 : 8))
         case 'mT': return arr(transpose(a, a.shape.map((_, i) => (i === a.ndim - 1 ? a.ndim - 2 : i === a.ndim - 2 ? a.ndim - 1 : i))))
         case 'flat': return { k: 'obj', o: new FlatIter(a) }
         case 'flags': return { k: 'obj', o: new ArrayFlags(a) }
@@ -4597,11 +4608,13 @@ class Interp implements Host {
 
   toList(a: NDArray): Value {
     const vals = a.values()
-    if (a.ndim === 0) return fromScalar(vals[0], a.dtype)
+    // Python numbers: a float32 shows all its digits, as float() would
+    const item = (x: number) => (a.dtype === 'float32' ? float(x) : fromScalar(x, a.dtype))
+    if (a.ndim === 0) return item(vals[0])
     const st = cStrides(a.shape)
     const rec = (d: number, base: number): Value =>
       d === a.ndim - 1
-        ? { k: 'list', items: Array.from({ length: a.shape[d] }, (_, i) => fromScalar(vals[base + i], a.dtype)) }
+        ? { k: 'list', items: Array.from({ length: a.shape[d] }, (_, i) => item(vals[base + i])) }
         : { k: 'list', items: Array.from({ length: a.shape[d] }, (_, i) => rec(d + 1, base + i * st[d])) }
     return rec(0, 0)
   }
@@ -4688,7 +4701,7 @@ class Interp implements Host {
     const elementwise = (name: string, f: (x: number) => number, out: 'float' | 'same' | 'int-keep' = 'float') =>
       fn(name, (args) => {
         const a = asArr(args[0], name)
-        const dtype: DType = out === 'float' ? 'float64' : a.dtype === 'bool' ? 'int64' : a.dtype
+        const dtype: DType = out === 'float' ? (a.dtype === 'float32' ? 'float32' : 'float64') : a.dtype === 'bool' ? 'int64' : a.dtype
         const res = NDArray.create(a.values().map(f), a.shape, dtype)
         return args[0].k === 'array' || args[0].k === 'list' ? arr(res) : fromScalar(res.values()[0], dtype)
       }, 'elementwise')
@@ -4835,7 +4848,7 @@ class Interp implements Host {
         const b = numOf(args[1])
         const n = this.kwInt(kw, args, 2, 'num') ?? 50
         if (n > this.maxSize) throw this.err('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${this.maxSize}`)
-        return arr(NDArray.create(Array.from({ length: n }, (_, i) => (n === 1 ? a : a + ((b - a) * i) / (n - 1))), [n], 'float64'))
+        return arr(NDArray.create(Array.from({ length: n }, (_, i) => (n === 1 ? a : a + ((b - a) * i) / (n - 1))), [n], this.dtypeOf(kw.dtype) ?? 'float64'))
       }, 'create'),
       zeros: filled('zeros', 0),
       ones: filled('ones', 1),
@@ -4905,7 +4918,7 @@ class Interp implements Host {
       outer: fn('outer', (args) => arr(outer(asArr(args[0], 'outer'), asArr(args[1], 'outer'))), 'matmul'),
       trace: fn('trace', (args) => {
         const a = asArr(args[0], 'trace')
-        return fromScalar(trace(a), a.dtype === 'float64' ? 'float64' : 'int64')
+        return fromScalar(trace(a), isFloatD(a.dtype) ? a.dtype : 'int64')
       }, 'linalg'),
       linalg,
       random,
@@ -4944,7 +4957,7 @@ class Interp implements Host {
         const ys = xa.values().map((t) => polyval(low, t))
         this.pendingPlot = { curves: [{ label: 'p', coef: low }], marks: xa.values().map((t, i) => ({ x: t, y: ys[i] })) }
         // integer result only when both the coefficients and x are integers (numpy's type promotion)
-        const dtype: DType = pa.dtype === 'float64' || xa.dtype === 'float64' ? 'float64' : 'int64'
+        const dtype: DType = isFloatD(pa.dtype) || isFloatD(xa.dtype) ? 'float64' : 'int64'
         return isNum(x) ? fromScalar(ys[0], dtype) : arr(NDArray.create(ys, xa.shape, dtype))
       }, 'poly'),
       // ---- reductions, scans, sorting
@@ -4994,7 +5007,7 @@ class Interp implements Host {
           })
           const total = counts.reduce((t, c) => t + c, 0)
           const out = density ? counts.map((c, i) => c / total / (edges[i + 1] - edges[i])) : counts
-          const whole = !density && (!w || toArray(weights!).dtype !== 'float64')
+          const whole = !density && (!w || !isFloatD(toArray(weights!).dtype))
           const edgeType = b && b.k !== 'none' && !isNum(b) ? toArray(b).dtype : 'float64'
           return tuple([arr(NDArray.create(out, [out.length], whole ? 'int64' : 'float64')), arr(NDArray.create(edges, [edges.length], edgeType))])
         }
@@ -5110,7 +5123,7 @@ class Interp implements Host {
       int64: dt('int64', 'int64'),
       int32: dt('int64', 'int32'),
       float64: dt('float64', 'float64'),
-      float32: dt('float64', 'float32'),
+      float32: dt('float32', 'float32'),
       bool_: dt('bool', 'bool'),
       ndarray: { k: 'type', name: 'numpy.ndarray', call: () => { throw this.err('TypeError', 'use np.array / np.zeros to create arrays') } },
     }
