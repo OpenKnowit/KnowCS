@@ -1211,7 +1211,7 @@ export abstract class PyObj {
   /** format(x, spec) — f'{x:.3f}'; spec may be empty; undefined = the usual rules */
   format?(spec: string): string | undefined
   /** __index__: the integer this is when used as a list index or in range() */
-  index?(h: Host): number
+  asIndex?(h: Host): number
   getAttr?(name: string, h: Host): Value | undefined
   setAttr?(name: string, v: Value, h: Host): boolean
   getItem?(idx: Value, h: Host): Value
@@ -2344,7 +2344,7 @@ class Interp implements Host {
   toInt(v: Value, what = 'an integer'): number {
     if (v.k === 'int') return v.v
     if (v.k === 'bool') return v.v ? 1 : 0
-    if (v.k === 'obj' && v.o.index) return v.o.index(this)
+    if (v.k === 'obj' && v.o.asIndex) return v.o.asIndex(this)
     if (v.k === 'inst') {
       const f = this.classAttr(v.cls, '__index__')
       if (f) return this.toInt(this.call(f, [v]), what)
@@ -2691,7 +2691,7 @@ class Interp implements Host {
 
   getItem(node: Node & { k: 'sub' }, obj: Value, idx0: Value): Value {
     // anything with __index__ (a 0-d integer tensor, say) indexes a sequence as that integer
-    const asIndex = (obj.k === 'list' || obj.k === 'tuple' || obj.k === 'str') && ((idx0.k === 'obj' && idx0.o.index) || (idx0.k === 'inst' && this.classAttr(idx0.cls, '__index__')))
+    const asIndex = (obj.k === 'list' || obj.k === 'tuple' || obj.k === 'str') && ((idx0.k === 'obj' && idx0.o.asIndex) || (idx0.k === 'inst' && this.classAttr(idx0.cls, '__index__')))
     const idx = asIndex ? int(this.toInt(idx0)) : idx0
     if (obj.k === 'array') {
       const a = obj.a
