@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { planBroadcast, shapeLabel, sourceIndex } from './broadcast'
-import { EXAM_EXAMPLES, SYNTAXES, apply, constructCode, makePairwise, makeProgram, valA, valB, withoutOnes } from './broadcastDemo'
+import { EXAM_QUESTIONS, SYNTAXES, apply, constructCode, examShape, flatOf, makeExam, makePairwise, makeProgram, valA, valB, withoutOnes } from './broadcastDemo'
 import type { Op } from './broadcastDemo'
 import { runPython } from './minipy'
 
@@ -57,7 +57,51 @@ describe('the generated broadcasting program', () => {
     expect(results[0].stdout).toContain('7.07106781')
   })
 
-  it('has every past-paper example the right way round', () => {
-    expect(EXAM_EXAMPLES.map((e) => planBroadcast(e.a, e.b).outShape?.join() ?? 'error')).toEqual(['2,4,2', '4,2', 'error', '4,3', 'error', '3,2,4'])
+})
+
+describe('the past-paper questions', () => {
+  // real NumPy 2.2.6 on the papers' code, word for word
+  const REAL: Record<string, string> = {
+    e23s_i: '[[1. 1.]\n [2. 2.]\n [3. 3.]\n [4. 4.]]',
+    e23s_ii: 'ValueError',
+    e23s_iii: '[[ 1  2  3]\n [11 12 13]\n [21 22 23]\n [31 32 33]]',
+    e24s_x: 'ValueError',
+    e24s_xi:
+      '[[[ 0.  1.  2.  3.]\n  [ 4.  5.  6.  7.]]\n\n [[ 8.  9. 10. 11.]\n  [12. 13. 14. 15.]]\n\n [[16. 17. 18. 19.]\n  [20. 21. 22. 23.]]]',
+  }
+  for (const q of EXAM_QUESTIONS) {
+    const syntax = q.syntax ?? 'none'
+    it(`${q.id} prints the paper's own line and gives NumPy's answer`, () => {
+      const p = makeExam(q, syntax, q.op, null)
+      expect(p.lines.at(-1)!.text).toBe(q.line)
+      const r = runPython(p.code)
+      expect(r.error ? r.error.type : r.stdout.trim()).toBe(REAL[q.id])
+    })
+    it(`${q.id}: the grids draw what its code computes, in every spelling`, () => {
+      const a = examShape(q.l, 'l', null)
+      const b = examShape(q.r, 'r', null)
+      const plan = planBroadcast(a, b)
+      for (const { id } of SYNTAXES) {
+        const r = runPython(makeExam(q, id, q.op, null).code.replace(/print\(\s*(.*?)\s*\)$/, 'print(np.array($1).ravel().tolist())'))
+        if (!plan.ok) {
+          expect(r.error?.type).toBe('ValueError')
+          continue
+        }
+        const cells = indices(plan.outShape!).map((i) => {
+          const ia = sourceIndex(i, a)
+          const ib = sourceIndex(i, b)
+          return apply(q.op, q.l.values[flatOf(ia, a)], q.r.values[flatOf(ib, b)])
+        })
+        expect(r.error).toBeNull()
+        expect(JSON.parse(r.stdout.trim())).toEqual(cells)
+      }
+    })
+  }
+
+  it('keeps the data when a fix makes an impossible question work', () => {
+    const q = EXAM_QUESTIONS.find((x) => x.id === 'e23s_ii')!
+    const p = makeExam(q, 'none', '+', { side: 'r', shape: [4, 1] })
+    expect(p.lines.at(-1)!.text).toBe('print(A + B[:, None])')
+    expect(runPython(p.code).stdout).toContain('[10 10 10]')
   })
 })

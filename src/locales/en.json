@@ -120,7 +120,7 @@
       "show_ghost": "Show virtual copies",
       "legend_real": "real elements stored in memory",
       "legend_ghost": "virtual copies (not stored)",
-      "hover_hint": "Hover or tap any cell to see which A and B values it combines.",
+      "hover_hint": "Hover or tap any cell to see which {{a}} and {{b}} values it combines.",
       "memory_title": "Behind the scenes: stride 0",
       "memory_desc": "A stride of 0 means moving along that axis re-reads the same element, so the stretched operands are free. Only {{a}} + {{b}} values are stored; NumPy allocates memory just for the {{out}}-element result.",
       "error_title": "operands could not be broadcast together",
@@ -2081,27 +2081,27 @@
       "papers": {
         "pairwise": {
           "title": "Pairwise distances (2022 Spring midterm Q2(c))",
-          "note": "Without loops, the distance from every test point to every training point. Line by line."
+          "note": "The paper's Train / Test data: pairwise distances without loops, line by line."
         },
         "e23s_i": {
           "title": "2023 Spring midterm (b)(i)",
-          "note": "(4, 2) and (2,): they broadcast. The paper has B / A."
+          "note": "print(B/A). Answer: each row divided by [1, 2]."
         },
         "e23s_ii": {
           "title": "2023 Spring midterm (b)(ii)",
-          "note": "(4, 3) + (4,): the answer is Error."
+          "note": "print(A + B). Answer: Error."
         },
         "e23s_iii": {
           "title": "2023 Spring midterm (b)(iii)",
-          "note": "A[:, np.newaxis] + B: (4, 1) + (3,) → (4, 3)."
+          "note": "print(A[:, np.newaxis] + B). Answer: a table of 4 rows and 3 columns."
         },
         "e24s_x": {
           "title": "2024 Spring midterm Q2(a)(x)",
-          "note": "C / B, (3, 2, 4) and (3, 2): the answer is Error."
+          "note": "print( C / B ). Answer: Error."
         },
         "e24s_xi": {
           "title": "2024 Spring midterm Q2(a)(xi)",
-          "note": "C / B[..., np.newaxis]: (3, 2, 4) and (3, 2, 1) work."
+          "note": "print(C / B[..., np.newaxis]). Answer: dividing by all ones leaves the values unchanged."
         }
       },
       "concept": {

@@ -120,7 +120,7 @@
       "show_ghost": "顯示虛擬副本",
       "legend_real": "真實存在記憶體裏的元素",
       "legend_ghost": "虛擬副本（並不存儲）",
-      "hover_hint": "懸停或點按任意格子，查看它由 A 和 B 的哪兩個值組合而成。",
+      "hover_hint": "懸停或點按任意格子，查看它由 {{a}} 和 {{b}} 的哪兩個值組合而成。",
       "memory_title": "幕後：步長為 0",
       "memory_desc": "步長為 0 表示沿這一維移動時反覆讀取同一個元素，所以拉伸不佔任何記憶體：只存了 {{a}} + {{b}} 個值，NumPy 只為 {{out}} 個元素的結果分配記憶體。",
       "error_title": "operands could not be broadcast together（無法廣播）",
@@ -2081,27 +2081,27 @@
       "papers": {
         "pairwise": {
           "title": "兩兩距離（2022 春期中 Q2(c)）",
-          "note": "不用循環，算每個測試點到每個訓練點的距離。一行一行看。"
+          "note": "原題的 Train / Test 數據，不用循環算兩兩距離，一行一行看。"
         },
         "e23s_i": {
           "title": "2023 春期中 (b)(i)",
-          "note": "(4, 2) 和 (2,)：可以廣播。原題是 B / A。"
+          "note": "print(B/A)，答案：每行除以 [1, 2]。"
         },
         "e23s_ii": {
           "title": "2023 春期中 (b)(ii)",
-          "note": "(4, 3) + (4,)：答案是 Error。"
+          "note": "print(A + B)，答案：Error。"
         },
         "e23s_iii": {
           "title": "2023 春期中 (b)(iii)",
-          "note": "A[:, np.newaxis] + B：(4, 1) + (3,) → (4, 3)。"
+          "note": "print(A[:, np.newaxis] + B)，答案：4 行 3 列的表。"
         },
         "e24s_x": {
           "title": "2024 春期中 Q2(a)(x)",
-          "note": "C / B，(3, 2, 4) 和 (3, 2)：答案是 Error。"
+          "note": "print( C / B )，答案：Error。"
         },
         "e24s_xi": {
           "title": "2024 春期中 Q2(a)(xi)",
-          "note": "C / B[..., np.newaxis]：(3, 2, 4) 和 (3, 2, 1) 可以。"
+          "note": "print(C / B[..., np.newaxis])，答案：除以全 1，值不變。"
         }
       },
       "concept": {

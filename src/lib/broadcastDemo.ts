@@ -1,7 +1,7 @@
 // The broadcasting lab's demo data: example pairs, the values shown in the grids, the generated program, the quiz.
 import { planBroadcast, shapeLabel } from './broadcast'
 
-export type Op = '+' | '-' | '*'
+export type Op = '+' | '-' | '*' | '/'
 
 export interface BroadcastPreset {
   id: string
@@ -23,12 +23,14 @@ export const MAX_NDIM = 3
 export const MAX_DIM = 5
 
 export const size = (shape: number[]) => shape.reduce((p, x) => p * x, 1)
-const flatOf = (idx: number[], shape: number[]) => idx.reduce((f, v, k) => f * shape[k] + v, 0)
+export const flatOf = (idx: number[], shape: number[]) => idx.reduce((f, v, k) => f * shape[k] + v, 0)
 // A = arange, B = (arange + 1) * 10: each result cell shows at a glance what both sides gave
 export const valA = (idx: number[], shape: number[]) => flatOf(idx, shape)
 export const valB = (idx: number[], shape: number[]) => (flatOf(idx, shape) + 1) * 10
-export const apply = (op: Op, x: number, y: number) => (op === '+' ? x + y : op === '-' ? x - y : x * y)
-export const opSign = (op: Op) => (op === '*' ? '×' : op === '-' ? '−' : '+')
+export const apply = (op: Op, x: number, y: number) => (op === '+' ? x + y : op === '-' ? x - y : op === '*' ? x * y : x / y)
+export const opSign = (op: Op) => (op === '*' ? '×' : op === '-' ? '−' : op === '/' ? '÷' : '+')
+/** a number short enough for a grid cell */
+export const showCell = (v: number) => (Number.isInteger(v) ? String(v) : String(Number(v.toFixed(2))))
 
 // ---- the program: the shapes on the left written as code, with each length-1 axis made in the chosen spelling
 
@@ -151,15 +153,116 @@ export const ML_USES: { id: string; code: string; shapes: string; a: number[]; b
   { id: 'gray', code: '(img * [0.299, 0.587, 0.114]).sum(axis=2)', shapes: '(H, W, 3) × (3,) → (H, W, 3)', a: [2, 2, 3], b: [3], op: '*' },
 ]
 
-/** past-paper questions, loadable with their own spelling. The papers' / has the same shape rule as × here */
-export const EXAM_EXAMPLES: { id: string; a: number[]; b: number[]; op: Op; syntax?: Syntax; program?: boolean }[] = [
-  { id: 'pairwise', a: [2, 1, 2], b: [1, 4, 2], op: '-', syntax: 'none', program: true },
-  { id: 'e23s_i', a: [4, 2], b: [2], op: '*' },
-  { id: 'e23s_ii', a: [4, 3], b: [4], op: '+' },
-  { id: 'e23s_iii', a: [4, 1], b: [3], op: '+', syntax: 'newaxis' },
-  { id: 'e24s_x', a: [3, 2, 4], b: [3, 2], op: '*' },
-  { id: 'e24s_xi', a: [3, 2, 4], b: [3, 2, 1], op: '*', syntax: 'newaxis' },
+/** one side of a past-paper expression: its variable, the values the paper gives it, and any axis the paper adds */
+export interface ExamOperand {
+  name: string
+  shape: number[]
+  values: number[]
+  to?: number[]
+  /** the paper's own spelling of that added axis */
+  paper?: string
+}
+/** a past-paper question, word for word: the code above the expression, then the expression's line */
+export interface ExamQuestion {
+  id: string
+  setup: string
+  line: string
+  op: Op
+  l: ExamOperand
+  r: ExamOperand
+  syntax?: Syntax
+}
+const range = (n: number, from = 0) => Array.from({ length: n }, (_, i) => from + i)
+const SETUP_24S = `import numpy as np
+# np.arange(start, stop)
+# - return an array of evenly spaced values within the half-open interval
+#   [start,stop), the default step size is 1.
+# np.ones(shape):
+# - return a new array of given shape, filled with ones.
+A = np.arange(5,15)
+B = np.ones((3,2))
+C = np.array([[[0,1,2,3],
+               [4,5,6,7]],
+              [[8,9,10,11],
+               [12,13,14,15]],
+              [[16,17,18,19],
+               [20,21,22,23]]])`
+const C_24S: ExamOperand = { name: 'C', shape: [3, 2, 4], values: range(24) }
+const B_24S: ExamOperand = { name: 'B', shape: [3, 2], values: new Array(6).fill(1) }
+
+export const EXAM_QUESTIONS: ExamQuestion[] = [
+  {
+    id: 'e23s_i',
+    setup: `import numpy as np
+A = np.array([1,2])
+B = np.array([[1,2],
+              [2,4],
+              [3,6],
+              [4,8]])`,
+    line: 'print(B/A)',
+    op: '/',
+    l: { name: 'B', shape: [4, 2], values: [1, 2, 2, 4, 3, 6, 4, 8] },
+    r: { name: 'A', shape: [2], values: [1, 2] },
+  },
+  {
+    id: 'e23s_ii',
+    setup: `import numpy as np
+A = np.array([[0, 0, 0],
+              [1, 2, 3],
+              [4, 5, 6],
+              [7, 8, 9]])
+B = np.array([10, 11, 12, 13])`,
+    line: 'print(A + B)',
+    op: '+',
+    l: { name: 'A', shape: [4, 3], values: [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
+    r: { name: 'B', shape: [4], values: [10, 11, 12, 13] },
+  },
+  {
+    id: 'e23s_iii',
+    setup: `import numpy as np
+A = np.array([0, 10, 20, 30])
+B = np.array([1, 2, 3])
+# np.newaxis
+# increase the dimension of an array by adding new axis`,
+    line: 'print(A[:, np.newaxis] + B)',
+    op: '+',
+    l: { name: 'A', shape: [4], values: [0, 10, 20, 30], to: [4, 1], paper: 'A[:, np.newaxis]' },
+    r: { name: 'B', shape: [3], values: [1, 2, 3] },
+    syntax: 'newaxis',
+  },
+  { id: 'e24s_x', setup: SETUP_24S, line: 'print( C / B )', op: '/', l: C_24S, r: B_24S },
+  {
+    id: 'e24s_xi',
+    setup: `${SETUP_24S}
+# np.newaxis
+# - increase the dimension of an array by adding new axis.`,
+    line: 'print(C / B[..., np.newaxis])',
+    op: '/',
+    l: C_24S,
+    r: { ...B_24S, to: [3, 2, 1], paper: 'B[..., np.newaxis]' },
+    syntax: 'newaxis',
+  },
 ]
+
+/** a fix the learner applied to a question that cannot broadcast: this side gets this shape */
+export type ExamFix = { side: 'l' | 'r'; shape: number[] } | null
+export const examShape = (o: ExamOperand, side: 'l' | 'r', fix: ExamFix) => (fix?.side === side ? fix.shape : (o.to ?? o.shape))
+
+/** the paper's code as printed; a spelling, an operator or a fix the learner changes rewrites only the expression's line */
+export const makeExam = (q: ExamQuestion, syntax: Syntax, op: Op, fix: ExamFix): Program => {
+  const a = examShape(q.l, 'l', fix)
+  const b = examShape(q.r, 'r', fix)
+  const asPrinted = !fix && op === q.op && (!q.syntax || syntax === q.syntax)
+  const expr = (o: ExamOperand, to: number[]) => (o.paper && syntax === q.syntax ? o.paper : (constructCode(o.name, to, syntax) ?? o.name))
+  const plan = planBroadcast(a, b)
+  const lines: ProgramLine[] = q.setup.split('\n').map((text) => ({ text, steps: text.startsWith('#') ? [] : text.startsWith('import') ? [] : [0] }))
+  lines.push({ text: asPrinted ? q.line : `print(${expr(q.l, a)} ${op} ${expr(q.r, b)})`, steps: plan.ok ? [1, 2, 3] : [1] })
+  const constructs = ([[q.l, a], [q.r, b]] as const).flatMap(([o, to]) => {
+    const code = constructCode(o.name, to, syntax)
+    return code ? [{ name: o.name, from: o.shape, to, code: o.paper && syntax === q.syntax ? o.paper : code }] : []
+  })
+  return { lines, code: lines.map((l) => l.text).join('\n'), constructs }
+}
 
 /** the exam question: two shapes in, the result shape (or an error) out */
 export const QUIZ: [number[], number[]][] = [

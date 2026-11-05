@@ -4,7 +4,7 @@ import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { broadcastStrides, isRealCell, shapeLabel, sourceIndex } from '../lib/broadcast'
 import type { AxisStep } from '../lib/broadcast'
-import { MAX_DIM, MAX_NDIM, TONES, apply, opSign, size, valA, valB } from '../lib/broadcastDemo'
+import { MAX_DIM, MAX_NDIM, TONES, apply, flatOf, opSign, showCell, size, valA, valB } from '../lib/broadcastDemo'
 import type { Op } from '../lib/broadcastDemo'
 
 // --- The broadcasting lab's pieces: the shape editor, the axis-by-axis rule table, the operands and the stretched
@@ -14,17 +14,19 @@ import type { Op } from '../lib/broadcastDemo'
 
 interface ShapeEditorProps {
   name: 'A' | 'B'
+  /** the variable's own name, when it is not simply A or B */
+  label?: string
   shape: number[]
   onChange: (s: number[]) => void
 }
 
-export const ShapeEditor = ({ name, shape, onChange }: ShapeEditorProps) => {
+export const ShapeEditor = ({ name, label, shape, onChange }: ShapeEditorProps) => {
   const { t } = useTranslation()
   const tone = TONES[name]
   return (
     <div className={`rounded-xl border p-3 ${tone.chip}`}>
       <div className="flex items-baseline justify-between mb-2">
-        <span className={`text-sm font-bold ${tone.text}`}>{t('numpy_module.broadcast.shape_of', { name })}</span>
+        <span className={`text-sm font-bold ${tone.text}`}>{t('numpy_module.broadcast.shape_of', { name: label ?? name })}</span>
         <span className="font-mono text-xs text-gray-500">{shapeLabel(shape)}</span>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -124,6 +126,8 @@ export const OpSign = ({ children }: { children: ReactNode }) => (
 interface RuleTableProps {
   a: number[]
   b: number[]
+  nameA?: string
+  nameB?: string
   steps: AxisStep[]
   /** 0 = 右对齐补 1；k = 已检查到 axis -k；>ndim = 全部完成 */
   phase: number
@@ -136,7 +140,7 @@ const VERDICT_CLS: Record<AxisStep['verdict'], string> = {
   mismatch: 'bg-rose-100 text-rose-700',
 }
 
-export const RuleTable = ({ a, b, steps, phase }: RuleTableProps) => {
+export const RuleTable = ({ a, b, nameA = 'A', nameB = 'B', steps, phase }: RuleTableProps) => {
   const { t } = useTranslation()
   const cols = [...steps].reverse() // 左 → 右：axis -ndim … -1
   const failAt = steps.findIndex((s) => s.verdict === 'mismatch')
@@ -167,12 +171,12 @@ export const RuleTable = ({ a, b, steps, phase }: RuleTableProps) => {
         </thead>
         <tbody>
           <tr>
-            <td className={`px-2 py-1.5 text-xs font-bold ${TONES.A.text}`}>A</td>
+            <td className={`px-2 py-1.5 text-xs font-bold ${TONES.A.text}`}>{nameA}</td>
             {cols.map((s) => dimCell(s.a, s.padA, 'A', s))}
             <td className="px-2 font-mono text-xs text-gray-500">{shapeLabel(a)}</td>
           </tr>
           <tr>
-            <td className={`px-2 py-1.5 text-xs font-bold ${TONES.B.text}`}>B</td>
+            <td className={`px-2 py-1.5 text-xs font-bold ${TONES.B.text}`}>{nameB}</td>
             {cols.map((s) => dimCell(s.b, s.padB, 'B', s))}
             <td className="px-2 font-mono text-xs text-gray-500">{shapeLabel(b)}</td>
           </tr>
@@ -190,7 +194,7 @@ export const RuleTable = ({ a, b, steps, phase }: RuleTableProps) => {
             <td className="border-t border-gray-200" />
           </tr>
           <tr>
-            <td className="px-2 py-1.5 text-xs font-bold text-emerald-600">A {'∘'} B</td>
+            <td className="px-2 py-1.5 text-xs font-bold text-emerald-600">{nameA} {'∘'} {nameB}</td>
             {cols.map((s) => (
               <td key={s.axis} className={`px-2 py-1.5 text-center font-mono font-bold ${current(s) ? 'bg-yellow-50 rounded-b-md' : ''}`}>
                 {checked(s) ? (s.out === null ? <span className="text-rose-500">✗</span> : <span className="text-emerald-600">{s.out}</span>) : <span className="text-gray-300">?</span>}
@@ -206,11 +210,26 @@ export const RuleTable = ({ a, b, steps, phase }: RuleTableProps) => {
   )
 }
 
+/** real data for the two sides (flat, row by row) and what the code calls them; without it, the demo's generated values */
+export interface OperandData {
+  a: number[]
+  b: number[]
+  nameA: string
+  nameB: string
+}
+const reader = (data: OperandData | undefined) => ({
+  a: (idx: number[], shape: number[]) => (data ? data.a[flatOf(idx, shape)] : valA(idx, shape)),
+  b: (idx: number[], shape: number[]) => (data ? data.b[flatOf(idx, shape)] : valB(idx, shape)),
+  nameA: data?.nameA ?? 'A',
+  nameB: data?.nameB ?? 'B',
+})
+
 // ---------- the stretch: A and B drawn in the result's shape, ghost copies dashed, hover any cell ----------
 
 /** withResult = false stops at the stretch: the two operands in the result's shape, not yet combined */
-export const StretchView = ({ a, b, op, out, withResult = true }: { a: number[]; b: number[]; op: Op; out: number[]; withResult?: boolean }) => {
+export const StretchView = ({ a, b, op, out, withResult = true, data }: { a: number[]; b: number[]; op: Op; out: number[]; withResult?: boolean; data?: OperandData }) => {
   const { t } = useTranslation()
+  const read = reader(data)
   const [hover, setHover] = useState<number[] | null>(null)
   const [showGhost, setShowGhost] = useState(true)
   const sign = opSign(op)
@@ -223,23 +242,23 @@ export const StretchView = ({ a, b, op, out, withResult = true }: { a: number[];
   const same = (x: number[] | null, y: number[]) => !!x && x.length === y.length && x.every((v, i) => v === y[i])
   const operandCell = (name: 'A' | 'B', shape: number[]) => (idx: number[]): CellInfo => {
     const real = isRealCell(idx, shape)
-    const v = name === 'A' ? valA(sourceIndex(idx, shape), shape) : valB(sourceIndex(idx, shape), shape)
+    const v = showCell(name === 'A' ? read.a(sourceIndex(idx, shape), shape) : read.b(sourceIndex(idx, shape), shape))
     const tone = TONES[name]
     const ring = same(hover, idx) ? 'hover' : hover && same(realPos(hover, shape), idx) ? 'source' : undefined
-    if (real) return { cls: tone.real, text: String(v), ring }
-    return { cls: showGhost ? tone.ghost : 'bg-white border-dashed border-gray-200 text-transparent', text: showGhost ? String(v) : '', ring }
+    if (real) return { cls: tone.real, text: v, ring }
+    return { cls: showGhost ? tone.ghost : 'bg-white border-dashed border-gray-200 text-transparent', text: showGhost ? v : '', ring }
   }
   const resultCell = (idx: number[]): CellInfo => {
-    const v = apply(op, valA(sourceIndex(idx, a), a), valB(sourceIndex(idx, b), b))
-    return { cls: TONES.R.real, text: String(v), ring: same(hover, idx) ? 'hover' : undefined }
+    const v = apply(op, read.a(sourceIndex(idx, a), a), read.b(sourceIndex(idx, b), b))
+    return { cls: TONES.R.real, text: showCell(v), ring: same(hover, idx) ? 'hover' : undefined }
   }
   const formula = hover
     ? (() => {
         const ia = sourceIndex(hover, a)
         const ib = sourceIndex(hover, b)
-        const x = valA(ia, a)
-        const y = valB(ib, b)
-        return `A${idxStr(ia)} ${sign} B${idxStr(ib)} = ${x} ${sign} ${y} = ${apply(op, x, y)}`
+        const x = read.a(ia, a)
+        const y = read.b(ib, b)
+        return `${read.nameA}${idxStr(ia)} ${sign} ${read.nameB}${idxStr(ib)} = ${showCell(x)} ${sign} ${showCell(y)} = ${showCell(apply(op, x, y))}`
       })()
     : null
   const stridesA = broadcastStrides(a, out)
@@ -259,25 +278,25 @@ export const StretchView = ({ a, b, op, out, withResult = true }: { a: number[];
       <div className="overflow-x-auto">
         {/* a narrow panel moves the result to its own row rather than cutting it off */}
         <div className="flex flex-wrap items-start justify-center gap-3 py-1">
-          <Grid title={<><b className={TONES.A.text}>A</b> {shapeLabel(a)} → {shapeLabel(out)}</>} shape={out} cell={operandCell('A', a)} onHover={setHover} />
+          <Grid title={<><b className={TONES.A.text}>{read.nameA}</b> {shapeLabel(a)} → {shapeLabel(out)}</>} shape={out} cell={operandCell('A', a)} onHover={setHover} />
           <OpSign>{sign}</OpSign>
-          <Grid title={<><b className={TONES.B.text}>B</b> {shapeLabel(b)} → {shapeLabel(out)}</>} shape={out} cell={operandCell('B', b)} onHover={setHover} />
+          <Grid title={<><b className={TONES.B.text}>{read.nameB}</b> {shapeLabel(b)} → {shapeLabel(out)}</>} shape={out} cell={operandCell('B', b)} onHover={setHover} />
           {withResult && (
             <div className="flex items-start gap-3">
               <OpSign>=</OpSign>
-              <Grid title={<><b className={TONES.R.text}>A {sign} B</b> {shapeLabel(out)}</>} shape={out} cell={resultCell} onHover={setHover} />
+              <Grid title={<><b className={TONES.R.text}>{read.nameA} {sign} {read.nameB}</b> {shapeLabel(out)}</>} shape={out} cell={resultCell} onHover={setHover} />
             </div>
           )}
         </div>
       </div>
       <div className="min-h-9 rounded-lg border border-gray-200 bg-white px-3 py-2 text-center font-mono text-sm" aria-live="polite">
-        {formula ?? <span className="font-sans text-xs text-gray-500">{t('numpy_module.broadcast.hover_hint')}</span>}
+        {formula ?? <span className="font-sans text-xs text-gray-500">{t('numpy_module.broadcast.hover_hint', { a: read.nameA, b: read.nameB })}</span>}
       </div>
       <details className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600">
         <summary className="cursor-pointer font-semibold text-gray-700">{t('numpy_module.broadcast.memory_title')}</summary>
         <div className="mt-2 space-y-0.5 font-mono">
-          <div><span className="text-gray-500">np.broadcast_to(</span><b className={TONES.A.text}>A</b><span className="text-gray-500">, {shapeLabel(out)}).strides →</span> ({stridesA.join(', ')})</div>
-          <div><span className="text-gray-500">np.broadcast_to(</span><b className={TONES.B.text}>B</b><span className="text-gray-500">, {shapeLabel(out)}).strides →</span> ({stridesB.join(', ')})</div>
+          <div><span className="text-gray-500">np.broadcast_to(</span><b className={TONES.A.text}>{read.nameA}</b><span className="text-gray-500">, {shapeLabel(out)}).strides →</span> ({stridesA.join(', ')})</div>
+          <div><span className="text-gray-500">np.broadcast_to(</span><b className={TONES.B.text}>{read.nameB}</b><span className="text-gray-500">, {shapeLabel(out)}).strides →</span> ({stridesB.join(', ')})</div>
         </div>
         <p className="mt-1.5">{t('numpy_module.broadcast.memory_desc', { a: size(a), b: size(b), out: size(out) })}</p>
       </details>
@@ -287,13 +306,14 @@ export const StretchView = ({ a, b, op, out, withResult = true }: { a: number[];
 
 // ---------- the two operands as they are ----------
 
-export const InputView = ({ a, b, op }: { a: number[]; b: number[]; op: Op }) => {
-  const plainCell = (name: 'A' | 'B', shape: number[]) => (idx: number[]): CellInfo => ({ cls: TONES[name].real, text: String(name === 'A' ? valA(idx, shape) : valB(idx, shape)) })
+export const InputView = ({ a, b, op, data }: { a: number[]; b: number[]; op: Op; data?: OperandData }) => {
+  const read = reader(data)
+  const plainCell = (name: 'A' | 'B', shape: number[]) => (idx: number[]): CellInfo => ({ cls: TONES[name].real, text: showCell(name === 'A' ? read.a(idx, shape) : read.b(idx, shape)) })
   return (
     <div className="flex flex-wrap items-start justify-center gap-6 py-2">
-      <Grid title={<><b className={TONES.A.text}>A</b> {shapeLabel(a)}</>} shape={a} cell={plainCell('A', a)} />
+      <Grid title={<><b className={TONES.A.text}>{read.nameA}</b> {shapeLabel(a)}</>} shape={a} cell={plainCell('A', a)} />
       <OpSign>{opSign(op)}</OpSign>
-      <Grid title={<><b className={TONES.B.text}>B</b> {shapeLabel(b)}</>} shape={b} cell={plainCell('B', b)} />
+      <Grid title={<><b className={TONES.B.text}>{read.nameB}</b> {shapeLabel(b)}</>} shape={b} cell={plainCell('B', b)} />
     </div>
   )
 }

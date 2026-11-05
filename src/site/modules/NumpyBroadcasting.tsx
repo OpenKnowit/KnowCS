@@ -3,8 +3,8 @@ import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerE
 import { ArrowUp, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Eye, EyeOff, Play } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { planBroadcast, shapeLabel, suggestFix } from '../../lib/broadcast'
-import { BROADCAST_STEPS, EXAM_EXAMPLES, ML_USES, PRESETS, QUIZ, SYNTAXES, constructCode, makePairwise, makeProgram, quizAnswer, withoutOnes } from '../../lib/broadcastDemo'
-import type { Op, Syntax } from '../../lib/broadcastDemo'
+import { BROADCAST_STEPS, EXAM_QUESTIONS, ML_USES, PRESETS, QUIZ, SYNTAXES, constructCode, examShape, makeExam, makePairwise, makeProgram, opSign, quizAnswer, withoutOnes } from '../../lib/broadcastDemo'
+import type { ExamFix, ExamQuestion, Op, Syntax } from '../../lib/broadcastDemo'
 import { runPython } from '../../lib/minipy'
 import { InputView, RuleTable, ShapeEditor, StretchView } from '../../modules/NumpyBroadcast'
 import { CallView } from '../../modules/NpCallView'
@@ -19,7 +19,7 @@ import { Ans, LabPage, PageBar, QuizToggle, TableWrap } from '../ui'
 // L1 · NumPy broadcasting, two screens the page snaps between. The dashboard: shapes and what to construct on the left,
 // the program in the middle, the rule worked through on the right. The notes: concept, the four APIs, the mechanism, the exam.
 
-type Example = { id: string; title: string; note: string; a: number[]; b: number[]; op: Op; syntax?: Syntax; program?: boolean }
+type Example = { id: string; title: string; note: string; a: number[]; b: number[]; op: Op; program?: boolean; exam?: ExamQuestion }
 
 const readNum = (key: string, fallback: number, min: number, max: number) => {
   try {
@@ -281,6 +281,9 @@ export default function NumpyBroadcasting() {
   const [syntax, setSyntax] = useState<Syntax>('none')
   /** the pairwise-distance program instead of the generated one */
   const [pairwise, setPairwise] = useState(false)
+  /** a past-paper question: its own code and data instead of the generated program */
+  const [exam, setExam] = useState<ExamQuestion | null>(null)
+  const [examFix, setExamFix] = useState<ExamFix>(null)
   const [step, setStep] = useState(3)
   const [pwStep, setPwStep] = useState(0)
   const [codeW, setCodeW] = useState(() => readNum(CODE_KEY, 35, 25, 65))
@@ -302,7 +305,7 @@ export default function NumpyBroadcasting() {
   const toNotes = () => notes.current?.scrollIntoView({ behavior: smooth(), block: 'start' })
 
   const plan = useMemo(() => planBroadcast(a, b), [a, b])
-  const program = useMemo(() => (pairwise ? makePairwise(syntax) : makeProgram(a, b, op, syntax)), [pairwise, a, b, op, syntax])
+  const program = useMemo(() => (pairwise ? makePairwise(syntax) : exam ? makeExam(exam, syntax, op, examFix) : makeProgram(a, b, op, syntax)), [pairwise, exam, examFix, a, b, op, syntax])
   const run = useMemo(() => runPython(program.code), [program.code])
   const traced = useMemo(() => (pairwise ? run.calls.filter((c) => c.line >= 4 && c.line <= 10) : []), [pairwise, run])
   // a clash stops at the rule: there is nothing to stretch
@@ -314,6 +317,8 @@ export default function NumpyBroadcasting() {
     setB(nb)
     setOp(nop)
     setPairwise(false)
+    setExam(null)
+    setExamFix(null)
     setStep(3)
   }
   const pickFrom = (na: number[], nb: number[], nop: Op) => {
@@ -324,7 +329,11 @@ export default function NumpyBroadcasting() {
   const groups = useMemo(() => {
     const basic: Example[] = PRESETS.map((p) => ({ ...p, title: t(`numpy_module.broadcast.preset.${p.id}`), note: t(`numpy_module.broadcast.story.${p.id}`) }))
     const course: Example[] = ML_USES.filter((u) => u.id !== 'knn').map((u) => ({ id: `use-${u.id}`, a: u.a, b: u.b, op: u.op, title: t(`numpy_module.broadcast.cards.ml_${u.id}`), note: `${u.code}   ${u.shapes}` }))
-    const exam: Example[] = EXAM_EXAMPLES.map((e) => ({ ...e, title: t(`lab.bc.papers.${e.id}.title`), note: t(`lab.bc.papers.${e.id}.note`) }))
+    const paper = (id: string) => ({ title: t(`lab.bc.papers.${id}.title`), note: t(`lab.bc.papers.${id}.note`) })
+    const exam: Example[] = [
+      { id: 'pairwise', a: [2, 1, 2], b: [1, 4, 2], op: '-', program: true, ...paper('pairwise') },
+      ...EXAM_QUESTIONS.map((q) => ({ id: q.id, a: examShape(q.l, 'l', null), b: examShape(q.r, 'r', null), op: q.op, exam: q, ...paper(q.id) })),
+    ]
     return [
       { title: t('lab.bc.group_basic'), items: basic },
       { title: t('lab.bc.group_course'), items: course },
@@ -333,15 +342,31 @@ export default function NumpyBroadcasting() {
   }, [t])
   const current = pairwise
     ? 'pairwise'
-    : (groups.flatMap((g) => g.items).find((e) => !e.program && e.a.join() === a.join() && e.b.join() === b.join() && e.op === op)?.id ?? null)
+    : exam
+      ? exam.id
+      : (groups.flatMap((g) => g.items).find((e) => !e.program && !e.exam && e.a.join() === a.join() && e.b.join() === b.join() && e.op === op)?.id ?? null)
   const pick = (e: Example) => {
     change(e.a, e.b, e.op)
-    if (e.syntax) setSyntax(e.syntax)
+    if (e.exam?.syntax) setSyntax(e.exam.syntax)
+    if (e.exam) setExam(e.exam)
     if (e.program) {
+      setSyntax('none')
       setPairwise(true)
       setPwStep(0)
     }
   }
+  const applyFix = (side: 'A' | 'B', shape: number[]) => {
+    if (side === 'A') setA(shape)
+    else setB(shape)
+    if (exam) setExamFix({ side: side === 'A' ? 'l' : 'r', shape })
+    setStep(3)
+  }
+  // a question's own variables and values; the demo's otherwise
+  const data = exam ? { a: exam.l.values, b: exam.r.values, nameA: exam.l.name, nameB: exam.r.name } : undefined
+  const nameA = data?.nameA ?? 'A'
+  const nameB = data?.nameB ?? 'B'
+  const nameOf = (side: 'A' | 'B') => (side === 'A' ? nameA : nameB)
+  const rawName = (side: 'A' | 'B') => (exam ? nameOf(side) : side.toLowerCase())
 
   // the code and the visual follow each other: clicking a line picks its step, a step lights its lines
   const lineOn = (i: number) => {
@@ -411,11 +436,10 @@ export default function NumpyBroadcasting() {
 
   const failAt = plan.steps.findIndex((s) => s.verdict === 'mismatch')
   const summary = plan.ok ? t('numpy_module.broadcast.narr.done_ok', { shape: shapeLabel(plan.outShape!) }) : t('numpy_module.broadcast.narr.done_fail', { axis: plan.steps[failAt].axis })
-  const fixSide = fix?.side === 'A' ? 'a' : 'b'
   const fixTo = fix?.shape ?? []
   const padded = [
-    { name: 'A', shape: a, to: plan.steps.map((s) => s.a).reverse() },
-    { name: 'B', shape: b, to: plan.steps.map((s) => s.b).reverse() },
+    { name: nameA, shape: a, to: plan.steps.map((s) => s.a).reverse() },
+    { name: nameB, shape: b, to: plan.steps.map((s) => s.b).reverse() },
   ].filter((p) => p.shape.length !== p.to.length && p.shape.length > 0)
 
   return (
@@ -430,15 +454,15 @@ export default function NumpyBroadcasting() {
                 <ExampleMenu groups={groups} value={current} onPick={pick} />
               </div>
               <div className="min-h-0 flex-1 space-y-2 p-3 lg:overflow-y-auto">
-                <ShapeEditor name="A" shape={a} onChange={(s) => change(s, b)} />
+                <ShapeEditor name="A" label={nameA} shape={a} onChange={(s) => change(s, b)} />
                 <div className="flex justify-center gap-1" role="group" aria-label={t('numpy_module.broadcast.op')}>
-                  {(['+', '-', '*'] as Op[]).map((o) => (
+                  {(['+', '-', '*', '/'] as Op[]).map((o) => (
                     <button key={o} type="button" onClick={() => setOp(o)} aria-pressed={op === o} className={`h-7 w-7 rounded-lg font-mono text-sm font-bold ${op === o ? 'bg-slate-800 text-white' : 'border border-gray-200 bg-white text-gray-500'}`}>
-                      {o === '*' ? '×' : o === '-' ? '−' : '+'}
+                      {opSign(o)}
                     </button>
                   ))}
                 </div>
-                <ShapeEditor name="B" shape={b} onChange={(s) => change(a, s)} />
+                <ShapeEditor name="B" label={nameB} shape={b} onChange={(s) => change(a, s)} />
 
                 {/* what to construct, and how, in the spelling picked under the code */}
                 <div className="rounded-xl bg-slate-50 p-3 text-[13px] leading-snug text-slate-700">
@@ -448,9 +472,9 @@ export default function NumpyBroadcasting() {
                       <p className="text-rose-700">{t('lab.bc.help.clash', { axis: plan.steps[failAt].axis, a: plan.steps[failAt].a, b: plan.steps[failAt].b })}</p>
                       {fix ? (
                         <div className="mt-2 space-y-1.5">
-                          <p>{t('lab.bc.help.make', { name: fix.side, from: shapeLabel(withoutOnes(fixTo)), to: shapeLabel(fixTo) })}</p>
-                          <PyInline tone="light" code={constructCode(fixSide, fixTo, syntax) ?? ''} className="block overflow-x-auto whitespace-nowrap rounded bg-white px-2 py-1 font-mono text-xs" />
-                          <button type="button" onClick={() => (fix.side === 'A' ? change(fixTo, b) : change(a, fixTo))} className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500">
+                          <p>{t('lab.bc.help.make', { name: nameOf(fix.side), from: shapeLabel(withoutOnes(fixTo)), to: shapeLabel(fixTo) })}</p>
+                          <PyInline tone="light" code={constructCode(rawName(fix.side), fixTo, syntax) ?? ''} className="block overflow-x-auto whitespace-nowrap rounded bg-white px-2 py-1 font-mono text-xs" />
+                          <button type="button" onClick={() => applyFix(fix.side, fixTo)} className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500">
                             {t('numpy_module.broadcast.fix_btn')}
                           </button>
                         </div>
@@ -471,7 +495,7 @@ export default function NumpyBroadcasting() {
                         ))
                       )}
                       {!pairwise && padded.map((p) => <p key={p.name} className="text-slate-500">{t('lab.bc.help.pad', { name: p.name, from: shapeLabel(p.shape), to: shapeLabel(p.to) })}</p>)}
-                      <p>{t('lab.bc.help.then', { code: pairwise ? 'A - B' : `A ${op} B` })}</p>
+                      <p>{t('lab.bc.help.then', { code: pairwise ? 'A - B' : `${nameA} ${op} ${nameB}` })}</p>
                     </div>
                   )}
                 </div>
@@ -530,14 +554,14 @@ export default function NumpyBroadcasting() {
                       <>
                         <h2 className="text-[15px] font-extrabold">{t(`lab.bc.steps.${BROADCAST_STEPS[st]}`)}</h2>
                         <p className="text-[13px] leading-relaxed text-slate-600">{t(`lab.bc.step_note.${BROADCAST_STEPS[st]}`, { shape: plan.ok ? shapeLabel(plan.outShape!) : '' })}</p>
-                        {st === 0 && <InputView a={a} b={b} op={op} />}
+                        {st === 0 && <InputView a={a} b={b} op={op} data={data} />}
                         {st === 1 && (
                           <>
-                            <RuleTable a={a} b={b} steps={plan.steps} phase={plan.ndim + 1} />
+                            <RuleTable a={a} b={b} nameA={nameA} nameB={nameB} steps={plan.steps} phase={plan.ndim + 1} />
                             <p aria-live="polite" className={`rounded-lg px-3 py-2 text-sm ${plan.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-700'}`}>{summary}</p>
                           </>
                         )}
-                        {st >= 2 && plan.ok && <StretchView key={`${a.join()}|${b.join()}|${st}`} a={a} b={b} op={op} out={plan.outShape!} withResult={st === 3} />}
+                        {st >= 2 && plan.ok && <StretchView key={`${exam?.id}|${a.join()}|${b.join()}|${st}`} a={a} b={b} op={op} out={plan.outShape!} withResult={st === 3} data={data} />}
                       </>
                     )}
                   </div>
