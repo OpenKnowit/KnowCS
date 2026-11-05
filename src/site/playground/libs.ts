@@ -91,7 +91,7 @@ function buildSpec(id: LibId): Promise<LibSpec> {
       catKey: (c) => `numpy_api.cat.${c}`,
       explainKey: (e) => `numpy_api.api.${e}`,
       noteKey: 'numpy_api.sandbox_note',
-      run: (code) => py.runPython(code, { libs: lazy.loadedLibs() }),
+      run: (code) => py.runPython(code, { libs: lazy.loadedLibs(), maxSize: 2_000_000, timeBudget: 4000 }),
       callApis: null,
       debounce: 300,
       realOk: true,

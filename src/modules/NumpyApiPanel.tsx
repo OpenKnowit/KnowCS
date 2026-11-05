@@ -55,7 +55,7 @@ export const NumpyApiPanel = ({ initialCat, initialEntry, missing, wide }: Panel
   const real = useRealRun(ran, realOn)
   const libs = useLazyLibs(ran, !realOn)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- libs.tick: the libraries the program imports have arrived
-  const result = useMemo(() => runPython(realOn || libs.waiting ? '' : ran, { libs: loadedLibs() }), [ran, realOn, libs.waiting, libs.tick])
+  const result = useMemo(() => runPython(realOn || libs.waiting ? '' : ran, { libs: loadedLibs(), maxSize: 2_000_000, timeBudget: 4000 }), [ran, realOn, libs.waiting, libs.tick])
   const runNow = () => (code !== ran ? setRan(code) : realOn && real.rerun())
   const calls = result.calls
   const autoId = (calls.find((c) => entry.match.includes(c.api)) ?? calls[calls.length - 1])?.id

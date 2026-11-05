@@ -1823,6 +1823,9 @@ export interface RunResult {
 }
 
 const snap = (a: NDArray): GridSnapshot => ({ shape: [...a.shape], values: a.values(), dtype: a.dtype })
+/** arrays past this size run as usual but stay out of the step list: a copy per step, for a grid too big to show */
+const TRACE_CELLS = 4096
+const tooBigToTrace = (v: Value | undefined) => v?.k === 'array' && v.a.size > TRACE_CELLS
 
 // ================= 解释器 =================
 
@@ -2707,11 +2710,12 @@ class Interp implements Host {
     const idx = asIndex ? int(this.toInt(idx0)) : idx0
     if (obj.k === 'array') {
       const a = obj.a
-      const before = snap(a)
+      const showing = this.tracing && a.size <= TRACE_CELLS
+      const before = showing ? snap(a) : null
       const items = this.toIndexItems(idx)
       const { plan, value } = getIndex(a, items)
       const res: Value = typeof value === 'number' ? fromScalar(value, a.dtype) : a.matrix ? arr(this.matrixItem(value, idx)) : arr(value)
-      if (this.tracing) {
+      if (showing && before) {
         const out = typeof value === 'number' ? { shape: [], values: [value], dtype: a.dtype } : snap(value)
         this.record(this.targetOf(node), this.text(node), a, before, plan, 'read', out)
         const flatOf = new Map(a.addresses().map((x, i) => [x, i]))
@@ -2797,6 +2801,10 @@ class Interp implements Host {
     }
     if (obj.k !== 'array') throw this.err('TypeError', `'${typeName(obj)}' object does not support item assignment`)
     const a = obj.a
+    if (!this.tracing || a.size > TRACE_CELLS) {
+      setIndex(a, this.toIndexItems(idx), this.operand(val, '='))
+      return
+    }
     const before = snap(a)
     const memBefore = [...a.data]
     const plan = setIndex(a, this.toIndexItems(idx), this.operand(val, '='))
@@ -2813,11 +2821,13 @@ class Interp implements Host {
     if (res.size !== a.size || (a.matrix && res.shape.some((d, i) => d !== a.shape[i]))) {
       throw this.err('ValueError', `non-broadcastable output operand with shape ${shapeStr(a.shape)} doesn't match the broadcast shape ${shapeStr(res.shape)}`)
     }
-    const before = snap(a)
-    const memBefore = [...a.data]
+    const showing = this.tracing && a.size <= TRACE_CELLS
+    const before = showing ? snap(a) : null
+    const memBefore = showing ? [...a.data] : undefined
     const addrs = a.addresses()
     const vals = res.values()
     addrs.forEach((x, i) => { a.data[x] = castValue(vals[i], a.dtype) })
+    if (!before) return
     const plan: IndexPlan = {
       shape: [...a.shape], addresses: addrs, advanced: false, scalar: false, advFront: false,
       notes: [], view: { shape: a.shape, strides: a.strides, offset: a.offset },
@@ -2901,6 +2911,7 @@ class Interp implements Host {
     this.pendingPlot = null
     const grouped = this.pendingGroups
     this.pendingGroups = null
+    if (tooBigToTrace(res) || ops.some((o) => tooBigToTrace(o.v))) return
     this.calls.push({
       id: this.calls.length,
       seq: this.seqN++,
@@ -2945,6 +2956,7 @@ class Interp implements Host {
   tracedCall(f: Value & { k: 'fn' | 'type' }, n: Node & { k: 'call' }, args: Value[], kw: Record<string, Value>): Value {
     const meta = f.api!
     const self = f.k === 'fn' ? f.self : undefined
+    if ((self && self.size > TRACE_CELLS) || args.some(tooBigToTrace)) return f.call(args, kw)
     const selfNode = self && n.fn.k === 'attr' ? n.fn.obj : null
     // after a *x the argument nodes no longer line up with the values
     const argNodes = n.args.some((x) => x.k === 'star') ? [] : n.args
@@ -3063,7 +3075,7 @@ class Interp implements Host {
           const r = this.eval(n.xs[i + 1])
           this.callText = this.text(n)
           result = this.compare(n.ops[i], l, r)
-          if ((l.k === 'array' || r.k === 'array') && this.tracing) {
+          if ((l.k === 'array' || r.k === 'array') && this.tracing && !tooBigToTrace(l) && !tooBigToTrace(r)) {
             const ops = this.collectOperands([n.xs[i], n.xs[i + 1]], [l, r], true).map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
             this.pushCall(`op:${n.ops[i]}`, 'elementwise', n.ops.length === 1 ? this.text(n) : `${this.text(n.xs[i])} ${n.ops[i]} ${this.text(n.xs[i + 1])}`, ops, result, null)
           }
@@ -3087,7 +3099,7 @@ class Interp implements Host {
         }
         this.callText = this.text(n)
         const res = this.binop(n.op, l, r)
-        if ((l.k === 'array' || r.k === 'array') && this.tracing) {
+        if ((l.k === 'array' || r.k === 'array') && this.tracing && !tooBigToTrace(l) && !tooBigToTrace(r)) {
           const ops = this.collectOperands([n.l, n.r], [l, r], n.op !== '@' && !(n.op === '*' && isMatrix(l) && isMatrix(r))).map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
           this.pushCall(`op:${n.op}`, n.op === '@' || (n.op === '*' && (isMatrix(l) || isMatrix(r)) && !isNum(l) && !isNum(r)) ? 'matmul' : 'elementwise', this.text(n), ops, res, null)
         }
@@ -3096,7 +3108,7 @@ class Interp implements Host {
       case 'attr': {
         const obj = this.eval(n.obj)
         const res = this.getAttr(obj, n.name)
-        if (obj.k === 'array' && n.name === 'T' && this.tracing) {
+        if (obj.k === 'array' && n.name === 'T' && this.tracing && !tooBigToTrace(obj)) {
           const ops = [{ label: this.text(n.obj), v: arr(obj.a.copy()) }]
           const source = this.replayMove([{ v: obj }], (subst) => this.getAttr(subst(obj), 'T'))
           this.pushCall('ndarray.T', 'move', this.text(n), ops, res, null, source)

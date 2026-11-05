@@ -213,7 +213,7 @@ test`,
 export const PANDAS_PLAYGROUND: PlayConfig = {
   id: 'pandas',
   libs: [PANDAS, MATPLOTLIB],
-  maxSize: 65536,
+  maxSize: 2_000_000,
   timeBudget: 2000,
   debounce: 400,
   cats: ['basics', 'select', 'clean', 'ml'],

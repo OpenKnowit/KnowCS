@@ -298,7 +298,7 @@ plt.title('Hard threshold vs smooth activation')`,
 export const MATPLOTLIB_PLAYGROUND: PlayConfig = {
   id: 'matplotlib',
   libs: [MATPLOTLIB],
-  maxSize: 65536,
+  maxSize: 2_000_000,
   timeBudget: 2000,
   debounce: 350,
   cats: ['basics', 'images', 'ml'],
