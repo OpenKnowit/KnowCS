@@ -7,6 +7,10 @@ export type DType = 'int64' | 'float64' | 'bool'
 export class PyError extends Error {
   pyType: string
   line?: number
+  /** the Python exception object, once there is one (raise, or caught by except) */
+  exc?: unknown
+  /** the sandbox stopping the run: except cannot catch it, or a loop around try could never end */
+  fatal?: boolean
   constructor(pyType: string, message: string, line?: number) {
     super(message)
     this.pyType = pyType

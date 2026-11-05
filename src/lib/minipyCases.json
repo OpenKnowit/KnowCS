@@ -1,0 +1,206 @@
+[
+ {
+  "name": "star args and defaults",
+  "code": "def f(a, b=2, *rest, c=3, **kw):\n    return a, b, rest, c, sorted(kw.items())\nprint(f(1))\nprint(f(1, 5, 6, 7, c=8, d=9, e=10))\nprint(f(*[1, 2, 3], **{'c': 4, 'z': 5}))\ng = lambda *a, **k: (a, k)\nprint(g(1, x=2))\ndef h(a, /, b, *, c): return a + b + c\nprint(h(1, 2, c=3))\n",
+  "out": "(1, 2, (), 3, [])\n(1, 5, (6, 7), 8, [('d', 9), ('e', 10)])\n(1, 2, (3,), 4, [('z', 5)])\n((1,), {'x': 2})\n6\n",
+  "error": null
+ },
+ {
+  "name": "unpacking",
+  "code": "a, *b, c = range(6)\nprint(a, b, c)\n*x, y = 'hello'\nprint(x, y)\n(p, q), r = (1, 2), 3\nprint(p, q, r)\nprint([*range(3), *'ab'], (*[1], 2), {**{'a': 1}, 'b': 2})\nfor i, (j, k) in enumerate([(1, 2), (3, 4)]):\n    print(i, j, k)\n",
+  "out": "0 [1, 2, 3, 4] 5\n['h', 'e', 'l', 'l'] o\n1 2 3\n[0, 1, 2, 'a', 'b'] (1, 2) {'a': 1, 'b': 2}\n0 1 2\n1 3 4\n",
+  "error": null
+ },
+ {
+  "name": "try except",
+  "code": "def f(x):\n    try:\n        return 10 / x\n    except ZeroDivisionError as e:\n        print('zero:', e)\n        return -1\n    else:\n        print('never')\n    finally:\n        print('finally', x)\nprint(f(2))\nprint(f(0))\ntry:\n    [][1]\nexcept (KeyError, IndexError) as e:\n    print(type(e).__name__, e)\ntry:\n    {}['k']\nexcept LookupError as e:\n    print(repr(e), e.args)\ntry:\n    raise ValueError('bad', 2)\nexcept Exception as e:\n    print(e, e.args, isinstance(e, ValueError))\nclass MyErr(ValueError):\n    def __init__(self, code):\n        super().__init__(f'code {code}')\n        self.code = code\ntry:\n    raise MyErr(7)\nexcept ValueError as e:\n    print(type(e).__name__, e, e.code)\ntry:\n    try:\n        1 / 0\n    except ZeroDivisionError as e:\n        raise RuntimeError('wrapped') from e\nexcept RuntimeError as e:\n    print(e, type(e.__cause__).__name__)\ntry:\n    try:\n        raise KeyError('a')\n    except KeyError:\n        raise\nexcept KeyError as e:\n    print('again', e)\nfor i in range(2):\n    try:\n        continue\n    finally:\n        print('loop finally', i)\n",
+  "out": "finally 2\n5.0\nzero: division by zero\nfinally 0\n-1\nIndexError list index out of range\nKeyError('k') ('k',)\n('bad', 2) ('bad', 2) True\nMyErr code 7 7\nwrapped ZeroDivisionError\nagain 'a'\nloop finally 0\nloop finally 1\n",
+  "error": null
+ },
+ {
+  "name": "for and while else",
+  "code": "for i in range(3):\n    if i == 5: break\nelse:\n    print('no break')\nn = 0\nwhile n < 3:\n    n += 1\n    if n == 2: break\nelse:\n    print('no')\nprint(n)\n",
+  "out": "no break\n2\n",
+  "error": null
+ },
+ {
+  "name": "sets",
+  "code": "s = {3, 1, 2}\nprint(s, len(s), 2 in s, sorted(s))\ns.add(4); s.discard(1); s.remove(2)\nprint(s)\na, b = {1, 2, 3}, {2, 3, 4}\nprint(a | b, a & b, a - b, a ^ b, a <= b, a < a, {2} < a, a.isdisjoint({9}))\nprint(a.union([7]), a.intersection([1, 9]), a.difference([1]), a.symmetric_difference([1, 9]))\nprint(set(), set('aab') == {'a', 'b'}, frozenset([1, 2]), {x % 3 for x in range(10)})\na |= {9}; print(a)\nprint(set([1, 1, 2]), len({1, 1.0, True}))\ntry:\n    set().pop()\nexcept KeyError as e:\n    print('empty', e)\nprint({frozenset([1]): 'a'}[frozenset([1])])\n",
+  "out": "{1, 2, 3} 3 True [1, 2, 3]\n{3, 4}\n{1, 2, 3, 4} {2, 3} {1} {1, 4} False False True True\n{1, 2, 3, 7} {1} {2, 3} {2, 3, 9}\nset() True frozenset({1, 2}) {0, 1, 2}\n{1, 2, 3, 9}\n{1, 2} 1\nempty 'pop from an empty set'\na\n",
+  "error": null
+ },
+ {
+  "name": "dict methods",
+  "code": "d = {'a': 1, 'b': 2}\nprint(d.get('z'), d.get('z', 0), d.setdefault('c', 3), d.pop('a'), d.pop('zz', 9), d)\nprint(list(d.keys()), list(d.values()), list(d.items()), d.keys(), d.values(), d.items())\nd.update(x=1); d.update({'y': 2}); d.update([('w', 3)])\nprint(d, len(d), 'x' in d, dict.fromkeys('ab', 0), dict(a=1), dict([('q', 1)]), dict(zip('ab', [1, 2])))\ndel d['x']\nprint(d.popitem(), {k: v * 2 for k, v in d.items()}, {**d, 'n': 1} == dict(d, n=1))\nprint(d | {'new': 1})\n",
+  "out": "None 0 3 1 9 {'b': 2, 'c': 3}\n['b', 'c'] [2, 3] [('b', 2), ('c', 3)] dict_keys(['b', 'c']) dict_values([2, 3]) dict_items([('b', 2), ('c', 3)])\n{'b': 2, 'c': 3, 'x': 1, 'y': 2, 'w': 3} 5 True {'a': 0, 'b': 0} {'a': 1} {'q': 1} {'a': 1, 'b': 2}\n('w', 3) {'b': 4, 'c': 6, 'y': 4} True\n{'b': 2, 'c': 3, 'y': 2, 'new': 1}\n",
+  "error": null
+ },
+ {
+  "name": "str methods",
+  "code": "s = 'Hello, World'\nprint(s.lower(), s.upper(), s.title(), s.swapcase(), s.capitalize(), s.casefold())\nprint(s.find('o'), s.rfind('o'), s.index('W'), s.count('l'), s.startswith('He'), s.endswith(('x', 'ld')))\nprint(s.replace('l', 'L', 2), s.split(', '), s.partition(', '), s.rpartition('o'), 'a b  c'.split(), 'a,b,c'.rsplit(',', 1), 'a\\nb'.splitlines())\nprint(s.center(20, '*'), s.ljust(14, '-'), s.rjust(14), '7'.zfill(3), '-7'.zfill(3))\nprint(' x '.strip(), 'xxaxx'.lstrip('x'), 'xxaxx'.rstrip('x'), 'abc'.removeprefix('a'), 'abc'.removesuffix('c'))\nprint('12'.isdigit(), 'a'.isalpha(), 'a1'.isalnum(), ' '.isspace(), 'A'.isupper(), 'a'.islower(), 'Ab Cd'.istitle(), 'x_1'.isidentifier(), '12'.isnumeric(), '12'.isdecimal())\nprint('-'.join(['a', 'b']), 'tab\\tx'.expandtabs(4), 'abc'.translate(str.maketrans('a', 'z')))\nprint('{} {}'.format(1, 2), '{0} {0} {x}'.format(1, x=2), '{:>5}|{:<5}|{:^5}|{:05.2f}|{:,}|{:x}|{:e}|{:%}'.format(1, 2, 3, 3.14159, 1234567, 255, 1500.0, 0.25))\nprint('%d %s %5.2f %x %r %%' % (1, 'a', 3.14159, 255, 'q'), '%(a)s' % {'a': 1}, '%05d' % 42, '%-5d|' % 42, '%e' % 1500.0)\nprint('abc'[::-1], 'abc'[1:], 'abc' * 2, 'a' in 'abc', 'abc' < 'abd', len('abc'), ord('a'), chr(97))\n",
+  "out": "hello, world HELLO, WORLD Hello, World hELLO, wORLD Hello, world hello, world\n4 8 7 3 True True\nHeLLo, World ['Hello', 'World'] ('Hello', ', ', 'World') ('Hello, W', 'o', 'rld') ['a', 'b', 'c'] ['a,b', 'c'] ['a', 'b']\n****Hello, World**** Hello, World--   Hello, World 007 -07\nx axx xxa bc ab\nTrue True True True True True True True True True\na-b tab x zbc\n1 2 1 1 2     1|2    |  3  |03.14|1,234,567|ff|1.500000e+03|25.000000%\n1 a  3.14 ff 'q' % 1 00042 42   | 1.500000e+03\ncba bc abcabc True True 3 97 a\n",
+  "error": null
+ },
+ {
+  "name": "f strings",
+  "code": "x, y, name = 3.14159, 42, 'bob'\nprint(f'{x:.2f} {y:>5} {y:<5}| {y:^5} {y:05d} {y:x} {y:b} {y:o} {y:e} {name!r} {name!s} {name:>6} {x=} {y=:03d}')\nw = 8\nprint(f'{x:{w}.3f}|{1234567:,}|{0.5:.0%}|{\"nested\"}|{y + 1}|{[1, 2][0]}|{ {\"a\": 1}[\"a\"] }|{{literal}}')\nprint(f'{True} {None} {[1, \"a\"]} {(1,)} { {1: 2} }')\n",
+  "out": "3.14    42 42   |  42   00042 2a 101010 52 4.200000e+01 'bob' bob    bob x=3.14159 y=042\n   3.142|1,234,567|50%|nested|43|1|1|{literal}\nTrue None [1, 'a'] (1,) {1: 2}\n",
+  "error": null
+ },
+ {
+  "name": "generators",
+  "code": "def gen(n):\n    print('start')\n    for i in range(n):\n        got = yield i\n        if got: print('got', got)\n    return 'done'\ng = gen(3)\nprint(next(g), g.send('x'), next(g))\ntry:\n    next(g)\nexcept StopIteration as e:\n    print('stop', e.value)\ndef inner():\n    yield 1\n    yield 2\n    return 3\ndef outer():\n    r = yield from inner()\n    yield r\nprint(list(outer()))\nprint(sum(x * x for x in range(4)), list(x for x in 'ab'), max(x for x in [1, 3, 2]), any(x > 1 for x in [1, 2]), all(x for x in []))\ndef naturals():\n    n = 0\n    while True:\n        yield n\n        n += 1\ng = naturals()\nprint(next(g), next(g), [next(g) for _ in range(2)])\nge = (i for i in range(2))\nprint(next(ge), next(ge), next(ge, 'default'))\nprint(type(g).__name__)\n",
+  "out": "start\ngot x\n0 1 2\nstop done\n[1, 2, 3]\n14 ['a', 'b'] 3 True True\n0 1 [2, 3]\n0 1 default\ngenerator\n",
+  "error": null
+ },
+ {
+  "name": "iterators",
+  "code": "it = iter([1, 2])\nprint(next(it), next(it), next(it, None))\nprint(list(zip('ab', [1, 2], (3, 4))), list(enumerate('ab', 1)), list(map(str, [1])), list(map(lambda a, b: a + b, [1], [2])), list(filter(None, [0, 1])), list(filter(lambda v: v > 1, [1, 2])), list(reversed([1, 2])), list(reversed('ab')))\nprint(sorted([3, 1], reverse=True), sorted('ba'), sorted([(1, 'b'), (1, 'a')]), sorted(['bb', 'a'], key=len), min([3, 1]), max(3, 1), min('ab', key=ord), max([1, 2], default=0), min([], default=0), sum([1, 2], 10), abs(-2), round(2.5), round(3.14159, 2), round(1234, -2), divmod(7, 2), pow(2, 3), pow(2, 3, 5))\nprint(int('12'), int('ff', 16), int(3.9), float('1.5'), str(1), bool(0), list('ab'), tuple('ab'), bin(5), hex(255), oct(8), callable(print), isinstance(1, int), isinstance(True, int), isinstance(1, (str, int)), issubclass(bool, int), type(1).__name__, type('').__name__, type([]).__name__, type({}).__name__, type(None).__name__, type(1.0).__name__, type(()).__name__, type(set()).__name__)\nprint(hash(1), hash('') == hash(''), repr('a'), ascii('a'), len([1]), range(3), list(range(1, 7, 2)), range(5)[2], list(range(5))[::2], 3 in range(5), slice(1, 2))\n",
+  "out": "1 2 None\n[('a', 1, 3), ('b', 2, 4)] [(1, 'a'), (2, 'b')] ['1'] [3] [1] [2] [2, 1] ['b', 'a']\n[3, 1] ['a', 'b'] [(1, 'a'), (1, 'b')] ['a', 'bb'] 1 3 a 2 0 13 2 2 3.14 1200 (3, 1) 8 3\n12 255 3 1.5 1 False ['a', 'b'] ('a', 'b') 0b101 0xff 0o10 True True True True True int str list dict NoneType float tuple set\n1 True 'a' 'a' 1 range(0, 3) [1, 3, 5] 2 [0, 2, 4] True slice(1, 2, None)\n",
+  "error": null
+ },
+ {
+  "name": "classes",
+  "code": "class A:\n    count = 0\n    def __init__(self, v):\n        self.v = v\n        A.count += 1\n    def __repr__(self): return f'A({self.v})'\n    def __str__(self): return f'a={self.v}'\n    def __eq__(self, o): return self.v == o.v\n    def __lt__(self, o): return self.v < o.v\n    def __add__(self, o): return A(self.v + (o.v if isinstance(o, A) else o))\n    def __radd__(self, o): return A(self.v + o)\n    def __mul__(self, n): return A(self.v * n)\n    def __neg__(self): return A(-self.v)\n    def __abs__(self): return A(abs(self.v))\n    def __len__(self): return self.v\n    def __bool__(self): return self.v != 0\n    def __getitem__(self, i): return self.v + i\n    def __setitem__(self, i, x): self.v = i + x\n    def __contains__(self, x): return x == self.v\n    def __call__(self, x): return self.v * x\n    def __iter__(self): return iter(range(self.v))\n    def __hash__(self): return hash(self.v)\n    def __enter__(self):\n        print('enter'); return self\n    def __exit__(self, t, e, tb):\n        print('exit', t.__name__ if t else None); return True\na, b = A(1), A(2)\nprint(a, repr(a), [a], a == A(1), a != b, a < b, a + b, a + 1, 1 + a, a * 3, -a, abs(A(-1)), len(b), bool(A(0)), a[1], 1 in a, a(5), list(b), sorted([b, a]), sum([a, b], A(0)), {a: 1}[A(1)], A.count > 0)\na[1] = 2; print(a)\nwith A(1) as z:\n    print('in', z)\n    raise ValueError('swallowed')\nprint('after', hasattr(a, 'v'), getattr(a, 'q', 9), type(a).__name__, a.__class__.__name__, isinstance(a, A))\nsetattr(a, 'n', 1); print(a.n); delattr(a, 'n'); print(hasattr(a, 'n'), vars(A(3)), A(1).__dict__)\n",
+  "out": "a=1 A(1) [A(1)] True True True a=3 a=2 a=2 a=3 a=-1 a=1 2 False 2 True 5 [0, 1] [A(1), A(2)] a=3 1 True\na=3\nenter\nin a=1\nexit ValueError\nafter True 9 A A True\n1\nFalse {'v': 3} {'v': 1}\n",
+  "error": null
+ },
+ {
+  "name": "inheritance descriptors",
+  "code": "class Base:\n    kind = 'base'\n    def __init__(self, x): self.x = x\n    def who(self): return 'base'\n    def me(self): return self.who() + '!'\n    @staticmethod\n    def st(a): return a + 1\n    @classmethod\n    def make(cls, x): return cls(x)\n    @property\n    def double(self): return self.x * 2\n    @double.setter\n    def double(self, v): self.x = v / 2\nclass Child(Base):\n    kind = 'child'\n    def __init__(self, x, y):\n        super().__init__(x)\n        self.y = y\n    def who(self): return 'child+' + super().who()\n    @classmethod\n    def make(cls, x): return cls(x, 0)\nc = Child(1, 2)\nprint(c.me(), c.kind, Base.kind, c.x, c.y, Child.st(1), c.st(2), Child.make(5).x, c.double, isinstance(c, Base), issubclass(Child, Base), Child.__name__, Child.__mro__[1].__name__, Child.__bases__[0].__name__)\nc.double = 10; print(c.x)\nclass Mix:\n    def hi(self): return 'mix'\nclass D(Mix, Base): pass\nprint(D(1).hi(), D(1).who())\nclass G:\n    def __getattr__(self, n): return n.upper()\nprint(G().abc)\nclass Slots:\n    '''doc here'''\n    x: int = 1\n    y: str\nprint(Slots.__doc__, Slots.x, Slots.__annotations__['x'].__name__)\n",
+  "out": "child+base! child base 1 2 2 3 5 2 True True Child Base Base\n5.0\nmix base\nABC\ndoc here 1 int\n",
+  "error": null
+ },
+ {
+  "name": "decorators closures",
+  "code": "import functools\ndef deco(f):\n    @functools.wraps(f)\n    def w(*a, **k):\n        print('call', f.__name__)\n        return f(*a, **k)\n    return w\n@deco\ndef add(a, b=1):\n    '''adds'''\n    return a + b\nprint(add(1), add.__name__, add.__doc__)\ndef param(n):\n    def d(f):\n        def w(x): return f(x) * n\n        return w\n    return d\n@param(3)\ndef one(x): return x\nprint(one(2))\ncount = 0\ndef bump():\n    global count\n    count += 1\nbump(); bump(); print(count)\ndef counter():\n    n = 0\n    def inc():\n        nonlocal n\n        n += 1\n        return n\n    return inc\nc = counter(); c(); print(c())\nif (w := 5) > 3: print(w)\nprint([y for x in range(3) if (y := x * 2) > 0])\nfs = [lambda i=i: i for i in range(2)]\nprint([f() for f in fs])\n",
+  "out": "call add\n2 add adds\n6\n2\n2\n5\n[2, 4]\n[0, 1]\n",
+  "error": null
+ },
+ {
+  "name": "operators and literals",
+  "code": "print(1 << 3, 16 >> 2, 5 & 3, 5 | 3, 5 ^ 3, ~5, 7 // 2, -7 // 2, 7 % 3, -7 % 3, 2 ** 10, 2 ** -1, 7 / 2, 1e3, 1_000, 0xff, 0b11, 0o7, 1.5e-3)\nx = 1; x <<= 2; print(x); x >>= 1; print(x); x |= 1; print(x); x &= 2; print(x); x ^= 3; print(x); x **= 2; print(x); x //= 2; print(x); x %= 3; print(x)\nprint(1 < 2 < 3, 1 == 1.0, 1 is 1, None is None, not None, 1 if 0 else 2, 0 or 'x', 1 and 'y', [] or {}, 'a' 'b', [1, 2] + [3], [0] * 2, (1,) + (2,), [1, 2] == [1, 2], (1, 2) < (1, 3), [1] < [2], 'a' < 'b', [1, [2]] == [1, [2]])\nprint(0.1 + 0.2, 1 / 3, 1e100, 1e-7, 100.0, float('inf'), -float('inf'), float('nan'), 2 ** 0.5, 10 / 2, int(2.5), round(0.5), round(1.5), True + True, 3.0 // 2, 3.5 % 2)\n",
+  "out": "8 4 1 7 6 -6 3 -4 1 2 1024 0.5 3.5 1000.0 1000 255 3 7 0.0015\n4\n2\n3\n2\n1\n1\n0\n0\nTrue True True True True 2 x y {} ab [1, 2, 3] [0, 0] (1, 2) True True True True True\n0.30000000000000004 0.3333333333333333 1e+100 1e-07 100.0 inf -inf nan 1.4142135623730951 5.0 2 0 2 2 1.0 1.5\n",
+  "error": null
+ },
+ {
+  "name": "lists and tuples",
+  "code": "l = [3, 1, 2]\nl.append(4); l.extend([5]); l.insert(0, 9); print(l, l.pop(), l.pop(0), l.index(1), l.count(1))\nl.remove(1); l.reverse(); print(l); l.sort(); print(l); l.sort(key=lambda v: -v); print(l, l.copy()); l.clear(); print(l)\nm = [0, 1, 2, 3, 4]\nm[1:3] = [9]; print(m); m[::2] = [7, 7]; print(m); del m[0]; print(m); del m[1:2]; print(m); m += [1]; print(m); m *= 2; print(m)\nprint(m[-1], m[::-1], m[10:], m[:0], (1, 2, 1).count(1), (1, 2).index(2), tuple([1]), () == (), (1,), len((1, 2)), [[0] * 2 for _ in range(2)], [x * y for x in [1, 2] for y in [3] if x], [(a, b) for a in 'x' for b in 'yz'], {x: 1 for x in 'a'})\n",
+  "out": "[3, 1, 2, 4] 5 9 1 1\n[4, 2, 3]\n[2, 3, 4]\n[4, 3, 2] [4, 3, 2]\n[]\n[0, 9, 3, 4]\n[7, 9, 7, 4]\n[9, 7, 4]\n[9, 4]\n[9, 4, 1]\n[9, 4, 1, 9, 4, 1]\n1 [1, 4, 9, 1, 4, 9] [] [] 2 1 (1,) True (1,) 2 [[0, 0], [0, 0]] [3, 6] [('x', 'y'), ('x', 'z')] {'a': 1}\n",
+  "error": null
+ },
+ {
+  "name": "collections",
+  "code": "from collections import Counter, defaultdict, deque, namedtuple, OrderedDict\nc = Counter('hello')\nprint(c, c['l'], c['z'], c.most_common(1), c.most_common(), sorted(c), sum(c.values()), list(c.elements()))\nc.update('ll'); print(c['l']); c.subtract('l'); print(c['l'], c + Counter('z'), Counter(a=1) - Counter(a=2), Counter([1, 1]), Counter({'x': 2}), Counter())\nd = defaultdict(list)\nd['a'].append(1); d['b']; print(d, d['a'], len(d), dict(d), 'zz' in d)\ni = defaultdict(int); i['x'] += 1; print(i, defaultdict(lambda: 3)['y'])\nq = deque([1, 2, 3], maxlen=3); q.append(4); print(q, q[0], len(q), q.popleft()); q.appendleft(0); print(q, q.pop(), list(q), deque('ab'), q.maxlen)\nr = deque(range(5)); r.rotate(2); print(r); r.rotate(-1); print(r); r.extend([9]); r.extendleft([8, 7]); print(r, r.count(9), 9 in r)\nP = namedtuple('P', ['x', 'y'])\nQ = namedtuple('Q', 'a b', defaults=[5])\np = P(1, y=2)\nprint(p, p.x, p[1], p._asdict(), p._replace(x=9), P._fields, tuple(p), Q(1), len(p), p == (1, 2), type(p).__name__)\na, b = p; print(a, b)\no = OrderedDict(); o['a'] = 1; o['b'] = 2; o.move_to_end('a'); print(list(o), o.popitem(last=False), list(o.items()))\n",
+  "out": "Counter({'l': 2, 'h': 1, 'e': 1, 'o': 1}) 2 0 [('l', 2)] [('l', 2), ('h', 1), ('e', 1), ('o', 1)] ['e', 'h', 'l', 'o'] 5 ['h', 'e', 'l', 'l', 'o']\n4\n3 Counter({'l': 3, 'h': 1, 'e': 1, 'o': 1, 'z': 1}) Counter() Counter({1: 2}) Counter({'x': 2}) Counter()\ndefaultdict(<class 'list'>, {'a': [1], 'b': []}) [1] 2 {'a': [1], 'b': []} False\ndefaultdict(<class 'int'>, {'x': 1}) 3\ndeque([3, 4], maxlen=3) 2 3 2\ndeque([0, 3], maxlen=3) 4 [0, 3] deque(['a', 'b']) 3\ndeque([3, 4, 0, 1, 2])\ndeque([4, 0, 1, 2, 3])\ndeque([7, 8, 4, 0, 1, 2, 3, 9]) 1 True\nP(x=1, y=2) 1 2 {'x': 1, 'y': 2} P(x=9, y=2) ('x', 'y') (1, 2) Q(a=1, b=5) 2 True P\n1 2\n['b', 'a'] ('b', 2) [('a', 1)]\n",
+  "error": null
+ },
+ {
+  "name": "itertools",
+  "code": "from itertools import chain, product, permutations, combinations, combinations_with_replacement, count, repeat, cycle, islice, zip_longest, accumulate, groupby, starmap, takewhile, dropwhile, filterfalse, compress, pairwise, tee\nprint(list(chain([1], 'a')), list(chain.from_iterable([[1], [2]])), list(product('ab', [1])), list(product([0, 1], repeat=2)), list(permutations([1, 2, 3], 2)), list(permutations('ab')), list(combinations('abc', 2)), list(combinations_with_replacement('ab', 2)))\nprint(list(islice(count(5), 2)), list(islice(count(1, 2), 1, 3)), list(repeat('x', 2)), list(islice(cycle('ab'), 3)), list(islice(range(10), 2, 8, 3)), list(zip_longest('ab', [1], fillvalue=0)), list(accumulate([1, 2, 3])), list(accumulate([1, 2, 3], lambda a, b: a * b)), list(accumulate([1], initial=9)))\nprint([(k, list(g)) for k, g in groupby('aabbc')], [(k, list(g)) for k, g in groupby([1, 2, 3, 4], key=lambda v: v > 2)], list(starmap(pow, [(2, 3)])), list(takewhile(lambda v: v < 2, [1, 2, 1])), list(dropwhile(lambda v: v < 2, [1, 2, 1])), list(filterfalse(lambda v: v > 1, [1, 2])), list(compress('abc', [1, 0, 1])), list(pairwise('abc')))\na, b = tee([1, 2]); print(list(a), list(b))\n",
+  "out": "[1, 'a'] [1, 2] [('a', 1), ('b', 1)] [(0, 0), (0, 1), (1, 0), (1, 1)] [(1, 2), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2)] [('a', 'b'), ('b', 'a')] [('a', 'b'), ('a', 'c'), ('b', 'c')] [('a', 'a'), ('a', 'b'), ('b', 'b')]\n[5, 6] [3, 5] ['x', 'x'] ['a', 'b', 'a'] [2, 5] [('a', 1), ('b', 0)] [1, 3, 6] [1, 2, 6] [9, 10]\n[('a', ['a', 'a']), ('b', ['b', 'b']), ('c', ['c'])] [(False, [1, 2]), (True, [3, 4])] [8] [1] [2, 1] [1] ['a', 'c'] [('a', 'b'), ('b', 'c')]\n[1, 2] [1, 2]\n",
+  "error": null
+ },
+ {
+  "name": "functools operator",
+  "code": "from functools import reduce, partial, lru_cache, cache, cmp_to_key, total_ordering\nimport operator\nprint(reduce(lambda a, b: a + b, [1, 2, 3]), reduce(operator.mul, [2, 3], 10), partial(pow, 2)(3), partial(int, base=2)('11'), sorted([3, 1], key=cmp_to_key(lambda a, b: b - a)))\n@lru_cache(maxsize=None)\ndef fib(n): return n if n < 2 else fib(n - 1) + fib(n - 2)\nprint(fib(30))\n@cache\ndef sq(n):\n    print('computed', n)\n    return n * n\nprint(sq(2), sq(2))\n@total_ordering\nclass T:\n    def __init__(self, v): self.v = v\n    def __eq__(self, o): return self.v == o.v\n    def __lt__(self, o): return self.v < o.v\nprint(T(1) <= T(2), T(1) > T(2), T(1) >= T(1))\nprint(operator.add(1, 2), operator.itemgetter(1)([1, 2]), operator.itemgetter(0, 1)('ab'), operator.attrgetter('real')(1), sorted([(1, 'b'), (0, 'c')], key=operator.itemgetter(1)), operator.neg(1), operator.lt(1, 2), operator.contains([1], 1), operator.methodcaller('upper')('a'))\n",
+  "out": "6 60 8 3 [3, 1]\n832040\ncomputed 2\n4 4\nTrue False True\n3 2 ('a', 'b') 1 [(1, 'b'), (0, 'c')] -1 True True A\n",
+  "error": null
+ },
+ {
+  "name": "re",
+  "code": "import re\nprint(re.findall(r'\\d+', 'a1 b22'), re.findall(r'(\\w)=(\\d)', 'a=1 b=2'), re.findall(r'(\\d)x', '1x'), re.sub(r'\\s+', ' ', 'a   b'), re.sub(r'(\\w+) (\\w+)', r'\\2 \\1', 'a b'), re.sub('a', 'b', 'aaa', count=2), re.sub(r'\\d', lambda m: str(int(m.group()) + 1), 'a1'), re.split(r'[,;]', 'a,b;c'), re.split(r'(,)', 'a,b'), re.split(',', 'a,b,c', maxsplit=1), re.subn('a', 'b', 'aa'))\nm = re.match(r'(?P<y>\\d{4})-(\\d\\d)', '2024-05x')\nprint(m.group(), m.group(0), m.group(1), m.group('y'), m.groups(), m.groupdict(), m.span(), m.start(), m.end(), m[2], m.group(1, 2))\nprint(re.match('b', 'ab'), re.search('b', 'ab').start(), re.fullmatch('a+', 'aaa').group(), re.fullmatch('a', 'ab'), re.compile('A', re.I).search('xa').group(), re.search('a.b', 'a\\nb', re.S).group() == 'a\\nb', re.findall('^a', 'a\\na', re.M), re.escape('a.b'))\np = re.compile(r'\\b\\w')\nprint(p.findall('hi yo'), p.sub('X', 'hi'), p.pattern, [x.group() for x in p.finditer('a b')], bool(p.match('a')))\n",
+  "out": "['1', '22'] [('a', '1'), ('b', '2')] ['1'] a b b a bba a2 ['a', 'b', 'c'] ['a', ',', 'b'] ['a', 'b,c'] ('bb', 2)\n2024-05 2024-05 2024 2024 ('2024', '05') {'y': '2024'} (0, 7) 0 7 05 ('2024', '05')\nNone 1 aaa None a True ['a', 'a'] a\\.b\n['h', 'y'] Xi \\b\\w ['a', 'b'] True\n",
+  "error": null
+ },
+ {
+  "name": "json",
+  "code": "import json\ns = json.dumps({'a': [1, 2.5, None, True, 'x\"y'], 'b': {'c': (1, 2)}})\nprint(s, json.loads(s), json.dumps([1], indent=2), json.dumps({'b': 1, 'a': {'x': []}}, indent=2, sort_keys=True), json.dumps({'a': 1}, separators=(',', ':')), json.dumps('é'), json.dumps(1.0), json.loads('[1, 1.5, \"a\", null, false, {\"k\": {}}]'))\ntry:\n    json.loads('{bad')\nexcept json.JSONDecodeError as e:\n    print(type(e).__name__)\ntry:\n    json.dumps({1, 2})\nexcept TypeError as e:\n    print(e)\nprint(json.dumps({1: 'a', None: 'b', True: 'c'}), json.dumps({1, 2} and [1], default=str))\n",
+  "out": "{\"a\": [1, 2.5, null, true, \"x\\\"y\"], \"b\": {\"c\": [1, 2]}} {'a': [1, 2.5, None, True, 'x\"y'], 'b': {'c': [1, 2]}} [\n  1\n] {\n  \"a\": {\n    \"x\": []\n  },\n  \"b\": 1\n} {\"a\":1} \"\\u00e9\" 1.0 [1, 1.5, 'a', None, False, {'k': {}}]\nJSONDecodeError\nObject of type set is not JSON serializable\n{\"1\": \"c\", \"null\": \"b\"} [1]\n",
+  "error": null
+ },
+ {
+  "name": "statistics math",
+  "code": "import statistics as st, math\nprint(st.mean([1, 2, 3]), st.mean([1, 2]), st.median([1, 3, 2]), st.median([1, 2]), st.mode('aab'), st.multimode('aabb'), st.pstdev([1, 2, 3]), st.pvariance([1, 2, 3]), st.stdev([1, 2, 3]), st.variance([1, 2, 3]), st.median_low([1, 2]), st.median_high([1, 2]), st.fmean([1, 2]))\ntry:\n    st.mean([])\nexcept st.StatisticsError as e:\n    print(type(e).__name__, e)\nprint(math.floor(1.5), math.ceil(1.5), math.trunc(-1.5), math.sqrt(4), math.pi, math.e, math.inf, math.isnan(math.nan), math.isinf(math.inf), math.isfinite(1), math.gcd(12, 18), math.lcm(4, 6), math.factorial(5), math.comb(5, 2), math.perm(5, 2), math.prod([2, 3]), math.fsum([0.1] * 10), math.hypot(3, 4), math.log(math.e), math.log(8, 2), math.log2(8), math.log10(100), math.log1p(0), math.exp(0), math.expm1(0), math.pow(2, 3), math.fabs(-1), math.fmod(7, 3), math.copysign(1, -2), math.degrees(math.pi), math.radians(180), math.isclose(0.1 + 0.2, 0.3), math.isqrt(10), math.modf(1.5), math.frexp(8), math.ldexp(1, 3), math.dist([0, 0], [3, 4]))\nprint(round(math.sin(1), 10), round(math.cos(1), 10), round(math.tan(1), 10), round(math.asin(1), 10), round(math.acos(0), 10), round(math.atan(1), 10), round(math.atan2(1, 1), 10), round(math.sinh(1), 10), round(math.cosh(1), 10), round(math.tanh(1), 10), round(math.asinh(1), 10), round(math.acosh(2), 10), round(math.atanh(0.5), 10), round(math.erf(1), 10), round(math.erfc(1), 10), round(math.gamma(4.5), 8), round(math.lgamma(4.5), 8))\n",
+  "out": "2 1.5 2 1.5 a ['a', 'b'] 0.816496580927726 0.6666666666666666 1.0 1 1 2 1.5\nStatisticsError mean requires at least one data point\n1 2 -1 2.0 3.141592653589793 2.718281828459045 inf True True True 6 12 120 10 20 6 1.0 5.0 1.0 3.0 3.0 2.0 0.0 1.0 0.0 8.0 1.0 1.0 -1.0 180.0 3.141592653589793 True 3 (0.5, 1.0) (0.5, 4) 8.0 5.0\n0.8414709848 0.5403023059 1.5574077247 1.5707963268 1.5707963268 0.7853981634 0.7853981634 1.1752011936 1.5430806348 0.761594156 0.881373587 1.3169578969 0.5493061443 0.8427007929 0.1572992071 11.6317284 2.45373657\n",
+  "error": null
+ },
+ {
+  "name": "dataclasses",
+  "code": "from dataclasses import dataclass, field, asdict, astuple, replace, fields, is_dataclass\nfrom typing import List, Optional\n@dataclass\nclass P:\n    x: int\n    y: int = 2\n    tags: List[str] = field(default_factory=list)\n    z: Optional[int] = None\n    def norm(self): return self.x + self.y\np = P(1)\nprint(p, p.y, p.norm(), P(1, 3) == P(1, 3), P(1) == P(2), asdict(p), astuple(p), replace(p, x=5), is_dataclass(p), [f.name for f in fields(P)])\np.tags.append('a'); print(P(1).tags, p.tags)\n@dataclass(order=True)\nclass V:\n    a: int\n    b: int = 0\nprint(V(1) < V(2), sorted([V(2), V(1)]), V(1, 1) >= V(1, 0))\n@dataclass\nclass W(P):\n    w: int = 9\n    def __post_init__(self): self.w += 1\nprint(W(1), W(1).w)\ntry:\n    P()\nexcept TypeError as e:\n    print(e)\n",
+  "out": "P(x=1, y=2, tags=[], z=None) 2 3 True False {'x': 1, 'y': 2, 'tags': [], 'z': None} (1, 2, [], None) P(x=5, y=2, tags=[], z=None) True ['x', 'y', 'tags', 'z']\n[] ['a']\nTrue [V(a=1, b=0), V(a=2, b=0)] True\nW(x=1, y=2, tags=[], z=None, w=10) 10\nP.__init__() missing 1 required positional argument: 'x'\n",
+  "error": null
+ },
+ {
+  "name": "copy heapq bisect string os sys",
+  "code": "import copy, heapq, bisect, string, os, sys\na = [[1], {'k': [2]}]\nb = copy.copy(a); c = copy.deepcopy(a)\na[0].append(9); print(b, c, b[0] is a[0], c[0] is a[0])\nclass C:\n    def __init__(self): self.v = [1]\nx = C(); y = copy.deepcopy(x); y.v.append(2); z = copy.copy(x); print(x.v, y.v, z.v is x.v)\nh = [3, 1, 2]; heapq.heapify(h); heapq.heappush(h, 0); print(h, heapq.heappop(h), h, heapq.nlargest(2, [1, 3, 2]), heapq.nsmallest(1, [2, 1]), heapq.heappushpop(h, 9), heapq.heapreplace(h, 0), h, heapq.nlargest(1, ['a', 'bb'], key=len))\nl = [1, 3, 5]; print(bisect.bisect(l, 3), bisect.bisect_left(l, 3), bisect.bisect_right(l, 4)); bisect.insort(l, 4); print(l)\nprint(string.ascii_lowercase[:3], string.digits, string.ascii_uppercase[-1], string.punctuation[:3], len(string.ascii_letters))\nprint(os.path.join('a', 'b', 'c.txt'), os.path.join('a/', 'b'), os.path.join('a', '/b'), os.path.basename('a/b.txt'), os.path.dirname('a/b.txt'), os.path.splitext('a/b.tar.gz'), os.path.split('a/b'), os.sep)\nprint(sys.maxsize > 0, type(sys.argv).__name__, sys.version_info[0], sys.version_info.major)\nsys.stdout.write('w\\n')\nprint('no newline', end='|'); print('x', 'y', sep='-'); print(); print(1, 2, sep='')\n",
+  "out": "[[1, 9], {'k': [2]}] [[1], {'k': [2]}] True False\n[1] [1, 2] True\n[0, 3, 9] 0 [0, 3, 9] [3, 2] [1] 1 2 [0, 3, 9] ['bb']\n2 1 2\n[1, 3, 4, 5]\nabc 0123456789 Z !\"# 52\na/b/c.txt a/b /b b.txt a ('a/b.tar', '.gz') ('a', 'b') /\nTrue list 3 3\nw\nno newline|x-y\n\n12\n",
+  "error": null
+ },
+ {
+  "name": "raising uncaught",
+  "code": "def f():\n    raise KeyError('nope')\nf()\n",
+  "out": "",
+  "error": "KeyError"
+ },
+ {
+  "name": "raising type error",
+  "code": "len(1)\n",
+  "out": "",
+  "error": "TypeError"
+ },
+ {
+  "name": "raising arg count",
+  "code": "def f(a): pass\nf()\n",
+  "out": "",
+  "error": "TypeError"
+ },
+ {
+  "name": "raising arg unexpected",
+  "code": "def f(a): pass\nf(1, b=2)\n",
+  "out": "",
+  "error": "TypeError"
+ },
+ {
+  "name": "raising multiple values",
+  "code": "def f(a): pass\nf(1, a=2)\n",
+  "out": "",
+  "error": "TypeError"
+ },
+ {
+  "name": "raising name error",
+  "code": "print(undefined_name)\n",
+  "out": "",
+  "error": "NameError"
+ },
+ {
+  "name": "raising attr",
+  "code": "class A: pass\nA().x\n",
+  "out": "",
+  "error": "AttributeError"
+ },
+ {
+  "name": "raising stop",
+  "code": "next(iter([]))\n",
+  "out": "",
+  "error": "StopIteration"
+ },
+ {
+  "name": "raising assert",
+  "code": "assert 1 == 2, 'msg'\n",
+  "out": "",
+  "error": "AssertionError"
+ },
+ {
+  "name": "raising exit is quiet",
+  "code": "import sys\nprint('before')\nsys.exit(3)\nprint('after')\n",
+  "out": "before\n",
+  "error": null
+ },
+ {
+  "name": "language odds and ends",
+  "code": "class Node:\n    def __init__(self, v, nxt=None):\n        self.v, self.nxt = v, nxt\n    def __iter__(self):\n        n = self\n        while n:\n            yield n.v\n            n = n.nxt\nprint(list(Node(1, Node(2))), sum(Node(1, Node(2))), 2 in Node(1, Node(2)), max(Node(1, Node(2))), sorted(Node(2, Node(1))), tuple(Node(1)), set(Node(1)), dict(zip(Node(1), Node(2))))\nclass Seq:\n    def __getitem__(self, i):\n        if i > 2: raise IndexError\n        return i * 2\n    def __len__(self): return 3\nprint(list(Seq()), len(Seq()), [x for x in Seq()], 4 in Seq(), list(reversed(Seq())))\nclass It:\n    def __init__(self): self.i = 0\n    def __iter__(self): return self\n    def __next__(self):\n        self.i += 1\n        if self.i > 2: raise StopIteration\n        return self.i\nprint(list(It()), [a for a in It()], next(It()), sum(It()))\nfor a, b in zip(It(), It()): print(a, b)\ndef kw_only(*, a=1): return a\nprint(kw_only(a=2), kw_only())\nprint(print.__name__, len.__name__, kw_only.__name__, (lambda: 0).__name__, int.__name__, A.__name__ if False else 'x')\nprint(isinstance([], list), isinstance((), tuple), isinstance({}, dict), isinstance('', str), isinstance(1.0, float), isinstance(None, type(None)), isinstance(set(), set), isinstance(range(1), range), isinstance(print, object), isinstance(int, type), type(int).__name__)\nprint(str(None), str(True), str(1.0), str([1, 'a']), str((1,)), str({'a': 1}), str({1}), repr('it\\'s'), repr('a\"b'), repr('a\\nb'), repr('\\\\'), str(b'' if False else 'x'))\nprint(int('  3 '), int(-3.9), float(3), float(' 2.5 '), bool(''), bool('0'), bool([]), bool([0]), bool(None), list((1,)), list({'a': 1}), tuple({'a': 1}), set([1]), dict([(1, 2)]))\nprint([1, 2, 3][1:], [1, 2, 3][:-1], [1, 2, 3][::2], [1, 2, 3][-2:], 'abc'[-1], (1, 2, 3)[1:], list(range(10))[2:8:2], list(range(10, 0, -3)), range(10)[-1], len(range(0, 10, 3)), list(range(3))[::-1])\nprint(any([]), all([]), any([0, 1]), all([0, 1]), sum([]), sum([0.5, 1]), sum(range(4)), min(1, 2, 3), max('a', 'b'), max([1, 2], key=lambda v: -v), min([[1, 2], [0, 9]]), max({'a': 1, 'b': 0}), abs(-1.5), abs(True), round(-0.5), round(2.675, 2), round(1e20), round(5), hex(-1), bin(0), oct(-8), chr(8364), ord('€'))\nx = [1, 2, 3]\ny = x\ny.append(4)\nprint(x is y, x == y, x is not [1], id(x) == id(y), x.__len__(), 'abc'.__len__(), (1).__add__(2), [1].__contains__(1), 'a'.__add__('b'), {'a': 1}.__getitem__('a'))\na = b = 1\na += 1\nprint(a, b)\nt = 1, 2\nu, v = t\nu, v = v, u\nprint(t, u, v, (1), (1,), ())\nif not []: print('empty')\nif 0 < 1 and not 1 > 2 or False: print('logic')\nprint('yes' if [] else 'no', None or 0 or 'z', 1 and 2 and 3, not not 1)\nwhile True:\n    break\nfor _ in []: pass\ndef noreturn(): pass\nprint(noreturn(), (lambda x, y=2: x + y)(1), (lambda *a: a)(1, 2), (lambda **k: k)(a=1), [f(2) for f in [lambda v: v + 1, abs]])\ndef rec(n): return 1 if n <= 1 else n * rec(n - 1)\nprint(rec(10), rec(20))\nprint(sorted({'b': 1, 'a': 2}), sorted({'b': 1, 'a': 2}.items(), key=lambda kv: kv[1]), sorted([1, 2], key=None), sorted('aB', key=str.lower), sorted([3, 1, 2])[::-1], sorted((2, 1)), sorted({2, 1}), list(map(int, '12')), list(map(str.upper, 'ab')), [*map(abs, [-1])], list(zip()), list(zip([1])), dict(a=1, **{'b': 2}))\nprint(f'{1:>{3}}', f'{\"a\" + \"b\"}', f\"{'q'}\", f'{1 + 1 = }', f'{3.0}', f'{1e10}', f'{1/3:.3}', f'{100:e}', f'{1.5:g}', f'{1000000.0:g}', f'{-1:+}', f'{1:+}', f'{1: }', f'{255:#x}', f'{5:#b}', f'{8:#o}', f'{255:X}', f'{65:c}', f'{\"x\":*^5}', f'{1.5:08.3f}', f'{12345.678:,.2f}', f'{1234:_}', f'{True:d}', f'{None}')\nprint('%s %s' % (1, [2]), '%s' % 'x', '%d%%' % 5, '%.3f' % 1.5, '%5s|%-5s|' % ('a', 'b'), '%c' % 65, '%o' % 8, '%X' % 255, '%g' % 0.5, '%i' % 3, '%+d' % 1, '% d' % 1, '%r' % [1], '%s' % None, '%s' % (1,))\nprint('a,b'.split(','), ' a  b '.split(), 'abc'.split('x'), 'a b c'.split(' ', 1), 'aXbXc'.split('X', -1), ''.split(), ''.split(','), 'a\\n\\nb'.split('\\n'), 'x'.join('abc'), ''.join(['a']), ', '.join(map(str, [1, 2])), 'abcabc'.replace('a', ''), 'aaa'.replace('a', 'b', 1), 'abc'.find('z'), 'hello world'.title(), 'HeLLo'.swapcase(), 'abc'.isalpha(), ''.isalpha(), '1.5'.isdigit(), 'abc'.startswith('b', 1), 'abc'.endswith('b', 0, 2), 'abc'.encode().decode() if False else 'abc')\n",
+  "out": "[1, 2] 3 True 2 [1, 2] (1,) {1} {1: 2}\n[0, 2, 4] 3 [0, 2, 4] True [4, 2, 0]\n[1, 2] [1, 2] 1 3\n1 1\n2 2\n2 1\nprint len kw_only <lambda> int x\nTrue True True True True True True True True True type\nNone True 1.0 [1, 'a'] (1,) {'a': 1} {1} \"it's\" 'a\"b' 'a\\nb' '\\\\' x\n3 -3 3.0 2.5 False True False True False [1] ['a'] ('a',) {1} {1: 2}\n[2, 3] [1, 2] [1, 3] [2, 3] c (2, 3) [2, 4, 6] [10, 7, 4, 1] 9 4 [2, 1, 0]\nFalse True True False 0 1.5 6 1 b 1 [0, 9] b 1.5 1 0 2.67 100000000000000000000 5 -0x1 0b0 -0o10 € 8364\nTrue True True True 4 3 3 True ab 1\n2 1\n(1, 2) 2 1 1 (1,) ()\nempty\nlogic\nno z 3 True\nNone 3 (1, 2) {'a': 1} [3, 2]\n3628800 2432902008176640000\n['a', 'b'] [('b', 1), ('a', 2)] [1, 2] ['a', 'B'] [3, 2, 1] [1, 2] [1, 2] [1, 2] ['A', 'B'] [1] [] [(1,)] {'a': 1, 'b': 2}\n  1 ab q 1 + 1 = 2 3.0 10000000000.0 0.333 1.000000e+02 1.5 1e+06 -1 +1  1 0xff 0b101 0o10 FF A **x** 0001.500 12,345.68 1_234 1 None\n1 [2] x 5% 1.500     a|b    | A 10 FF 0.5 3 +1  1 [1] None 1\n['a', 'b'] ['a', 'b'] ['abc'] ['a', 'b c'] ['a', 'b', 'c'] [] [''] ['a', '', 'b'] axbxc a 1, 2 bcbc baa -1 Hello World hEllO True False False True True abc\n",
+  "error": null
+ }
+]
