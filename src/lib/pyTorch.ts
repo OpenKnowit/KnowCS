@@ -200,7 +200,7 @@ class GradFnObj extends PyObj {
   }
   repr() { return `<${this.cls} object>` }
   getAttr(name: string): Value | undefined {
-    if (name === 'name') return { k: 'fn', name, call: () => py.str(this.leaf ? `torch::autograd::${this.cls}` : this.cls) }
+    if (name === 'name') return { k: 'fn', name, call: () => py.str(this.leaf || this.cls === 'NotImplemented' ? `torch::autograd::${this.cls}` : this.cls) }
     if (name === 'variable' && this.leaf) return wrap(this.leaf)
     if (name === 'next_functions') {
       const n = this.node
@@ -848,7 +848,10 @@ export class TensorObj extends PyObj {
         const unbiased = args[0]?.k === 'bool' ? args[0] : (kw.unbiased ?? args[1])
         const corr = kw.correction ? h.num(kw.correction) : unbiased && !h.truthy(unbiased) ? 0 : 1
         const out = C.variance(E, t, dimsArg(h, first ?? undefined), flagOf(h, kw.keepdim ?? args[2]), corr, name === 'std')
-        if (out.fn) out.fn.name = name === 'std' ? 'StdBackward0' : 'VarBackward0'
+        if (out.fn) {
+          out.fn.name = name === 'std' ? 'StdBackward0' : 'VarBackward0'
+          out.fn.keeps = [t, t.version]
+        }
         return wrap(out)
       })
       case 'max': case 'min': return fn((args, kw) => maxMin(h, name, t, kw.dim ?? args[0], kw.keepdim ?? args[1], self))
@@ -1780,7 +1783,7 @@ const METHODS: Record<string, TMethod> = {
   ...Object.fromEntries(Object.entries(UNARY).map(([name, [f, df, grad, keepInt]]): [string, TMethod] => [name, ['', (c) => done(c, C.mapT(c.E, c.t, f, df, grad, keepInt), 'elementwise')]])),
   round: ['decimals', (c) => {
     const d = intArg(c, 'decimals', 0)
-    return done(c, C.mapT(c.E, c.t, (v) => roundHalfEvenT(v, d), null, 'RoundBackward0', true), 'elementwise')
+    return done(c, C.mapT(c.E, c.t, (v) => roundHalfEvenT(v, d), null, c.a.decimals ? 'RoundBackward1' : 'RoundBackward0', true), 'elementwise')
   }],
   neg: ['', (c) => done(c, C.unary(c.E, 'neg', c.t), 'elementwise')],
   negative: ['', (c) => done(c, C.unary(c.E, 'neg', c.t), 'elementwise')],
@@ -2361,6 +2364,7 @@ const METHODS: Record<string, TMethod> = {
     const peak = dims.reduce((x, d) => C.extremeT({ grad: false } as Engine, x, [d], true, false, 'AmaxBackward0'), t)
     const inner = C.reduceSum(E, C.unary(E, 'exp', C.binary(E, '-', t, peak)), dims, keep, false)
     const out = C.binary(E, '+', C.unary(E, 'log', inner), keep ? peak : C.reshapeT({ grad: false } as Engine, peak, inner.shape, false))
+    if (out.fn) out.fn.keeps = [t, t.version]
     return done(c, named2(out, 'LogsumexpBackward0'), 'reduce', reduceAxis(c, dims))
   }],
   cummax: ['dim!', (c) => cumExtreme(c, false)],
@@ -4460,8 +4464,6 @@ const paramOf = (h: Host, v: Value): TT => {
 }
 
 const paramLine = (t: TT, name: string) => `Parameter containing: [${name} of size ${t.shape.join('x')}]`
-/** ParameterList and ParameterDict print through extra_repr, one line of which goes inline */
-const paramRepr = (kind: string, lines: string[]) => (lines.length === 1 ? `${kind}(${lines[0]})` : lines.length ? `${kind}(\n  ${lines.join('\n  ')}\n)` : `${kind}()`)
 
 class ParameterList extends Layer {
   readonly kind = 'ParameterList'
@@ -4476,7 +4478,7 @@ class ParameterList extends Layer {
     })
   }
   ownParams(): [string, TT][] { return this.items.map((t, i) => [String(i), t]) }
-  repr() { return paramRepr('ParameterList', this.items.map((t, i) => `  (${i}): ${paramLine(t, `torch.${t.dtype}`)}`)) }
+  extraRepr() { return this.items.map((t, i) => `  (${i}): ${paramLine(t, `torch.${t.dtype}`)}`).join('\n') }
   len() { return this.items.length }
   iter() { return this.items.map(wrap) }
   getItem(idx: Value, h: Host) {
@@ -4502,7 +4504,7 @@ class ParameterDict extends Layer {
   readonly kind = 'ParameterDict'
   items = new Map<string, TT>()
   ownParams(): [string, TT][] { return [...this.items] }
-  repr() { return paramRepr('ParameterDict', [...this.items].map(([k, t]) => `  (${k}): ${paramLine(t, `torch.${C.typeLabel(t.dtype)}Tensor`)}`)) }
+  extraRepr() { return [...this.items].map(([k, t]) => `  (${k}): ${paramLine(t, `torch.${C.typeLabel(t.dtype)}Tensor`)}`).join('\n') }
   len() { return this.items.size }
   iter() { return [...this.items.keys()].map(py.str) }
   contains(v: Value) { return v.k === 'str' && this.items.has(v.v) }
@@ -4742,9 +4744,11 @@ interface CeOpts { weight: TT | null; ignore: number; smoothing: number; red: C.
 /** cross entropy with its options, and with extra dimensions after the class dimension: (N, C, d…) against (N, d…) */
 const ceFull = (h: Host, x: TT, y: TT, o: CeOpts): TT => {
   const E = stateOf(h).E
+  if (!isFloatT(x.dtype)) throw h.err('NotImplementedError', `"log_softmax_lastdim_kernel_impl" not implemented for '${C.typeLabel(x.dtype)}'`)
   if (o.smoothing < 0 || o.smoothing > 1) throw h.err('RuntimeError', `label_smoothing must be between 0.0 and 1.0. Got: ${o.smoothing}`)
-  const probs = isFloatT(y.dtype)
+  const probs = isFloatT(y.dtype) && y.shape.join() === x.shape.join()
   if (x.ndim > 2) {
+    if (!probs && y.shape.join() !== [x.shape[0], ...x.shape.slice(2)].join()) throw h.err('RuntimeError', `Expected target size [${[x.shape[0], ...x.shape.slice(2)].join(', ')}], got [${y.shape.join(', ')}]`)
     const toEnd = (t: TT) => C.reshapeT(E, C.permuteT(E, t, [0, ...t.shape.slice(2).map((_, k) => k + 2), 1]), [-1, x.shape[1]], false)
     const per = ceFull(h, toEnd(x), probs ? toEnd(y) : C.reshapeT(E, y, [-1], false), o)
     return o.red === 'none' ? C.reshapeT(E, per, [x.shape[0], ...x.shape.slice(2)], false) : per
@@ -4764,12 +4768,15 @@ const ceFull = (h: Host, x: TT, y: TT, o: CeOpts): TT => {
 /** nll_loss with the same options, on log-probabilities */
 const nllFull = (h: Host, lp: TT, y: TT, o: CeOpts): TT => {
   const E = stateOf(h).E
+  if (!isFloatT(lp.dtype)) throw h.err('NotImplementedError', `"nll_loss_out_frame" not implemented for '${C.typeLabel(lp.dtype)}'`)
   if (lp.ndim > 2) {
+    if (y.shape.join() !== [lp.shape[0], ...lp.shape.slice(2)].join()) throw h.err('RuntimeError', `Expected target size [${[lp.shape[0], ...lp.shape.slice(2)].join(', ')}], got [${y.shape.join(', ')}]`)
     const per = nllFull(h, C.reshapeT(E, C.permuteT(E, lp, [0, ...lp.shape.slice(2).map((_, k) => k + 2), 1]), [-1, lp.shape[1]], false), C.reshapeT(E, y, [-1], false), o)
     return o.red === 'none' ? C.reshapeT(E, per, [lp.shape[0], ...lp.shape.slice(2)], false) : per
   }
   if (!o.weight && o.ignore === -100) return C.nllLoss(E, lp, y, o.red)
-  if (isFloatT(y.dtype)) throw h.err('RuntimeError', `expected scalar type Long but found ${C.typeLabel(y.dtype)}`)
+  C.checkClassTarget(lp, y)
+  if (isFloatT(y.dtype)) throw h.err('RuntimeError', `expected target dtype to be Long or Byte, but got ${C.typeLabel(y.dtype)}`)
   const out = C.weightedNll(E, lp, y, o.weight ? o.weight.values() : null, o.ignore, 0, o.red)
   if (out.fn) out.fn.name = 'NllLossBackward0'
   return out
@@ -6915,7 +6922,7 @@ const build = (h: Host): Record<string, Value> => {
     LazyLinear: layer('LazyLinear', 'out_features bias=True', (a) => new LazyLinear(h, h.toInt(a.out_features!), bool(a.bias, true))),
     TransformerDecoderLayer: layer('TransformerDecoderLayer', "d_model nhead dim_feedforward=2048 dropout=0.1 activation='relu' layer_norm_eps=1e-05 batch_first=False norm_first=False bias=True", (a) => new TransformerDecoderLayer(h, a, nnBuilt)),
     TransformerDecoder: layer('TransformerDecoder', 'decoder_layer num_layers norm=None', (a) => new TransformerDecoder(a.decoder_layer!, h.toInt(a.num_layers!), isNone(a.norm) ? null : a.norm!)),
-    Parameter: { k: 'type', name: 'Parameter', call: (args, kw) => {
+    Parameter: { k: 'type', name: 'Parameter', parents: ['Tensor'], call: (args, kw) => {
       const v = args[0] ?? kw.data
       const src = v ? tensorArg(h, v, 'Parameter', 'data') : TT.of([], [0], C.DEFAULTS.float)
       // shares memory with the tensor it wraps, as in PyTorch
@@ -6928,6 +6935,7 @@ const build = (h: Host): Record<string, Value> => {
     Buffer: { k: 'type', name: 'Buffer', call: (args, kw) => py.obj(new BufferMark(tensorArg(h, args[0] ?? kw.data, 'Buffer', 'data'), flagOf(h, kw.persistent, true))) },
   }
   /** what TransformerEncoderLayer builds its children from */
+  for (const v of Object.values(nnAttrs)) if (v.k === 'type' && v.name !== 'Parameter' && v.name !== 'Module') v.parents = ['Module']
   const nnBuilt = (name: string, args: Value[], kw: Kw = {}): Value => h.call(nnAttrs[name], args, kw)
 
   const rrelu = (x: TT, lo: number, hi: number, training: boolean): TT => {
@@ -7140,7 +7148,9 @@ const build = (h: Host): Record<string, Value> => {
       const x = tensorArg(h, a.input, 'linear')
       const w = tensorArg(h, a.weight, 'linear', 'weight', 2)
       if (x.dtype !== w.dtype) throw h.err('RuntimeError', `mat1 and mat2 must have the same dtype, but got ${C.typeLabel(x.dtype)} and ${C.typeLabel(w.dtype)}`)
-      return wrap(C.linear(E, x, w, isNone(a.bias) ? null : asTT(a.bias!)))
+      const out = C.linear(E, x, w, isNone(a.bias) ? null : asTT(a.bias!))
+      if (out.fn && x.ndim === 1) out.fn.name = isNone(a.bias) ? 'SqueezeBackward4' : 'ViewBackward0'
+      return wrap(out)
     }),
     bilinear: fnv('bilinear', (args, kw) => {
       const a = bindPy(h, 'bilinear', 'input1 input2 weight bias=None', args, kw)
@@ -7945,7 +7955,7 @@ const build = (h: Host): Record<string, Value> => {
   })
   const LOADER = 'dataset batch_size=1 shuffle=None sampler=None batch_sampler=None num_workers=0 collate_fn=None pin_memory=False drop_last=False timeout=0 worker_init_fn=None multiprocessing_context=None generator=None * prefetch_factor=None persistent_workers=False pin_memory_device=\'\' in_order=True'
   const utilsData: Record<string, Value> = {
-    TensorDataset: { k: 'type', name: 'TensorDataset', call: (args) => {
+    TensorDataset: { k: 'type', name: 'TensorDataset', parents: ['Dataset'], call: (args) => {
       const ts = args.map((a) => T(a, 'TensorDataset'))
       if (ts.some((t) => t.shape[0] !== ts[0].shape[0])) throw h.err('AssertionError', 'Size mismatch between tensors')
       return py.obj(new TensorDataset(ts))
@@ -7981,19 +7991,19 @@ const build = (h: Host): Record<string, Value> => {
     } },
     Dataset,
     IterableDataset,
-    Subset: { k: 'type', name: 'Subset', call: (args, kw) => {
+    Subset: { k: 'type', name: 'Subset', parents: ['Dataset'], call: (args, kw) => {
       const a = bindPy(h, 'Subset.__init__', 'dataset indices', args, kw)
       return py.obj(new Subset(a.dataset!, h.iterate(a.indices!).map((v) => h.toInt(v))))
     } },
-    ConcatDataset: { k: 'type', name: 'ConcatDataset', call: (args, kw) => {
+    ConcatDataset: { k: 'type', name: 'ConcatDataset', parents: ['Dataset'], call: (args, kw) => {
       const a = bindPy(h, 'ConcatDataset.__init__', 'datasets', args, kw)
       const parts = [...h.iterate(a.datasets!)]
       if (!parts.length) throw h.err('AssertionError', 'datasets should not be an empty iterable')
       if (parts.some(isIterableDataset)) throw h.err('AssertionError', 'ConcatDataset does not support IterableDataset')
       return py.obj(new ConcatDataset(parts))
     } },
-    ChainDataset: { k: 'type', name: 'ChainDataset', call: (args, kw) => py.obj(new ChainDataset([...h.iterate(bindPy(h, 'ChainDataset.__init__', 'datasets', args, kw).datasets!)])) },
-    StackDataset: { k: 'type', name: 'StackDataset', call: (args, kw) => {
+    ChainDataset: { k: 'type', name: 'ChainDataset', parents: ['IterableDataset', 'Dataset'], call: (args, kw) => py.obj(new ChainDataset([...h.iterate(bindPy(h, 'ChainDataset.__init__', 'datasets', args, kw).datasets!)])) },
+    StackDataset: { k: 'type', name: 'StackDataset', parents: ['Dataset'], call: (args, kw) => {
       const named = Object.keys(kw)
       if (args.length && named.length) throw h.err('ValueError', 'Supported either ``tuple``- (via ``args``) or ``dict``- (via ``kwargs``) like input/output, but both types are given.')
       if (!args.length && !named.length) throw h.err('ValueError', 'At least one dataset should be passed')

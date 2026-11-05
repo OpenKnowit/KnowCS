@@ -9,14 +9,17 @@ const NUMBER = /[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?/g
 
 const close = (got: string, want: string): boolean => {
   if (got === want) return true
-  // the sign of noise around zero moves a column's padding
-  const skeleton = (t: string) => t.replace(NUMBER, '#').replace(/ +#/g, '#')
-  if (skeleton(got) !== skeleton(want)) return false
+  const exact = (t: string) => t.replace(NUMBER, '#')
+  const loose = (t: string) => exact(t).replace(/ +#/g, '#')
+  if (loose(got) !== loose(want)) return false
   const [a, b] = [got.match(NUMBER) ?? [], want.match(NUMBER) ?? []]
-  return a.every((text, i) => {
+  const near = a.every((text, i) => {
     const [x, y] = [Number(text), Number(b[i])]
     return Math.abs(x - y) <= 2e-6 || Math.abs(x - y) <= 4e-6 * Math.abs(y)
   })
+  if (!near) return false
+  // a column's padding may move only when noise around zero changed a sign
+  return exact(got) === exact(want) || a.some((text, i) => text.startsWith('-') !== b[i].startsWith('-'))
 }
 
 /*
@@ -26,7 +29,7 @@ const close = (got: string, want: string): boolean => {
  * - NUMPY_SCALAR: NumPy scalars print as plain numbers everywhere in the sandbox, not np.float32(...).
  */
 const NO_OVERLOAD = /(received an invalid combination of arguments - got \(.*?\), but expected)[^]*$/
-const SANDBOX_SUFFIX = / \((or it is )?not available in this sandbox\)$/
+const SANDBOX_SUFFIX = / \((or it is )?not available in this sandbox\)$/gm
 const NUMPY_SCALAR = /np\.(?:float32|float64|int64)\(([^)]*)\)/g
 
 const normal = (s: string) => s.replace(NO_OVERLOAD, '$1').replace(SANDBOX_SUFFIX, '').replace(NUMPY_SCALAR, '$1')

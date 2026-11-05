@@ -57,6 +57,8 @@ export interface GradNode {
   freed: boolean
   /** each input's version when this node was recorded: an in-place op later on must not change what this node meant */
   versions?: number[]
+  /** the input of a step built from smaller ones (std, var), whose gradient reads it again; with its version then */
+  keeps?: [TT, number]
   /** the same step on tensors, itself recorded: what create_graph=True runs. Absent where the sandbox has no such rule */
   dual?: (g: TT) => (TT | null)[]
 }
@@ -1003,8 +1005,17 @@ export type Reduction = 'mean' | 'sum' | 'none'
 
 const reduceLoss = (E: Engine, per: TT, reduction: Reduction): TT => (reduction === 'none' ? per : reduceSum(E, per, null, false, reduction === 'mean'))
 
+/** PyTorch's first checks on class indices, in its order */
+export const checkClassTarget = (input: TT, target: TT): void => {
+  const batch = target.ndim ? target.shape[0] : 0
+  if (input.ndim === 2 && batch !== input.shape[0]) throw err('ValueError', `Expected input batch_size (${input.shape[0]}) to match target batch_size (${batch}).`)
+  if (input.ndim === 1 && target.ndim === 1 && target.shape[0] !== 1) throw err('ValueError', `For 1D input, 1D target must have size 1, but got target size: ${target.shape[0]}`)
+  if (target.ndim > 1) throw err('RuntimeError', '0D or 1D target tensor expected, multi-target not supported')
+}
+
 /** negative log-likelihood of class indices, input = log-probabilities (N, C) or (C) */
 export function nllLoss(E: Engine, logp: TT, target: TT, reduction: Reduction = 'mean'): TT {
+  checkClassTarget(logp, target)
   if (target.dtype !== 'int64' && target.dtype !== 'uint8') throw err('RuntimeError', `expected target dtype to be Long or Byte, but got ${typeLabel(target.dtype)}`)
   const lp = logp.ndim === 1 ? reshapeT({ grad: false } as Engine, logp, [1, logp.shape[0]], false) : logp
   const [N, C] = lp.shape
@@ -1046,7 +1057,9 @@ export function mseLoss(E: Engine, a: TT, b: TT, reduction: Reduction = 'mean', 
   const bv = b.values()
   const per = av.map((x, i) => (x - bv[i]) ** 2)
   const n = per.length
-  const res = reduction === 'none' ? TT.of(per, a.shape, a.dtype) : TT.of([per.reduce((s, v) => s + v, 0) / (reduction === 'mean' ? n : 1)], [], a.dtype)
+  const dt = promote(a.dtype, b.dtype)
+  if (!isFloatT(dt)) throw err('NotImplementedError', `"mse_cpu" not implemented for '${typeLabel(dt)}'`)
+  const res = reduction === 'none' ? TT.of(per, a.shape, dt) : TT.of([per.reduce((s, v) => s + v, 0) / (reduction === 'mean' ? n : 1)], [], dt)
   return record(E, res, 'MseLossBackward0', [a, b], (g) => {
     const scale = (i: number) => (reduction === 'none' ? g[i] : g[0] / (reduction === 'mean' ? n : 1))
     const ga = av.map((x, i) => 2 * (x - bv[i]) * scale(i))
@@ -1058,11 +1071,17 @@ export function bce(E: Engine, p: TT, y: TT, logits: boolean, reduction: Reducti
   if (p.shape.join() !== y.shape.join()) throw err('ValueError', logits ? `Target size (torch.Size([${y.shape.join(', ')}])) must be the same as input size (torch.Size([${p.shape.join(', ')}]))` : `Using a ${sizeMsg(p, y)} is deprecated. Please ensure they have the same size.`)
   const pv = p.values()
   const yv = y.values()
+  if (!logits && y.dtype !== p.dtype) throw err('RuntimeError', `Found dtype ${typeLabel(y.dtype)} but expected ${typeLabel(p.dtype)}`)
+  if (logits && !isFloatT(p.dtype)) throw err('NotImplementedError', `"log_sigmoid_cpu" not implemented for '${typeLabel(p.dtype)}'`)
+  if (logits && y.dtype === 'bool') throw err('NotImplementedError', 'Subtraction, the `-` operator, with two bool tensors is not supported. Use the `^` or `logical_xor()` operator instead.')
+  if (logits && !isFloatT(y.dtype)) throw err('RuntimeError', `result type ${typeLabel(p.dtype)} can't be cast to the desired output type ${typeLabel(y.dtype)}`)
   if (!logits && pv.some((v) => v < 0 || v > 1)) throw err('RuntimeError', 'all elements of input should be between 0 and 1')
   const eps = (v: number) => Math.max(-100, Math.log(v))
   const per = pv.map((v, i) => (logits ? Math.max(v, 0) - v * yv[i] + Math.log1p(Math.exp(-Math.abs(v))) : -(yv[i] * eps(v) + (1 - yv[i]) * eps(1 - v))))
   const n = per.length
-  const res = reduction === 'none' ? TT.of(per, p.shape, p.dtype) : TT.of([per.reduce((s, v) => s + v, 0) / (reduction === 'mean' ? n : 1)], [], p.dtype)
+  // with logits, the result takes the target's type
+  const dt = logits ? y.dtype : p.dtype
+  const res = reduction === 'none' ? TT.of(per, p.shape, dt) : TT.of([per.reduce((s, v) => s + v, 0) / (reduction === 'mean' ? n : 1)], [], dt)
   return record(E, res, logits ? 'BinaryCrossEntropyWithLogitsBackward0' : 'BinaryCrossEntropyBackward0', [p, y], (g) => {
     const scale = (i: number) => (reduction === 'none' ? g[i] : g[0] / (reduction === 'mean' ? n : 1))
     return [pv.map((v, i) => (logits ? 1 / (1 + Math.exp(-v)) - yv[i] : (v - yv[i]) / Math.max(v * (1 - v), 1e-12)) * scale(i)), null]
@@ -1071,22 +1090,34 @@ export function bce(E: Engine, p: TT, y: TT, logits: boolean, reduction: Reducti
 
 // ---------------------------------------------------------------- backward
 
-const FN_LABEL: Record<string, string> = { AddBackward0: 'Add', SubBackward0: 'Sub', MulBackward0: 'Mul', DivBackward0: 'Div', PowBackward0: 'Pow', PowBackward1: 'Pow' }
+const FN_LABEL: Record<string, string> = { AsStridedBackward0: 'AsStrided', AddBackward0: 'Add', SubBackward0: 'Sub', MulBackward0: 'Mul', DivBackward0: 'Div', PowBackward0: 'Pow', PowBackward1: 'Pow' }
+
+/**
+ * What real PyTorch does when a value is overwritten after one of these used it: their gradients read the input again.
+ * exp, sqrt, tan, tanh, sigmoid, relu, softmax and the rest read their output instead, so overwriting the input does no harm.
+ */
+const KEEPS_INPUT = /^(Pow|Log|Log2|Log10|Log1P|Sin|Cos|Sinh|Cosh|Asinh|Acosh|Abs|Atan|Asin|Acos|Erf|Erfc|Lgamma|Digamma|Logit|Gelu|Elu|Celu|Silu|Mish|Softplus|Hardtanh|Hardswish|Hardsigmoid|LogSigmoid|LeakyRelu|Threshold|Clamp|LinalgVectorNorm|Std|Var|Prod|Cumprod|Amax|Amin|Median|Logsumexp|MseLoss|SmoothL1Loss|HuberLoss|NllLoss|BinaryCrossEntropy|BinaryCrossEntropyWithLogits|Atan2|Maximum|Minimum|Hypot)Backward\d$|^(Max|Min)Backward1$/
 
 /** nodes whose gradient needs an input's value: PyTorch refuses if that value has been overwritten since */
 const checkSaved = (n: GradNode): void => {
-  const both = /^(Mul|Div|Pow)Backward/.test(n.name)
-  const one = /^(Log|Sin|Cos|Abs|Atan|Asin|Acos|Tan)\d*Backward/.test(n.name)
-  if (!both && !one) return
+  const refuse = (x: TT, now: number, was: number, name?: string): never => {
+    const output = name ? `, which is output 0 of ${FN_LABEL[name] ?? name.replace(/Backward\d*$/, '')},` : ''
+    throw err('RuntimeError', `one of the variables needed for gradient computation has been modified by an inplace operation: [torch.${typeLabel(x.dtype)}Tensor [${x.shape.join(', ')}]]${output} is at version ${now}; expected version ${was} instead. Hint: enable anomaly detection to find the operation that failed to compute its gradient, with torch.autograd.set_detect_anomaly(True, check_nan=False).`)
+  }
+  if (n.keeps && n.keeps[0].version !== n.keeps[1]) refuse(n.keeps[0], n.keeps[0].version, n.keeps[1], n.keeps[0].fn?.name)
+  const product = /^(Mul|Dot|Mv|Mm|Bmm|Addmm)Backward/.test(n.name)
+  const div = /^DivBackward/.test(n.name)
+  if (!product && !div && !KEEPS_INPUT.test(n.name)) return
   n.inputs.forEach((x, i) => {
-    if (!x || !n.versions || x.version === n.versions[i]) return
-    // a product keeps an operand only if the other one needs its gradient
+    if (!x || !n.versions) return
+    // a view shares its base's memory: writing to the base has overwritten what this input held
+    const viaBase = !!x.base && x.baseVersion !== x.base.version
+    if (x.version === n.versions[i] && !viaBase) return
+    // a product keeps an operand only if the other one needs its gradient; a division always keeps what it divides by
     const other = n.inputs[1 - i]
-    if (both && !(other?.requiresGrad)) return
-    const made = inputOf(n, i)?.fn?.name
-    const was = x.fn?.name ?? made
-    const output = was ? `, which is output 0 of ${FN_LABEL[was] ?? was.replace(/Backward\d*$/, '')},` : ''
-    throw err('RuntimeError', `one of the variables needed for gradient computation has been modified by an inplace operation: [torch.${typeLabel(x.dtype)}Tensor [${x.shape.join(', ')}]]${output} is at version ${x.version}; expected version ${n.versions[i]} instead. Hint: enable anomaly detection to find the operation that failed to compute its gradient, with torch.autograd.set_detect_anomaly(True, check_nan=False).`)
+    if ((product || (div && i === 0)) && !other?.requiresGrad) return
+    if (viaBase) refuse(x, x.base!.version, x.baseVersion!, 'AsStridedBackward0')
+    refuse(x, x.version, n.versions[i], x.fn?.name ?? inputOf(n, i)?.fn?.name)
   })
 }
 
@@ -2235,7 +2266,11 @@ export function embeddingT(E: Engine, w: TT, idx: TT, paddingIdx: number | null,
 export function weightedNll(E: Engine, lp: TT, target: TT, weight: number[] | null, ignore: number, smoothing: number, reduction: Reduction): TT {
   const [N, Cl] = lp.ndim === 1 ? [1, lp.shape[0]] : lp.shape
   const tv = target.values()
-  const probs = isFloatT(target.dtype)
+  const probs = isFloatT(target.dtype) && target.shape.join() === lp.shape.join()
+  if (!probs) {
+    checkClassTarget(lp, target)
+    if (target.dtype !== 'int64' && target.dtype !== 'uint8') throw err('RuntimeError', `expected target dtype to be Long or Byte, but got ${typeLabel(target.dtype)}`)
+  }
   const q = new Array<number>(N * Cl).fill(0)
   let denom = probs ? N : 0
   for (let n = 0; n < N; n++) {
@@ -2259,7 +2294,10 @@ export function weightedNll(E: Engine, lp: TT, target: TT, weight: number[] | nu
 export function pointLoss(E: Engine, a: TT, b: TT, f: (d: number) => number, df: (d: number) => number, name: string, reduction: Reduction): TT {
   const per = mapT(E, binary(E, '-', a, b), f, df, name)
   const out = reduceLoss(E, per, reduction)
-  if (out.fn) out.fn.name = name
+  if (out.fn) {
+    out.fn.name = name
+    out.fn.keeps = [a, a.version]
+  }
   return out
 }
 

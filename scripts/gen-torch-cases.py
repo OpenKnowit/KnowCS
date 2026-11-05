@@ -10,6 +10,7 @@ import io
 import json
 import os
 import pathlib
+import re
 import sys
 import tempfile
 import types
@@ -84,7 +85,8 @@ with tempfile.TemporaryDirectory() as tmp:
         finally:
             sys.modules['__main__'] = real_main
             torch.set_grad_enabled(True)
-        cases.append({'src': code, 'out': buf.getvalue(), 'error': error})
+        # memory addresses change every run, and the sandbox does not make any up
+        cases.append({'src': code, 'out': re.sub(r' at 0x[0-9a-f]+', '', buf.getvalue()), 'error': error})
 out = here.parent / 'src/lib/pyTorchCases.json'
 with open(out, 'w') as f:
     json.dump({'torch': torch.__version__, 'cases': cases}, f, ensure_ascii=False, indent=0)

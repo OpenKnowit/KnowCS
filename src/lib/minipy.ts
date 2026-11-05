@@ -1041,6 +1041,27 @@ class Parser {
 
 export const parse = (src: string): Stmt[] => new Parser(tokenize(src)).program()
 
+/** the text given to eval() or exec(), every line of it counted as the line that called it */
+const parseText = (src: string, mode: 'eval' | 'exec', line: number): Node | Stmt[] => {
+  const read = (toks: Tok[]): Node | Stmt[] => {
+    const p = new Parser(toks)
+    if (mode === 'exec') return p.program()
+    const x = p.testList()
+    while (p.cur.t === 'nl') p.next()
+    if (p.cur.t !== 'eof') throw syntaxError('invalid syntax', p.cur.line)
+    return x
+  }
+  const text = mode === 'eval' ? src.trimStart() : src
+  try {
+    read(tokenize(text))
+  } catch (e) {
+    // CPython's wording for most of these; its finer messages ('(' was never closed …) are not reproduced
+    if (e instanceof PyError && e.pyType === 'SyntaxError') throw new PyError('SyntaxError', `invalid syntax (<string>, line ${e.line ?? 1})`, line)
+    throw e
+  }
+  return read(tokenize(text).map((t) => ({ ...t, line })))
+}
+
 // ================= 运行时值 =================
 
 export type Fn = (args: Value[], kw: Record<string, Value>) => Value
@@ -1117,7 +1138,7 @@ export type Value =
   | { k: 'array'; a: NDArray }
   /** bindable: acts as a method when stored in a class (functools.lru_cache …) */
   | { k: 'fn'; name: string; call: Fn; api?: ApiMeta; self?: NDArray; rebind?: (self: NDArray) => Fn; bindable?: boolean; attrs?: Map<string, Value> }
-  | { k: 'type'; name: string; call: Fn; dtype?: DType; api?: ApiMeta; host?: HostClass; attrs?: Map<string, Value> }
+  | { k: 'type'; name: string; call: Fn; dtype?: DType; api?: ApiMeta; host?: HostClass; attrs?: Map<string, Value>; parents?: string[] }
   | { k: 'poly'; coef: number[]; domain: Interval; window: Interval }
   | { k: 'carray'; re: number[]; im: number[] }
   | { k: 'module'; name: string; attrs: Record<string, Value> }
@@ -5301,13 +5322,23 @@ class Interp implements Host {
         const x = args[0]
         return bool(['fn', 'func', 'bound', 'type', 'class', 'poly'].includes(x.k) || (x.k === 'inst' && (!!this.classAttr(x.cls, '__call__') || !!x.cls.host?.call)) || (x.k === 'obj' && !!x.o.call))
       }),
+      eval: fn('eval', (args, kw) => this.runText('eval', args, kw)),
+      exec: fn('exec', (args, kw) => this.runText('exec', args, kw)),
       issubclass: fn('issubclass', (args) => {
+        const c = args[0]
+        if (c.k !== 'class' && c.k !== 'type') throw this.err('TypeError', 'issubclass() arg 1 must be a class')
+        const named = (t: Value) => (t.k === 'class' || t.k === 'type' ? t.name.split('.').pop()! : '')
+        const below = (x: Value, t: Value): boolean => {
+          if (x === t) return true
+          if (x.k === 'class') return x.bases.some((b) => below(b, t))
+          if (x.k !== 'type') return false
+          // a library class says what it inherits from; a Python class of the same name is not that
+          if (x.parents?.includes(named(t)) && (t.k === 'type' || (t.k === 'class' && t.builtin))) return true
+          return t.k === 'type' && (x.name === t.name || (x.name === 'bool' && t.name === 'int'))
+        }
         const of = (t: Value): boolean => {
           if (t.k === 'tuple') return t.items.some(of)
-          const c = args[0]
-          if (c.k === 'class' && t.k === 'class') return this.isSubclass(c, t)
-          if (t.k === 'type' && t.name === 'object') return true
-          return c === t || (c.k === 'type' && t.k === 'type' && (c.name === t.name || (c.name === 'bool' && t.name === 'int')))
+          return (t.k === 'type' && t.name === 'object') || below(c, t)
         }
         return bool(of(args[1]))
       }),
@@ -5565,12 +5596,42 @@ class Interp implements Host {
     return best
   }
 
+  /** eval() and exec(): the text runs here, in the caller's scope or in the dictionaries it was given; it adds no steps of its own */
+  runText(mode: 'eval' | 'exec', args: Value[], kw: Kw): Value {
+    const src = args[0]
+    if (src?.k !== 'str') throw this.err('TypeError', `${mode}() arg 1 must be a string, bytes or code object`)
+    const given = (v: Value | undefined, what: string): PyDict | null => {
+      if (!v || v.k === 'none') return null
+      if (v.k !== 'dict') throw this.err('TypeError', `${mode}() ${what} must be a dict, not ${typeName(v)}`)
+      return v.d
+    }
+    const [g, l] = [given(args[1] ?? kw.globals, 'globals'), given(args[2] ?? kw.locals, 'locals')]
+    const code = parseText(src.v, mode, this.line)
+    const names = (d: PyDict) => new Map(d.items().flatMap(([n, v]): [string, Value][] => (n.k === 'str' ? [[n.v, v]] : [])))
+    const [env, frame] = [this.env, this.frame]
+    const scope: Frame | null = l ? { vars: names(l), parent: null } : g ? null : frame
+    if (g) this.env = names(g)
+    this.frame = scope
+    this.quiet++
+    try {
+      if (mode === 'eval') return this.eval(code as Node)
+      this.execBlock(code as Stmt[])
+      return NONE
+    } finally {
+      this.quiet--
+      if (g) for (const [n, v] of this.env) g.set(str_(n), v)
+      if (l && scope) for (const [n, v] of scope.vars) l.set(str_(n), v)
+      this.env = env
+      this.frame = frame
+    }
+  }
+
   isinstance(v: Value, t: Value): boolean {
     if (t.k === 'tuple') return t.items.some((x) => this.isinstance(v, x))
     if (t.k === 'type' && t.name === 'object') return true
     if (t.k === 'class') {
       // a library's own object, of a class Python code can also inherit from
-      if (v.k === 'obj') return !!v.o.isa?.(t.name.split('.').pop()!)
+      if (v.k === 'obj') return !!t.builtin && !!v.o.isa?.(t.name.split('.').pop()!)
       if (v.k !== 'inst') return false
       const walk = (c: ClassValue): boolean => c === t || c.bases.some((b) => b.k === 'class' && walk(b))
       return walk(v.cls)

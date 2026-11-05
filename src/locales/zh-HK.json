@@ -4554,7 +4554,7 @@
     "pytorch": {
       "title": "PyTorch 實驗台",
       "subtitle": "{{n}} 個出自第 9 講的示例：張量、自動求導、nn.Module 與訓練循環。點開一個步驟，可以看到網格、各層形狀或梯度計算圖。",
-      "sandbox_note": "在瀏覽器中執行，基於一個精簡重寫的 PyTorch（張量、自動求導、Linear / Conv2d / MaxPool2d / Dropout、常用損失函數、SGD 與 Adam、DataLoader）。打印格式、數據類型和報錯資訊與 PyTorch 2 一致；隨機數與真實 PyTorch 不同，沒有 GPU，也不能下載 MNIST。",
+      "sandbox_note": "在瀏覽器中執行，基於重寫的 PyTorch：張量、自動求導（含 create_graph）、大部分 torch.nn、torch.linalg、優化器與學習率調度器、DataLoader。打印、數值和報錯資訊已用約 2000 段程序與 PyTorch 2.14 對照。隨機數不同，不顯示記憶體地址，沒有 GPU，也不能下載 MNIST。",
       "cat": {
         "tensors": "張量",
         "autograd": "自動求導",

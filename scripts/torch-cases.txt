@@ -2413,3 +2413,817 @@ F.interpolate(torch.zeros(1, 1, 2, 2), scale_factor=2, antialias=True)
 F.interpolate(torch.arange(4.).view(1, 1, 4), scale_factor=1.3, mode='linear'), F.interpolate(torch.arange(4.).view(1, 1, 4), scale_factor=1.3, mode='linear', recompute_scale_factor=True), F.interpolate(torch.arange(4.).view(1, 1, 4), scale_factor=1.3, recompute_scale_factor=False), nn.Upsample(scale_factor=2, recompute_scale_factor=True)(torch.arange(2.).view(1, 1, 2))
 F.interpolate(torch.zeros(1, 1, 2), size=3, recompute_scale_factor=True)
 x = torch.ones(2, 3, requires_grad=True); s = torch.zeros(2, 3).scatter(1, torch.tensor([[0, 2], [1, 1]]), x[:, :2]); s.sum().backward(); x.grad
+
+# ---- programs written after the first comparison, as a student would write them: none was shaped to the sandbox
+
+# printing a mix of sizes
+<<<
+import torch
+print(torch.tensor([1e10, 1.0]))
+print(torch.tensor([1e-5, 1.0]))
+print(torch.tensor([123456.789, 0.001]))
+print(torch.tensor([1.5, float('nan'), float('inf')]))
+print(torch.tensor([[1, 2], [300, 4]]))
+print(torch.tensor([True, False]))
+print(torch.ones(2, 3, 2))
+print(torch.linspace(0, 1, 5))
+print(torch.arange(2000))
+print(torch.arange(2000.).view(2, 1000))
+print(torch.eye(3, dtype=torch.float64))
+print(torch.zeros(0), torch.zeros(2, 0))
+print(torch.tensor(3.14159), torch.tensor(7), torch.tensor(True))
+print(torch.tensor([0.1, 0.2]) + torch.tensor([0.2, 0.1]))
+print(repr(torch.tensor([1.0, 2.0], requires_grad=True)))
+print(torch.tensor([1, 2], dtype=torch.uint8), torch.tensor([1, 2], dtype=torch.int32), torch.tensor([1., 2.], dtype=torch.float16))
+>>>
+# formatting
+<<<
+import torch
+x = torch.tensor(2.5)
+print(f"{x}", f"{x:.3f}", f"{x.item():.2f}", "{:.1f}".format(x), "%.2f" % x, str(x), float(x), int(x))
+loss = torch.tensor(0.123456, requires_grad=True)
+print(f"loss={loss.item():.4f}", loss, f"{loss}", round(loss.item(), 3))
+t = torch.tensor([1.5, 2.5])
+print(f"{t}", str(t), repr(t), len(t), t.shape, t.size(), t.size(0), t.dim(), t.numel(), t.dtype, t.device)
+print(tuple(t.shape), list(t.shape), t.shape[0], t.shape == torch.Size([2]), t.tolist())
+>>>
+# broadcast and arithmetic dtypes
+<<<
+import torch
+a = torch.tensor([[1, 2, 3], [4, 5, 6]])
+b = torch.tensor([10, 20, 30])
+print(a + b, a * b, a / 2, a // 2, a % 2, a ** 2, -a)
+print((a + 0.5).dtype, (a / 2).dtype, (a * True).dtype, (a > 2).dtype, a.float().dtype, a.double().dtype, a.long().dtype, a.bool().dtype)
+print(a.sum(), a.sum(0), a.sum(1), a.sum(dim=1, keepdim=True), a.float().mean(), a.float().mean(0), a.float().std(), a.float().var(1), a.max(), a.min(1), a.max(0).indices, a.argmax(), a.argmax(1), a.prod(), a.cumsum(0))
+print(torch.matmul(a, b), a @ b, a.T, a.t(), a.mT if a.dim() == 2 else None)
+print(a.unsqueeze(0).shape, a.unsqueeze(-1).shape, a.view(3, 2), a.reshape(-1), a.flatten(), a.permute(1, 0), a.transpose(0, 1).shape)
+print(torch.cat([a, a]), torch.cat([a, a], 1).shape, torch.stack([a, a]).shape, torch.stack([a, a], 2).shape)
+>>>
+# indexing
+<<<
+import torch
+x = torch.arange(24).view(2, 3, 4)
+print(x[0], x[0, 1], x[0, 1, 2], x[:, 1], x[..., 0], x[0, :, ::2], x[-1, -1, -1], x[None].shape, x[:, None].shape)
+print(x[x > 20], x[0][x[0] % 2 == 0], x[torch.tensor([1, 0])].shape, x[:, torch.tensor([0, 2])].shape)
+m = torch.tensor([[1., 2.], [3., 4.]])
+m[0, 0] = 9
+m[:, 1] = 7
+m[m > 8] = 0
+print(m, m.nonzero(), torch.where(m > 3), torch.where(m > 3, m, torch.zeros_like(m)))
+print(torch.gather(m, 1, torch.tensor([[0], [1]])), m.topk(1), m.sort(), m.argsort(), m.flip(0), m.diag(), m.trace(), m.tril(), m.triu())
+print(m.masked_fill(m == 0, -1), m.clamp(0, 5), m.clamp(min=4), m.abs(), m.sqrt(), m.exp(), m.log1p(), m.round(), m.ceil(), m.floor())
+print(m.chunk(2), m.split(1), m.unbind(), m.repeat(2, 1), m.expand(2, 2, 2).shape, m.tile(2).shape, m.squeeze().shape, m.is_leaf, m.requires_grad)
+>>>
+# autograd basics
+<<<
+import torch
+x = torch.tensor(3.0, requires_grad=True)
+y = x ** 2 + 2 * x + 1
+print(y, y.grad_fn, x.grad_fn, x.is_leaf, y.is_leaf, y.requires_grad)
+y.backward()
+print(x.grad)
+x.grad.zero_()
+z = (x * x).sin()
+z.backward()
+print(x.grad, z.grad_fn, z.grad_fn.next_functions)
+a = torch.tensor([1., 2., 3.], requires_grad=True)
+b = a * 2
+b.retain_grad()
+c = b.sum()
+c.backward()
+print(a.grad, b.grad, c, b)
+d = a.detach()
+print(d.requires_grad, a.clone().grad_fn, a.mean().grad_fn, a.sum().grad_fn, (a @ a).grad_fn, a.view(3, 1).grad_fn, a[0].grad_fn, a.exp().grad_fn, a.log().grad_fn, torch.cat([a, a]).grad_fn, torch.stack([a, a]).grad_fn, a.max().grad_fn, a.pow(2).grad_fn, (a / 2).grad_fn, (a - 1).grad_fn, (1 - a).grad_fn, (-a).grad_fn, a.tanh().grad_fn, a.relu().grad_fn, torch.sigmoid(a).grad_fn)
+with torch.no_grad():
+    e = a * 2
+    print(e.requires_grad, torch.is_grad_enabled())
+print(torch.is_grad_enabled())
+print(torch.autograd.grad((a ** 3).sum(), a))
+try:
+    x.backward()
+except RuntimeError as err:
+    print(err)
+try:
+    q = (a * 2)
+    q.backward()
+except RuntimeError as err:
+    print(err)
+try:
+    torch.tensor([1, 2], requires_grad=True)
+except RuntimeError as err:
+    print(err)
+>>>
+# linear regression with fixed start
+<<<
+import torch
+import torch.nn as nn
+X = torch.tensor([[1.], [2.], [3.], [4.]])
+y = 2 * X + 1
+model = nn.Linear(1, 1)
+nn.init.constant_(model.weight, 0.5)
+nn.init.constant_(model.bias, 0.1)
+opt = torch.optim.SGD(model.parameters(), lr=0.05)
+crit = nn.MSELoss()
+for epoch in range(5):
+    opt.zero_grad()
+    loss = crit(model(X), y)
+    loss.backward()
+    opt.step()
+    print(epoch, round(loss.item(), 4), model.weight.item(), model.bias.item())
+print(model, model.weight, model.bias, list(model.state_dict().keys()), model.state_dict())
+print(loss, crit, opt)
+>>>
+# XOR with Sequential and Adam
+<<<
+import torch
+import torch.nn as nn
+net = nn.Sequential(nn.Linear(2, 4), nn.Tanh(), nn.Linear(4, 1), nn.Sigmoid())
+with torch.no_grad():
+    for k, p in enumerate(net.parameters()):
+        p.copy_(((torch.arange(p.numel()) * 7 + k) % 5 - 2).float().view(p.shape) / 4)
+X = torch.tensor([[0., 0.], [0., 1.], [1., 0.], [1., 1.]])
+Y = torch.tensor([[0.], [1.], [1.], [0.]])
+opt = torch.optim.Adam(net.parameters(), lr=0.1)
+loss_fn = nn.BCELoss()
+for i in range(40):
+    opt.zero_grad()
+    l = loss_fn(net(X), Y)
+    l.backward()
+    opt.step()
+    if i % 10 == 0:
+        print(i, f"{l.item():.5f}")
+print(net)
+print(net(X).round(decimals=3))
+print((net(X) > 0.5).float().squeeze(), sum(p.numel() for p in net.parameters()), [n for n, _ in net.named_parameters()], [p.shape for p in net.parameters()])
+print(net[0], net[-1], len(net), net[0].weight.shape, net[0].weight.grad.shape)
+>>>
+# a CNN class
+<<<
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+class Net(nn.Module):
+    def __init__(self, n=10):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 8, 3, padding=1)
+        self.pool = nn.MaxPool2d(2)
+        self.conv2 = nn.Conv2d(8, 16, kernel_size=3, stride=1)
+        self.bn = nn.BatchNorm2d(16)
+        self.drop = nn.Dropout(0.25)
+        self.fc1 = nn.Linear(16 * 6 * 6, 32)
+        self.fc2 = nn.Linear(32, n)
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.bn(self.conv2(x))))
+        x = torch.flatten(x, 1)
+        x = self.drop(F.relu(self.fc1(x)))
+        return self.fc2(x)
+m = Net()
+print(m)
+print(sum(p.numel() for p in m.parameters()), sum(p.numel() for p in m.parameters() if p.requires_grad))
+for name, p in m.named_parameters():
+    print(name, p.shape, p.requires_grad, p.dtype)
+print(list(m.state_dict().keys()))
+for n, c in m.named_children():
+    print(n, type(c).__name__)
+print(m(torch.zeros(4, 1, 28, 28)).shape, m.training)
+m.eval()
+print(m.training, m.bn.training, m(torch.zeros(1, 1, 28, 28)).shape)
+print([type(x).__name__ for x in m.modules()])
+print(isinstance(m, nn.Module), isinstance(m.conv1, nn.Conv2d), isinstance(m.conv1, nn.Linear), type(m).__name__, m.__class__.__name__)
+>>>
+# convolution values
+<<<
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+img = torch.arange(25.).view(1, 1, 5, 5)
+k = torch.tensor([[[[0., 1., 0.], [1., -4., 1.], [0., 1., 0.]]]])
+print(F.conv2d(img, k), F.conv2d(img, k, padding=1).shape, F.conv2d(img, k, stride=2).shape, F.max_pool2d(img, 2), F.avg_pool2d(img, 2), F.adaptive_avg_pool2d(img, 1))
+c = nn.Conv2d(1, 1, 3, bias=False)
+c.weight.data = k.clone()
+print(c(img), c.weight.shape, c, c.bias, c.stride, c.padding, c.kernel_size, c.in_channels, c.out_channels)
+print(nn.Flatten()(img).shape, nn.Upsample(scale_factor=2)(img).shape, nn.AvgPool2d(2)(img), nn.AdaptiveMaxPool2d(2)(img))
+t = nn.ConvTranspose2d(1, 1, 2, stride=2, bias=False)
+nn.init.ones_(t.weight)
+print(t(img).shape, t(torch.ones(1, 1, 2, 2)))
+>>>
+# losses
+<<<
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+logits = torch.tensor([[2.0, 0.5, 0.3], [0.1, 1.0, 3.0]])
+target = torch.tensor([0, 2])
+print(nn.CrossEntropyLoss()(logits, target), F.cross_entropy(logits, target, reduction='none'), F.nll_loss(F.log_softmax(logits, 1), target), F.softmax(logits, dim=1), logits.softmax(-1).sum(1), logits.argmax(1) == target, (logits.argmax(1) == target).float().mean(), (logits.argmax(1) == target).sum().item())
+p = torch.tensor([0.9, 0.2])
+y = torch.tensor([1., 0.])
+print(nn.BCELoss()(p, y), F.binary_cross_entropy(p, y), nn.BCEWithLogitsLoss()(torch.tensor([2.2, -1.4]), y), nn.MSELoss()(p, y), nn.L1Loss()(p, y), nn.SmoothL1Loss()(p, y), nn.HuberLoss()(p, y), nn.KLDivLoss(reduction='batchmean')(torch.log(p), y))
+print(F.one_hot(target, 3), F.one_hot(target), F.normalize(logits), F.cosine_similarity(logits[0], logits[1], dim=0), F.relu(logits - 1), F.leaky_relu(logits - 1), F.gelu(logits - 1), F.elu(logits - 1), F.tanh(logits), F.sigmoid(logits), F.pad(logits, (1, 1)), F.dropout(logits, 0.5, training=False))
+try:
+    nn.CrossEntropyLoss()(logits, torch.tensor([0., 2.]).long()[None])
+except Exception as e:
+    print(type(e).__name__, e)
+try:
+    nn.CrossEntropyLoss()(logits, torch.tensor([0.5, 2.5]))
+except Exception as e:
+    print(type(e).__name__, e)
+try:
+    nn.MSELoss()(torch.ones(2, 1), torch.ones(3, 1))
+except Exception as e:
+    print(type(e).__name__, e)
+>>>
+# errors students meet
+<<<
+import torch
+import torch.nn as nn
+def t(s):
+    try:
+        print(eval(s))
+    except Exception as e:
+        print(type(e).__name__ + ':', e)
+t("torch.ones(2, 3) + torch.ones(3, 2)")
+t("torch.ones(2, 3) @ torch.ones(2, 3)")
+t("torch.mm(torch.ones(2), torch.ones(2))")
+t("nn.Linear(3, 2)(torch.ones(2, 4))")
+t("nn.Conv2d(3, 8, 3)(torch.ones(1, 1, 8, 8))")
+t("nn.Conv2d(1, 8, 9)(torch.ones(1, 1, 8, 8))")
+t("nn.MaxPool2d(4)(torch.ones(1, 1, 2, 2))")
+t("torch.ones(6).view(4, 2)")
+t("torch.ones(6).reshape(-1, -1)")
+t("torch.ones(2, 3).view(-1, 4)")
+t("torch.arange(6).float().view(2, 3).mean(2)")
+t("torch.arange(6).mean()")
+t("torch.ones(2)[5]")
+t("torch.ones(2, 2)[0, 0, 0]")
+t("torch.cat([torch.ones(2), torch.ones(2, 2)])")
+t("torch.cat([torch.ones(2, 3), torch.ones(3, 2)])")
+t("torch.stack([torch.ones(2), torch.ones(3)])")
+t("torch.ones(2).item()")
+t("float(torch.ones(2))")
+t("int(torch.ones(2))")
+t("bool(torch.ones(2))")
+t("if_x = 1 if torch.ones(2) else 0")
+t("torch.tensor([1, 2]).float().numpy().shape")
+t("torch.tensor([1., 2.], requires_grad=True).numpy()")
+t("torch.tensor([[1, 2], [3]])")
+t("torch.tensor('a')")
+t("torch.zeros(-1)")
+t("torch.foo")
+t("nn.Foo")
+t("torch.ones(2).foo()")
+t("nn.Embedding(3, 2)(torch.tensor([3]))")
+t("nn.Embedding(3, 2)(torch.tensor([0.]))")
+t("nn.LSTM(3, 2)(torch.ones(4, 2))")
+t("nn.BatchNorm1d(3)(torch.ones(2, 4))")
+t("nn.Sequential(nn.Linear(2, 2))[3]")
+t("torch.optim.SGD([], lr=0.1)")
+t("torch.optim.SGD(nn.Linear(1, 1).parameters())")
+t("torch.optim.SGD(nn.Linear(1, 1).parameters(), lr=-1)")
+t("torch.device('gpu')")
+t("torch.ones(2).to('cuda')")
+t("torch.ones(2).cuda()")
+>>>
+# LSTM and embedding shapes
+<<<
+import torch
+import torch.nn as nn
+e = nn.Embedding(10, 4)
+ids = torch.tensor([[1, 2, 3], [4, 5, 6]])
+print(e(ids).shape, e, e.weight.shape, e.num_embeddings, e.embedding_dim)
+for cls in (nn.RNN, nn.GRU, nn.LSTM):
+    r = cls(4, 8, batch_first=True)
+    o, h = r(e(ids))
+    print(cls.__name__, o.shape, h[0].shape if isinstance(h, tuple) else h.shape, r, [n for n, _ in r.named_parameters()])
+b = nn.LSTM(4, 8, num_layers=2, bidirectional=True, batch_first=True, dropout=0.0)
+o, (hn, cn) = b(torch.zeros(2, 3, 4))
+print(o.shape, hn.shape, cn.shape, sum(p.numel() for p in b.parameters()))
+cell = nn.LSTMCell(4, 8)
+print([x.shape for x in cell(torch.zeros(2, 4))], cell)
+a = nn.MultiheadAttention(8, 2, batch_first=True)
+print(a(torch.zeros(1, 3, 8), torch.zeros(1, 3, 8), torch.zeros(1, 3, 8))[0].shape, a)
+l = nn.TransformerEncoderLayer(8, 2, 16, batch_first=True)
+print(l(torch.zeros(1, 3, 8)).shape)
+print(nn.TransformerEncoder(l, 2)(torch.zeros(1, 3, 8)).shape)
+>>>
+# dataset and loader
+<<<
+import torch
+from torch.utils.data import Dataset, DataLoader, TensorDataset, random_split, Subset, ConcatDataset
+class D(Dataset):
+    def __init__(self, n):
+        self.n = n
+    def __len__(self):
+        return self.n
+    def __getitem__(self, i):
+        return torch.tensor([float(i)]), i % 2
+d = D(7)
+print(len(d), d[3], isinstance(d, Dataset))
+dl = DataLoader(d, batch_size=3)
+print(len(dl), dl.batch_size)
+for i, (x, y) in enumerate(dl):
+    print(i, x.shape, y, x.dtype, y.dtype, x.squeeze().tolist())
+td = TensorDataset(torch.arange(6.).view(3, 2), torch.tensor([0, 1, 0]))
+print(len(td), td[1], list(DataLoader(td, batch_size=2)), next(iter(DataLoader(td, batch_size=3))))
+print(len(DataLoader(td, batch_size=2, drop_last=True)), [len(s) for s in random_split(td, [2, 1])], len(Subset(td, [0, 1])), len(ConcatDataset([td, td])))
+print(len(list(DataLoader(td, batch_size=2, shuffle=True))), td.tensors[0].shape)
+>>>
+# save and load
+<<<
+import torch
+import torch.nn as nn
+m = nn.Sequential(nn.Linear(2, 2), nn.ReLU(), nn.Linear(2, 1))
+nn.init.zeros_(m[0].weight)
+torch.save(m.state_dict(), 'm.pt')
+n = nn.Sequential(nn.Linear(2, 2), nn.ReLU(), nn.Linear(2, 1))
+print(n.load_state_dict(torch.load('m.pt')))
+print(n[0].weight, list(n.state_dict().keys()))
+try:
+    nn.Linear(2, 3).load_state_dict(nn.Linear(2, 2).state_dict())
+except RuntimeError as e:
+    print(e)
+try:
+    nn.Linear(2, 3).load_state_dict({'a': torch.ones(1)})
+except RuntimeError as e:
+    print(e)
+print(nn.Linear(2, 2).load_state_dict({'a': torch.ones(1)}, strict=False) is not None)
+>>>
+# optimisers on a fixed function
+<<<
+import torch
+for name, make in [('sgd', lambda p: torch.optim.SGD(p, lr=0.1)), ('mom', lambda p: torch.optim.SGD(p, lr=0.1, momentum=0.9)), ('nes', lambda p: torch.optim.SGD(p, lr=0.1, momentum=0.9, nesterov=True)), ('wd', lambda p: torch.optim.SGD(p, lr=0.1, weight_decay=0.01)), ('adam', lambda p: torch.optim.Adam(p, lr=0.1)), ('adamw', lambda p: torch.optim.AdamW(p, lr=0.1)), ('rms', lambda p: torch.optim.RMSprop(p, lr=0.1)), ('ada', lambda p: torch.optim.Adagrad(p, lr=0.1)), ('adad', lambda p: torch.optim.Adadelta(p, lr=0.1))]:
+    w = torch.tensor([1.0, -2.0], requires_grad=True)
+    o = make([w])
+    for _ in range(4):
+        o.zero_grad()
+        ((w - 3) ** 2).sum().backward()
+        o.step()
+    print(name, w.detach().tolist(), w.grad)
+w = torch.ones(1, requires_grad=True)
+o = torch.optim.SGD([w], lr=1.0)
+for S, kw in [(torch.optim.lr_scheduler.StepLR, dict(step_size=2, gamma=0.5)), (torch.optim.lr_scheduler.ExponentialLR, dict(gamma=0.9)), (torch.optim.lr_scheduler.CosineAnnealingLR, dict(T_max=4)), (torch.optim.lr_scheduler.MultiStepLR, dict(milestones=[1, 3], gamma=0.1)), (torch.optim.lr_scheduler.LinearLR, dict(total_iters=3))]:
+    o.param_groups[0]['lr'] = 1.0
+    o.param_groups[0].pop('initial_lr', None)
+    s = S(o, **kw)
+    seq = []
+    for _ in range(5):
+        o.step()
+        s.step()
+        seq.append(round(s.get_last_lr()[0], 5))
+    print(S.__name__, seq)
+print(o)
+print(o.param_groups[0]['lr'], o.state_dict().keys())
+>>>
+# grad tools and init
+<<<
+import torch
+import torch.nn as nn
+m = nn.Linear(2, 2)
+nn.init.ones_(m.weight)
+nn.init.zeros_(m.bias)
+(m(torch.ones(1, 2)) ** 2).sum().backward()
+print(m.weight.grad, m.bias.grad)
+print(nn.utils.clip_grad_norm_(m.parameters(), 1.0), m.weight.grad)
+nn.utils.clip_grad_value_(m.parameters(), 0.1)
+print(m.weight.grad)
+m.zero_grad()
+print(m.weight.grad)
+for p in m.parameters():
+    p.requires_grad = False
+print(m(torch.ones(1, 2)).requires_grad, [p.requires_grad for p in m.parameters()])
+m.requires_grad_(True)
+print(m.weight.requires_grad)
+def init(l):
+    if isinstance(l, nn.Linear):
+        nn.init.constant_(l.weight, 0.25)
+        print('init', l)
+s = nn.Sequential(nn.Linear(1, 1), nn.ReLU(), nn.Sequential(nn.Linear(1, 2)))
+print(s.apply(init))
+print(s[0].weight, s[2][0].weight)
+h = []
+s[0].register_forward_hook(lambda mod, inp, out: h.append(out.shape))
+s(torch.zeros(3, 1))
+print(h)
+>>>
+# ModuleList, ModuleDict, Parameter, buffers
+<<<
+import torch
+import torch.nn as nn
+class Block(nn.Module):
+    def __init__(self, d):
+        super().__init__()
+        self.ls = nn.ModuleList([nn.Linear(d, d) for _ in range(3)])
+        self.md = nn.ModuleDict({'a': nn.ReLU(), 'b': nn.Tanh()})
+        self.scale = nn.Parameter(torch.ones(1))
+        self.plist = nn.ParameterList([nn.Parameter(torch.zeros(2))])
+        self.register_buffer('mask', torch.ones(d))
+    def forward(self, x):
+        for l in self.ls:
+            x = self.md['a'](l(x))
+        return x * self.scale * self.mask
+b = Block(2)
+print(b)
+print([n for n, _ in b.named_parameters()], [n for n, _ in b.named_buffers()], list(b.state_dict().keys()))
+print(b(torch.zeros(1, 2)).shape, b.scale, b.mask, len(b.ls), list(b.md.keys()), b.ls[0], nn.Parameter(torch.ones(2)))
+print(b.ls[0].weight.requires_grad, b.mask.requires_grad, b.scale.is_leaf)
+print(type(b.scale).__name__, isinstance(b.scale, torch.Tensor), isinstance(b.scale, nn.Parameter), isinstance(b.mask, nn.Parameter))
+>>>
+# batchnorm and dropout in train and eval
+<<<
+import torch
+import torch.nn as nn
+b = nn.BatchNorm1d(2)
+x = torch.tensor([[1., 2.], [3., 6.], [5., 10.]])
+print(b(x), b.running_mean, b.running_var, b.num_batches_tracked)
+print(b.eval()(x), b.weight, b.bias)
+l = nn.LayerNorm(2)
+print(l(x), nn.GroupNorm(1, 2)(x), nn.InstanceNorm1d(2)(x.t()[None]))
+d = nn.Dropout(0.5)
+d.eval()
+print(d(x), d, d.training, d.p)
+n = nn.BatchNorm2d(1)
+print(n(torch.arange(16.).view(2, 1, 2, 4)).shape, n)
+print(nn.Dropout(1.0)(x), nn.Dropout(0.0)(x))
+>>>
+# numpy interop
+<<<
+import torch
+import numpy as np
+a = np.array([1., 2., 3.])
+t = torch.from_numpy(a)
+print(t, t.dtype, torch.tensor(a), torch.as_tensor(a).dtype, torch.tensor(a, dtype=torch.float32))
+t[0] = 9
+print(a, t.numpy(), type(t.numpy()).__name__, np.array(t), np.mean(t.numpy()), t.numpy().dtype)
+print(torch.from_numpy(np.arange(4)).dtype, torch.from_numpy(np.ones(2, dtype=np.float32)).dtype, torch.from_numpy(np.array([1, 2], dtype=np.uint8)).dtype, torch.tensor(np.int64(3)), torch.tensor(np.float32(2.5)).dtype)
+print(torch.ones(2).numpy() + 1, torch.arange(3).numpy().sum(), np.array(torch.ones(2)).shape, np.sum(torch.ones(2).numpy()))
+print(torch.tensor([1., 2.]).tolist(), torch.tensor(5).item(), torch.tensor([[1, 2]]).tolist(), np.float32(1.5) * torch.ones(1))
+print(torch.ones(2) + torch.from_numpy(np.ones(2)), (torch.ones(2) + torch.from_numpy(np.ones(2))).dtype)
+>>>
+# creation helpers
+<<<
+import torch
+print(torch.zeros(2, 3).shape, torch.ones((2, 3)).dtype, torch.full((2, 2), 7), torch.full((2,), 1.5), torch.arange(1, 10, 2), torch.arange(0, 1, 0.25), torch.linspace(0, 10, 3), torch.logspace(0, 2, 3), torch.eye(2), torch.empty(0).shape)
+print(torch.zeros_like(torch.ones(2)), torch.ones_like(torch.ones(2, dtype=torch.int64)), torch.full_like(torch.ones(2), 3), torch.rand(2, 3).shape, torch.randn(2).shape, torch.randint(0, 5, (2,)).shape, torch.randperm(4).shape, torch.rand(2).dtype, torch.randint(0, 5, (2,)).dtype, torch.randperm(4).dtype)
+print(torch.tensor([1, 2]).dtype, torch.tensor([1., 2.]).dtype, torch.tensor([1, 2.]).dtype, torch.tensor(True).dtype, torch.tensor([]).dtype, torch.tensor([[1], [2]]).shape, torch.as_tensor([1, 2]), torch.Tensor([1, 2]), torch.FloatTensor([1, 2]), torch.LongTensor([1, 2]), torch.Tensor(2).shape)
+print(torch.get_default_dtype(), torch.float32, torch.int64, torch.long, torch.float, torch.double, torch.cuda.is_available(), torch.device('cpu'), torch.ones(1).to('cpu').device, torch.ones(1).cpu().device, torch.__version__[:1])
+print(torch.meshgrid(torch.arange(2), torch.arange(3), indexing='ij'), torch.tril(torch.ones(3, 3)), torch.triu(torch.ones(3, 3), 1), torch.diag(torch.tensor([1, 2])), torch.isnan(torch.tensor([float('nan'), 1.])), torch.isinf(torch.tensor([float('inf')])), torch.unique(torch.tensor([1, 2, 1])), torch.bincount(torch.tensor([0, 1, 1])), torch.numel(torch.ones(2, 3)), torch.is_tensor(torch.ones(1)), torch.equal(torch.ones(1), torch.ones(1)), torch.allclose(torch.ones(1), torch.ones(1)), torch.all(torch.ones(1) > 0), torch.any(torch.ones(1) < 0))
+>>>
+# linear algebra and statistics
+<<<
+import torch
+A = torch.tensor([[4., 1.], [2., 3.]])
+print(torch.linalg.inv(A), torch.linalg.det(A), torch.det(A), torch.inverse(A), torch.linalg.solve(A, torch.tensor([1., 2.])), torch.linalg.norm(A), torch.norm(A), torch.linalg.matrix_rank(A), torch.linalg.eigvals(A), A.norm(dim=1), A.norm(p=1), torch.trace(A), torch.dot(A[0], A[1]), torch.outer(A[0], A[1]), torch.cross(torch.tensor([1., 0., 0.]), torch.tensor([0., 1., 0.]), dim=0))
+s = torch.tensor([[2., 0.], [0., 1.]])
+u, d, v = torch.linalg.svd(s)
+print(d, torch.linalg.eigh(s)[0], torch.linalg.qr(s)[1].abs(), torch.linalg.cholesky(s), torch.linalg.pinv(s), torch.linalg.matrix_power(s, 3), torch.matrix_power(s, 2))
+x = torch.tensor([1., 2., 3., 4.])
+print(x.mean(), x.median(), x.std(), x.var(), x.var(unbiased=False), torch.std_mean(x), torch.quantile(x, 0.5), x.cumprod(0), x.cumsum(0), torch.diff(x), x.mode(), torch.corrcoef(torch.stack([x, x * 2])), torch.cov(torch.stack([x, x * 2])), torch.histc(x, bins=2, min=1, max=4), torch.searchsorted(x, torch.tensor([2.5])), torch.logsumexp(x, 0), torch.einsum('i,i->', x, x), torch.einsum('ij,jk->ik', A, A), torch.sum(x * x), torch.maximum(x, x.flip(0)), torch.minimum(x, x.flip(0)), torch.lerp(x, x + 1, 0.5), torch.sign(x - 2))
+>>>
+# in-place and sharing
+<<<
+import torch
+a = torch.ones(3)
+b = a.view(3, 1)
+c = a.clone()
+a.add_(1)
+a[0] = 5
+print(a, b.squeeze(), c, a.mul_(2), a.zero_(), a.fill_(3), a.requires_grad_(False).sum(), a.sub_(1), a.div_(2), a.pow_(2), a.clamp_(0, 0.5), a.neg_(), a.abs_(), a.copy_(torch.tensor([1., 2., 3.])), a.t_() if a.dim() < 2 else None)
+w = torch.ones(2, requires_grad=True)
+try:
+    w += 1
+except RuntimeError as e:
+    print(e)
+with torch.no_grad():
+    w += 1
+print(w, w.data, w.detach().numpy())
+y = w * 2
+w.data.zero_()
+print(y, w)
+z = (w + 1) ** 2
+try:
+    w2 = w + 1
+    v = w2 ** 2
+    w2 += 1
+    v.sum().backward()
+except RuntimeError as e:
+    print(str(e)[:80])
+>>>
+# seed determinism
+<<<
+import torch
+torch.manual_seed(1)
+a = torch.rand(2)
+torch.manual_seed(1)
+b = torch.rand(2)
+print(torch.equal(a, b), a.shape, a.dtype, ((a >= 0) & (a < 1)).all(), torch.initial_seed() if False else 1)
+print(torch.normal(0., 1., size=(2,)).shape, torch.bernoulli(torch.ones(2)), torch.multinomial(torch.tensor([0., 1.]), 1), torch.randn_like(a).shape, torch.rand_like(a).shape)
+g = torch.Generator().manual_seed(0)
+print(torch.rand(1, generator=g).shape)
+>>>
+# training with a validation loop
+<<<
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
+X = torch.arange(20.).view(10, 2) / 10
+y = (X.sum(1) > 1).long()
+tr = DataLoader(TensorDataset(X, y), batch_size=4)
+m = nn.Sequential(nn.Flatten(), nn.Linear(2, 3), nn.ReLU(), nn.Linear(3, 2))
+with torch.no_grad():
+    for k, p in enumerate(m.parameters()):
+        p.copy_(((torch.arange(p.numel()) * 3 + k) % 7 - 3).float().view(p.shape) / 5)
+opt = torch.optim.Adam(m.parameters(), lr=0.05, weight_decay=1e-3)
+sch = torch.optim.lr_scheduler.StepLR(opt, step_size=2, gamma=0.5)
+crit = nn.CrossEntropyLoss()
+for ep in range(4):
+    m.train()
+    tot = 0.0
+    for xb, yb in tr:
+        opt.zero_grad()
+        out = m(xb)
+        l = crit(out, yb)
+        l.backward()
+        opt.step()
+        tot += l.item() * xb.size(0)
+    sch.step()
+    m.eval()
+    with torch.no_grad():
+        pred = m(X).argmax(dim=1)
+        acc = (pred == y).float().mean().item()
+    print(f'epoch {ep}: loss {tot / len(X):.4f} acc {acc:.3f} lr {sch.get_last_lr()[0]:.4f}')
+print(pred, y, opt.param_groups[0]['lr'], opt.param_groups[0]['weight_decay'], opt.param_groups[0]['betas'])
+>>>
+# user classes that share a library name
+<<<
+import torch
+import torch.nn as nn
+class Linear:
+    pass
+class Module:
+    pass
+class Dataset:
+    pass
+print(isinstance(nn.Linear(1, 1), Linear), isinstance(nn.Linear(1, 1), Module), isinstance(nn.Linear(1, 1), nn.Linear), isinstance(nn.Linear(1, 1), nn.Module))
+from torch.utils.data import TensorDataset, Dataset as RD
+print(isinstance(TensorDataset(torch.ones(2)), RD), isinstance(TensorDataset(torch.ones(2)), Dataset))
+class Net(nn.Module):
+    pass
+print(isinstance(Net(), nn.Module), isinstance(Net(), Net), isinstance(nn.Linear(1, 1), Net), issubclass(Net, nn.Module))
+class Tensor:
+    pass
+print(isinstance(torch.ones(1), Tensor), isinstance(torch.ones(1), torch.Tensor))
+>>>
+# hand written attention and softmax
+<<<
+import torch
+import torch.nn.functional as F
+import math
+q = torch.tensor([[1., 0.], [0., 1.], [1., 1.]])
+d = q.size(-1)
+s = q @ q.transpose(-2, -1) / math.sqrt(d)
+mask = torch.tril(torch.ones(3, 3)).bool()
+s = s.masked_fill(~mask, float('-inf'))
+a = F.softmax(s, dim=-1)
+print(s, a, a @ q, a.sum(-1), a.max(-1), a.argmax(-1), a.shape, (a * 100).round() / 100)
+pe = torch.zeros(4, 2)
+pos = torch.arange(0, 4).unsqueeze(1).float()
+div = torch.exp(torch.arange(0, 2, 2).float() * (-math.log(10000.0) / 2))
+pe[:, 0::2] = torch.sin(pos * div)
+pe[:, 1::2] = torch.cos(pos * div)
+print(pe)
+>>>
+# tensor methods on a batch of images
+<<<
+import torch
+b = torch.arange(48.).view(2, 3, 2, 4)
+print(b.mean(dim=(2, 3)), b.mean(dim=(0, 2, 3), keepdim=True).shape, b.std(dim=(2, 3)).shape, b.amax(dim=(2, 3)), b.amin(1).shape, b.sum((1, 2)).shape, (b / 255).max(), b.permute(0, 2, 3, 1).shape, b.flatten(1).shape, b.flatten(start_dim=2).shape, b.flatten(0, 1).shape, b.view(b.size(0), -1).shape, b.unflatten(1, (1, 3)).shape, b.movedim(1, -1).shape, b.swapaxes(0, 1).shape, b.narrow(2, 0, 1).shape, b.index_select(1, torch.tensor([0, 2])).shape, b.contiguous().shape, b.type(torch.int64).dtype, b.int().dtype, b.type(), b.is_floating_point(), b.ndim, b.ndimension(), b.nelement())
+>>>
+# a printed Sequential with many kinds
+<<<
+import torch.nn as nn
+print(nn.Sequential(nn.Conv2d(3, 16, (3, 5), stride=(2, 1), padding=(1, 2), dilation=2, groups=1, bias=False, padding_mode='zeros'), nn.BatchNorm2d(16), nn.ReLU(inplace=True), nn.MaxPool2d(2, 2), nn.AvgPool2d(2), nn.AdaptiveAvgPool2d((1, 1)), nn.Flatten(), nn.Dropout(), nn.Linear(16, 4, bias=False), nn.LeakyReLU(0.2), nn.ELU(), nn.GELU(), nn.Softmax(dim=1), nn.LogSoftmax(dim=1), nn.Sigmoid(), nn.Tanh(), nn.Identity(), nn.PReLU(), nn.Softplus(), nn.Hardswish(), nn.SiLU(), nn.Mish(), nn.LayerNorm(4), nn.Embedding(4, 2), nn.ConvTranspose2d(1, 1, 2), nn.Upsample(scale_factor=2), nn.Unflatten(1, (2, 2)), nn.Conv1d(1, 1, 3), nn.MaxPool1d(2), nn.BatchNorm1d(2), nn.Dropout2d(0.1), nn.ZeroPad2d(1), nn.GRU(1, 2), nn.RNN(1, 2, nonlinearity='relu'), nn.LSTM(1, 2, batch_first=True), nn.CrossEntropyLoss(), nn.MSELoss(), nn.BCELoss(), nn.BCEWithLogitsLoss(), nn.NLLLoss(), nn.L1Loss()))
+>>>
+# inplace after each op
+<<<
+import torch
+import torch.nn.functional as F
+for name, build in [('pow2', lambda x: x ** 2), ('pow0.5', lambda x: x ** 0.5), ('pow1', lambda x: x ** 1), ('powm', lambda x: x.pow(3.)), ('xx', lambda x: x * x), ('x2', lambda x: x * 2), ('2x', lambda x: 2 * x), ('xd2', lambda x: x / 2), ('2dx', lambda x: 2 / x), ('xp1', lambda x: x + 1), ('2px', lambda x: 2 ** x), ('exp', lambda x: x.exp()), ('log', lambda x: x.log()), ('log1p', lambda x: x.log1p()), ('log2', lambda x: x.log2()), ('sin', lambda x: x.sin()), ('cos', lambda x: x.cos()), ('tan', lambda x: x.tan()), ('asin', lambda x: (x / 9).asin()), ('atan', lambda x: x.atan()), ('sinh', lambda x: x.sinh()), ('cosh', lambda x: x.cosh()), ('sqrt', lambda x: x.sqrt()), ('tanh', lambda x: x.tanh()), ('sigmoid', lambda x: x.sigmoid()), ('softmax', lambda x: x.softmax(0)), ('logsoftmax', lambda x: x.log_softmax(0)), ('relu', lambda x: x.relu()), ('Frelu', lambda x: F.relu(x)), ('gelu', lambda x: F.gelu(x)), ('elu', lambda x: F.elu(x)), ('lrelu', lambda x: F.leaky_relu(x)), ('abs', lambda x: x.abs()), ('sum', lambda x: x.sum()), ('mean', lambda x: x.mean()), ('max', lambda x: x.max()), ('min', lambda x: x.min()), ('idx', lambda x: x[0]), ('view', lambda x: x.view(2, 1)), ('mv', lambda x: x @ x), ('clamp', lambda x: x.clamp(0, 1)), ('norm', lambda x: x.norm()), ('std', lambda x: x.std()), ('var', lambda x: x.var()), ('prod', lambda x: x.prod()), ('neg', lambda x: -x), ('sub', lambda x: 1 - x), ('cat', lambda x: torch.cat([x, x])), ('stack', lambda x: torch.stack([x, x])), ('clone', lambda x: x.clone()), ('sort', lambda x: x.sort()[0]), ('topk', lambda x: x.topk(1)[0]), ('where', lambda x: torch.where(x > 0, x, x)), ('bce', lambda x: F.binary_cross_entropy_with_logits(x, torch.ones(2))), ('mse', lambda x: F.mse_loss(x, torch.ones(2))), ('ce', lambda x: F.cross_entropy(x[None], torch.tensor([0]))), ('nll', lambda x: F.nll_loss(x[None], torch.tensor([0]))), ('atan2', lambda x: torch.atan2(x, x)), ('maximum', lambda x: torch.maximum(x, x.flip(0))), ('erf', lambda x: x.erf()), ('lerp', lambda x: torch.lerp(x, x, 0.5)), ('dot', lambda x: torch.dot(x, x)), ('hypot', lambda x: torch.hypot(x, x))]:
+    for how in ('add_', 'iadd'):
+        w = torch.ones(2, requires_grad=True)
+        x = w + 1
+        y = build(x)
+        if how == 'add_':
+            x.add_(1)
+        else:
+            x += 1
+        try:
+            y.sum().backward()
+            print(name, how, 'ok', w.grad.tolist())
+        except RuntimeError as e:
+            print(name, how, 'raises', str(e)[:150])
+>>>
+# target shapes
+<<<
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+for s in ["F.cross_entropy(torch.zeros(2,3), torch.zeros(2,1).long())", "F.cross_entropy(torch.zeros(2,3), torch.zeros(1,2).long())", "F.cross_entropy(torch.zeros(2,3), torch.zeros(3).long())", "F.cross_entropy(torch.zeros(2,3), torch.zeros(2,3))", "F.cross_entropy(torch.zeros(2,3), torch.zeros(2,2))", "F.cross_entropy(torch.zeros(2,3), torch.zeros(2))", "F.cross_entropy(torch.zeros(2,3), torch.zeros(2).long())", "F.cross_entropy(torch.zeros(3), torch.tensor(1))", "F.cross_entropy(torch.zeros(2,3,4), torch.zeros(2,4).long())", "F.cross_entropy(torch.zeros(2,3,4), torch.zeros(2,5).long())", "F.cross_entropy(torch.zeros(2,3,4), torch.zeros(2).long())", "F.nll_loss(torch.zeros(2,3), torch.zeros(2,1).long())", "F.nll_loss(torch.zeros(2,3), torch.zeros(1,2).long())", "F.nll_loss(torch.zeros(2,3), torch.zeros(3).long())", "F.nll_loss(torch.zeros(3), torch.tensor(1))", "nn.CrossEntropyLoss()(torch.zeros(2,3), torch.zeros(2,1).long())", "nn.NLLLoss()(torch.zeros(2,3), torch.zeros(2,1).long())", "F.cross_entropy(torch.zeros(2,3), torch.tensor([3, 0]))", "F.cross_entropy(torch.zeros(2,3), torch.tensor([-1, 0]))", "F.cross_entropy(torch.zeros(2,3), torch.tensor([0., 1.]))", "F.cross_entropy(torch.zeros(2,3), torch.tensor([0, 1], dtype=torch.uint8))", "F.cross_entropy(torch.zeros(2,3), torch.tensor([0, 1], dtype=torch.int32))", "F.binary_cross_entropy(torch.tensor([0.5]), torch.tensor([1, 0]))", "F.binary_cross_entropy(torch.tensor([0.5, 0.5]), torch.tensor([1., 0.])[None])", "F.binary_cross_entropy_with_logits(torch.tensor([0.5, 0.5]), torch.tensor([1., 0.])[None])", "F.binary_cross_entropy(torch.tensor([1.5]), torch.tensor([1.]))", "F.binary_cross_entropy(torch.tensor([0.5]), torch.tensor([1]))", "nn.BCELoss()(torch.tensor([0.5]), torch.tensor([1]))", "nn.BCEWithLogitsLoss()(torch.tensor([0.5]), torch.tensor([1]))", "nn.MSELoss()(torch.tensor([0.5]), torch.tensor([1]))", "F.l1_loss(torch.ones(2), torch.ones(3))"]:
+    try:
+        print(s, '→', eval(s))
+    except Exception as e:
+        print(s, '→', type(e).__name__, e)
+>>>
+# builtin eval and exec
+<<<
+x = 3
+print(eval('x + 1'), eval('[i * 2 for i in range(3)]'), eval('x * y', {'x': 2, 'y': 5}), eval('x + z', {'x': 2}, {'z': 1}))
+def f(a):
+    return eval('a + x')
+print(f(10))
+exec('x = 9')
+print(x)
+exec('def g(n):\n    return n + 1\nprint(g(1))')
+print(g(2))
+ns = {}
+exec('a = 1\nb = a + 1', ns)
+print(ns['a'], ns['b'])
+try:
+    eval('x +')
+except SyntaxError as e:
+    print(type(e).__name__)
+try:
+    eval('nope')
+except NameError as e:
+    print(e)
+try:
+    eval('x', {})
+except NameError as e:
+    print(e)
+try:
+    eval(3)
+except TypeError as e:
+    print(e)
+try:
+    eval('x = 1')
+except SyntaxError as e:
+    print(type(e).__name__)
+print(eval(' 1 + 1 '), eval('(1,\n2)'), repr(exec('1 + 1')))
+>>>
+# issubclass with library classes
+<<<
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, TensorDataset
+class Net(nn.Module):
+    pass
+class Sub(Net):
+    pass
+class D(Dataset):
+    def __len__(self):
+        return 0
+print(issubclass(Net, nn.Module), issubclass(Sub, nn.Module), issubclass(Sub, Net), issubclass(Net, Sub), issubclass(D, Dataset), issubclass(TensorDataset, Dataset), issubclass(Net, object), issubclass(nn.Linear, nn.Module), issubclass(nn.Module, nn.Linear), issubclass(nn.Module, nn.Module), issubclass(Net, (int, nn.Module)), issubclass(nn.Parameter, torch.Tensor), issubclass(ValueError, Exception), issubclass(bool, int), issubclass(int, bool), issubclass(torch.Tensor, object))
+try:
+    torch.linalg.inv(torch.zeros(2, 2))
+except torch.linalg.LinAlgError as e:
+    print('caught', type(e).__name__, isinstance(e, RuntimeError))
+>>>
+# inplace after more ops
+<<<
+import torch
+import torch.nn.functional as F
+for name, build in [('expm1', lambda x: x.expm1()), ('exp2', lambda x: x.exp2()), ('log10', lambda x: x.log10()), ('acos', lambda x: (x / 9).acos()), ('asin', lambda x: x.asin()), ('square', lambda x: x.square()), ('reciprocal', lambda x: x.reciprocal()), ('rsqrt', lambda x: x.rsqrt()), ('erfc', lambda x: x.erfc()), ('lgamma', lambda x: x.lgamma()), ('digamma', lambda x: x.digamma()), ('logit', lambda x: x.logit()), ('sign', lambda x: x.sign()), ('ceil', lambda x: x.ceil()), ('round', lambda x: x.round()), ('frac', lambda x: x.frac()), ('asinh', lambda x: x.asinh()), ('acosh', lambda x: x.acosh()), ('atanh', lambda x: (x / 9).atanh()), ('softplus', lambda x: F.softplus(x)), ('selu', lambda x: F.selu(x)), ('celu', lambda x: F.celu(x)), ('silu', lambda x: F.silu(x)), ('mish', lambda x: F.mish(x)), ('hardtanh', lambda x: F.hardtanh(x)), ('relu6', lambda x: F.relu6(x)), ('hardswish', lambda x: F.hardswish(x)), ('hardsigmoid', lambda x: F.hardsigmoid(x)), ('logsigmoid', lambda x: F.logsigmoid(x)), ('tanhshrink', lambda x: F.tanhshrink(x)), ('threshold', lambda x: F.threshold(x, 0.1, 0.)), ('softmin', lambda x: F.softmin(x, 0)), ('l1', lambda x: F.l1_loss(x, torch.ones(2))), ('smoothl1', lambda x: F.smooth_l1_loss(x, torch.ones(2))), ('huber', lambda x: F.huber_loss(x, torch.ones(2))), ('kl', lambda x: F.kl_div(x, torch.ones(2), reduction='sum')), ('bcep', lambda x: F.binary_cross_entropy(x / 9, torch.ones(2))), ('cumsum', lambda x: x.cumsum(0)), ('cumprod', lambda x: x.cumprod(0)), ('maxd', lambda x: x.max(0)[0]), ('mind', lambda x: x.min(0)[0]), ('amax', lambda x: x.amax()), ('median', lambda x: x.median()), ('mode', lambda x: x.mode()[0]), ('logsumexp', lambda x: x.logsumexp(0)), ('prodd', lambda x: x.prod(0)), ('stdd', lambda x: x.std(0)), ('vard', lambda x: x.var(0)), ('normd', lambda x: x.norm(dim=0)), ('flip', lambda x: x.flip(0)), ('reshape', lambda x: x.reshape(1, 2)), ('expand', lambda x: x.expand(2, 2)), ('rem', lambda x: x % 2), ('fmod', lambda x: torch.fmod(x, 2.)), ('floordiv', lambda x: torch.floor_divide(x, 2.)), ('min2', lambda x: torch.min(x, x.flip(0))), ('minimum', lambda x: torch.minimum(x, x.flip(0))), ('xdc', lambda x: x / torch.ones(2)), ('cdx', lambda x: torch.ones(2) / x), ('xmc', lambda x: x * torch.ones(2)), ('cmx', lambda x: torch.ones(2) * x), ('xmcm', lambda x: x[None] @ torch.ones(2, 1)), ('normalize', lambda x: F.normalize(x, dim=0)), ('dropout', lambda x: F.dropout(x, 0.0)), ('linear', lambda x: F.linear(x, torch.ones(1, 2))), ('tril', lambda x: x[None].tril()), ('trace', lambda x: x.diag().trace()), ('inv', lambda x: x.diag().inverse()), ('det', lambda x: x.diag().det()), ('solve', lambda x: torch.linalg.solve(x.diag(), torch.ones(2)))]:
+    w = torch.ones(2, requires_grad=True)
+    x = w + 1
+    y = build(x)
+    name2 = y.grad_fn.name() if y.grad_fn else None
+    x.add_(1)
+    try:
+        y.sum().backward()
+        print(name, name2, 'ok')
+    except RuntimeError as e:
+        print(name, name2, 'raises', str(e)[:70])
+>>>
+# the first list by node name
+<<<
+import torch
+import torch.nn.functional as F
+for name, build in [('pow2', lambda x: x ** 2), ('2px', lambda x: 2 ** x), ('powt', lambda x: x ** torch.ones(2)), ('xx', lambda x: x * x), ('x2', lambda x: x * 2), ('tan', lambda x: x.tan()), ('exp', lambda x: x.exp()), ('sqrt', lambda x: x.sqrt()), ('log', lambda x: x.log()), ('atan', lambda x: x.atan()), ('sinh', lambda x: x.sinh()), ('gelu', lambda x: F.gelu(x)), ('elu', lambda x: F.elu(x)), ('lrelu', lambda x: F.leaky_relu(x)), ('relu', lambda x: F.relu(x)), ('abs', lambda x: x.abs()), ('max', lambda x: x.max()), ('min', lambda x: x.min()), ('mv', lambda x: x @ x), ('clamp', lambda x: x.clamp(0, 1)), ('norm', lambda x: x.norm()), ('std', lambda x: x.std()), ('var', lambda x: x.var()), ('prod', lambda x: x.prod()), ('bce', lambda x: F.binary_cross_entropy_with_logits(x, torch.ones(2))), ('mse', lambda x: F.mse_loss(x, torch.ones(2))), ('nll', lambda x: F.nll_loss(x[None], torch.tensor([0]))), ('ce', lambda x: F.cross_entropy(x[None], torch.tensor([0]))), ('atan2', lambda x: torch.atan2(x, x)), ('maximum', lambda x: torch.maximum(x, x.flip(0))), ('erf', lambda x: x.erf()), ('dot', lambda x: torch.dot(x, x)), ('outer', lambda x: torch.outer(x, x)), ('mm', lambda x: x[None] @ x[None].T), ('hypot', lambda x: torch.hypot(x, x))]:
+    w = torch.ones(2, requires_grad=True)
+    x = w + 1
+    y = build(x)
+    print(name, y.grad_fn.name())
+>>>
+# division in place
+<<<
+import torch
+for s in ['n', 'd']:
+    w = torch.ones(2, requires_grad=True)
+    d = w + 1
+    c = torch.ones(2)
+    y = c / d
+    (d if s == 'd' else c).add_(1)
+    try:
+        y.sum().backward()
+        print('cst/grad', s, 'ok', w.grad)
+    except RuntimeError as e:
+        print('cst/grad', s, 'raises', str(e)[:60])
+    w = torch.ones(2, requires_grad=True)
+    n = w + 1
+    c = torch.ones(2)
+    y = n / c
+    (n if s == 'n' else c).add_(1)
+    try:
+        y.sum().backward()
+        print('grad/cst', s, 'ok', w.grad)
+    except RuntimeError as e:
+        print('grad/cst', s, 'raises', str(e)[:60])
+    a = torch.ones(2, requires_grad=True)
+    p = a + 1
+    q = a + 2
+    y = p / q
+    (p if s == 'n' else q).add_(1)
+    try:
+        y.sum().backward()
+        print('grad/grad', s, 'ok', a.grad)
+    except RuntimeError as e:
+        print('grad/grad', s, 'raises', str(e)[:60])
+    a = torch.ones(2, requires_grad=True)
+    p = a + 1
+    c = torch.ones(2)
+    y = p * c
+    (p if s == 'n' else c).add_(1)
+    try:
+        y.sum().backward()
+        print('grad*cst', s, 'ok', a.grad)
+    except RuntimeError as e:
+        print('grad*cst', s, 'raises', str(e)[:60])
+>>>
+# more target shapes
+<<<
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+for s in ["F.cross_entropy(torch.zeros(2,3), torch.zeros(3))", "F.cross_entropy(torch.zeros(2,3), torch.tensor(1))", "F.nll_loss(torch.zeros(2,3), torch.tensor(1))", "F.cross_entropy(torch.zeros(2,3), torch.zeros(2,1).long(), weight=torch.ones(3))", "F.cross_entropy(torch.zeros(2,3), torch.zeros(3).long(), ignore_index=0)", "F.cross_entropy(torch.zeros(2,3), torch.zeros(2,1).long(), label_smoothing=0.1)", "F.nll_loss(torch.zeros(2,3,4), torch.zeros(2,5).long())", "F.nll_loss(torch.zeros(2,3), torch.zeros(3).long(), weight=torch.ones(3))", "F.nll_loss(torch.zeros(2,3), torch.zeros(2,1).long(), ignore_index=0)", "torch.ones(2).round(decimals=0).dtype", "torch.tensor(1.5, requires_grad=True).round(decimals=0).grad_fn.name()", "torch.tensor(1.5, requires_grad=True).round().grad_fn.name()", "torch.tensor(1.5, requires_grad=True).round(decimals=2).grad_fn.name()"]:
+    try:
+        print(s, '→', eval(s))
+    except Exception as e:
+        print(s, '→', type(e).__name__, e)
+>>>
+# losses and dtypes
+<<<
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+for s in ["F.binary_cross_entropy(torch.tensor([0.5]), torch.tensor([1.], dtype=torch.float64))", "F.binary_cross_entropy(torch.tensor([0.5], dtype=torch.float64), torch.tensor([1.]))", "F.binary_cross_entropy(torch.tensor([1]), torch.tensor([1.]))", "F.binary_cross_entropy(torch.tensor([0.5]), torch.tensor([True]))", "F.binary_cross_entropy_with_logits(torch.tensor([0.5]), torch.tensor([1.], dtype=torch.float64))", "F.binary_cross_entropy_with_logits(torch.tensor([0.5], dtype=torch.float64), torch.tensor([1.]))", "F.binary_cross_entropy_with_logits(torch.tensor([0.5], dtype=torch.float64), torch.tensor([1]))", "F.binary_cross_entropy_with_logits(torch.tensor([1]), torch.tensor([1.]))", "F.binary_cross_entropy_with_logits(torch.tensor([0.5]), torch.tensor([True]))", "F.mse_loss(torch.tensor([0.5]), torch.tensor([1.], dtype=torch.float64))", "F.mse_loss(torch.tensor([1]), torch.tensor([1.]))", "F.mse_loss(torch.tensor([1]), torch.tensor([1]))", "F.l1_loss(torch.tensor([0.5]), torch.tensor([1]))", "F.smooth_l1_loss(torch.tensor([0.5]), torch.tensor([1]))", "F.cross_entropy(torch.zeros(3), torch.tensor([1]))", "F.cross_entropy(torch.zeros(3), torch.tensor([1, 2]))", "F.nll_loss(torch.zeros(3), torch.tensor([1]))", "F.cross_entropy(torch.zeros(2,3), torch.zeros(2), weight=torch.ones(3))", "F.cross_entropy(torch.zeros(2,3), torch.zeros(3), ignore_index=0)", "F.nll_loss(torch.zeros(2,3), torch.zeros(2), weight=torch.ones(3))", "F.cross_entropy(torch.tensor([[1, 2]]), torch.tensor([0]))", "F.nll_loss(torch.tensor([[1, 2]]), torch.tensor([0]))", "F.cross_entropy(torch.zeros(2,3,dtype=torch.float64), torch.zeros(2).long())", "F.cross_entropy(torch.zeros(2,3), torch.zeros(2,3,dtype=torch.float64))", "F.linear(torch.ones(2), torch.ones(1, 2)).grad_fn", "F.linear(torch.ones(2, requires_grad=True), torch.ones(1, 2)).grad_fn.name()", "F.linear(torch.ones(2, requires_grad=True), torch.ones(1, 2), torch.ones(1)).grad_fn.name()", "F.linear(torch.ones(1, 2, requires_grad=True), torch.ones(1, 2)).grad_fn.name()", "F.linear(torch.ones(1, 2, requires_grad=True), torch.ones(1, 2), torch.ones(1)).grad_fn.name()"]:
+    try:
+        print(s, '→', eval(s))
+    except Exception as e:
+        print(s, '→', type(e).__name__, e)
+>>>
+# in place through a view
+<<<
+import torch
+w = torch.ones(2, requires_grad=True)
+x = w + 1
+y = x[None] ** 2
+x.add_(1)
+try:
+    y.sum().backward()
+except RuntimeError as e:
+    print(e)
+w = torch.ones(2, requires_grad=True)
+x = w + 1
+x.add_(1)
+y = x[None] ** 2
+x.add_(1)
+try:
+    y.sum().backward()
+except RuntimeError as e:
+    print(e)
+w = torch.ones(2, requires_grad=True)
+x = w + 1
+y = x.std()
+x.add_(1)
+try:
+    y.backward()
+except RuntimeError as e:
+    print(e)
+w = torch.ones(2, requires_grad=True)
+x = w + 1
+v = x[0]
+y = v * v
+x.add_(1)
+try:
+    y.backward()
+except RuntimeError as e:
+    print(e)
+w = torch.ones(2, requires_grad=True)
+x = w + 1
+y = x * x
+print(x, x[0], y)
+x.add_(1)
+try:
+    y.sum().backward()
+except RuntimeError as e:
+    print(e)
+>>>

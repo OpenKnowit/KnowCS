@@ -4554,7 +4554,7 @@
     "pytorch": {
       "title": "PyTorch 实验台",
       "subtitle": "{{n}} 个出自第 9 讲的示例：张量、自动求导、nn.Module 与训练循环。点开一个步骤，可以看到网格、各层形状或梯度计算图。",
-      "sandbox_note": "在浏览器中运行，基于一个精简重写的 PyTorch（张量、自动求导、Linear / Conv2d / MaxPool2d / Dropout、常用损失函数、SGD 与 Adam、DataLoader）。打印格式、数据类型和报错信息与 PyTorch 2 一致；随机数与真实 PyTorch 不同，没有 GPU，也不能下载 MNIST。",
+      "sandbox_note": "在浏览器中运行，基于重写的 PyTorch：张量、自动求导（含 create_graph）、大部分 torch.nn、torch.linalg、优化器与学习率调度器、DataLoader。打印、数值和报错信息已用约 2000 段程序与 PyTorch 2.14 对照。随机数不同，不显示内存地址，没有 GPU，也不能下载 MNIST。",
       "cat": {
         "tensors": "张量",
         "autograd": "自动求导",
