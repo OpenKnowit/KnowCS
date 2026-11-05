@@ -4,7 +4,7 @@ import type { DType } from './ndarray'
 
 /** 多个数组合并后的 dtype：有 float 即 float64，否则有 int 即 int64，全 bool 才 bool */
 export const commonDType = (arrs: NDArray[]): DType =>
-  arrs.some((a) => a.dtype === 'float64') ? 'float64' : arrs.some((a) => a.dtype === 'int64') ? 'int64' : 'bool'
+  arrs.some((a) => a.dtype === 'float64') ? 'float64' : arrs.some((a) => a.dtype === 'int64') ? 'int64' : arrs.some((a) => a.dtype === 'uint8') ? 'uint8' : 'bool'
 
 const flatIndex = (idx: number[], shape: readonly number[]): number => {
   const st = cStrides(shape)

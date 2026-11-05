@@ -1,12 +1,16 @@
 // --- 迷你 NumPy 内核：共享缓冲区 + shape/strides/offset，忠实复刻索引语义（View / Copy） ---
 // 只覆盖教学所需子集：int64 / float64 / bool 三种 dtype；每个结果都能追溯到源缓冲区地址，供可视化使用。
 
-export type DType = 'int64' | 'float64' | 'bool'
+export type DType = 'int64' | 'float64' | 'bool' | 'uint8'
 
 /** 带 Python 异常类型名的错误（IndexError / ValueError / TypeError …） */
 export class PyError extends Error {
   pyType: string
   line?: number
+  /** the Python exception object, once there is one (raise, or caught by except) */
+  exc?: unknown
+  /** the sandbox stopping the run: except cannot catch it, or a loop around try could never end */
+  fatal?: boolean
   constructor(pyType: string, message: string, line?: number) {
     super(message)
     this.pyType = pyType
@@ -56,6 +60,8 @@ export const checkSize = (shape: readonly number[]): void => {
 
 export const castValue = (v: number, dtype: DType): number => {
   if (dtype === 'bool') return v !== 0 ? 1 : 0
+  // wraps around, as C does: 256 is 0, -1 is 255
+  if (dtype === 'uint8') return Number.isFinite(v) ? ((Math.trunc(v) % 256) + 256) % 256 : 0
   if (dtype === 'int64') {
     if (!Number.isFinite(v)) throw new PyError('ValueError', `cannot convert float ${Number.isNaN(v) ? 'NaN' : 'infinity'} to integer`)
     return Math.trunc(v) || 0
@@ -205,10 +211,11 @@ export const resultDType = (op: BinOp, a: DType, b: DType): DType => {
     if (a === 'float64' || b === 'float64') {
       throw new PyError('TypeError', `ufunc '${UFUNC_NAME[op]}' not supported for the input types`)
     }
-    return a === 'bool' && b === 'bool' ? 'bool' : 'int64'
+    return a === 'bool' && b === 'bool' ? 'bool' : a === 'int64' || b === 'int64' ? 'int64' : 'uint8'
   }
   if (op === '/') return 'float64'
-  return a === 'float64' || b === 'float64' ? 'float64' : 'int64'
+  if (a === 'float64' || b === 'float64') return 'float64'
+  return (a === 'uint8' || b === 'uint8') && a !== 'int64' && b !== 'int64' ? 'uint8' : 'int64'
 }
 
 /** 标量运算（Python 语义：// 向下取整，% 结果与除数同号） */
@@ -240,10 +247,19 @@ export const applyOp = (op: BinOp, x: number, y: number, dtype: DType): number =
   }
 }
 
+/** a Python int beside a uint8 array takes the array's type (NumPy 2's rule), and must fit in it */
+const pythonIntFits = (other: NDArray, op: BinOp): boolean => {
+  if (other.ndim !== 0 || other.dtype !== 'int64') return false
+  const v = other.values()[0]
+  if (!COMPARE.has(op) && (v < 0 || v > 255)) throw new PyError('OverflowError', `Python integer ${v} out of bounds for uint8`)
+  return true
+}
+
 export const binaryOp = (op: BinOp, a: NDArray, b: NDArray): NDArray => {
   const shape = broadcastShapes([a.shape, b.shape])
   checkSize(shape)
-  const dtype = resultDType(op, a.dtype, b.dtype)
+  const asUint8 = (a.dtype === 'uint8' && pythonIntFits(b, op)) || (b.dtype === 'uint8' && pythonIntFits(a, op))
+  const dtype = asUint8 ? resultDType(op, 'uint8', 'uint8') : resultDType(op, a.dtype, b.dtype)
   const opType = COMPARE.has(op) ? (a.dtype === 'float64' || b.dtype === 'float64' ? 'float64' : 'int64') : dtype
   const av = broadcastTo(a, shape).values()
   const bv = broadcastTo(b, shape).values()
@@ -258,7 +274,8 @@ export const unaryOp = (op: UnaryOp, a: NDArray): NDArray => {
     if (a.dtype === 'bool') {
       throw new PyError('TypeError', 'The numpy boolean negative, the `-` operator, is not supported, use the `~` operator or the logical_not function instead.')
     }
-    return NDArray.create(a.values().map((x) => -x || 0), a.shape, a.dtype)
+    // floats keep -0.0, which NumPy prints; integers have no such thing
+    return NDArray.create(a.values().map((x) => (a.dtype === 'float64' ? -x : -x || 0)), a.shape, a.dtype)
   }
   if (a.dtype === 'float64') throw new PyError('TypeError', "ufunc 'invert' not supported for the input types")
   return NDArray.create(a.values().map((x) => (a.dtype === 'bool' ? 1 - x : ~x)), a.shape, a.dtype)
@@ -338,7 +355,7 @@ export const reduceDType = (kind: ReduceKind, dtype: DType): DType => {
   if (kind === 'mean' || kind === 'std' || kind === 'var') return 'float64'
   if (kind === 'any' || kind === 'all') return 'bool'
   if (kind === 'argmax' || kind === 'argmin' || kind === 'count_nonzero') return 'int64'
-  if ((kind === 'sum' || kind === 'prod') && dtype === 'bool') return 'int64'
+  if ((kind === 'sum' || kind === 'prod') && (dtype === 'bool' || dtype === 'uint8')) return 'int64'
   return dtype
 }
 
@@ -381,7 +398,7 @@ export const dot = (a: NDArray, b: NDArray): NDArray | number => {
       out.push(s)
     }
   }
-  const dtype: DType = a.dtype === 'float64' || b.dtype === 'float64' ? 'float64' : 'int64'
+  const dtype: DType = a.dtype === 'float64' || b.dtype === 'float64' ? 'float64' : a.dtype === 'uint8' && b.dtype === 'uint8' ? 'uint8' : 'int64'
   if (a.ndim === 1 && b.ndim === 1) return out[0]
   const shape = a.ndim === 1 ? [mm] : b.ndim === 1 ? [n] : [n, mm]
   return NDArray.create(out, shape, dtype)
@@ -639,15 +656,21 @@ export const setIndex = (a: NDArray, items: IndexItem[], value: NDArray): IndexP
 
 // ---------------- repr / str 格式化（对齐 numpy 默认打印风格） ----------------
 
+/** np.set_printoptions: reset at the start of every run */
+export const printOptions = { precision: 8, suppress: false, threshold: 1000, edgeitems: 3, linewidth: 75 }
+export const resetPrintOptions = () => Object.assign(printOptions, { precision: 8, suppress: false, threshold: 1000, edgeitems: 3, linewidth: 75 })
+
 const fmtFloatRaw = (v: number): string => {
   if (Number.isNaN(v)) return 'nan'
   if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf'
   if (Object.is(v, -0)) return '-0.' // toFixed drops the sign of negative zero; numpy keeps it
-  return v.toFixed(8).replace(/0+$/, '')
+  const s = v.toFixed(printOptions.precision)
+  return s.includes('.') ? s.replace(/0+$/, '') : `${s}.`
 }
 
 /** numpy 规则：最大值 ≥ 1e8，或最小非零绝对值 < 1e-4，或二者之比 > 1000 时改用科学计数法 */
 const needsScientific = (values: number[]): boolean => {
+  if (printOptions.suppress) return false
   const abs = values.filter((v) => Number.isFinite(v) && v !== 0).map(Math.abs)
   if (!abs.length) return false
   // loops, not Math.max(...abs): large arrays have more elements than the call stack takes arguments
@@ -661,7 +684,7 @@ const formatScientific = (values: number[]): string[] => {
     if (!Number.isFinite(v)) return null
     // shortest round-trip digits, capped at numpy's default precision of 8 (trailing zeros dropped)
     let [mant, exp] = v.toExponential().split('e')
-    if ((mant.split('.')[1] ?? '').length > 8) [mant, exp] = v.toExponential(8).replace(/\.?0+e/, 'e').split('e')
+    if ((mant.split('.')[1] ?? '').length > printOptions.precision) [mant, exp] = v.toExponential(printOptions.precision).replace(/\.?0+e/, 'e').split('e')
     const [i, f = ''] = mant.split('.')
     const e = Number(exp)
     return { i, f, e: `e${e < 0 ? '-' : '+'}${String(Math.abs(e)).padStart(2, '0')}` }
@@ -673,7 +696,7 @@ const formatScientific = (values: number[]): string[] => {
 export const formatElements = (values: number[], dtype: DType): string[] => {
   let words: string[]
   if (dtype === 'bool') words = values.map((v) => (v ? ' True' : 'False'))
-  else if (dtype === 'int64') words = values.map(String)
+  else if (dtype === 'int64' || dtype === 'uint8') words = values.map(String)
   else if (needsScientific(values)) words = formatScientific(values)
   else {
     const raw = values.map(fmtFloatRaw)
@@ -689,18 +712,14 @@ export const formatElements = (values: number[], dtype: DType): string[] => {
   return words.map((s) => s.padStart(w))
 }
 
-const SUMMARY_THRESHOLD = 1000
-const EDGE = 3
-const LINE_WIDTH = 75
-
 const shownIndices = (n: number, summarize: boolean): (number | null)[] =>
-  summarize && n > 2 * EDGE
-    ? [...Array.from({ length: EDGE }, (_, i) => i), null, ...Array.from({ length: EDGE }, (_, i) => n - EDGE + i)]
+  summarize && n > 2 * printOptions.edgeitems
+    ? [...Array.from({ length: printOptions.edgeitems }, (_, i) => i), null, ...Array.from({ length: printOptions.edgeitems }, (_, i) => n - printOptions.edgeitems + i)]
     : Array.from({ length: n }, (_, i) => i)
 
 const formatNested = (a: NDArray, repr: boolean, indent: number): string => {
   const vals = a.values()
-  const summarize = a.size > SUMMARY_THRESHOLD
+  const summarize = a.size > printOptions.threshold
   const st = cStrides(a.shape)
   // 只用显示出来的元素计算列宽（与 numpy 一致）
   const shownFlat: number[] = []
@@ -726,7 +745,7 @@ const formatNested = (a: NDArray, repr: boolean, indent: number): string => {
       items.forEach((w, k) => {
         const word = k < items.length - 1 ? w + sep : w
         const next = cur ? `${cur} ${word}` : word
-        if (cur && lead + next.length + (k === items.length - 1 ? a.ndim - d : 0) > LINE_WIDTH) {
+        if (cur && lead + next.length + (k === items.length - 1 ? a.ndim - d : 0) > printOptions.linewidth) {
           lines.push(cur)
           cur = word
         } else cur = next
@@ -742,7 +761,7 @@ const formatNested = (a: NDArray, repr: boolean, indent: number): string => {
 
 export const formatScalar = (v: number, dtype: DType): string => {
   if (dtype === 'bool') return v ? 'True' : 'False'
-  if (dtype === 'int64') return String(v)
+  if (dtype === 'int64' || dtype === 'uint8') return String(v)
   if (Number.isNaN(v)) return 'nan'
   if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf'
   return pyFloatRepr(v)
@@ -764,8 +783,13 @@ export const arrayRepr = (a: NDArray): string => {
   if (a.size === 0) {
     return a.ndim === 1 ? `${name}([], dtype=${a.dtype})` : `${name}([], shape=${shapeStr(a.shape)}, dtype=${a.dtype})`
   }
-  const suffix = a.size > SUMMARY_THRESHOLD ? `, shape=${shapeStr(a.shape)}` : ''
-  return `${name}(${formatNested(a, true, name.length + 1)}${suffix})`
+  // the extras go on their own line if they would run past the line width
+  const extras = [...(a.size > printOptions.threshold ? [`shape=${shapeStr(a.shape)}`] : []), ...(a.dtype === 'uint8' ? ['dtype=uint8'] : [])]
+  const body = `${name}(${formatNested(a, true, name.length + 1)}`
+  if (!extras.length) return `${body})`
+  const extra = `${extras.join(', ')})`
+  const lastLine = body.length + 1 - (body.lastIndexOf('\n') + 1)
+  return `${body},${lastLine + extra.length + 1 > printOptions.linewidth ? `\n${' '.repeat(name.length + 1)}` : ' '}${extra}`
 }
 
 export const arrayStr = (a: NDArray): string => {
