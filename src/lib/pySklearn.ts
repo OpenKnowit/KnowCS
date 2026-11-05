@@ -315,13 +315,12 @@ export class ObjArray extends PyObj {
     throw h.err('IndexError', 'only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices')
   }
   flatten() { return new ObjArray(this.items, this.dtype) }
-  binop(op: string, other: Value, reflected: boolean, h: Host): Value | undefined {
+  binop(op: string, other: Value, _reflected: boolean, h: Host): Value | undefined {
     if (op !== '==' && op !== '!=') return undefined
     const eq = op === '=='
     if (other.k === 'str') return vec(this.items.map((s) => Number((s === other.v) === eq)), 'bool')
     const o = labelsOf(h, other)
     if (o.vals.length !== this.items.length) throw h.err('ValueError', `operands could not be broadcast together with shapes (${this.items.length},) (${o.vals.length},)`)
-    void reflected
     return vec(this.items.map((s, i) => Number((s === o.vals[i]) === eq)), 'bool')
   }
   isa(name: string) { return name === 'ndarray' }
@@ -382,6 +381,15 @@ class Csr extends PyObj {
 }
 
 // ---------------------------------------------------------------- reading inputs
+
+/** a DataFrame's column labels as text, whether pandas keeps them in a list or an Index */
+const colNames = (f: Frame): string[] => {
+  const c = f.columns as unknown
+  return (Array.isArray(c) ? c : (c as { labels: unknown[] }).labels).map(String)
+}
+
+/** an object array from another library (df['c'].values): anything that calls itself an ndarray but is not numeric */
+const isForeignArray = (v: Value): boolean => v.k === 'obj' && v.o.cls === 'ndarray' && !(v.o instanceof ObjArray) && !v.o.toArray
 
 /** sklearn's own exceptions, which an except ValueError also catches */
 const excOf = (h: Host, name: string, bases: string[]): ClassValue => {
@@ -456,7 +464,7 @@ const readX = (h: Host, v: Value | undefined, est: string, name = 'X'): XData =>
   if (a.shape[0] === 0) throw h.err('ValueError', `Found array with 0 sample(s) (shape=(0, ${a.shape[1]})) while a minimum of 1 is required by ${est}.`)
   if (a.shape[1] === 0) throw h.err('ValueError', `Found array with 0 feature(s) (shape=(${a.shape[0]}, 0)) while a minimum of 1 is required by ${est}.`)
   finiteCheck(h, a.values(), name, est)
-  return { rows: rowsOf(a), n: a.shape[0], m: a.shape[1], names: v.k === 'obj' && v.o instanceof Frame ? [...v.o.columns] : null, a }
+  return { rows: rowsOf(a), n: a.shape[0], m: a.shape[1], names: v.k === 'obj' && v.o instanceof Frame ? colNames(v.o) : null, a }
 }
 
 interface Labels { vals: Lab[]; isStr: boolean; dtype: string }
@@ -519,6 +527,7 @@ const numSamples = (h: Host, v: Value): number => {
   if (v.k === 'obj' && v.o instanceof Series) return v.o.length
   if (v.k === 'obj' && v.o instanceof ObjArray) return v.o.shape[0]
   if (v.k === 'obj' && v.o instanceof Csr) return v.o.rows.length
+  if (isForeignArray(v)) return h.iterate(v).length
   throw h.err('TypeError', `Expected sequence or array-like, got ${h.str(py.str(`<class '${v.k === 'obj' ? v.o.cls : v.k}'>`))}`)
 }
 
@@ -542,6 +551,7 @@ const takeSamples = (h: Host, v: Value, idx: number[]): Value => {
   if (v.k === 'obj' && v.o instanceof Frame) return py.obj(v.o.take(idx, null))
   if (v.k === 'obj' && v.o instanceof Series) return py.obj(v.o.pick(idx))
   if (v.k === 'obj' && (v.o instanceof ObjArray || v.o instanceof Csr)) return py.obj(v.o.take(idx))
+  if (isForeignArray(v)) return (v as Value & { k: 'obj' }).o.getItem!(py.list(idx.map((i) => py.int(i))), h)
   throw h.err('TypeError', `Expected sequence or array-like, got ${v.k}`)
 }
 
@@ -856,12 +866,11 @@ const noSampleWeight = (h: Host, who: string, kw: Kw, v?: Value) => {
 
 interface FitTarget { y: Labels; classes: Lab[]; enc: number[] }
 
-const classifierTarget = (h: Host, e: Est, yV: Value | undefined): FitTarget => {
+const classifierTarget = (h: Host, yV: Value | undefined): FitTarget => {
   if (!yV || yV.k === 'none') throw h.err('ValueError', 'y cannot be None')
   const y = labelsOf(h, yV)
   const t = typeOfTarget(y)
   if (t === 'continuous') throw h.err('ValueError', `Unknown label type: continuous. Maybe you are trying to fit a classifier, which expects discrete classes on a regression target with continuous values.`)
-  void e
   const classes = uniqueSorted(y.vals, y.isStr)
   const at = new Map(classes.map((c, i) => [c, i]))
   return { y, classes, enc: y.vals.map((v) => at.get(v)!) }
@@ -1217,8 +1226,6 @@ const GRID_SEARCH: Spec = {
         ranks.forEach((r, i) => { if (r < ranks[bi]) bi = i })
         const paramsV = cands.map((c) => dictOf(c))
         const results: [string, Value][] = []
-        const names = [...new Set(cands.flat().map(([k]) => k))].sort()
-        void names
         results.push(['params', py.list(paramsV)])
         splits.forEach((_, f) => results.push([`split${f}_test_score`, vec(scores.map((s) => s[f]))]))
         results.push(['mean_test_score', vec(means)], ['std_test_score', vec(stds)], ['rank_test_score', vec(ranks, 'int64')])
@@ -1587,7 +1594,7 @@ const FUNCTION_TRANSFORMER: Spec = {
     const m = {
       fit: ((args, kw) => {
         const X = input(args[0] ?? kw.X)
-        if (X.k === 'obj' && X.o instanceof Frame) rememberFeatures(e, { m: X.o.columns.length, names: [...X.o.columns], rows: [], n: 0, a: null as never })
+        if (X.k === 'obj' && X.o instanceof Frame) rememberFeatures(e, { m: colNames(X.o).length, names: colNames(X.o), rows: [], n: 0, a: null as never })
         else if (X.k === 'array' && X.a.ndim === 2) rememberFeatures(e, { m: X.a.shape[1], names: null, rows: [], n: 0, a: X.a })
         e.st.fitted = true
         return py.obj(e)
@@ -1662,7 +1669,11 @@ interface Table { cols: Labels[]; n: number; names: string[] | null }
 const readTable = (h: Host, v: Value | undefined, est: string): Table => {
   if (!v) throw h.err('TypeError', `${est}.fit() missing 1 required positional argument: 'X'`)
   const need2d = (arr: string) => h.err('ValueError', `Expected 2D array, got 1D array instead:\narray=${arr}.\nReshape your data either using array.reshape(-1, 1) if your data has a single feature or array.reshape(1, -1) if it contains a single sample.`)
-  if (v.k === 'obj' && v.o instanceof Frame) return { cols: v.o.data.map((s) => labelsOf(h, py.obj(s))), n: v.o.nrows, names: [...v.o.columns] }
+  if (v.k === 'obj' && v.o instanceof Frame) return { cols: v.o.data.map((s) => labelsOf(h, py.obj(s))), n: v.o.nrows, names: colNames(v.o) }
+  if (isForeignArray(v)) {
+    const rows = h.iterate(v).map((x) => (isForeignArray(x) ? py.list(h.iterate(x)) : x))
+    return readTable(h, py.list(rows), est)
+  }
   if (v.k === 'obj' && v.o instanceof Series) {
     if (v.o.dtype === 'object') throw need2d(new ObjArray(v.o.values.map(String), 'object').str())
     throw need2d(h.str(py.arr(v.o.toArray())))
@@ -1914,13 +1925,13 @@ const callFitTransform = (h: Host, t: Value, X: Value, y?: Value): Value => {
 }
 
 const selectColumns = (h: Host, X: Value, col: Value): { value: Value; idx: number[] } => {
-  const nCols = X.k === 'obj' && X.o instanceof Frame ? X.o.columns.length : X.k === 'array' && X.a.ndim === 2 ? X.a.shape[1] : -1
+  const nCols = X.k === 'obj' && X.o instanceof Frame ? colNames(X.o).length : X.k === 'array' && X.a.ndim === 2 ? X.a.shape[1] : -1
   if (nCols < 0) throw h.err('ValueError', 'ColumnTransformer needs a 2D array or a DataFrame')
   const c = col.k === 'func' || col.k === 'fn' ? h.call(col, [X]) : col
   const frame = X.k === 'obj' && X.o instanceof Frame ? X.o : null
   const byName = (n: string) => {
     if (!frame) throw h.err('ValueError', 'Specifying the columns using strings is only supported for dataframes.')
-    const k = frame.columns.indexOf(n)
+    const k = colNames(frame).indexOf(n)
     if (k < 0) throw h.err('ValueError', 'A given column is not a column of the dataframe')
     return k
   }
@@ -1958,7 +1969,7 @@ const COLUMN_TRANSFORMER: Spec = {
         const s = selectColumns(h, X, parts[2])
         return { name: h.str(parts[0]), tr: parts[1], sel: s, col: parts[2] }
       })
-      const nCols = X.k === 'obj' && X.o instanceof Frame ? X.o.columns.length : (X as { a: NDArray }).a.shape[1]
+      const nCols = X.k === 'obj' && X.o instanceof Frame ? colNames(X.o).length : (X as { a: NDArray }).a.shape[1]
       const used = new Set(list.flatMap((t) => t.sel.idx))
       const rest = Array.from({ length: nCols }, (_, i) => i).filter((i) => !used.has(i))
       return { list, rest }
@@ -2006,7 +2017,7 @@ const COLUMN_TRANSFORMER: Spec = {
       }
       for (const t of list) run(t.name, t.tr, t.sel, t.col)
       const frame = X.k === 'obj' && X.o instanceof Frame ? X.o : null
-      const restCols = py.list(rest.map((i) => (frame ? py.str(frame.columns[i]) : py.int(i))))
+      const restCols = py.list(rest.map((i) => (frame ? py.str(colNames(frame)[i]) : py.int(i))))
       if (rem.k === 'str' && rem.v === 'drop') {
         if (rest.length) fittedList.push(py.tuple([py.str('remainder'), py.str('drop'), restCols]))
         indices.push(['remainder', { k: 'slice', start: py.int(0), stop: py.int(0), step: py.NONE }])
@@ -2014,10 +2025,10 @@ const COLUMN_TRANSFORMER: Spec = {
       else indices.push(['remainder', { k: 'slice', start: py.int(0), stop: py.int(0), step: py.NONE }])
       e.st.rest = rest
       e.st.features = features
-      e.st.names = frame ? [...frame.columns] : null
-      e.st.m = frame ? frame.columns.length : (X as { a: NDArray }).a.shape[1]
+      e.st.names = frame ? colNames(frame) : null
+      e.st.m = frame ? colNames(frame).length : (X as { a: NDArray }).a.shape[1]
       e.fitted.set('n_features_in_', py.int(e.st.m as number))
-      if (frame) e.fitted.set('feature_names_in_', py.obj(new ObjArray(frame.columns, 'object')))
+      if (frame) e.fitted.set('feature_names_in_', py.obj(new ObjArray(colNames(frame), 'object')))
       e.fitted.set('transformers_', py.list(fittedList))
       e.fitted.set('named_transformers_', py.obj(new BunchObj(fittedList.map((t) => { const [nm, tr] = h.iterate(t); return [h.str(nm), tr] as [string, Value] }))))
       e.fitted.set('output_indices_', dictOf(indices))
@@ -2509,7 +2520,7 @@ const KNN_CLASSIFIER: Spec = {
         const X = readX(h, args[0] ?? kw.X, e.cls)
         const yV = args[1] ?? kw.y
         if (yV) checkLengths(h, [py.arr(X.a), yV])
-        const t = classifierTarget(h, e, yV)
+        const t = classifierTarget(h, yV)
         fitNeighbors(e, h, X)
         storeClasses(e, t)
         e.st.enc = t.enc
@@ -2841,7 +2852,7 @@ const GAUSSIAN_NB: Spec = {
       const X = readX(h, args[0] ?? kw.X, 'GaussianNB')
       const yV = args[1] ?? kw.y
       if (yV) checkLengths(h, [py.arr(X.a), yV])
-      const t = classifierTarget(h, e, yV)
+      const t = classifierTarget(h, yV)
       const eps = e.num('var_smoothing', h) * Math.max(...varAxis0(X.rows, X.m))
       const theta: number[][] = []
       const vars: number[][] = []
@@ -2926,7 +2937,7 @@ const CATEGORICAL_NB: Spec = {
       const X = readInts(args[0] ?? kw.X)
       const yV = args[1] ?? kw.y
       if (yV) checkLengths(h, [py.arr(X.a), yV])
-      const t = classifierTarget(h, e, yV)
+      const t = classifierTarget(h, yV)
       const alpha = checkAlpha(h, e)
       const nc = t.classes.length
       const counts = new Array<number>(nc).fill(0)
@@ -3000,7 +3011,7 @@ const countingNB = (name: 'MultinomialNB' | 'BernoulliNB'): Spec => ({
       const raw = readX(h, args[0] ?? kw.X, name)
       const yV = args[1] ?? kw.y
       if (yV) checkLengths(h, [py.arr(raw.a), yV])
-      const t = classifierTarget(h, e, yV)
+      const t = classifierTarget(h, yV)
       const X = prep(raw)
       const alpha = checkAlpha(h, e)
       const nc = t.classes.length
@@ -3149,7 +3160,7 @@ const PERCEPTRON: Spec = {
         const X = readX(h, args[0] ?? kw.X, 'Perceptron')
         const yV = args[1] ?? kw.y
         if (yV) checkLengths(h, [py.arr(X.a), yV])
-        const t = classifierTarget(h, e, yV)
+        const t = classifierTarget(h, yV)
         if (t.classes.length < 2) throw h.err('ValueError', `The number of classes has to be greater than one; got ${t.classes.length} class`)
         const eta = e.num('eta0', h)
         inRange(h, e, 'eta0', eta > 0, 'a float in the range (0.0, inf)')
@@ -3428,7 +3439,7 @@ const LOGISTIC_REGRESSION: Spec = {
         const X = readX(h, args[0] ?? kw.X, 'LogisticRegression')
         const yV = args[1] ?? kw.y
         if (yV) checkLengths(h, [py.arr(X.a), yV])
-        const t = classifierTarget(h, e, yV)
+        const t = classifierTarget(h, yV)
         if (t.classes.length < 2) throw h.err('ValueError', `This solver needs samples of at least 2 classes in the data, but the data contains only one class: ${repr(py.str(String(t.classes[0])))}`)
         const on = e.flag('fit_intercept', h)
         const reg = pen.k === 'none' ? 0 : 1
@@ -3726,7 +3737,7 @@ const DECISION_TREE: Spec = {
         const X = readX(h, args[0] ?? kw.X, 'DecisionTreeClassifier')
         const yV = args[1] ?? kw.y
         if (yV) checkLengths(h, [py.arr(X.a), yV])
-        const t = classifierTarget(h, e, yV)
+        const t = classifierTarget(h, yV)
         const minLeaf = msl.k === 'float' ? Math.ceil(msl.v * X.n) : h.toInt(msl)
         const minSplit0 = mss.k === 'float' ? Math.ceil(mss.v * X.n) : h.toInt(mss)
         const nodes = buildTree(X.rows, t.enc, t.classes.length, {
@@ -3989,7 +4000,6 @@ const prfCore = (h: Host, tV: Value | undefined, pV: Value | undefined, kw: Kw, 
   const present = uniqueSorted([...t.vals, ...p.vals], t.isStr)
   const posLabel: Lab = kw.pos_label ? (kw.pos_label.k === 'str' ? kw.pos_label.v : h.num(kw.pos_label)) : 1
   let labels = labelsArg(h, kw.labels)
-  const given = labels !== null
   if (avg === 'binary') {
     if (type === 'binary') {
       if (!present.includes(posLabel) && present.length >= 2) throw h.err('ValueError', `pos_label=${typeof posLabel === 'string' ? reprStr(posLabel) : posLabel} is not a valid label. It should be one of ${t.isStr ? `[${present.map((x) => reprStr(String(x))).join(', ')}]` : `[${present.join(', ')}]`}`)
@@ -3999,7 +4009,6 @@ const prfCore = (h: Host, tV: Value | undefined, pV: Value | undefined, kw: Kw, 
     }
   }
   const use = labels ?? present
-  void given
   const c = perLabel(t, p, use)
   const divide = (a: number[], b: number[], z: number) => a.map((x, i) => (b[i] === 0 ? z : x / b[i]))
   const z = zeroDivOf(h, kw.zero_division)
@@ -4033,16 +4042,13 @@ const prfScore = (h: Host, tV: Value, pV: Value, which: 'precision' | 'recall' |
 
 const classificationReport = (h: Host, tV: Value | undefined, pV: Value | undefined, kw: Kw): Value => {
   noWeights(h, 'classification_report', kw)
-  const { t, p, type } = targetPair(h, tV, pV)
+  const { t, p } = targetPair(h, tV, pV)
   const labelsGiven = !isNone(kw.labels)
   const labels = labelsGiven ? labelsOf(h, kw.labels!).vals : uniqueSorted([...t.vals, ...p.vals], t.isStr)
   const present = uniqueSorted([...t.vals, ...p.vals], t.isStr)
   const microIsAccuracy = !labelsGiven || (labels.length >= present.length && present.every((x) => labels.includes(x)))
   const names0 = isNone(kw.target_names) ? labels.map(String) : labelsOf(h, kw.target_names!).vals.map(String)
-  if (names0.length !== labels.length) {
-    if (labelsGiven) throw h.err('ValueError', `Number of classes, ${labels.length}, does not match size of target_names, ${names0.length}. Try specifying the labels parameter`)
-    throw h.err('ValueError', `Number of classes, ${labels.length}, does not match size of target_names, ${names0.length}. Try specifying the labels parameter`)
-  }
+  if (names0.length !== labels.length) throw h.err('ValueError', `Number of classes, ${labels.length}, does not match size of target_names, ${names0.length}. Try specifying the labels parameter`)
   const digits = kw.digits ? h.toInt(kw.digits) : 2
   const c = perLabel(t, p, labels)
   const z = zeroDivOf(h, kw.zero_division)
@@ -4066,7 +4072,6 @@ const classificationReport = (h: Host, tV: Value | undefined, pV: Value | undefi
     const f = tr + pr === 0 ? z : (2 * tp) / (tr + pr)
     return { p: div(tp, pr), r: div(tp, tr), f, s: tr }
   }
-  void type
   const avgs: [string, { p: number; r: number; f: number; s: number }][] = []
   const m = micro()
   avgs.push([microIsAccuracy ? 'accuracy' : 'micro avg', m])
