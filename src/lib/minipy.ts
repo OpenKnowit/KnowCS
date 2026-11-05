@@ -1138,7 +1138,7 @@ export type Value =
   | { k: 'array'; a: NDArray }
   /** bindable: acts as a method when stored in a class (functools.lru_cache …) */
   | { k: 'fn'; name: string; call: Fn; api?: ApiMeta; self?: NDArray; rebind?: (self: NDArray) => Fn; bindable?: boolean; attrs?: Map<string, Value> }
-  | { k: 'type'; name: string; call: Fn; dtype?: DType; api?: ApiMeta; host?: HostClass; attrs?: Map<string, Value>; parents?: string[] }
+  | { k: 'type'; name: string; call: Fn; dtype?: DType; api?: ApiMeta; host?: HostClass; attrs?: Map<string, Value>; parents?: string[]; methods?: Map<string, Value> }
   | { k: 'poly'; coef: number[]; domain: Interval; window: Interval }
   | { k: 'carray'; re: number[]; im: number[] }
   | { k: 'module'; name: string; attrs: Record<string, Value> }
@@ -3279,6 +3279,9 @@ class Interp implements Host {
         if (b.k === 'class') {
           const v = walk(b)
           if (v) return v
+        } else if (b.k === 'type' && !skipping) {
+          const v = b.methods?.get(name)
+          if (v) return v
         }
       }
       return undefined
@@ -3404,6 +3407,9 @@ class Interp implements Host {
         throw this.err('AttributeError', `'${obj.o.cls}' object attribute '${name}' is read-only (or does not exist in this sandbox)`)
       case 'func': case 'fn':
         ;(obj.attrs ??= new Map()).set(name, v)
+        return
+      case 'module':
+        obj.attrs[name] = v
         return
     }
     throw this.err('AttributeError', `'${typeName(obj)}' object has no attribute '${name}'`)
@@ -4098,6 +4104,7 @@ class Interp implements Host {
       case 'obj': {
         const v = obj.o.getAttr?.(name, this)
         if (v) return v
+        if (name === '__class__') return this.call(this.builtins.type, [obj])
         throw this.err('AttributeError', `'${obj.o.cls}' object has no attribute '${name}'${obj.o.getAttr ? ' (or it is not available in this sandbox)' : ''}`)
       }
       case 'inst': {
@@ -5327,18 +5334,9 @@ class Interp implements Host {
       issubclass: fn('issubclass', (args) => {
         const c = args[0]
         if (c.k !== 'class' && c.k !== 'type') throw this.err('TypeError', 'issubclass() arg 1 must be a class')
-        const named = (t: Value) => (t.k === 'class' || t.k === 'type' ? t.name.split('.').pop()! : '')
-        const below = (x: Value, t: Value): boolean => {
-          if (x === t) return true
-          if (x.k === 'class') return x.bases.some((b) => below(b, t))
-          if (x.k !== 'type') return false
-          // a library class says what it inherits from; a Python class of the same name is not that
-          if (x.parents?.includes(named(t)) && (t.k === 'type' || (t.k === 'class' && t.builtin))) return true
-          return t.k === 'type' && (x.name === t.name || (x.name === 'bool' && t.name === 'int'))
-        }
         const of = (t: Value): boolean => {
           if (t.k === 'tuple') return t.items.some(of)
-          return (t.k === 'type' && t.name === 'object') || below(c, t)
+          return (t.k === 'type' && t.name === 'object') || this.classBelow(c, t)
         }
         return bool(of(args[1]))
       }),
@@ -5626,6 +5624,16 @@ class Interp implements Host {
     }
   }
 
+  /** is class x class t, or one below it */
+  classBelow(x: Value, t: Value): boolean {
+    if (x === t) return true
+    if (x.k === 'class') return x.bases.some((b) => this.classBelow(b, t))
+    if (x.k !== 'type') return false
+    // a library class says what it inherits from; a Python class of the same name is not that
+    if ((t.k === 'type' || (t.k === 'class' && t.builtin)) && x.parents?.includes(t.name.split('.').pop()!)) return true
+    return t.k === 'type' && (x.name === t.name || (x.name === 'bool' && t.name === 'int'))
+  }
+
   isinstance(v: Value, t: Value): boolean {
     if (t.k === 'tuple') return t.items.some((x) => this.isinstance(v, x))
     if (t.k === 'type' && t.name === 'object') return true
@@ -5640,7 +5648,7 @@ class Interp implements Host {
       const name = t.name
       if (v.k === 'array' && (name === 'numpy.ndarray' || name === 'numpy.matrix')) return name === 'numpy.ndarray' || !!v.a.matrix
       if (v.k === 'obj') return v.o.cls === name || !!v.o.isa?.(name)
-      if (v.k === 'inst') return v.cls.host !== null && t.host === v.cls.host
+      if (v.k === 'inst') return (v.cls.host !== null && t.host === v.cls.host) || this.classBelow(v.cls, t)
       const map: Record<string, Value['k'][]> = { int: ['int', 'bool'], float: ['float'], bool: ['bool'], str: ['str'], list: ['list'], tuple: ['tuple'], dict: ['dict'], set: ['set'], frozenset: ['set'], range: ['range'], 'numpy.ndarray': ['array'] }
       if (v.k === 'set') return (name === 'frozenset') === !!v.frozen && (name === 'set' || name === 'frozenset')
       // NoneType, type, Counter, a namedtuple …: whatever the value says it is

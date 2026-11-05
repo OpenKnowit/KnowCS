@@ -3227,3 +3227,238 @@ try:
 except RuntimeError as e:
     print(e)
 >>>
+
+# ---- what scripts do at the top, and classes on top of library layers
+
+# seed boilerplate
+<<<
+import random
+import numpy as np
+import torch
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+set_seed()
+print(torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark)
+print(torch.cuda.is_available(), torch.cuda.device_count())
+torch.cuda.empty_cache()
+print(hasattr(torch.backends, 'mps'), callable(torch.backends.mps.is_available), callable(torch.backends.mps.is_built))
+>>>
+# device selection
+<<<
+import torch
+import torch.nn as nn
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(device, device.type, device.index, str(device), repr(device), device == torch.device('cpu'))
+m = nn.Linear(2, 1).to(device)
+x = torch.ones(1, 2).to(device, non_blocking=True)
+print(m(x).device, next(m.parameters()).device, x.to(torch.float64).dtype, x.to(device, dtype=torch.int64).dtype, x.to(x).dtype, x.cpu().numpy().shape)
+print(torch.cuda.is_available() and torch.cuda.get_device_name(0))
+>>>
+# inference mode, autocast and threads
+<<<
+import torch
+import torch.nn as nn
+m = nn.Linear(2, 1)
+with torch.inference_mode():
+    y = m(torch.ones(1, 2))
+    print(y.requires_grad, y.grad_fn, torch.is_inference_mode_enabled(), y.is_inference())
+print(torch.is_inference_mode_enabled())
+@torch.no_grad()
+def predict(a):
+    return m(a).requires_grad
+print(predict(torch.ones(1, 2)))
+@torch.inference_mode()
+def predict2(a):
+    return m(a).requires_grad
+print(predict2(torch.ones(1, 2)))
+with torch.enable_grad():
+    print(torch.is_grad_enabled())
+with torch.set_grad_enabled(False):
+    print(torch.is_grad_enabled())
+torch.set_grad_enabled(True)
+print(torch.get_default_dtype(), torch.get_num_threads() >= 1)
+torch.set_num_threads(1)
+print(torch.get_num_threads())
+torch.set_default_dtype(torch.float64)
+print(torch.ones(1).dtype, torch.tensor([1.]).dtype, torch.get_default_dtype())
+torch.set_default_dtype(torch.float32)
+with torch.autocast('cpu', enabled=False):
+    print(m(torch.ones(1, 2)).dtype)
+with torch.amp.autocast('cpu', enabled=False):
+    print(m(torch.ones(1, 2)).dtype)
+s = torch.amp.GradScaler('cpu', enabled=False)
+l = m(torch.ones(1, 2)).sum()
+o = torch.optim.SGD(m.parameters(), lr=0.1)
+s.scale(l).backward()
+s.step(o)
+s.update()
+print(s.is_enabled(), s.get_scale(), torch.is_autocast_enabled())
+torch.autograd.set_detect_anomaly(True)
+print(torch.is_anomaly_enabled())
+torch.autograd.set_detect_anomaly(False)
+print(torch.is_anomaly_enabled())
+print(torch.get_rng_state().dtype)
+torch.use_deterministic_algorithms(False)
+print(torch.are_deterministic_algorithms_enabled())
+torch.set_float32_matmul_precision('high')
+print(torch.get_float32_matmul_precision())
+torch.set_printoptions(precision=2, sci_mode=False)
+print(torch.tensor([1.23456, 1e-5]))
+torch.set_printoptions(profile='default')
+print(torch.tensor([1.23456]))
+print(torch.compile(nn.Linear(1, 1)) is not None if False else 'skip')
+>>>
+# typical helpers around a model
+<<<
+import torch
+import torch.nn as nn
+from collections import OrderedDict, defaultdict
+from functools import partial
+from typing import List, Optional, Tuple
+class M(nn.Module):
+    def __init__(self, sizes: List[int], act: Optional[nn.Module] = None) -> None:
+        super().__init__()
+        layers = OrderedDict()
+        for i, (a, b) in enumerate(zip(sizes[:-1], sizes[1:])):
+            layers[f'fc{i}'] = nn.Linear(a, b)
+            layers[f'act{i}'] = act or nn.ReLU()
+        self.net = nn.Sequential(layers)
+        self.add_module('extra', nn.Identity())
+        self.register_parameter('alpha', nn.Parameter(torch.tensor(0.5)))
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, int]:
+        return self.net(x) * self.alpha, x.size(0)
+    def extra_repr(self):
+        return 'custom=1'
+m = M([2, 3, 1])
+print(m, m.net.fc0, m.net[0], m.get_submodule('net.fc0'), m.get_parameter('alpha'))
+print(m(torch.zeros(4, 2))[0].shape, m(torch.zeros(4, 2))[1], [n for n, _ in m.named_modules()], len(list(m.children())), m.net.fc0.in_features)
+print(sum(p.numel() for p in m.parameters()), m.state_dict()['alpha'], list(m.state_dict().keys()))
+m.zero_grad(set_to_none=True)
+print(m.alpha.grad, m.train().training, m.eval().training, m.requires_grad_(False).alpha.requires_grad, m.float().alpha.dtype, m.double().alpha.dtype, m.cpu().alpha.device)
+torch.nn.utils.clip_grad_norm_([p for p in m.parameters()], max_norm=1.0)
+print(torch.nn.utils.parameters_to_vector(m.parameters()).shape)
+st = defaultdict(list)
+st['loss'].append(torch.tensor(1.5).item())
+print(dict(st), partial(torch.full, (1,))(2.0))
+def count(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+print(count(nn.Linear(2, 2)), count(nn.Conv2d(1, 2, 3)), count(nn.LSTM(2, 3)), count(nn.Embedding(4, 2)), count(nn.BatchNorm2d(3)), count(nn.LayerNorm(4)), count(nn.GRU(2, 3, 2)), count(nn.MultiheadAttention(4, 2)))
+class Early:
+    def __init__(self, patience=2):
+        self.best, self.bad, self.patience = float('inf'), 0, patience
+    def step(self, v):
+        if v < self.best:
+            self.best, self.bad = v, 0
+        else:
+            self.bad += 1
+        return self.bad >= self.patience
+e = Early()
+print([e.step(x) for x in [1., .5, .6, .7, .8]])
+>>>
+# distributions
+<<<
+import torch
+from torch.distributions import Categorical, Normal, Bernoulli, Uniform
+d = Categorical(probs=torch.tensor([0.1, 0.9]))
+print(d, d.probs, d.logits, d.log_prob(torch.tensor(1)), d.entropy(), d.sample().shape, d.sample((3,)).shape, d.param_shape, d.batch_shape, d.event_shape)
+d2 = Categorical(logits=torch.tensor([0., 1.]))
+print(d2.probs, d2.logits, d2.log_prob(torch.tensor(0)), d2.entropy())
+n = Normal(0., 1.)
+print(n, n.mean, n.stddev, n.variance, n.log_prob(torch.tensor(0.)), n.cdf(torch.tensor(0.)), n.entropy(), n.sample().shape, n.rsample((2,)).shape, n.icdf(torch.tensor(0.5)))
+b = Bernoulli(torch.tensor([0.25]))
+print(b, b.probs, b.logits, b.log_prob(torch.tensor([1.])), b.entropy(), b.mean, b.variance, b.sample().shape)
+u = Uniform(0., 2.)
+print(u, u.mean, u.variance, u.log_prob(torch.tensor(1.)), u.entropy(), u.sample((2,)).shape, u.low, u.high)
+m = torch.tensor(0.5, requires_grad=True)
+l = Normal(m, 1.).log_prob(torch.tensor(1.))
+l.backward()
+print(l, m.grad)
+print(torch.distributions.kl_divergence(Normal(0., 1.), Normal(1., 1.)), torch.distributions.kl_divergence(Categorical(probs=torch.tensor([.5, .5])), Categorical(probs=torch.tensor([.1, .9]))))
+>>>
+# subclassing library layers
+<<<
+import torch
+import torch.nn as nn
+class Block(nn.Sequential):
+    def __init__(self, a, b):
+        super().__init__(nn.Linear(a, b), nn.ReLU())
+print(Block(2, 3), Block(2, 3)(torch.zeros(1, 2)).shape, len(Block(2, 3)), isinstance(Block(2, 3), nn.Sequential), isinstance(Block(2, 3), nn.Module))
+class Scaled(nn.Linear):
+    def forward(self, x):
+        return super().forward(x) * 2
+s = Scaled(1, 1)
+nn.init.ones_(s.weight)
+nn.init.zeros_(s.bias)
+print(s, s(torch.ones(1, 1)), [n for n, _ in s.named_parameters()], s.in_features)
+class LS(nn.CrossEntropyLoss):
+    def __init__(self):
+        super().__init__(label_smoothing=0.1)
+print(LS(), LS()(torch.zeros(1, 2), torch.tensor([0])))
+class L(nn.ModuleList):
+    def forward(self, x):
+        for m in self:
+            x = m(x)
+        return x
+print(L([nn.Identity()])(torch.ones(1)))
+print(type(nn.Linear(1, 1)).__name__, nn.Linear(1, 1).__class__.__name__, torch.ones(1).__class__.__name__, torch.Size([1]).__class__.__name__)
+class Stack(nn.Sequential):
+    def forward(self, x):
+        for m in self:
+            x = m(x) + 1
+        return x
+s = Stack(nn.Identity(), nn.Identity())
+print(s(torch.zeros(1)), len(s), s[0], list(s), nn.Identity() in s, [n for n, _ in s.named_children()])
+s.append(nn.Identity())
+print(len(s), s)
+class Sized(nn.Linear):
+    def __init__(self, n):
+        super().__init__(n, n, bias=False)
+        self.extra = nn.Linear(n, 1)
+        self.scale = nn.Parameter(torch.ones(1))
+        self.register_buffer('b', torch.zeros(1))
+    def extra_repr(self):
+        return 'sized'
+z = Sized(2)
+print(z, [n for n, _ in z.named_parameters()], list(z.state_dict().keys()), z.in_features, z.bias, z.training, z.eval().training, z.extra.training)
+with torch.no_grad():
+    z.weight.fill_(1.)
+print(z.weight, z.forward(torch.ones(1, 2)), z(torch.ones(1, 2)), z.state_dict()['weight'])
+z.weight = nn.Parameter(torch.zeros(2, 2))
+print(z(torch.ones(1, 2)), [n for n, _ in z.named_parameters()])
+z2 = Sized(2)
+print(z2.load_state_dict(z.state_dict()), z2.weight, len(list(z2.parameters())))
+import copy
+z3 = copy.deepcopy(z)
+with torch.no_grad():
+    z3.weight.fill_(5.)
+print(z.weight.sum(), z3.weight.sum(), type(z3).__name__)
+opt = torch.optim.SGD(z.parameters(), lr=0.1)
+(z(torch.ones(1, 2)) ** 2).sum().backward()
+print(z.weight.grad, z.scale.grad)
+try:
+    Sized(2)[0]
+except TypeError as e:
+    print(type(e).__name__, e)
+try:
+    len(Sized(2))
+except TypeError as e:
+    print(type(e).__name__, e)
+>>>
+# wording of distributions and runtime calls
+<<<
+import torch
+from torch.distributions import Normal, Categorical, Bernoulli, Uniform
+def t(s):
+    try:
+        print(s, '→', eval(s))
+    except BaseException as e:
+        print(s, '→', type(e).__name__ + ':', e)
+for s in ["Normal(0., -1.)", "Normal(torch.zeros(2), torch.tensor([1., 0.]))", "Normal(0., 1.).log_prob(torch.tensor(float('nan')))", "Normal(torch.zeros(2), 1.).log_prob(torch.zeros(3))", "Bernoulli(torch.tensor(1.5))", "Bernoulli(0.5)", "Bernoulli(logits=0.)", "Bernoulli()", "Bernoulli(0.5, logits=0.)", "Categorical()", "Categorical(probs=torch.tensor([0.5, 0.5]), logits=torch.zeros(2))", "Categorical(probs=torch.tensor(1.))", "Categorical(probs=torch.tensor([-1., 2.]))", "Categorical(probs=torch.tensor([1., 3.])).probs", "Categorical(torch.tensor([[0.5, 0.5], [0.1, 0.9]]))", "Categorical(torch.tensor([[0.5, 0.5], [0.1, 0.9]])).batch_shape", "Categorical(torch.tensor([[0.5, 0.5], [0.1, 0.9]])).log_prob(torch.tensor([0, 1]))", "Categorical(logits=torch.zeros(2)).log_prob(torch.tensor(5))", "Categorical(logits=torch.zeros(2))", "Categorical(probs=torch.tensor([0.5, 0.5])).mean", "Categorical(probs=torch.tensor([0.5, 0.5])).variance", "Categorical(probs=torch.tensor([0.2, 0.8])).mode", "Categorical(probs=torch.tensor([0.2, 0.8])).enumerate_support()", "Categorical(probs=torch.tensor([0.2, 0.8])).has_rsample", "Categorical(probs=torch.tensor([0.2, 0.8])).rsample()", "Normal(0., 1.).has_rsample", "Normal(0., 1.).mode", "Normal(torch.zeros(2), 1.)", "Normal(torch.zeros(2), 1.).batch_shape", "Normal(0, 1)", "Normal(0, 1).loc.dtype", "Normal(torch.tensor(0., dtype=torch.float64), 1.).sample().dtype", "Normal(0., 1.).sample((2, 3)).shape", "Normal(torch.zeros(2), 1.).sample((3,)).shape", "Normal(0., 1.).support", "Uniform(2., 1.)", "Uniform(0., 1.).log_prob(torch.tensor(2.))", "Uniform(0., 1.).cdf(torch.tensor(0.5))", "Uniform(0., 1.).icdf(torch.tensor(0.5))", "Uniform(0., 1.).stddev", "Uniform(0., 1.).mode", "Uniform(torch.zeros(2), 1.).rsample((3,)).shape", "Bernoulli(0.25).mode", "Bernoulli(torch.tensor([0.25, 0.75])).log_prob(torch.tensor([1., 2.]))", "Bernoulli(0.25).sample((2,)).shape", "Bernoulli(0.25).sample().dtype", "Bernoulli(0.25).has_rsample", "Categorical(probs=torch.tensor([0.2, 0.8])).sample().dtype", "torch.distributions.kl_divergence(Bernoulli(0.5), Bernoulli(0.25))", "torch.distributions.kl.kl_divergence(Normal(0., 2.), Normal(1., 1.))", "isinstance(Normal(0., 1.), torch.distributions.Distribution)", "torch.distributions.Normal.__name__", "Normal(0., 1.).batch_shape, Normal(0., 1.).event_shape", "Normal(0., 1.).expand((2,)).batch_shape", "Normal(0., 1.).cdf(torch.zeros(2))", "torch.autocast('gpu')", "torch.amp.autocast('cuda').__class__.__name__", "torch.autocast('cpu', enabled=False)._enabled", "torch.amp.GradScaler().is_enabled()", "torch.amp.GradScaler().get_scale()", "torch.amp.GradScaler().state_dict()", "torch.cuda.amp.GradScaler().is_enabled()", "torch.cuda.memory_allocated()", "torch.cuda.memory_reserved()", "torch.cuda.max_memory_allocated()", "torch.cuda.get_device_name(0)", "torch.cuda.current_device()", "torch.cuda.is_bf16_supported()", "torch.cuda.synchronize()", "torch.cuda.ipc_collect()", "torch.backends.cudnn.enabled", "torch.backends.cudnn.is_available()", "torch.backends.cudnn.version()", "torch.backends.cuda.is_built()", "torch.get_default_device()", "torch.set_default_device('cpu')", "torch.set_num_threads(0)", "torch.set_float32_matmul_precision('x')", "torch.set_num_interop_threads(1) if False else 1", "torch.is_autocast_enabled('cuda')", "torch.get_deterministic_debug_mode()", "torch.set_deterministic_debug_mode(0)", "torch.is_deterministic_algorithms_warn_only_enabled()", "torch.inference_mode().__class__.__name__", "torch.autograd.set_detect_anomaly(False).__class__.__name__", "torch.autograd.detect_anomaly().__class__.__name__", "torch.is_anomaly_check_nan_enabled()", "torch.ones(1).is_inference()", "torch.set_anomaly_enabled(False)"]:
+    t(s)
+>>>

@@ -221,19 +221,21 @@ class GradMode extends PyObj {
   prev = true
   /** set_grad_enabled() takes effect when called; its `with` must still restore what was there before */
   applied = false
-  constructor(enabled: boolean) {
+  constructor(enabled: boolean, cls?: string) {
     super()
     this.enabled = enabled
-    this.cls = enabled ? 'enable_grad' : 'no_grad'
+    this.cls = cls ?? (enabled ? 'enable_grad' : 'no_grad')
   }
   repr() { return `<torch.autograd.grad_mode.${this.cls} object>` }
   enter(h: Host): Value {
     const E = stateOf(h).E
+    if (this.cls === 'inference_mode' && !this.enabled) C.inferenceMode.depth++
     if (!this.applied) this.prev = E.grad
     E.grad = this.enabled
     return py.NONE
   }
   exit(h: Host) {
+    if (this.cls === 'inference_mode' && !this.enabled) C.inferenceMode.depth--
     stateOf(h).E.grad = this.prev
     this.applied = false
   }
@@ -933,7 +935,7 @@ export class TensorObj extends PyObj {
       case 'polygamma': return fn((args, kw) => h.call(h.getAttr(h.module('torch'), 'polygamma'), [args[0] ?? kw.n, self]))
       case 'ndimension': return fn(() => py.int(t.ndim))
       case 'element_size': return fn(() => py.int(C.itemSize(t.dtype)))
-      case 'is_inference': case 'is_pinned': case 'is_conj': case 'is_neg': case 'is_distributed': return fn(() => py.bool(false))
+      case 'is_pinned': case 'is_conj': case 'is_neg': case 'is_distributed': return fn(() => py.bool(false))
       case 'pin_memory': return fn(() => { throw h.err('RuntimeError', "Cannot access accelerator device when none is available.") })
       case 'layout': return py.obj(new DtypeLike('torch.strided'))
       case 'output_nr': return py.int(0)
@@ -1838,6 +1840,7 @@ const METHODS: Record<string, TMethod> = {
   logical_or: ['other', (c) => logicalOp(c, (x, y) => x || y)],
   logical_xor: ['other', (c) => logicalOp(c, (x, y) => x !== y)],
   is_floating_point: ['', (c) => py.bool(isFloatT(c.t.dtype))],
+  is_inference: ['', (c) => py.bool(c.t.inference)],
   is_complex: ['', () => py.bool(false)],
 
   // ---- reductions
@@ -2882,21 +2885,35 @@ const moduleOf = (v: Value): ModuleLike | null => {
 /** set for each run: a user's extra_repr has to be called from where repr has no Host */
 const RUN = { host: null as Host | null }
 
+/** class Block(nn.Sequential): the library layer an instance of such a class also is */
+const INNER_LAYER = '__inner_layer__'
+const innerOf = (inst: InstValue) => inst.state[INNER_LAYER] as Layer | undefined
+
 const instModule = (inst: InstValue): ModuleLike => {
   const st = inst.state[MODULE_STATE] as { training: boolean; buffers: Map<string, boolean> }
+  const inner = innerOf(inst)
   return {
     kind: inst.cls.name,
     get training() { return st.training },
-    set training(b: boolean) { st.training = b },
-    children: () => [...inst.attrs].filter(([, v]) => moduleOf(v) !== null),
-    ownParams: () => [...inst.attrs].flatMap(([n, v]): [string, TT][] => {
-      const t = asTT(v)
-      return t && t.isParam ? [[n, t]] : []
-    }),
-    ownBuffers: () => [...st.buffers].flatMap(([n, keep]): [string, TT, boolean][] => {
-      const t = asTT(inst.attrs.get(n) ?? py.NONE)
-      return t ? [[n, t, keep]] : []
-    }),
+    set training(b: boolean) {
+      st.training = b
+      if (inner) inner.training = b
+    },
+    children: () => [...(inner?.children() ?? []), ...[...inst.attrs].filter(([, v]) => moduleOf(v) !== null)],
+    ownParams: () => {
+      const inherited = inner?.ownParams() ?? []
+      return [...inherited, ...[...inst.attrs].flatMap(([n, v]): [string, TT][] => {
+        const t = asTT(v)
+        return t && t.isParam && !inherited.some(([k]) => k === n) ? [[n, t]] : []
+      })]
+    },
+    ownBuffers: () => {
+      const inherited = inner?.ownBuffers() ?? []
+      return [...inherited, ...[...st.buffers].flatMap(([n, keep]): [string, TT, boolean][] => {
+        const t = asTT(inst.attrs.get(n) ?? py.NONE)
+        return t && !inherited.some(([k]) => k === n) ? [[n, t, keep]] : []
+      })]
+    },
     extraRepr: () => {
       const h = RUN.host
       const f = h ? (() => {
@@ -2906,7 +2923,7 @@ const instModule = (inst: InstValue): ModuleLike => {
           return null
         }
       })() : null
-      if (!h || !f || f.k !== 'bound') return ''
+      if (!h || !f || f.k !== 'bound') return inner?.extraRepr() ?? ''
       return h.str(h.call(f, []))
     },
   }
@@ -6041,6 +6058,441 @@ const snapshot = (x: unknown, memo: Map<object, unknown>): unknown => {
   return o
 }
 
+// ---------------------------------------------------------------- torch.distributions
+
+/** what a value must satisfy, as PyTorch prints it */
+class Constraint extends PyObj {
+  readonly cls = 'Constraint'
+  readonly text: string
+  constructor(text: string) {
+    super()
+    this.text = text
+  }
+  repr() { return this.text }
+}
+
+interface DistSpec {
+  kind: string
+  /** parameters in the order repr lists them; probs and logits appear once they have been computed */
+  order: string[]
+  batch: number[]
+  event?: number[]
+  dtype: TDType
+  rsample?: boolean
+  enumerate?: boolean
+  /** values read lazily, kept in params the first time */
+  lazy?: Record<string, () => Value>
+  support: () => string
+  inSupport: (v: Value) => Value
+  attrs: Record<string, () => Value>
+  methods: Record<string, (args: Value[], kw: Kw) => Value>
+}
+
+/** format(tensor): a scalar as its number, the rest as the tensor */
+const formatted = (h: Host, v: Value): string => {
+  const t = asTT(v)!
+  return t.ndim === 0 ? h.str(scalarOf(t, t.values()[0])) : h.str(v)
+}
+const tupleText = (shape: number[]) => `(${shape.join(', ')}${shape.length === 1 ? ',' : ''})`
+
+class Distribution extends PyObj {
+  readonly cls: string
+  readonly spec: DistSpec
+  readonly params: Map<string, Value>
+  readonly h: Host
+  constructor(h: Host, spec: DistSpec, params: Map<string, Value>) {
+    super()
+    this.h = h
+    this.cls = spec.kind
+    this.spec = spec
+    this.params = params
+  }
+  isa(name: string) { return name === 'Distribution' || name === this.cls }
+  repr() {
+    const shown = this.spec.order.filter((n) => this.params.has(n)).map((n) => {
+      const v = this.params.get(n)!
+      return `${n}: ${asTT(v)!.size === 1 ? formatted(this.h, v) : new SizeObj(asTT(v)!.shape).repr()}`
+    })
+    return `${this.cls}(${shown.join(', ')})`
+  }
+  param(name: string): Value {
+    const have = this.params.get(name)
+    if (have) return have
+    const made = this.spec.lazy![name]()
+    this.params.set(name, made)
+    return made
+  }
+  /** Distribution._validate_sample */
+  check(v: Value | undefined): Value {
+    const h = this.h
+    const t = v && asTT(v)
+    if (!t) throw h.err('ValueError', 'The value argument to log_prob must be a Tensor')
+    const want = [...this.spec.batch, ...(this.spec.event ?? [])]
+    const size = t.ndim
+    for (let i = 1; i <= Math.min(size, want.length); i++) {
+      const [a, b] = [t.shape[size - i], want[want.length - i]]
+      if (a !== 1 && b !== 1 && a !== b) throw h.err('ValueError', `Value is not broadcastable with batch_shape+event_shape: ${new SizeObj(t.shape).repr()} vs ${new SizeObj(want).repr()}.`)
+    }
+    const ok = this.spec.inSupport(v!)
+    if (!h.truthy(h.call(h.getAttr(ok, 'all'), []))) throw h.err('ValueError', `Expected value argument (Tensor of shape ${tupleText(t.shape)}) to be within the support (${this.spec.support()}) of the distribution ${this.repr()}, but found invalid values:\n${formatted(h, v!)}`)
+    return v!
+  }
+  getAttr(name: string): Value | undefined {
+    const { spec, h } = this
+    if (spec.lazy?.[name] || spec.order.includes(name)) return this.param(name)
+    if (spec.attrs[name]) return spec.attrs[name]()
+    if (spec.methods[name]) return { k: 'fn', name, call: spec.methods[name] }
+    switch (name) {
+      case 'batch_shape': return py.obj(new SizeObj(spec.batch))
+      case 'event_shape': return py.obj(new SizeObj(spec.event ?? []))
+      case 'has_rsample': return py.bool(!!spec.rsample)
+      case 'has_enumerate_support': return py.bool(!!spec.enumerate)
+      case 'support': return py.obj(new Constraint(spec.support()))
+      case 'stddev': return h.call(h.getAttr(this.getAttr('variance')!, 'sqrt'), [])
+      case 'perplexity': return h.call(h.getAttr(h.call(h.getAttr(py.obj(this), 'entropy'), []), 'exp'), [])
+      case 'rsample': case 'cdf': case 'icdf': case 'enumerate_support':
+        return { k: 'fn', name, call: () => { throw h.err('NotImplementedError', '') } }
+    }
+    return undefined
+  }
+}
+
+const distributions = (h: Host, E: C.Engine, torch: Record<string, Value>): Value => {
+  const op = (o: string, a: Value, b: Value) => h.binop(o, a, b)
+  const call = (v: Value, name: string, ...args: Value[]) => h.call(h.getAttr(v, name), args)
+  const F = h.getAttr(torch.nn, 'functional')
+  const f = (x: number) => py.float(x)
+  const fullOf = (shape: number[], v: number, dt: TDType) => wrap(TT.of(new Array<number>(prod(shape)).fill(v), shape, dt))
+  const shapeOf = (kw: Kw, args: Value[]) => {
+    const s = kw.sample_shape ?? args[0]
+    return s ? h.iterate(s).map((x) => h.toInt(x)) : []
+  }
+  /** broadcast_all: Python numbers take the type of the tensors, or the default */
+  const broadcastAll = (vals: Value[]): Value[] => {
+    for (const v of vals) if (!isNum(v) && !asTT(v)) throw h.err('ValueError', 'Input arguments must all be instances of Number, torch.Tensor or objects implementing __torch_function__.')
+    const dt = vals.map(asTT).find(Boolean)?.dtype ?? C.DEFAULTS.float
+    const ts = vals.map((v) => asTT(v) ?? TT.scalar(h.num(v), dt))
+    const shape = broadcastShapes(ts.map((t) => t.shape))
+    return ts.map((t) => (t.shape.join() === shape.join() ? wrap(t) : wrap(C.expandT(E, t, shape))))
+  }
+  const invalid = (name: string, v: Value, d: Distribution, constraint: string) => h.err('ValueError', `Expected parameter ${name} (Tensor of shape ${tupleText(asTT(v)!.shape)}) of distribution ${d.repr()} to satisfy the constraint ${constraint}, but found invalid values:\n${formatted(h, v)}`)
+  const every = (x: Value) => h.truthy(call(x, 'all'))
+  const le = (a: Value, b: Value) => h.compare('<=', a, b)
+  const lt = (a: Value, b: Value) => h.compare('<', a, b)
+  const clampProbs = (p: Value) => {
+    const eps = asTT(p)!.dtype === 'float64' ? 2.220446049250313e-16 : 1.1920928955078125e-7
+    return h.call(h.getAttr(p, 'clamp'), [], { min: f(eps), max: f(1 - eps) })
+  }
+
+  const normal = (loc0: Value, scale0: Value, keep?: boolean): Value => {
+    const [loc, scale] = keep ? [loc0, scale0] : broadcastAll([loc0, scale0])
+    const dtype = asTT(loc)!.dtype
+    const batch = asTT(loc)!.shape
+    const d: Distribution = new Distribution(h, {
+      kind: 'Normal', order: ['loc', 'scale'], batch, dtype, rsample: true,
+      support: () => 'Real()',
+      inSupport: (v) => h.compare('==', v, v),
+      attrs: {
+        mean: () => loc, mode: () => loc, stddev: () => scale,
+        variance: () => call(scale, 'pow', py.int(2)),
+      },
+      methods: {
+        rsample: (args, kw) => {
+          const shape = [...shapeOf(kw, args), ...batch]
+          const eps = wrap(TT.of(Array.from({ length: prod(shape) }, () => h.rng.normal()), shape, dtype))
+          return op('+', loc, op('*', eps, scale))
+        },
+        sample: (args, kw) => call(d.spec.methods.rsample(args, kw), 'detach'),
+        log_prob: ([v0], kw) => {
+          const v = d.check(v0 ?? kw.value)
+          const variance = call(scale, 'pow', py.int(2))
+          const quad = op('/', call(call(op('-', v, loc), 'pow', py.int(2)), 'neg'), op('*', py.int(2), variance))
+          return op('-', op('-', quad, call(scale, 'log')), f(Math.log(Math.sqrt(2 * Math.PI))))
+        },
+        cdf: ([v0], kw) => {
+          const v = d.check(v0 ?? kw.value)
+          return op('*', f(0.5), op('+', py.int(1), call(op('/', op('*', op('-', v, loc), call(scale, 'reciprocal')), f(Math.SQRT2)), 'erf')))
+        },
+        icdf: ([v0], kw) => op('+', loc, op('*', op('*', scale, call(op('-', op('*', py.int(2), v0 ?? kw.value), py.int(1)), 'erfinv')), f(Math.SQRT2))),
+        entropy: () => op('+', f(0.5 + 0.5 * Math.log(2 * Math.PI)), call(scale, 'log')),
+        expand: (args, kw) => {
+          const shape = h.iterate(kw.batch_shape ?? args[0])
+          return normal(call(loc, 'expand', ...shape), call(scale, 'expand', ...shape), true)
+        },
+      },
+    }, new Map([['loc', loc], ['scale', scale]]))
+    if (!every(h.compare('==', loc, loc))) throw invalid('loc', loc, d, 'Real()')
+    if (!every(lt(fullOf(batch, 0, dtype), scale))) throw invalid('scale', scale, d, 'GreaterThan(lower_bound=0.0)')
+    return py.obj(d)
+  }
+
+  const uniform = (low0: Value, high0: Value, keep?: boolean): Value => {
+    const [low, high] = keep ? [low0, high0] : broadcastAll([low0, high0])
+    const dtype = asTT(low)!.dtype
+    const batch = asTT(low)!.shape
+    const span = () => op('-', high, low)
+    const d: Distribution = new Distribution(h, {
+      kind: 'Uniform', order: ['low', 'high'], batch, dtype, rsample: true,
+      support: () => `Interval(lower_bound=${formatted(h, low)}, upper_bound=${formatted(h, high)})`,
+      inSupport: (v) => call(le(low, v), 'logical_and', le(v, high)),
+      attrs: {
+        mean: () => op('/', op('+', high, low), py.int(2)),
+        mode: () => fullOf(batch, NaN, dtype),
+        stddev: () => op('/', span(), f(Math.sqrt(12))),
+        variance: () => op('/', call(span(), 'pow', py.int(2)), py.int(12)),
+      },
+      methods: {
+        rsample: (args, kw) => {
+          const shape = [...shapeOf(kw, args), ...batch]
+          return op('+', low, op('*', wrap(TT.of(Array.from({ length: prod(shape) }, () => h.rng.next()), shape, dtype)), span()))
+        },
+        sample: (args, kw) => call(d.spec.methods.rsample(args, kw), 'detach'),
+        log_prob: ([v0], kw) => {
+          const v = d.check(v0 ?? kw.value)
+          const inside = op('*', call(le(low, v), 'type_as', low), call(h.compare('>', high, v), 'type_as', low))
+          return op('-', call(inside, 'log'), call(span(), 'log'))
+        },
+        cdf: ([v0], kw) => {
+          const v = d.check(v0 ?? kw.value)
+          return h.call(h.getAttr(op('/', op('-', v, low), span()), 'clamp'), [], { min: py.int(0), max: py.int(1) })
+        },
+        icdf: ([v0], kw) => op('+', op('*', v0 ?? kw.value, span()), low),
+        entropy: () => call(span(), 'log'),
+        expand: (args, kw) => {
+          const shape = h.iterate(kw.batch_shape ?? args[0])
+          return uniform(call(low, 'expand', ...shape), call(high, 'expand', ...shape), true)
+        },
+      },
+    }, new Map([['low', low], ['high', high]]))
+    if (!every(lt(low, high))) throw invalid('low', low, d, `LessThan(upper_bound=${formatted(h, high)})`)
+    return py.obj(d)
+  }
+
+  const bernoulli = (probs0: Value | undefined, logits0: Value | undefined): Value => {
+    if (!!probs0 === !!logits0) throw h.err('ValueError', 'Either `probs` or `logits` must be specified, but not both.')
+    const given = broadcastAll([(probs0 ?? logits0)!])[0]
+    const dtype = asTT(given)!.dtype
+    const batch = asTT(given)!.shape
+    const params = new Map([[probs0 ? 'probs' : 'logits', given]])
+    const d: Distribution = new Distribution(h, {
+      kind: 'Bernoulli', order: ['probs', 'logits'], batch, dtype, enumerate: true,
+      lazy: {
+        probs: () => call(d.param('logits'), 'sigmoid'),
+        logits: () => {
+          const p = clampProbs(d.param('probs'))
+          return op('-', call(p, 'log'), call(call(p, 'neg'), 'log1p'))
+        },
+      },
+      support: () => 'Boolean()',
+      inSupport: (v) => call(h.compare('==', v, py.int(0)), 'logical_or', h.compare('==', v, py.int(1))),
+      attrs: {
+        mean: () => d.param('probs'),
+        variance: () => op('*', d.param('probs'), op('-', py.int(1), d.param('probs'))),
+        mode: () => {
+          const p = d.param('probs')
+          const m = call(h.compare('>=', p, f(0.5)), 'to', p)
+          return call(m, 'masked_fill', h.compare('==', p, f(0.5)), f(NaN))
+        },
+        param_shape: () => py.obj(new SizeObj(batch)),
+      },
+      methods: {
+        sample: (args, kw) => {
+          const shape = [...shapeOf(kw, args), ...batch]
+          const p = C.expandT({ grad: false } as C.Engine, asTT(d.param('probs'))!, shape)
+          return wrap(TT.of(p.values().map((x) => (h.rng.next() < x ? 1 : 0)), shape, dtype))
+        },
+        log_prob: ([v0], kw) => {
+          const v = d.check(v0 ?? kw.value)
+          return call(h.call(h.getAttr(F, 'binary_cross_entropy_with_logits'), [d.param('logits'), v], { reduction: py.str('none') }), 'neg')
+        },
+        entropy: () => h.call(h.getAttr(F, 'binary_cross_entropy_with_logits'), [d.param('logits'), d.param('probs')], { reduction: py.str('none') }),
+        enumerate_support: () => {
+          const vals = wrap(TT.of([0, 1], [2], dtype))
+          return call(call(vals, 'view', py.tuple([py.int(-1), ...batch.map(() => py.int(1))])), 'expand', ...[2, ...batch].map(py.int))
+        },
+        expand: (args, kw) => {
+          const shape = h.iterate(kw.batch_shape ?? args[0])
+          return probs0 ? bernoulli(call(given, 'expand', ...shape), undefined) : bernoulli(undefined, call(given, 'expand', ...shape))
+        },
+      },
+    }, params)
+    if (probs0 && !every(call(le(py.int(0), given), 'logical_and', le(given, py.int(1))))) throw invalid('probs', given, d, 'Interval(lower_bound=0.0, upper_bound=1.0)')
+    return py.obj(d)
+  }
+
+  const categorical = (probs0: Value | undefined, logits0: Value | undefined): Value => {
+    if (!!probs0 === !!logits0) throw h.err('ValueError', 'Either `probs` or `logits` must be specified, but not both.')
+    const raw = asTT((probs0 ?? logits0)!)
+    if (!raw) throw h.err('TypeError', `${probs0 ? 'probs' : 'logits'} must be a Tensor`)
+    if (!raw.ndim) throw h.err('ValueError', `\`${probs0 ? 'probs' : 'logits'}\` parameter must be at least one-dimensional.`)
+    const keepLast = (v: Value, name: string) => h.call(h.getAttr(v, name), [py.int(-1)], { keepdim: py.bool(true) })
+    const given = probs0 ? op('/', probs0, keepLast(probs0, 'sum')) : op('-', logits0!, keepLast(logits0!, 'logsumexp'))
+    const dtype = raw.dtype
+    const batch = raw.shape.slice(0, -1)
+    const K = raw.shape[raw.ndim - 1]
+    const params = new Map([[probs0 ? 'probs' : 'logits', given]])
+    const d: Distribution = new Distribution(h, {
+      kind: 'Categorical', order: ['probs', 'logits'], batch, dtype, enumerate: true,
+      lazy: {
+        probs: () => call(d.param('logits'), 'softmax', py.int(-1)),
+        logits: () => call(clampProbs(d.param('probs')), 'log'),
+      },
+      support: () => `IntegerInterval(lower_bound=0, upper_bound=${K - 1})`,
+      inSupport: (v) => call(le(py.int(0), v), 'logical_and', le(v, py.int(K - 1))),
+      attrs: {
+        mean: () => fullOf(batch, NaN, dtype),
+        variance: () => fullOf(batch, NaN, dtype),
+        mode: () => call(d.param('probs'), 'argmax', py.int(-1)),
+        param_shape: () => py.obj(new SizeObj(raw.shape)),
+      },
+      methods: {
+        sample: (args, kw) => {
+          const front = shapeOf(kw, args)
+          const p = asTT(d.param('probs'))!.values()
+          const groups = prod(batch)
+          const count = prod(front)
+          const out: number[] = []
+          for (let n = 0; n < count; n++) {
+            for (let g = 0; g < groups; g++) {
+              let u = h.rng.next()
+              let k = 0
+              while (k < K - 1 && u >= p[g * K + k]) u -= p[g * K + k++]
+              out.push(k)
+            }
+          }
+          return wrap(TT.of(out, [...front, ...batch], 'int64'))
+        },
+        log_prob: ([v0], kw) => {
+          const v = call(d.check(v0 ?? kw.value), 'long')
+          const [value, pmf] = h.iterate(h.call(torch.broadcast_tensors, [call(v, 'unsqueeze', py.int(-1)), d.param('logits')]))
+          const first = call(value, 'narrow', py.int(-1), py.int(0), py.int(1))
+          return call(call(pmf, 'gather', py.int(-1), first), 'squeeze', py.int(-1))
+        },
+        entropy: () => {
+          const logits = d.param('logits')
+          const low = dtype === 'float64' ? -Number.MAX_VALUE : -3.4028234663852886e38
+          const safe = h.call(h.getAttr(logits, 'clamp'), [], { min: f(low) })
+          return call(call(op('*', safe, d.param('probs')), 'sum', py.int(-1)), 'neg')
+        },
+        enumerate_support: () => {
+          const vals = wrap(TT.of(Array.from({ length: K }, (_, i) => i), [K], 'int64'))
+          return call(call(vals, 'view', py.tuple([py.int(-1), ...batch.map(() => py.int(1))])), 'expand', ...[K, ...batch].map(py.int))
+        },
+        expand: (args, kw) => {
+          const shape = [...h.iterate(kw.batch_shape ?? args[0]), py.int(K)]
+          return probs0 ? categorical(call(given, 'expand', ...shape), undefined) : categorical(undefined, call(given, 'expand', ...shape))
+        },
+      },
+    }, params)
+    if (probs0) {
+      const v = asTT(given)!
+      const pv = v.values()
+      const rows = v.size / K
+      for (let r = 0; r < rows; r++) {
+        const row = pv.slice(r * K, (r + 1) * K)
+        if (row.some((x) => !(x >= 0)) || Math.abs(row.reduce((s, x) => s + x, 0) - 1) >= 1e-6) throw invalid('probs', given, d, 'Simplex()')
+      }
+    }
+    return py.obj(d)
+  }
+
+  const argsOf = (name: string, params: string) => (args: Value[], kw: Kw) => bindPy(h, `${name}.__init__`, `${params} validate_args=None`, args, kw)
+  const distType = (name: string, make: (a: Record<string, Value | undefined>) => Value, params: string): Value => {
+    const bind = argsOf(name, params)
+    return { k: 'type', name, parents: ['Distribution'], call: (args, kw) => make(bind(args, kw)) }
+  }
+  const given = (v: Value | undefined) => (v && v.k !== 'none' ? v : undefined)
+  const Normal = distType('Normal', (a) => normal(a.loc!, a.scale!), 'loc scale')
+  const Uniform = distType('Uniform', (a) => uniform(a.low!, a.high!), 'low high')
+  const Bernoulli = distType('Bernoulli', (a) => bernoulli(given(a.probs), given(a.logits)), 'probs=None logits=None')
+  const Categorical = distType('Categorical', (a) => categorical(given(a.probs), given(a.logits)), 'probs=None logits=None')
+  const Base: Value = { k: 'type', name: 'Distribution', call: () => { throw h.err('NotImplementedError', 'Distribution is a base class: use Normal, Uniform, Bernoulli or Categorical') } }
+
+  const klDivergence = fnv('kl_divergence', (args, kw) => {
+    const [p, q] = [args[0] ?? kw.p, args[1] ?? kw.q]
+    const [a, b] = [p, q].map((v) => (v?.k === 'obj' && v.o instanceof Distribution ? v.o : null))
+    if (!a || !b) throw h.err('NotImplementedError', '')
+    const pair = `${a.cls},${b.cls}`
+    const at = (d: Distribution, name: string) => d.param(name)
+    const zeroAt = (t: Value, where: Value, to: number) => call(t, 'masked_fill', where, f(to))
+    if (pair === 'Normal,Normal') {
+      const ratio = call(op('/', at(a, 'scale'), at(b, 'scale')), 'pow', py.int(2))
+      const t1 = call(op('/', op('-', at(a, 'loc'), at(b, 'loc')), at(b, 'scale')), 'pow', py.int(2))
+      return op('*', f(0.5), op('-', op('-', op('+', ratio, t1), py.int(1)), call(ratio, 'log')))
+    }
+    if (pair === 'Categorical,Categorical') {
+      const t = op('*', at(a, 'probs'), op('-', at(a, 'logits'), at(b, 'logits')))
+      const inf = zeroAt(t, call(h.compare('==', at(b, 'probs'), py.int(0)), 'expand_as', t), Infinity)
+      return call(zeroAt(inf, call(h.compare('==', at(a, 'probs'), py.int(0)), 'expand_as', t), 0), 'sum', py.int(-1))
+    }
+    if (pair === 'Bernoulli,Bernoulli') {
+      const plus = (v: Value) => h.call(h.getAttr(F, 'softplus'), [v])
+      const [pp, qp, pl, ql] = [at(a, 'probs'), at(b, 'probs'), at(a, 'logits'), at(b, 'logits')]
+      const t1 = op('*', pp, op('-', plus(call(ql, 'neg')), plus(call(pl, 'neg'))))
+      const t2 = op('*', op('-', py.int(1), pp), op('-', plus(ql), plus(pl)))
+      const one = zeroAt(zeroAt(t1, h.compare('==', qp, py.int(0)), Infinity), h.compare('==', pp, py.int(0)), 0)
+      const two = zeroAt(zeroAt(t2, h.compare('==', qp, py.int(1)), Infinity), h.compare('==', pp, py.int(1)), 0)
+      return op('+', one, two)
+    }
+    throw h.err('NotImplementedError', `kl_divergence(${a.cls}, ${b.cls}) is not available in this sandbox`)
+  })
+  const sub = (name: string, attrs: Record<string, Value>): Value => ({ k: 'module', name: `torch.distributions.${name}`, attrs })
+  return {
+    k: 'module', name: 'torch.distributions', attrs: {
+      Distribution: Base, Normal, Uniform, Bernoulli, Categorical, kl_divergence: klDivergence,
+      normal: sub('normal', { Normal }), uniform: sub('uniform', { Uniform }), bernoulli: sub('bernoulli', { Bernoulli }), categorical: sub('categorical', { Categorical }),
+      distribution: sub('distribution', { Distribution: Base }), kl: sub('kl', { kl_divergence: klDivergence }),
+    },
+  }
+}
+
+/** a `with` block that changes nothing, and works as a decorator too: mixed precision where no GPU exists */
+class AutocastObj extends PyObj {
+  readonly cls = 'autocast'
+  repr() { return '<torch.amp.autocast_mode.autocast object>' }
+  enter() { return py.NONE }
+  exit() {}
+  call(args: Value[]): Value { return args[0] }
+  getAttr(name: string) { return name === '_enabled' ? py.bool(false) : undefined }
+}
+
+/** torch.amp.GradScaler with no GPU: PyTorch turns it off, and every call passes through */
+class GradScalerObj extends PyObj {
+  readonly cls = 'GradScaler'
+  repr() { return '<torch.amp.grad_scaler.GradScaler object>' }
+  getAttr(name: string, h: Host): Value | undefined {
+    const fn = (call: (args: Value[], kw: Kw) => Value): Value => ({ k: 'fn', name, call })
+    switch (name) {
+      case 'scale': return fn((args, kw) => args[0] ?? kw.outputs)
+      case 'step': return fn(([opt, ...rest], kw) => h.call(h.getAttr(opt, 'step'), rest, kw))
+      case 'update': case 'unscale_': case 'load_state_dict': return fn(() => py.NONE)
+      case 'get_scale': return fn(() => py.float(1))
+      case 'is_enabled': return fn(() => py.bool(false))
+      case 'state_dict': return fn(() => ({ k: 'dict', d: new PyDict() }))
+    }
+    return undefined
+  }
+}
+
+/** a setting that takes effect at once, and that a `with` block puts back */
+class SettingObj extends PyObj {
+  readonly cls: string
+  readonly restore: () => void
+  readonly onEnter?: () => void
+  constructor(cls: string, restore: () => void, onEnter?: () => void) {
+    super()
+    this.cls = cls
+    this.restore = restore
+    this.onEnter = onEnter
+  }
+  repr() { return `<torch.autograd.anomaly_mode.${this.cls} object>` }
+  enter() {
+    this.onEnter?.()
+    return py.NONE
+  }
+  exit() { this.restore() }
+}
+
 /** a module anywhere inside a saved object: where the pickle would find its class */
 const MODULE_FILE: Record<string, string> = { Linear: 'linear', Bilinear: 'linear', Identity: 'linear', Sequential: 'container', ModuleList: 'container', ModuleDict: 'container', Conv1d: 'conv', Conv2d: 'conv', Conv3d: 'conv', ReLU: 'activation', Sigmoid: 'activation', Tanh: 'activation', LSTM: 'rnn', GRU: 'rnn', RNN: 'rnn', Embedding: 'sparse', Dropout: 'dropout', BatchNorm1d: 'batchnorm', BatchNorm2d: 'batchnorm', LayerNorm: 'normalization', MaxPool2d: 'pooling', AvgPool2d: 'pooling', Flatten: 'flatten' }
 const holdsModule = (v: Value): string | null => {
@@ -6509,6 +6961,49 @@ const build = (h: Host): Record<string, Value> => {
       return inst.state[MODULE_STATE] ? moduleRepr(inst) : undefined
     },
   }
+  /** what a Python class inherits from a library layer: the layer is made by __init__, and answers what the class does not */
+  const layerHost = (base: Value): HostClass => ({
+    init(inst, args, kw, hh) {
+      moduleHost.init(inst, [], {}, hh)
+      const made = hh.call(base, args, kw)
+      if (made.k !== 'obj' || !(made.o instanceof Layer)) throw hh.err('TypeError', `cannot subclass '${typeName(made)}' in this sandbox`)
+      inst.state[INNER_LAYER] = made.o
+    },
+    setAttr(inst, name, v, hh) {
+      moduleHost.setAttr!(inst, name, v, hh)
+      const inner = innerOf(inst)
+      if (inner && (inner.ownParams().some(([n]) => n === name) || inner.buffers.has(name))) inner.setAttr(name, v, hh)
+    },
+    getAttr(inst, name, hh) {
+      const own = moduleHost.getAttr!(inst, name, hh)
+      if (own) return own
+      const inner = innerOf(inst)
+      if (!inner) return undefined
+      if (name === 'forward') return { k: 'fn', name, call: (a, k) => inner.call(a, k, hh) }
+      return inner.getAttr(name, hh)
+    },
+    call(inst, args, kw, hh) {
+      if (!inst.state[MODULE_STATE]) throw hh.err('AttributeError', `'${inst.cls.name}' object has no attribute '_call_impl' (did you forget super().__init__()?)`)
+      const fwd = hh.getAttr(inst, 'forward')
+      return callModule(hh, inst, args, (a) => hh.call(fwd, a, kw), null, asTT(args[0] ?? py.NONE))
+    },
+    repr: moduleHost.repr,
+  })
+  /** len(), iteration and indexing of a Python class on top of a container */
+  const containerMethods = new Map<string, Value>(([
+    ['__len__', (o, _a) => py.int(o.len!(h))],
+    ['__iter__', (o, _a) => generator(o.iter!(h))],
+    ['__getitem__', (o, a) => o.getItem!(a[0], h)],
+    ['__setitem__', (o, a) => {
+      o.setItem!(a[0], a[1], h)
+      return py.NONE
+    }],
+    ['__contains__', (o, a) => py.bool(o.contains ? o.contains(a[0], h) : o.iter!(h).some((x) => h.truthy(h.compare('==', x, a[0]))))],
+  ] as [string, (o: PyObj, a: Value[]) => Value][]).map(([name, run]): [string, Value] => [name, { k: 'fn', name, bindable: true, call: (args) => {
+    const inner = args[0].k === 'inst' ? innerOf(args[0]) : undefined
+    if (!inner) throw h.err('TypeError', `descriptor '${name}' requires a container module`)
+    return run(inner, args.slice(1))
+  } }]))
   const Module: Value = { k: 'type', name: 'Module', host: moduleHost, call: () => { throw h.err('TypeError', 'nn.Module is a base class: define class Net(nn.Module) with __init__ and forward') } }
 
   const lossLayer = (name: string, params: string, f: (a: Args) => (x: TT, y: TT, hh: Host, more: TT[]) => TT, fwd?: string[]) => layer(name, params, (a) => new LossLayer(name, f(a), fwd))
@@ -6935,7 +7430,12 @@ const build = (h: Host): Record<string, Value> => {
     Buffer: { k: 'type', name: 'Buffer', call: (args, kw) => py.obj(new BufferMark(tensorArg(h, args[0] ?? kw.data, 'Buffer', 'data'), flagOf(h, kw.persistent, true))) },
   }
   /** what TransformerEncoderLayer builds its children from */
-  for (const v of Object.values(nnAttrs)) if (v.k === 'type' && v.name !== 'Parameter' && v.name !== 'Module') v.parents = ['Module']
+  for (const v of Object.values(nnAttrs)) {
+    if (v.k !== 'type' || v.name === 'Parameter' || v.name === 'Module' || v.name === 'Buffer') continue
+    v.parents = ['Module']
+    v.host = layerHost(v)
+    if (['Sequential', 'ModuleList', 'ModuleDict', 'ParameterList', 'ParameterDict'].includes(v.name)) v.methods = containerMethods
+  }
   const nnBuilt = (name: string, args: Value[], kw: Kw = {}): Value => h.call(nnAttrs[name], args, kw)
 
   const rrelu = (x: TT, lo: number, hi: number, training: boolean): TT => {
@@ -7916,6 +8416,13 @@ const build = (h: Host): Record<string, Value> => {
       current_device: fnv('current_device', () => { throw h.err('AssertionError', 'Torch not compiled with CUDA enabled') }),
       manual_seed: fnv('manual_seed', () => py.NONE),
       manual_seed_all: fnv('manual_seed_all', () => py.NONE),
+      empty_cache: fnv('empty_cache', () => py.NONE),
+      memory_allocated: fnv('memory_allocated', () => py.int(0)),
+      memory_reserved: fnv('memory_reserved', () => py.int(0)),
+      max_memory_allocated: fnv('max_memory_allocated', () => py.int(0)),
+      max_memory_reserved: fnv('max_memory_reserved', () => py.int(0)),
+      is_bf16_supported: fnv('is_bf16_supported', () => py.bool(false)),
+      ...Object.fromEntries(['get_device_name', 'get_device_properties', 'synchronize', 'ipc_collect', 'set_device'].map((n): [string, Value] => [n, fnv(n, () => { throw h.err('AssertionError', 'Torch not compiled with CUDA enabled') })])),
     },
   }
 
@@ -8082,7 +8589,7 @@ const build = (h: Host): Record<string, Value> => {
 
   /** with torch.no_grad():, @torch.no_grad() or @torch.no_grad */
   const gradModeType = (name: string, enabled: boolean): Value => ({ k: 'type', name, call: (args) => {
-    const m = py.obj(new GradMode(enabled))
+    const m = py.obj(new GradMode(enabled, name === 'inference_mode' ? name : undefined))
     return args[0] ? h.call(m, [args[0]]) : m
   } })
 
@@ -9455,8 +9962,8 @@ const build = (h: Host): Record<string, Value> => {
     enable_grad: gradModeType('enable_grad', true),
     inference_mode: { k: 'type', name: 'inference_mode', call: (args, kw) => {
       const mode = kw.mode ?? args[0]
-      if (mode && mode.k !== 'bool') return h.call(py.obj(new GradMode(false)), [mode])
-      return py.obj(new GradMode(!flagOf(h, mode, true)))
+      if (mode && mode.k !== 'bool') return h.call(py.obj(new GradMode(false, 'inference_mode')), [mode])
+      return py.obj(new GradMode(!flagOf(h, mode, true), 'inference_mode'))
     } },
     set_grad_enabled: fnv('set_grad_enabled', (args, kw) => {
       const m = new GradMode(h.truthy(args[0] ?? kw.mode))
@@ -9869,6 +10376,111 @@ const build = (h: Host): Record<string, Value> => {
   }
   const torchMod: Value = { k: 'module', name: 'torch', attrs: torch }
 
+  // ---- what scripts set at the top: no GPU here, so mixed precision is off, as PyTorch itself turns it off without one
+  const flagOnly = (name: string, attrs: Record<string, Value>): Value => ({ k: 'module', name: `torch.backends.${name}`, attrs })
+  const no = (name: string) => fnv(name, () => py.bool(false))
+  const backends: Value = {
+    k: 'module', name: 'torch.backends', attrs: {
+      cudnn: flagOnly('cudnn', { enabled: py.bool(true), benchmark: py.bool(false), deterministic: py.bool(false), is_available: no('is_available'), version: fnv('version', () => py.NONE) }),
+      mps: flagOnly('mps', { is_available: no('is_available'), is_built: no('is_built') }),
+      cuda: flagOnly('cuda', { is_built: no('is_built') }),
+      mkl: flagOnly('mkl', { is_available: no('is_available') }),
+      openmp: flagOnly('openmp', { is_available: no('is_available') }),
+    },
+  }
+  const AUTOCAST_DEVICES = 'cpu, cuda, ipu, xpu, mkldnn, opengl, opencl, ideep, hip, ve, fpga, maia, xla, lazy, vulkan, mps, meta, hpu, mtia, privateuseone'
+  const autocast: Value = { k: 'type', name: 'autocast', call: (args, kw) => {
+    const a = bindPy(h, 'autocast.__init__', 'device_type dtype=None enabled=True cache_enabled=None', args, kw)
+    const device = a.device_type?.k === 'str' ? a.device_type.v : ''
+    if (!AUTOCAST_DEVICES.split(', ').includes(device)) throw h.err('RuntimeError', `Expected one of ${AUTOCAST_DEVICES} device type at start of device string: ${device}`)
+    if (device === 'cpu' && flagOf(h, a.enabled, true)) throw h.err('NotImplementedError', "torch.autocast('cpu') runs in bfloat16, which is not available in this sandbox; enabled=False runs as usual")
+    return py.obj(new AutocastObj())
+  } }
+  const gradScaler: Value = { k: 'type', name: 'GradScaler', call: (args, kw) => {
+    const a = bindPy(h, 'GradScaler.__init__', "device='cuda' init_scale=65536.0 growth_factor=2.0 backoff_factor=0.5 growth_interval=2000 enabled=True", args, kw)
+    if (a.device?.k === 'str' && a.device.v === 'cpu' && flagOf(h, a.enabled, true)) throw h.err('NotImplementedError', "GradScaler('cpu') is not available in this sandbox; enabled=False runs as usual")
+    return py.obj(new GradScalerObj())
+  } }
+  const amp: Value = { k: 'module', name: 'torch.amp', attrs: { autocast, GradScaler: gradScaler } }
+  if (cuda.k === 'module') cuda.attrs.amp = { k: 'module', name: 'torch.cuda.amp', attrs: {
+    autocast: { k: 'type', name: 'autocast', call: (args, kw) => {
+      bindPy(h, 'autocast.__init__', "enabled=True dtype=None cache_enabled=True", args, kw)
+      return py.obj(new AutocastObj())
+    } },
+    GradScaler: { k: 'type', name: 'GradScaler', call: (args, kw) => {
+      bindPy(h, 'GradScaler.__init__', 'init_scale=65536.0 growth_factor=2.0 backoff_factor=0.5 growth_interval=2000 enabled=True', args, kw)
+      return py.obj(new GradScalerObj())
+    } },
+  } }
+  const setting = { threads: 1, interop: 1, deterministic: false, warnOnly: false, debugMode: 0, matmul: 'highest', anomaly: false, checkNan: true }
+  const positive = (name: string, v: Value) => {
+    const n = h.toInt(v)
+    if (n <= 0) throw h.err('RuntimeError', `${name} expects a positive integer`)
+    return n
+  }
+  const anomalyType = (name: string, atOnce: boolean): Value => ({ k: 'type', name, call: (args, kw) => {
+    const a = bindPy(h, `${name}.__init__`, atOnce ? 'mode check_nan=True' : 'check_nan=True', args, kw)
+    const before = [setting.anomaly, setting.checkNan] as const
+    const set = () => {
+      setting.anomaly = atOnce ? flagOf(h, a.mode, false) : true
+      setting.checkNan = flagOf(h, a.check_nan, true)
+    }
+    if (atOnce) set()
+    return py.obj(new SettingObj(name, () => { [setting.anomaly, setting.checkNan] = before }, atOnce ? undefined : set))
+  } })
+  if (autograd.k === 'module') {
+    autograd.attrs.set_detect_anomaly = anomalyType('set_detect_anomaly', true)
+    autograd.attrs.detect_anomaly = anomalyType('detect_anomaly', false)
+  }
+  Object.assign(torch, {
+    backends, amp, autocast,
+    get_num_threads: fnv('get_num_threads', () => py.int(setting.threads)),
+    set_num_threads: fnv('set_num_threads', (args) => {
+      setting.threads = positive('set_num_threads', args[0])
+      return py.NONE
+    }),
+    get_num_interop_threads: fnv('get_num_interop_threads', () => py.int(setting.interop)),
+    set_num_interop_threads: fnv('set_num_interop_threads', (args) => {
+      setting.interop = positive('set_num_interop_threads', args[0])
+      return py.NONE
+    }),
+    use_deterministic_algorithms: fnv('use_deterministic_algorithms', (args, kw) => {
+      setting.deterministic = h.truthy(args[0] ?? kw.mode)
+      setting.warnOnly = flagOf(h, kw.warn_only, false)
+      return py.NONE
+    }),
+    are_deterministic_algorithms_enabled: fnv('are_deterministic_algorithms_enabled', () => py.bool(setting.deterministic)),
+    is_deterministic_algorithms_warn_only_enabled: fnv('is_deterministic_algorithms_warn_only_enabled', () => py.bool(setting.warnOnly)),
+    get_deterministic_debug_mode: fnv('get_deterministic_debug_mode', () => py.int(setting.debugMode)),
+    set_deterministic_debug_mode: fnv('set_deterministic_debug_mode', (args) => {
+      const m = args[0]
+      setting.debugMode = m.k === 'str' ? ['default', 'warn', 'error'].indexOf(m.v) : h.toInt(m)
+      return py.NONE
+    }),
+    set_float32_matmul_precision: fnv('set_float32_matmul_precision', (args) => {
+      setting.matmul = h.str(args[0])
+      return py.NONE
+    }),
+    get_float32_matmul_precision: fnv('get_float32_matmul_precision', () => py.str(setting.matmul)),
+    is_anomaly_enabled: fnv('is_anomaly_enabled', () => py.bool(setting.anomaly)),
+    is_anomaly_check_nan_enabled: fnv('is_anomaly_check_nan_enabled', () => py.bool(setting.checkNan)),
+    set_anomaly_enabled: fnv('set_anomaly_enabled', (args, kw) => {
+      setting.anomaly = h.truthy(args[0] ?? kw.mode)
+      setting.checkNan = flagOf(h, args[1] ?? kw.check_nan, true)
+      return py.NONE
+    }),
+    is_autocast_enabled: fnv('is_autocast_enabled', () => py.bool(false)),
+    is_inference_mode_enabled: fnv('is_inference_mode_enabled', () => py.bool(C.inferenceMode.depth > 0)),
+    get_default_device: fnv('get_default_device', () => h.call(torch.device, [py.str('cpu')])),
+    set_default_device: fnv('set_default_device', (args) => {
+      if (args[0].k !== 'none' && h.str(args[0]) !== 'cpu') throw h.err('NotImplementedError', `set_default_device(${h.repr(args[0])}) is not available in this sandbox: the only device here is the CPU`)
+      return py.NONE
+    }),
+  })
+  const distributionsMod = distributions(h, E, torch)
+  torch.distributions = distributionsMod
+  C.inferenceMode.depth = 0
+
   // torchvision: the lecture's transforms; no datasets to download here
   const transforms: Value = {
     k: 'module', name: 'torchvision.transforms', attrs: {
@@ -9907,12 +10519,12 @@ const build = (h: Host): Record<string, Value> => {
     },
   }
   return {
-    torch: torchMod, 'torch.nn': nn, 'torch.nn.functional': nnFunctional, 'torch.nn.init': nnInit, 'torch.nn.utils': nnUtils, 'torch.nn.utils.rnn': rnnUtils, 'torch.optim': optimMod, 'torch.optim.lr_scheduler': lrScheduler, 'torch.utils': torch.utils, 'torch.utils.data': data, 'torch.utils.data.dataloader': dataDataloader, 'torch.utils.data.dataset': dataDataset, 'torch.utils.data.sampler': dataSampler, 'torch.cuda': cuda, 'torch.linalg': linalg, 'torch.special': special, 'torch.autograd': autograd, 'torch.autograd.functional': autogradFunctional,
+    torch: torchMod, 'torch.distributions': distributionsMod, ...Object.fromEntries(['normal', 'uniform', 'bernoulli', 'categorical', 'distribution', 'kl'].map((n) => [`torch.distributions.${n}`, h.getAttr(distributionsMod, n)])), 'torch.amp': amp, 'torch.cuda.amp': h.getAttr(cuda, 'amp'), 'torch.backends': backends, 'torch.backends.cudnn': h.getAttr(backends, 'cudnn'), 'torch.backends.mps': h.getAttr(backends, 'mps'), 'torch.nn': nn, 'torch.nn.functional': nnFunctional, 'torch.nn.init': nnInit, 'torch.nn.utils': nnUtils, 'torch.nn.utils.rnn': rnnUtils, 'torch.optim': optimMod, 'torch.optim.lr_scheduler': lrScheduler, 'torch.utils': torch.utils, 'torch.utils.data': data, 'torch.utils.data.dataloader': dataDataloader, 'torch.utils.data.dataset': dataDataset, 'torch.utils.data.sampler': dataSampler, 'torch.cuda': cuda, 'torch.linalg': linalg, 'torch.special': special, 'torch.autograd': autograd, 'torch.autograd.functional': autogradFunctional,
     torchvision: { k: 'module', name: 'torchvision', attrs: { transforms, datasets } }, 'torchvision.transforms': transforms, 'torchvision.datasets': datasets,
   }
 }
 
 export const TORCH: PyLib = {
-  modules: ['torch', 'torch.nn', 'torch.nn.functional', 'torch.nn.init', 'torch.nn.utils', 'torch.nn.utils.rnn', 'torch.optim', 'torch.optim.lr_scheduler', 'torch.utils', 'torch.utils.data', 'torch.utils.data.dataloader', 'torch.utils.data.dataset', 'torch.utils.data.sampler', 'torch.cuda', 'torch.linalg', 'torch.special', 'torch.autograd', 'torch.autograd.functional', 'torchvision', 'torchvision.transforms', 'torchvision.datasets'],
+  modules: ['torch', 'torch.nn', 'torch.nn.functional', 'torch.nn.init', 'torch.nn.utils', 'torch.nn.utils.rnn', 'torch.optim', 'torch.optim.lr_scheduler', 'torch.utils', 'torch.utils.data', 'torch.utils.data.dataloader', 'torch.utils.data.dataset', 'torch.utils.data.sampler', 'torch.cuda', 'torch.cuda.amp', 'torch.amp', 'torch.backends', 'torch.backends.cudnn', 'torch.backends.mps', 'torch.distributions', 'torch.distributions.normal', 'torch.distributions.uniform', 'torch.distributions.bernoulli', 'torch.distributions.categorical', 'torch.distributions.distribution', 'torch.distributions.kl', 'torch.linalg', 'torch.special', 'torch.autograd', 'torch.autograd.functional', 'torchvision', 'torchvision.transforms', 'torchvision.datasets'],
   load: build,
 }
