@@ -290,7 +290,7 @@ class ColormapObj extends PyObj {
       return py.tuple(c.map((v) => (bytes ? py.int(v) : py.float(v))))
     }
     const a = toArray(X)
-    const out = a.values().flatMap((x) => one(x, a.dtype === 'int64'))
+    const out = a.values().flatMap((x) => one(x, a.dtype === 'int64' || a.dtype === 'uint8'))
     return py.arr(NDArray.create(out, [...a.shape, 4], bytes ? 'int64' : 'float64'))
   }
   getAttr(name: string, h: Host): Value | undefined {

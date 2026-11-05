@@ -5,11 +5,14 @@ import type { PyLib } from './minipy'
 const LOADERS: Record<string, () => Promise<PyLib>> = {
   pandas: () => import('./pyPandas').then((m) => m.PANDAS),
   matplotlib: () => import('./pyPlot').then((m) => m.MATPLOTLIB),
+  mpl_toolkits: () => import('./pyPlot').then((m) => m.MATPLOTLIB),
   seaborn: () => import('./pyPlot').then((m) => m.MATPLOTLIB),
   torch: () => import('./pyTorch').then((m) => m.TORCH),
   torchvision: () => import('./pyTorch').then((m) => m.TORCH),
   keras: () => import('./pyKeras').then((m) => m.KERAS),
   tensorflow: () => import('./pyKeras').then((m) => m.KERAS),
+  sklearn: () => import('./pySklearn').then((m) => m.SKLEARN),
+  cv2: () => import('./pyCv2').then((m) => m.CV2),
 }
 
 const loaded = new Map<string, PyLib>()

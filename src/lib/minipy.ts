@@ -1995,7 +1995,7 @@ class Interp implements Host {
     const lib = this.libs.find((l) => l.modules.includes(name))
     if (!lib) {
       const have = ['numpy', 'math', 'random', ...this.libs.flatMap((l) => l.modules.filter((m) => !m.includes('.')))]
-      if (/^(cv2|sklearn|scipy|PIL|skimage|seaborn|statsmodels|torchvision|networkx|sympy|requests)(\.|$)/.test(name)) {
+      if (/^(scipy|PIL|skimage|statsmodels|networkx|sympy|requests)(\.|$)/.test(name)) {
         throw this.err('ModuleNotFoundError', `No module named '${name}' in step-through mode: switch to Real Python to import it (this sandbox has ${[...new Set(have)].join(', ')})`)
       }
       throw this.err('ModuleNotFoundError', `No module named '${name}' (this sandbox has ${[...new Set(have)].join(', ')})`)

@@ -721,7 +721,13 @@ export const shortestFloat32 = (v: number): number => {
 }
 
 export const formatElements = (values0: number[], dtype: DType): string[] => {
-  const values = dtype === 'float32' ? values0.map(shortestFloat32) : values0
+  // the shortest digits when they fit the precision; a longer value rounds from what is really stored
+  const scientific = dtype === 'float32' && needsScientific(values0)
+  const values = dtype === 'float32' ? values0.map((v) => {
+    const short = shortestFloat32(v)
+    const fits = scientific ? (short.toExponential().split('e')[0].split('.')[1] ?? '').length <= printOptions.precision : Number(short.toFixed(printOptions.precision)) === short
+    return fits ? short : v
+  }) : values0
   let words: string[]
   if (dtype === 'bool') words = values.map((v) => (v ? ' True' : 'False'))
   else if (dtype === 'int64' || dtype === 'uint8') words = values.map(String)

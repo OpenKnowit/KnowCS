@@ -79,7 +79,7 @@ export const inferValues = (h: Host, items: Value[]): { cells: Cell[]; dt: DT } 
   let other = 0
   const norm = items.map((v0) => {
     const c = v0.k === 'array' && (v0.a.ndim === 0 || v0.a.size === 1) ? cellOf(h, v0) : null
-    if (c !== null && v0.k === 'array') return typeof c === 'boolean' ? py.bool(c) : v0.a.dtype === 'float64' ? py.float(c as number) : py.int(c as number)
+    if (c !== null && v0.k === 'array') return typeof c === 'boolean' ? py.bool(c) : v0.a.dtype === 'float64' || v0.a.dtype === 'float32' ? py.float(c as number) : py.int(c as number)
     return v0
   })
   for (const v of norm) {
@@ -101,7 +101,7 @@ export const inferValues = (h: Host, items: Value[]): { cells: Cell[]; dt: DT } 
   return { cells: normalise(cells, dt), dt }
 }
 
-const arrayDT = (a: NDArray): DT => (a.dtype === 'bool' ? 'bool' : a.dtype === 'float64' ? 'float64' : 'int64')
+const arrayDT = (a: NDArray): DT => (a.dtype === 'bool' ? 'bool' : a.dtype === 'float64' || a.dtype === 'float32' ? 'float64' : 'int64')
 /** the sized dtype name of a uint8 array; everything else the sandbox stores is 64-bit */
 export const arrayWidth = (a: NDArray): string | null => (a.dtype === 'uint8' ? 'uint8' : null)
 

@@ -641,7 +641,7 @@
     "legend_pick": "the value that was chosen",
     "legend_dependent": "results that use the selected cell",
     "missing": "{{name}} isn't in the in-browser sandbox. It covers core numpy, np.linalg and np.random — pick something below.",
-    "sandbox_note": "Runs in your browser with a small NumPy re-implementation: outputs match NumPy 2.2 for these examples, except random numbers (own generator) and scalars, which print as 12 instead of np.int64(12).",
+    "sandbox_note": "Runs in your browser on a re-implementation of Python and NumPy: the language, most of the standard library and about nine in ten of NumPy's functions, checked against NumPy 2.2. Random numbers differ (own generator), and scalars print as 12 instead of np.int64(12). You can also import pandas, matplotlib, torch, keras, sklearn or cv2 here.",
     "link_hint": "Click a highlighted name in the note to open it in the NumPy panel.",
     "cat": {
       "create": "Create",
@@ -4410,7 +4410,7 @@
     "matplotlib": {
       "title": "matplotlib playground",
       "subtitle": "{{n}} plots from the lectures. Edit the code and the figure redraws as you type.",
-      "sandbox_note": "Runs in your browser on a small re-implementation of pyplot (plot, scatter, bar, hist, imshow, subplots, text, legends, colour bars). Not every option exists; the defaults that matter — tab10 colours, viridis, imshow's automatic range — follow matplotlib.",
+      "sandbox_note": "Runs in your browser on a re-implementation of pyplot: most plot types, subplots, colour maps and colour bars, 3D axes, and matplotlib.patches, colors and image, checked against matplotlib 3.10. Text widths are estimated, so tight layouts and some tick counts can differ. Polar axes, streamplot and animation are not available.",
       "cat": {
         "basics": "Basics",
         "images": "Images",
@@ -4442,7 +4442,7 @@
     "keras": {
       "title": "Keras playground",
       "subtitle": "{{n}} examples from lectures 6 and 8: build a model, read model.summary(), then compile, fit, evaluate and predict on data generated in the code.",
-      "sandbox_note": "Runs in your browser on a small re-implementation of Keras 3 (Sequential and Functional models; Dense, Conv2D, pooling, Flatten, Dropout and a few more; Adam / SGD / RMSprop; the cross-entropy and MSE losses; EarlyStopping). summary() and the error messages follow Keras 3, and training is real but on small data. There is no MNIST download and random weights differ from real Keras.",
+      "sandbox_note": "Runs in your browser on a re-implementation of Keras 3: Sequential and Functional models, most layers, optimisers, losses, metrics and callbacks. summary() and the error messages are modelled on Keras 3 but have not been compared with real Keras; training is real but on small data. There is no MNIST download and random weights differ from real Keras.",
       "cat": {
         "build": "Build",
         "train": "Train",
@@ -4468,7 +4468,7 @@
     "tensorflow": {
       "title": "TensorFlow playground",
       "subtitle": "{{n}} examples: tensors and their strict dtypes, Variables and GradientTape, and Keras inside TensorFlow (tf.keras).",
-      "sandbox_note": "Runs in your browser on a small re-implementation of TensorFlow 2 (tf.constant, tf.Variable, GradientTape, tf.math / tf.nn basics, tf.keras). Printing and dtype errors follow TensorFlow; there is no GPU and no graph mode.",
+      "sandbox_note": "Runs in your browser on a re-implementation of TensorFlow 2: tf.constant, tf.Variable, GradientTape, tf.math, tf.nn, tf.linalg, tf.random and tf.keras. Printing and dtype errors are modelled on TensorFlow but have not been compared with it. There is no GPU and no graph mode.",
       "cat": {
         "tensors": "Tensors",
         "autograd": "GradientTape",
@@ -4520,7 +4520,7 @@
     "pandas": {
       "title": "pandas playground",
       "subtitle": "{{n}} examples: build and read tables, select and clean them, and do the course's table maths: Naive Bayes counts, standardising, K-Means centroids, confusion matrices.",
-      "sandbox_note": "Runs in your browser on a small re-implementation of pandas (DataFrame / Series, loc / iloc, isna / fillna / dropna, groupby, value_counts, crosstab, get_dummies, merge, describe, read_csv from io.StringIO). Printing follows pandas 2. MultiIndex and several aggregations at once are not supported.",
+      "sandbox_note": "Runs in your browser on a re-implementation of pandas: most DataFrame and Series methods, groupby, merge, pivot tables, string methods, and read_csv from text or a file the program wrote, checked against pandas 2.3. Dates and times, Excel and SQL are not available, and wide tables are cut with ... rather than wrapped.",
       "cat": {
         "basics": "Basics",
         "select": "Select",

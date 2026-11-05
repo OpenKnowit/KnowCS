@@ -641,7 +641,7 @@
     "legend_pick": "被选中的那个值",
     "legend_dependent": "用到当前格子的结果",
     "missing": "浏览器沙盒里没有 {{name}}。沙盒覆盖 numpy 核心、np.linalg 和 np.random，请在下面选一个。",
-    "sandbox_note": "在浏览器中用一个小型 NumPy 重写版运行：这些例子的输出与 NumPy 2.2 一致，只有随机数（使用自己的生成器）和标量（显示为 12 而不是 np.int64(12)）不同。",
+    "sandbox_note": "在浏览器中运行，基于重写的 Python 和 NumPy：包括语言本身、大部分标准库和约九成 NumPy 函数，已与 NumPy 2.2 对照。随机数（使用自己的生成器）和标量（显示为 12 而不是 np.int64(12)）不同。这里也可以 import pandas、matplotlib、torch、keras、sklearn 或 cv2。",
     "link_hint": "点击笔记里高亮的名字，可以在 NumPy 面板中打开对应内容。",
     "cat": {
       "create": "创建",
@@ -4410,7 +4410,7 @@
     "matplotlib": {
       "title": "matplotlib 实验台",
       "subtitle": "{{n}} 个出自课件的画图示例。改动代码，图会随输入即时重画。",
-      "sandbox_note": "在浏览器中运行，基于一个精简重写的 pyplot（plot、scatter、bar、hist、imshow、subplots、文字、图例、色条）。并非所有参数都支持；但关键的默认行为（tab10 配色、viridis、imshow 自动拉伸范围）与 matplotlib 一致。",
+      "sandbox_note": "在浏览器中运行，基于重写的 pyplot：包括大多数图表类型、子图、色图与色条、3D 坐标轴，以及 matplotlib.patches、colors、image，已与 matplotlib 3.10 对照。文字宽度是估算的，所以 tight_layout 和部分刻度数量可能不同。不支持极坐标、streamplot 和动画。",
       "cat": {
         "basics": "基础",
         "images": "图像",
@@ -4442,7 +4442,7 @@
     "keras": {
       "title": "Keras 实验台",
       "subtitle": "{{n}} 个出自第 6、8 讲的示例：搭建模型、读懂 model.summary()，再用代码里生成的数据 compile、fit、evaluate、predict。",
-      "sandbox_note": "在浏览器中运行，基于一个精简重写的 Keras 3（Sequential 与 Functional 模型；Dense、Conv2D、池化、Flatten、Dropout 等层；Adam / SGD / RMSprop；交叉熵与 MSE 损失；EarlyStopping）。summary() 和报错信息与 Keras 3 一致；训练是真实进行的，但只用小数据。不能下载 MNIST，随机初始权重也与真实 Keras 不同。",
+      "sandbox_note": "在浏览器中运行，基于重写的 Keras 3：包括 Sequential 与 Functional 模型，以及大多数层、优化器、损失函数、指标和回调。summary() 和报错信息参照 Keras 3 编写，但未与真实 Keras 比对；训练是真实进行的，但只用小数据。不能下载 MNIST，随机初始权重也与真实 Keras 不同。",
       "cat": {
         "build": "搭建",
         "train": "训练",
@@ -4468,7 +4468,7 @@
     "tensorflow": {
       "title": "TensorFlow 实验台",
       "subtitle": "{{n}} 个示例：张量及其严格的数据类型、Variable 与 GradientTape，以及 TensorFlow 里的 Keras（tf.keras）。",
-      "sandbox_note": "在浏览器中运行，基于一个精简重写的 TensorFlow 2（tf.constant、tf.Variable、GradientTape、tf.math / tf.nn 基础函数、tf.keras）。打印格式和 dtype 报错与 TensorFlow 一致；没有 GPU，也没有图模式。",
+      "sandbox_note": "在浏览器中运行，基于重写的 TensorFlow 2：包括 tf.constant、tf.Variable、GradientTape、tf.math、tf.nn、tf.linalg、tf.random 和 tf.keras。打印格式和 dtype 报错参照 TensorFlow 编写，但未与它比对。没有 GPU，也没有图模式。",
       "cat": {
         "tensors": "张量",
         "autograd": "GradientTape",
@@ -4520,7 +4520,7 @@
     "pandas": {
       "title": "pandas 实验台",
       "subtitle": "{{n}} 个示例：建表、读表、选取与清洗，以及课程中的表格计算：朴素贝叶斯计数、标准化、K-Means 质心、混淆矩阵。",
-      "sandbox_note": "在浏览器中运行，基于一个精简重写的 pandas（DataFrame / Series、loc / iloc、isna / fillna / dropna、groupby、value_counts、crosstab、get_dummies、merge、describe，以及从 io.StringIO 读取 read_csv）。打印格式与 pandas 2 一致；不支持 MultiIndex 和一次做多种聚合。",
+      "sandbox_note": "在浏览器中运行，基于重写的 pandas：包括大多数 DataFrame 与 Series 方法、groupby、merge、透视表、字符串方法，以及从文本或程序自己写的文件 read_csv，已与 pandas 2.3 对照。不支持日期时间、Excel 和 SQL；过宽的表格会用 ... 截断，而不是换行。",
       "cat": {
         "basics": "基础",
         "select": "选取",

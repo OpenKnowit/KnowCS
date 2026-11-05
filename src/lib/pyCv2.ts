@@ -3,7 +3,7 @@
  * and saturating arithmetic on NumPy arrays, following OpenCV's own fixed-point formulas so uint8 results match bit for bit.
  *
  * NDArray knows uint8, int64 and float64. uint8 is CV_8U. int64 becomes CV_32S, as it does in the real binding, and
- * float64 stands for both CV_32F and CV_64F. A CV_16S result from Sobel and the like is tagged, so saturation stays right.
+ * A CV_16S result from Sobel and the like is tagged, since arrays have no int16, so saturation stays right.
  * There are no files and no windows here, so imread, imshow and friends raise an error that says so.
  */
 import { NDArray, cStrides } from './ndarray'
@@ -38,7 +38,7 @@ const sat = (x: number, dp: Depth): number => {
 /** the depth a cv2 result was made with, when the dtype alone cannot say (CV_16S and CV_32F results) */
 const TAGS = new WeakMap<NDArray, Depth>()
 
-const depthOf = (a: NDArray): Depth => TAGS.get(a) ?? (a.dtype === 'float64' ? '64f' : a.dtype === 'uint8' ? '8u' : '32s')
+const depthOf = (a: NDArray): Depth => TAGS.get(a) ?? (a.dtype === 'float64' ? '64f' : a.dtype === 'float32' ? '32f' : a.dtype === 'uint8' ? '8u' : '32s')
 
 const errorClass = (h: Host): ClassValue => {
   let c = h.state.get('cv2.error') as ClassValue | undefined
@@ -76,8 +76,8 @@ const readImg = (h: Host, v: Value | undefined, what = 'src'): Img => {
 /** a Mat with one channel comes back as 2-D, whatever the input looked like */
 const toValue = (im: { h: number; w: number; c: number; v: number[] }, dp: Depth): Value => {
   const shape = im.c === 1 ? [im.h, im.w] : [im.h, im.w, im.c]
-  const a = NDArray.create(im.v, shape, isFloatDepth(dp) ? 'float64' : dp === '8u' ? 'uint8' : 'int64')
-  if (dp !== '8u' && dp !== '64f') TAGS.set(a, dp)
+  const a = NDArray.create(im.v, shape, dp === '32f' ? 'float32' : dp === '64f' ? 'float64' : dp === '8u' ? 'uint8' : 'int64')
+  if (dp !== '8u' && dp !== '32f' && dp !== '64f') TAGS.set(a, dp)
   return py.arr(a)
 }
 
@@ -1043,7 +1043,7 @@ const operand = (h: Host, v: Value | undefined, other: Value | undefined, what: 
     const same = o && o.shape.length === v.a.shape.length && o.shape.every((d, i) => d === v.a.shape[i])
     const cn = o?.ndim === 3 ? o.shape[2] : 1
     const [r, c] = [v.a.shape[0] ?? 1, v.a.ndim >= 2 ? v.a.shape[1] : 1]
-    const fits = v.a.ndim <= 2 && ((r === 1 && c === 1) || (r === cn && c === 1) || (r === 1 && c === cn) || (r === 4 && c === 1 && v.a.dtype === 'float64' && cn <= 4))
+    const fits = v.a.ndim <= 2 && ((r === 1 && c === 1) || (r === cn && c === 1) || (r === 1 && c === cn) || (r === 4 && c === 1 && (v.a.dtype === 'float64' || v.a.dtype === 'float32') && cn <= 4))
     if (!same && o && o.ndim >= 2 && fits) {
       const xs = v.a.values()
       return { kind: 'scalar', s: [...xs, 0, 0, 0, 0].slice(0, 4) }
@@ -1631,7 +1631,7 @@ const build = (h: Host): Record<string, Value> => {
   })
   const bitwise = (name: string, f: (x: number, y: number) => number) => def(name, 'src1 src2 dst mask', 'elementwise', (a) => {
     required(h, a, name, 'src1', 'src2')
-    for (const v of [a.src1, a.src2]) if (v && v.k === 'array' && v.a.dtype === 'float64') throw h.err('NotImplementedError', `cv2.${name} works on the raw bits of a float image; this sandbox only offers it on integer images`)
+    for (const v of [a.src1, a.src2]) if (v && v.k === 'array' && (v.a.dtype === 'float64' || v.a.dtype === 'float32')) throw h.err('NotImplementedError', `cv2.${name} works on the raw bits of a float image; this sandbox only offers it on integer images`)
     return arith(h, a.src1, a.src2, a.mask, undefined, name, (x, y) => f(x, y))
   })
   bitwise('bitwise_and', (x, y) => x & y)

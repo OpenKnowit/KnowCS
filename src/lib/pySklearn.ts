@@ -512,7 +512,7 @@ const labelArray = (vals: Lab[], like: Pick<Labels, 'isStr' | 'dtype'>): Value =
   like.isStr ? py.obj(new ObjArray(vals as string[], like.dtype)) : py.arr(NDArray.create(vals as number[], [vals.length], like.dtype as 'int64'))
 
 const typeOfTarget = (y: Labels): string => {
-  if (!y.isStr && y.dtype === 'float64' && (y.vals as number[]).some((x) => !Number.isInteger(x))) return 'continuous'
+  if (!y.isStr && y.dtype !== 'int64' && y.dtype !== 'bool' && y.dtype !== 'uint8' && (y.vals as number[]).some((x) => !Number.isInteger(x))) return 'continuous'
   return new Set(y.vals).size <= 2 ? 'binary' : 'multiclass'
 }
 
@@ -1705,7 +1705,7 @@ const readTable = (h: Host, v: Value | undefined, est: string): Table => {
 }
 
 const pyDtypeIsFloat = (h: Host, v: Value): boolean => {
-  if (v.k === 'type' && v.dtype) return v.dtype === 'float64'
+  if (v.k === 'type' && v.dtype) return v.dtype === 'float64' || v.dtype === 'float32'
   if (v.k === 'dtype') return v.d === 'float64'
   if (v.k === 'str') return v.v.startsWith('float')
   throw h.err('TypeError', `Cannot interpret ${repr(v)} as a data type`)
@@ -2446,7 +2446,7 @@ const neighbourWeights = (h: Host, e: Est, dist: number[][]): number[][] | null 
 const queryOf = (e: Est, Xv: Value | undefined, h: Host): { rows: number[][]; isFloat: boolean } => {
   if (isNone(Xv)) return { rows: e.st.X as number[][], isFloat: e.st.floatFit as boolean }
   const X = readTest(e, Xv, h)
-  return { rows: X.rows, isFloat: X.a.dtype === 'float64' }
+  return { rows: X.rows, isFloat: X.a.dtype === 'float64' || X.a.dtype === 'float32' }
 }
 
 const NEIGHBOR_PARAMS: [string, Value][] = [['n_neighbors', py.int(5)], ['weights', py.str('uniform')], ['algorithm', py.str('auto')], ['leaf_size', py.int(30)], ['p', py.int(2)], ['metric', py.str('minkowski')], ['metric_params', py.NONE], ['n_jobs', py.NONE]]
@@ -2460,7 +2460,7 @@ const fitNeighbors = (e: Est, h: Host, X: XData) => {
   const metric = metricOf(h, e)
   rememberFeatures(e, X)
   e.st.X = X.rows
-  e.st.floatFit = X.a.dtype === 'float64'
+  e.st.floatFit = X.a.dtype === 'float64' || X.a.dtype === 'float32'
   e.st.metric = metric
   e.st.brute = algo === 'brute' || (algo === 'auto' && (X.m > 15 || (nn.k === 'int' && nn.v >= Math.floor(X.n / 2))))
   e.fitted.set('n_samples_fit_', py.int(X.n))
