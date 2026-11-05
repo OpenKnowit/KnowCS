@@ -1,7 +1,7 @@
 /** Series.str and Index.str: Python's string methods and regular expressions, element by element, keeping missing values. */
 import { PyObj, py } from './minipy'
 import type { Host, Value } from './minipy'
-import { Frame, IndexObj, Series, bindParams, cellOf, cellsOf, inferValues, isListLike, isMissing, labelStr, reindexCells, sliceRange, sortOrder, valueOf } from './pyPandas'
+import { Frame, IndexObj, Series, bindParams, cellsOf, inferValues, isListLike, isMissing, reindexCells, sliceRange, sortOrder, valueOf } from './pyPandas'
 import type { Cell, DT, Params } from './pyPandas'
 import { PyCell } from './pyPandasFormat'
 import { flag, given, need } from './pyPandasMethods'
@@ -61,7 +61,7 @@ const pySplit = (x: string, sep: string | null, n: number): string[] => {
       while (i < len && WS.includes(x[i])) i++
       if (i >= len) break
       if (n >= 0 && out.length === n) {
-        out.push(x.slice(i).replace(/[ \t\n\r\x0b\x0c\x1c-\x1f\x85\xa0]+$/, ''))
+        out.push(stripChars(x.slice(i), null, false, true))
         return out
       }
       let j = i
@@ -87,7 +87,7 @@ const pyRsplit = (x: string, sep: string | null, n: number): string[] => {
       while (i > 0 && !WS.includes(x[i - 1])) i--
       seen++
     }
-    return [x.slice(0, i).replace(/[ \t\n\r\x0b\x0c\x1c-\x1f\x85\xa0]+$/, '').replace(/^[ \t\n\r\x0b\x0c\x1c-\x1f\x85\xa0]+/, ''), ...words.slice(-n)]
+    return [stripChars(x.slice(0, i), null, true, true), ...words.slice(-n)]
   }
   const parts = x.split(sep)
   if (parts.length <= n + 1) return parts
@@ -127,7 +127,7 @@ const IS: Record<string, (x: string) => boolean> = {
   isdecimal: (x) => allOf(x, /^\p{Nd}+$/u),
   isdigit: (x) => allOf(x, /^[\p{Nd}\u00b2\u00b3\u00b9\u2070\u2074-\u2079\u2080-\u2089]+$/u),
   isnumeric: (x) => allOf(x, /^\p{N}+$/u),
-  isspace: (x) => allOf(x, /^[ \t\n\r\x0b\x0c\x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$/),
+  isspace: (x) => x.length > 0 && [...x].every((c) => WS.includes(c) || /\s/u.test(c)),
   islower: (x) => allOf(x, /./, 'lower'),
   isupper: (x) => allOf(x, /./, 'upper'),
   istitle: (x) => {
@@ -539,4 +539,3 @@ export const indexStrAccessor = (h: Host, ix: IndexObj): StrAccessor => {
   return new StrAccessor(new Series(ix.labels, IndexObj.range(ix.length), ix.name, 'object'), ix)
 }
 
-export { cellOf, labelStr }

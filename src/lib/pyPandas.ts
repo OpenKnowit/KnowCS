@@ -8,7 +8,7 @@ import { NDArray, PyError } from './ndarray'
 import { PyDict, PyObj, isNum, py, repr } from './minipy'
 import type { Host, Kw, PyLib, Value } from './minipy'
 import type { TableSpec } from './pyEvents'
-import { DEFAULT_OPTIONS, OPTIONS, PyCell, TERMINAL_WIDTH, adjoin, cellText, fixedWidth, formatArray, formatLabels, isMissing, joinMultiline, justify, objectSummary, pprint, sparsify } from './pyPandasFormat'
+import { DEFAULT_OPTIONS, OPTIONS, PyCell, TERMINAL_WIDTH, adjoin, fixedWidth, formatArray, formatLabels, isMissing, joinMultiline, justify, objectSummary, pprint, sparsify } from './pyPandasFormat'
 import type { Cell, DT } from './pyPandasFormat'
 import { categoricalFooter, frameAttr, frameNp, indexAttr, seriesAttr, seriesNp } from './pyPandasMethods'
 import { pandasModule } from './pyPandasModule'
@@ -79,7 +79,7 @@ export const inferValues = (h: Host, items: Value[]): { cells: Cell[]; dt: DT } 
   let other = 0
   const norm = items.map((v0) => {
     const c = v0.k === 'array' && (v0.a.ndim === 0 || v0.a.size === 1) ? cellOf(h, v0) : null
-    if (c !== null && v0.k === 'array') return typeof c === 'boolean' ? py.bool(c) : v0.a.dtype === 'int64' ? py.int(c as number) : py.float(c as number)
+    if (c !== null && v0.k === 'array') return typeof c === 'boolean' ? py.bool(c) : v0.a.dtype === 'float64' ? py.float(c as number) : py.int(c as number)
     return v0
   })
   for (const v of norm) {
@@ -101,12 +101,14 @@ export const inferValues = (h: Host, items: Value[]): { cells: Cell[]; dt: DT } 
   return { cells: normalise(cells, dt), dt }
 }
 
-const arrayDT = (a: NDArray): DT => (a.dtype === 'bool' ? 'bool' : a.dtype === 'int64' ? 'int64' : 'float64')
+const arrayDT = (a: NDArray): DT => (a.dtype === 'bool' ? 'bool' : a.dtype === 'float64' ? 'float64' : 'int64')
+/** the sized dtype name of a uint8 array; everything else the sandbox stores is 64-bit */
+export const arrayWidth = (a: NDArray): string | null => (a.dtype === 'uint8' ? 'uint8' : null)
 
 /** a list / array / Series / Index as cells with their dtype */
-export const typedCells = (h: Host, v: Value): { cells: Cell[]; dt: DT } => {
+export const typedCells = (h: Host, v: Value): { cells: Cell[]; dt: DT; width?: string | null } => {
   if (v.k === 'obj') {
-    if (v.o instanceof Series) return { cells: [...v.o.values], dt: v.o.dtype }
+    if (v.o instanceof Series) return { cells: [...v.o.values], dt: v.o.dtype, width: v.o.width }
     if (v.o instanceof IndexObj) return { cells: [...v.o.labels], dt: v.o.dt }
     if (v.o instanceof ObjArray) {
       if (v.o.shape.length !== 1) throw h.err('ValueError', 'Data must be 1-dimensional')
@@ -114,12 +116,12 @@ export const typedCells = (h: Host, v: Value): { cells: Cell[]; dt: DT } => {
     }
     if (v.o.toArray) {
       const a = v.o.toArray()
-      return { cells: a.dtype === 'bool' ? a.values().map((x) => x !== 0) : a.values(), dt: arrayDT(a) }
+      return { cells: a.dtype === 'bool' ? a.values().map((x) => x !== 0) : a.values(), dt: arrayDT(a), width: arrayWidth(a) }
     }
   }
   if (v.k === 'array') {
     if (v.a.ndim > 1) throw h.err('ValueError', 'Data must be 1-dimensional')
-    return { cells: v.a.dtype === 'bool' ? v.a.values().map((x) => x !== 0) : v.a.values(), dt: arrayDT(v.a) }
+    return { cells: v.a.dtype === 'bool' ? v.a.values().map((x) => x !== 0) : v.a.values(), dt: arrayDT(v.a), width: arrayWidth(v.a) }
   }
   if (v.k === 'range') return { cells: h.iterate(v).map((x) => (x as { v: number }).v), dt: 'int64' }
   if (v.k === 'str' || isNum(v) || v.k === 'none') throw h.err('TypeError', `expected a list, array or Series, got ${v.k}`)
@@ -134,7 +136,7 @@ export const objArrayIn = (v: Value) => (v as { o: unknown }).o as ObjArray
 export const cellsOf = (h: Host, v: Value): Cell[] => typedCells(h, v).cells
 
 /** a list-like selector or argument (not a string, not a scalar) */
-export const isListLike = (v: Value) => v.k === 'list' || v.k === 'tuple' || v.k === 'array' || v.k === 'range' || (v.k === 'obj' && (v.o instanceof Series || v.o instanceof IndexObj || v.o instanceof ObjArray))
+export const isListLike = (v: Value) => v.k === 'list' || v.k === 'tuple' || v.k === 'array' || v.k === 'range' || v.k === 'set' || v.k === 'iter' || (v.k === 'obj' && (v.o instanceof Series || v.o instanceof IndexObj || v.o instanceof ObjArray))
 
 export const labelStr = (c: Cell): string => (c === null ? 'None' : typeof c === 'boolean' ? (c ? 'True' : 'False') : typeof c === 'number' ? (Number.isNaN(c) ? 'NaN' : String(c)) : c instanceof PyCell ? pprint(c.v) : c)
 
@@ -232,7 +234,9 @@ export class IndexObj extends PyObj {
   }
   withName(name: Cell): IndexObj {
     if (this.multi) return IndexObj.fromArrays(this.multi.arrays, this.multi.names, this.multi.dts)
-    return new IndexObj(this.labels, name, this.dt, this.isRange)
+    const out = new IndexObj(this.labels, name, this.dt, this.isRange)
+    out.map = this.map
+    return out
   }
   equals(o: IndexObj) {
     if (o === this || o.labels === this.labels) return true
@@ -342,11 +346,15 @@ export class ObjArray extends PyObj {
   readonly cls = 'ndarray'
   cells: Cell[]
   shape: number[]
-  constructor(cells: Cell[], shape?: number[]) {
+  /** fixed-width text (dtype='<U3') instead of dtype=object */
+  text: boolean
+  constructor(cells: Cell[], shape?: number[], text = false) {
     super()
     this.cells = cells
     this.shape = shape ?? [cells.length]
+    this.text = text
   }
+  private dtypeName() { return `<U${Math.max(0, ...this.cells.map((c) => String(c).length))}` }
   private elem(c: Cell) { return c === null ? 'None' : typeof c === 'number' && Number.isNaN(c) ? 'nan' : typeof c === 'string' ? repr(py.str(c)) : c instanceof PyCell ? repr(c.v) : typeof c === 'number' ? (Number.isInteger(c) ? String(c) : repr(py.float(c))) : labelStr(c) }
   private lines(indent: string, sep: string): string {
     const wrap = (items: string[], pad: string, first: number) => {
@@ -370,7 +378,12 @@ export class ObjArray extends PyObj {
     const rows = Array.from({ length: r }, (_, i) => `[${wrap(this.cells.slice(i * c, (i + 1) * c).map((x) => this.elem(x)), `${indent}  `, indent.length + 2)}]`)
     return `[${rows.join(`${sep.trimEnd()}\n${indent} `)}]`
   }
-  repr() { return `array(${this.lines('      ', ', ')}, dtype=object)` }
+  repr() {
+    const body = `array(${this.lines('      ', ', ')}`
+    const dtype = `dtype=${this.text ? `'${this.dtypeName()}'` : 'object'})`
+    const last = body.length - (body.lastIndexOf('\n') + 1)
+    return `${body},${last + dtype.length + 1 > 75 ? '\n      ' : ' '}${dtype}`
+  }
   str() { return this.lines('', ' ') }
   len() { return this.shape[0] }
   iter() {
@@ -410,7 +423,7 @@ export class ObjArray extends PyObj {
       case 'shape': return py.tuple(this.shape.map(py.int))
       case 'ndim': return py.int(this.shape.length)
       case 'size': return py.int(this.cells.length)
-      case 'dtype': return py.obj(new DtypeObj('object'))
+      case 'dtype': return py.obj(new DtypeObj(this.text ? this.dtypeName() : 'object'))
       case 'T': return py.obj(this)
       case 'tolist': return fn(() => (this.shape.length === 1 ? py.list(this.iter()) : py.list(this.iter().map((v) => py.list(objArrayIn(v).iter())))))
       case 'copy': return fn(() => py.obj(new ObjArray([...this.cells], this.shape)))
@@ -710,7 +723,8 @@ export const method = <S extends Series | Frame>(self: S, cls: string, name: str
   call: (args, kw) => {
     const p = bindParams(h, cls, name, m[0], args, kw)
     h.state.set('pandas.cls', cls)
-    const tracing = tracingOn(h) && (self instanceof Frame ? self.nrows : self.length) <= MAX_TRACE_ROWS
+    // a groupby or a window does nothing yet: the step is the aggregation that follows
+    const tracing = tracingOn(h) && !LAZY_METHODS.includes(name) && (self instanceof Frame ? self.nrows : self.length) <= MAX_TRACE_ROWS
     const input = tracing ? (self instanceof Frame ? tableOfFrame(self) : tableOfSeries(self as Series)) : null
     const ctx: Ctx = {}
     const out = quietly(h, () => m[1](self, p, h, ctx))
@@ -724,6 +738,7 @@ export const method = <S extends Series | Frame>(self: S, cls: string, name: str
 })
 
 const MAX_TRACE_ROWS = 200
+const LAZY_METHODS = ['groupby', 'rolling', 'expanding']
 
 const emitFrame = (h: Host, api: string, inputs: { label: string; table: TableSpec }[], result: TableSpec | null, picks: Picks | null, groups: Groups | null, resultText: string) => {
   h.emit({ type: 'frame', api, inputs, result, resultText, picks, groups })
@@ -918,6 +933,24 @@ const operand = (h: Host, other: Value, n: number): { ys: Cell[] | { scalar: Cel
   return { ys: { scalar: cellOf(h, other) }, dt }
 }
 
+/** a sized column keeps its dtype beside a Python number, wrapping like NumPy; anything wider takes over */
+const keepWidth = (out: Cell[], dt: DT, op: string, s: Series, other: Value): Series | null => {
+  const w = s.width
+  if (!w || CMP.includes(op) || LOGIC.includes(op)) return null
+  const pyInt = other.k === 'int'
+  const pyFloat = other.k === 'float'
+  const same = other.k === 'obj' && other.o instanceof Series && other.o.width === w
+  if (w.startsWith('float') ? !(pyInt || pyFloat || same) : !(pyInt || same) || dt !== 'int64') return null
+  if (w === 'float32') return s.with(out.map((c) => Math.fround(numCell(c))), 'float64')
+  const bits = Number(/\d+/.exec(w)![0])
+  const m = 2 ** bits
+  const signed = !w.startsWith('u')
+  return s.with(out.map((c) => {
+    const u = ((numCell(c) % m) + m) % m
+    return signed && u >= m / 2 ? u - m : u
+  }), 'int64')
+}
+
 /** s + other (flex=false rejects mislabelled comparisons, as the operators do) */
 export const seriesOp = (h: Host, s: Series, op: string, other: Value, reflected: boolean, fill?: Cell, flex = false): Series => {
   if (other.k === 'none' && !CMP.includes(op)) {
@@ -937,6 +970,12 @@ export const seriesOp = (h: Host, s: Series, op: string, other: Value, reflected
       b = { cells: bc, dt: b.dt }
     }
     const res = applyOp(h, op, a.cells, a.dt, b.cells, b.dt, reflected)
+    const sized = index === s.index ? keepWidth(res.vals, res.dt, op, s, other) : null
+    if (sized) {
+      sized.width = s.width
+      sized.name = s.name === o.name ? s.name : null
+      return sized
+    }
     return new Series(res.vals, index, s.name === o.name ? s.name : null, res.dt)
   }
   const isCmpList = CMP.includes(op) && (other.k === 'list' || other.k === 'tuple')
@@ -947,6 +986,11 @@ export const seriesOp = (h: Host, s: Series, op: string, other: Value, reflected
   }
   const xs = fill !== undefined ? s.values.map((c) => (isMissing(c) ? fill : c)) : s.values
   const res = applyOp(h, op, xs, s.dtype, ys, dt, reflected)
+  const sized = keepWidth(res.vals, res.dt, op, s, other)
+  if (sized) {
+    sized.width = s.width
+    return sized
+  }
   return new Series(res.vals, s.index, s.name, res.dt)
 }
 
@@ -958,6 +1002,11 @@ export const frameOp = (h: Host, f: Frame, op: string, other: Value, reflected: 
     const xs = fill !== undefined ? s.values.map((c, i) => (isMissing(c) && !('scalar' in ys && isMissing(ys.scalar)) && !(!('scalar' in ys) && isMissing(ys[i])) ? fill : c)) : s.values
     const yy = fill !== undefined && !('scalar' in ys) ? ys.map((c, i) => (isMissing(c) && !isMissing(s.values[i]) ? fill : c)) : ys
     const res = applyOp(h, op, xs, s.dtype, yy, dt, reflected)
+    const sized = index === s.index ? keepWidth(res.vals, res.dt, op, s, other) : null
+    if (sized) {
+      sized.width = s.width
+      return sized
+    }
     return new Series(res.vals, index, s.name, res.dt)
   }
   if (other.k === 'obj' && other.o instanceof Frame) {
@@ -1214,7 +1263,7 @@ export class Series extends PyObj {
       if (this.values.some((c) => typeof c === 'string')) throw new PyError('TypeError', `the Series '${labelStr(this.name)}' holds text, so it cannot become a numeric array`)
       return NDArray.create(this.values.map(numCell), [this.length], 'float64')
     }
-    return NDArray.create(this.values.map(numCell), [this.length], this.dtype === 'bool' ? 'bool' : this.dtype === 'int64' ? 'int64' : 'float64')
+    return NDArray.create(this.values.map(numCell), [this.length], this.dtype === 'bool' ? 'bool' : this.width === 'uint8' ? 'uint8' : this.dtype === 'int64' ? 'int64' : 'float64')
   }
   isa(name: string) { return name === 'Series' }
   /** the values as numbers; text is a TypeError naming what needed numbers */
@@ -1233,7 +1282,7 @@ export class Series extends PyObj {
     return out
   }
   copy(): Series {
-    const out = new Series([...this.values], this.index, this.name, this.dtype)
+    const out = new Series([...this.values], this.index.withName(this.index.name), this.name, this.dtype)
     out.cats = this.cats
     out.width = this.width
     out.bare = this.bare
@@ -1497,7 +1546,8 @@ export class Frame extends PyObj {
     const vals: number[] = new Array(this.nrows * this.ncols)
     const m = this.ncols
     this.data.forEach((s, k) => s.values.forEach((c, r) => { vals[r * m + k] = numCell(c) }))
-    return NDArray.create(vals, [this.nrows, m], dt === 'bool' ? 'bool' : dt === 'int64' ? 'int64' : 'float64')
+    const allUint8 = m > 0 && this.data.every((s) => s.width === 'uint8')
+    return NDArray.create(vals, [this.nrows, m], dt === 'bool' ? 'bool' : allUint8 ? 'uint8' : dt === 'int64' ? 'int64' : 'float64')
   }
   /** same labels, new columns */
   same(data: Series[]): Frame { return new Frame(this.columns, data, this.index) }
@@ -1507,8 +1557,8 @@ export class Frame extends PyObj {
     const data = cs.map((k) => (rows ? this.data[k].pick(rows) : this.data[k].copy()))
     return new Frame(cols ? this.columns.pick(cs, true) : this.columns, data, rows ? this.index.pick(rows, keepRange) : this.index)
   }
-  /** a deep copy */
-  copy(): Frame { return this.same(this.data.map((s) => s.copy())) }
+  /** a deep copy; its axes are its own, so that naming them stays here */
+  copy(): Frame { return new Frame(this.columns.withName(this.columns.name), this.data.map((s) => s.copy()), this.index.withName(this.index.name)) }
   /** take over another frame's contents: inplace=True */
   adopt(o: Frame) {
     this.columns = o.columns
@@ -1525,7 +1575,9 @@ export class Frame extends PyObj {
       if (dt === 'float64') return numCell(c)
       return dt === 'object' && this.data[k].dtype === 'float64' ? boxFloat(c as number) : c
     })
-    return new Series(vals, keep ? this.columns.pick(cs, true) : this.columns, this.index.labels[r], dt)
+    const out = new Series(vals, keep ? this.columns.pick(cs, true) : this.columns, this.index.labels[r], dt)
+    out.width = sharedWidth(cs.map((k) => this.data[k]))
+    return out
   }
   colPos(h: Host, name: Value): number {
     const c = cellOf(h, name)
@@ -1643,6 +1695,7 @@ export class Frame extends PyObj {
       if (adoptIndex) this.index = IndexObj.range(t.cells.length)
       if (t.cells.length !== this.nrows) throw h.err('ValueError', `Length of values (${t.cells.length}) does not match length of index (${this.nrows})`)
       s = new Series(t.cells, this.index, name, t.dt)
+      if ('width' in t) s.width = t.width ?? null
     } else if (v.k === 'array' && (v.a.ndim === 0 || v.a.size === 1)) {
       const c = cellOf(h, v)
       s = new Series(this.index.labels.map(() => c), this.index, name, arrayDT(v.a))
@@ -1700,6 +1753,9 @@ export class Frame extends PyObj {
     return true
   }
 }
+
+/** the sized dtype columns have in common, if they all have the same one */
+export const sharedWidth = (cols: Series[]): string | null => (cols.length && cols.every((s) => s.width === cols[0].width) ? cols[0].width : null)
 
 /** store a value over a rectangle of a frame: a scalar, a row, a column, a grid, or a labelled Series / DataFrame */
 export const assignGrid = (h: Host, f: Frame, rows: number[], cols: number[], v: Value) => {
@@ -1958,13 +2014,11 @@ export const tableOfSeries = (s: Series): TableSpec => {
   }
 }
 
-/** text used in an object cell, for code outside this file */
-export { cellText }
 
 // ---------------------------------------------------------------- the module
 
 export const PANDAS: PyLib = {
-  modules: ['pandas', 'io'],
+  modules: ['pandas'],
   load: (h: Host) => {
     Object.assign(OPTIONS, DEFAULT_OPTIONS)
     return pandasModule(h)

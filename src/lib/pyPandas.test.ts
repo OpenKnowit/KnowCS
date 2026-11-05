@@ -75,3 +75,72 @@ describe('pandas sandbox matches pandas', () => {
     })
   }
 })
+
+describe('pandas sandbox: the step view', () => {
+  const frames = (src: string) => run(src).events.flatMap((e) => (e.type === 'frame' ? [e] : []))
+  const H = "import pandas as pd\ndf = pd.DataFrame({'k': ['a', 'a', 'b'], 'x': [1, 2, 3]})\n"
+
+  it('records a method with its input and result', () => {
+    const [e, ...rest] = frames(`${H}out = df[['x']].cumsum()\n`).filter((f) => f.api === 'cumsum')
+    expect(rest).toEqual([])
+    expect(e.inputs[0].table.columns).toEqual(['x'])
+    expect(e.result?.cells).toEqual([['1'], ['3'], ['6']])
+  })
+
+  it('records one step for a call, however many operations its callback does', () => {
+    expect(frames(`${H}out = df.x.apply(lambda v: pd.Series([v]).sum() * 2)\n`).map((f) => f.api)).toEqual(['apply'])
+  })
+
+  it('shows a scalar result as text', () => {
+    const e = frames(`${H}m = df.x.max()\n`).find((f) => f.api === 'max')
+    expect(e?.result).toBeNull()
+    expect(e?.resultText).toBe('3')
+  })
+
+  it('marks the rows a method picked', () => {
+    expect(frames(`${H}out = df.tail(1)\n`).find((f) => f.api === 'tail')?.picks?.rows).toEqual([2])
+  })
+
+  it('colours the groups of a groupby', () => {
+    const e = frames(`${H}out = df.groupby('k').x.sum()\n`).find((f) => f.api === 'groupby')
+    expect(e?.groups?.keys).toEqual(['a', 'b'])
+    expect(e?.groups?.ofRow).toEqual([0, 0, 1])
+  })
+})
+
+describe('pandas sandbox: refuses what it does not implement', () => {
+  it.each([
+    ["df.sum(level=0)", 'sum(level=...)'],
+    ["df.x.rolling(2, win_type='hann')", 'win_type'],
+    ["df.to_csv(compression='gzip')", 'compression'],
+    ["df.x.nlargest(1, keep='last')", 'keep'],
+    ["df.groupby('x').sum(foo=1)", 'foo'],
+    ["df.info(verbose=False)", 'verbose'],
+    ["pd.read_json('[]', dtype=False)", 'dtype'],
+  ])('%s', (code, what) => {
+    const r = run(`import pandas as pd\ndf = pd.DataFrame({'x': [1, 2]})\n${code}\n`)
+    expect(r.error?.type).toBe('NotImplementedError')
+    expect(r.error?.message).toContain(what)
+  })
+})
+
+describe('pandas sandbox: files', () => {
+  it('reads what the stdlib wrote, and the stdlib reads what it wrote', () => {
+    const r = run(`import pandas as pd
+with open('a.csv', 'w') as f:
+    f.write('x\\n1\\n')
+print(pd.read_csv('a.csv').x.sum())
+pd.DataFrame({'y': [2]}).to_csv('b/../b.csv', index=False)
+print(open('b.csv').read())
+`)
+    expect(r.error).toBeNull()
+    expect(r.stdout).toBe('1\ny\n2\n\n')
+  })
+
+  it('a missing path says so and how to go on', () => {
+    const r = run("import pandas as pd\npd.read_csv('none.csv')\n")
+    expect(r.error?.type).toBe('FileNotFoundError')
+    expect(r.error?.message).toContain("No such file or directory: 'none.csv'")
+    expect(r.error?.message).toContain('io.StringIO')
+  })
+})

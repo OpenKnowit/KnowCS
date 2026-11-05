@@ -1,46 +1,34 @@
-/** Text in and out: read_csv, read_json, json_normalize, to_csv, to_json. The sandbox has no disk, so text travels through io.StringIO. */
-import { PyDict, PyObj, py } from './minipy'
+/** Text in and out: read_csv, read_json, json_normalize, to_csv, to_json, through the sandbox's in-memory files or a file-like object. */
+import { PyDict, py } from './minipy'
 import type { Host, Value } from './minipy'
-import { Frame, IndexObj, Series, boxFloat, cellOf, cellsOf, inferDT, inferValues, isListLike, isMissing, labelStr, numCell, valueOf } from './pyPandas'
+import { Frame, IndexObj, Series, cellOf, cellsOf, inferDT, inferValues, isListLike, isMissing, labelStr, numCell, valueOf } from './pyPandas'
 import type { Cell, DT, Params } from './pyPandas'
 import { PyCell, fixedStr } from './pyPandasFormat'
 import { repr } from './minipy'
 import { astypeCol, flag, given, typeArg } from './pyPandasMethods'
 
-export class StringIO extends PyObj {
-  readonly cls = 'StringIO'
-  text: string
-  pos = 0
-  constructor(text: string) {
-    super()
-    this.text = text
+/** the run's in-memory file system (pyStdlib.ts): a normalised path, relative ones under /sandbox */
+const sandboxPath = (p: string) => {
+  const parts: string[] = []
+  for (const part of (p.startsWith('/') ? p : `/sandbox/${p}`).split('/')) {
+    if (part === '..') parts.pop()
+    else if (part && part !== '.') parts.push(part)
   }
-  repr() { return '<_io.StringIO object>' }
-  getAttr(name: string, h: Host): Value | undefined {
-    const fn = (call: (args: Value[]) => Value): Value => ({ k: 'fn', name, call })
-    switch (name) {
-      case 'getvalue': return fn(() => py.str(this.text))
-      case 'read': return fn(() => {
-        const out = this.text.slice(this.pos)
-        this.pos = this.text.length
-        return py.str(out)
-      })
-      case 'write': return fn((a) => {
-        const s = h.str(a[0])
-        this.text = this.text.slice(0, this.pos) + s + this.text.slice(this.pos + s.length)
-        this.pos += s.length
-        return py.int(s.length)
-      })
-      case 'seek': return fn((a) => {
-        this.pos = h.toInt(a[0])
-        return py.int(this.pos)
-      })
-      case 'close': return fn(() => py.NONE)
-    }
-    return undefined
-  }
-  enter() { return py.obj(this) }
-  exit() { return undefined }
+  return `/${parts.join('/')}`
+}
+
+const methodOf = (h: Host, v: Value, name: string): Value | undefined => {
+  if (v.k === 'obj') return v.o.getAttr?.(name, h)
+  if (v.k !== 'inst') return undefined
+  return h.getAttr(v, name)
+}
+
+/** the text behind a path or anything with a read method; undefined if the path holds no file */
+export const textFrom = (h: Host, src: Value): string | undefined => {
+  if (src.k === 'str') return (h.state.get('files') as Map<string, string> | undefined)?.get(sandboxPath(src.v))
+  const read = methodOf(h, src, 'read')
+  if (!read) throw h.err('ValueError', `Invalid file path or buffer object type: <class '${src.k === 'obj' ? src.o.cls : src.k}'>`)
+  return h.str(h.call(read, []))
 }
 
 const NA_STRINGS = new Set(['', '#N/A', '#N/A N/A', '#NA', '-1.#IND', '-1.#QNAN', '-NaN', '-nan', '1.#IND', '1.#QNAN', '<NA>', 'N/A', 'NA', 'NULL', 'NaN', 'None', 'n/a', 'nan', 'null'])
@@ -284,16 +272,21 @@ const csvFloatFormat = (h: Host, v: Value | undefined): ((x: number) => string) 
   return (x) => h.str(h.call(v!, [py.float(x)]))
 }
 
-/** write to a path (the sandbox only reports it), to a StringIO, or return the text */
-const deliver = (h: Host, target: Value | undefined, text: string): Value => {
+/** write to a path in the in-memory file system or to anything with a write method; no target returns the text */
+const deliver = (h: Host, target: Value | undefined, text: string, mode = 'w'): Value => {
   if (!given(target)) return py.str(text)
   const t = target!
-  if (t.k === 'obj' && t.o instanceof StringIO) {
-    t.o.text = t.o.text.slice(0, t.o.pos) + text
-    t.o.pos = t.o.text.length
+  if (t.k === 'str') {
+    let files = h.state.get('files') as Map<string, string> | undefined
+    if (!files) h.state.set('files', (files = new Map()))
+    const key = sandboxPath(t.v)
+    if (mode === 'x' && files.has(key)) throw h.err('FileExistsError', `[Errno 17] File exists: '${t.v}'`)
+    files.set(key, mode === 'a' ? (files.get(key) ?? '') + text : text)
     return py.NONE
   }
-  h.print(`(sandbox) would write ${h.str(t)}:\n${text}`)
+  const write = methodOf(h, t, 'write')
+  if (!write) throw h.err('ValueError', `Invalid file path or buffer object type: <class '${t.k === 'obj' ? t.o.cls : t.k}'>`)
+  h.call(write, [py.str(text)])
   return py.NONE
 }
 
@@ -302,7 +295,7 @@ const refuseIO = (h: Host, p: Params, fn: string, names: string[]) => {
 }
 
 const tableToCsv = (h: Host, f: Frame, p: Params, headerDefault: boolean): string => {
-  refuseIO(h, p, 'to_csv', ['mode', 'compression'])
+  refuseIO(h, p, 'to_csv', ['compression'])
   const sep = given(p.sep) ? h.str(p.sep!) : ','
   const na = given(p.na_rep) ? h.str(p.na_rep!) : ''
   const ff = csvFloatFormat(h, p.float_format)
@@ -335,8 +328,13 @@ const tableToCsv = (h: Host, f: Frame, p: Params, headerDefault: boolean): strin
   return out.join(eol) + eol
 }
 
-export const frameToCsv = (h: Host, f: Frame, p: Params): Value => deliver(h, p.path_or_buf, tableToCsv(h, f, p, true))
-export const seriesToCsv = (h: Host, s: Series, p: Params): Value => deliver(h, p.path_or_buf, tableToCsv(h, new Frame([s.name ?? 0], [s], s.index), p, true))
+const csvMode = (h: Host, p: Params) => {
+  const mode = given(p.mode) ? h.str(p.mode!) : 'w'
+  if (!['w', 'a', 'x'].includes(mode)) throw h.err('NotImplementedError', `to_csv(mode='${mode}') is not available in this sandbox`)
+  return mode
+}
+export const frameToCsv = (h: Host, f: Frame, p: Params): Value => deliver(h, p.path_or_buf, tableToCsv(h, f, p, true), csvMode(h, p))
+export const seriesToCsv = (h: Host, s: Series, p: Params): Value => deliver(h, p.path_or_buf, tableToCsv(h, new Frame([s.name ?? 0], [s], s.index), p, true), csvMode(h, p))
 
 // ---------------------------------------------------------------- JSON
 
@@ -405,7 +403,7 @@ const jsonCell = (h: Host, c: Cell, dt: DT, prec: number, ascii: boolean) => jso
 const jsonKey = (c: Cell, ascii: boolean) => jsonStr(labelStr(c), ascii)
 
 const jsonOpts = (h: Host, p: Params) => {
-  refuseIO(h, p, 'to_json', ['date_format', 'date_unit', 'default_handler', 'compression', 'indent'])
+  refuseIO(h, p, 'to_json', ['date_format', 'date_unit', 'default_handler', 'compression', 'indent', 'index'])
   return { prec: given(p.double_precision) ? h.toInt(p.double_precision!) : 10, ascii: flag(h, p.force_ascii, true), lines: flag(h, p.lines) }
 }
 
@@ -439,10 +437,14 @@ export const frameToJson = (h: Host, f: Frame, p: Params): Value => {
 }
 
 export const seriesToJson = (h: Host, s: Series, p: Params): Value => {
-  const { prec, ascii } = jsonOpts(h, p)
+  const { prec, ascii, lines } = jsonOpts(h, p)
   const orient = given(p.orient) ? h.str(p.orient!) : 'index'
   const cell = (r: number) => jsonCell(h, s.values[r], s.dtype, prec, ascii)
   const rs = s.values.map((_, i) => i)
+  if (lines) {
+    if (orient !== 'records') throw h.err('ValueError', "'lines' keyword only valid when 'orient' is records")
+    return deliver(h, p.path_or_buf, `${rs.map(cell).join('\n')}\n`)
+  }
   let text: string
   switch (orient) {
     case 'index': text = `{${rs.map((r) => `${jsonKey(s.index.labels[r], ascii)}:${cell(r)}`).join(',')}}`; break
@@ -561,11 +563,9 @@ const jsonColumn = (h: Host, items: Value[]): { cells: Cell[]; dt: DT } => {
 }
 
 export const readJson = (h: Host, src: Value, kw: Record<string, Value>): Frame | Series => {
-  for (const k of Object.keys(kw)) if (!['path_or_buf', 'orient', 'typ', 'lines', 'dtype', 'convert_axes', 'convert_dates', 'encoding', 'precise_float', 'nrows'].includes(k)) throw h.err('NotImplementedError', `read_json(${k}=...) is not available in this sandbox`)
-  let text: string
-  if (src.k === 'obj' && src.o instanceof StringIO) text = src.o.text
-  else if (src.k === 'str' && /^\s*[[{]/.test(src.v)) text = src.v
-  else throw h.err('FileNotFoundError', `File ${src.k === 'str' ? src.v : h.str(src)} does not exist`)
+  for (const k of Object.keys(kw)) if (!['path_or_buf', 'orient', 'typ', 'lines', 'encoding', 'precise_float'].includes(k)) throw h.err('NotImplementedError', `read_json(${k}=...) is not available in this sandbox`)
+  const text = src.k === 'str' && /^\s*[[{]/.test(src.v) ? src.v : textFrom(h, src)
+  if (text === undefined) throw h.err('FileNotFoundError', `File ${h.str(src)} does not exist`)
   const orient = given(kw.orient) ? h.str(kw.orient) : null
   const typ = given(kw.typ) ? h.str(kw.typ) : 'frame'
   if (flag(h, kw.lines)) {
@@ -657,4 +657,3 @@ export const jsonNormalize = (h: Host, data: Value, kw: Record<string, Value>): 
   }), null)
 }
 
-export { boxFloat }

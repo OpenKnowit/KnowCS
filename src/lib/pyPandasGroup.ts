@@ -5,12 +5,10 @@
 import { PyDict, PyObj, py, repr } from './minipy'
 import type { Host, Value } from './minipy'
 import { NDArray } from './ndarray'
-import { CMP, Frame, IndexObj, Series, bindParams, boxFloat, cellOf, commonDT, inferDT, inferValues, isListLike, isMissing, labelStr, numCell, quietly, sortOrder, tableOfFrame, tableOfSeries, traceFrame, typedCells, valueOf, seriesIn, frameIn } from './pyPandas'
+import { Frame, IndexObj, Series, bindParams, cellOf, commonDT, inferDT, inferValues, isListLike, isMissing, labelStr, numCell, quietly, sortOrder, tableOfFrame, tableOfSeries, traceFrame, typedCells, valueOf, seriesIn, frameIn } from './pyPandas'
 import type { Cats, Cell, DT, Params } from './pyPandas'
 import { PyCell } from './pyPandasFormat'
-import { aggColumn, astypeCol, flag, funcName, given, indexToColumns, need, npQuantile, reduceCol } from './pyPandasMethods'
-
-void CMP
+import { flag, funcName, given, need, npQuantile, reduceCol } from './pyPandasMethods'
 
 interface GKey { name: Cell; values: Cell[]; dt: DT; cats: Cats | null }
 interface Groups { keys: Cell[][]; members: number[][]; ofRow: number[] }
@@ -43,7 +41,7 @@ const groupStat = (h: Host, s: Series, members: number[][], how: string, o: { dd
     case 'first': case 'last': {
       const cells = members.map((m) => {
         const v = vals(m)
-        return v.length ? v[how === 'first' ? 0 : v.length - 1] : NaN
+        return v.length && !(o.minCount !== undefined && v.length < o.minCount) ? v[how === 'first' ? 0 : v.length - 1] : NaN
       })
       return { cells, dt: dt === 'int64' && cells.some(isMissing) ? 'float64' : dt === 'bool' && cells.some(isMissing) ? 'object' : dt }
     }
@@ -641,17 +639,17 @@ const METHODS: Record<string, GM> = {
     if (_p.dropna && !h.truthy(_p.dropna)) throw h.err('NotImplementedError', 'groupby.nunique(dropna=False) is not available in this sandbox')
     return g.stat(h, 'nunique', g.valueCols())
   }],
-  first: statMethod('first', 'numeric_only min_count skipna'),
-  last: statMethod('last', 'numeric_only min_count skipna'),
+  first: statMethod('first', 'numeric_only min_count'),
+  last: statMethod('last', 'numeric_only min_count'),
   sum: statMethod('sum'),
   prod: statMethod('prod'),
   product: statMethod('prod'),
   min: statMethod('min'),
   max: statMethod('max'),
-  mean: statMethod('mean', 'numeric_only skipna'),
-  median: statMethod('median', 'numeric_only skipna'),
-  std: statMethod('std', 'ddof numeric_only skipna'),
-  var: statMethod('var', 'ddof numeric_only skipna'),
+  mean: statMethod('mean', 'numeric_only engine engine_kwargs'),
+  median: statMethod('median', 'numeric_only'),
+  std: statMethod('std', 'ddof engine engine_kwargs numeric_only'),
+  var: statMethod('var', 'ddof engine engine_kwargs numeric_only'),
   sem: statMethod('sem', 'ddof numeric_only'),
   skew: statMethod('skew', 'axis skipna numeric_only'),
   any: statMethod('any', 'skipna'),
@@ -703,7 +701,7 @@ const METHODS: Record<string, GM> = {
     const keep = new Set<number>()
     gr.members.forEach((rows) => {
       if (!rows.length) return
-      const r = h.call(f, [g.groupObject(g.select ? g.valueCols() : null, rows)])
+      const r = h.call(f, [g.groupObject(g.select ? g.valueCols() : null, rows), ...(p.__args && p.__args.k === 'tuple' ? p.__args.items : [])], p.__kw && p.__kw.k === 'dict' ? Object.fromEntries(p.__kw.d.items().map(([k, v]) => [h.str(k), v])) : {})
       if (r.k !== 'bool' && !(r.k === 'array' && r.a.size === 1) && r.k !== 'int' && r.k !== 'float') throw h.err('TypeError', 'filter function returned a ' + (r.k === 'obj' ? r.o.cls : r.k) + ', but expected a scalar bool')
       if (h.truthy(r)) rows.forEach((x) => keep.add(x))
     })
@@ -803,7 +801,7 @@ const METHODS: Record<string, GM> = {
     if (i < 0 || !gr.members[i].length) throw h.err('KeyError', repr(nameV))
     return g.single ? py.obj(g.f.data[g.valueCols()[0]].pick(gr.members[i])) : py.obj(g.f.take(gr.members[i], g.select ? g.valueCols() : null))
   }],
-  describe: ['percentiles include exclude', (g, p, h) => {
+  describe: ['percentiles', (g, p, h) => {
     const gr = g.groups()
     const index = g.keyIndex(gr)
     const kw: Record<string, Value> = {}
@@ -823,7 +821,7 @@ const METHODS: Record<string, GM> = {
     const data = cols.flatMap((_, ci) => labels.map((_l, j) => new Series(stats[ci].map((d) => d.values[j]), groupIdx, null, stats[ci][0].dtype)))
     return py.obj(new Frame(mi, data, groupIdx))
   }],
-  value_counts: ['subset normalize sort ascending dropna bins', (g, p, h) => {
+  value_counts: ['normalize sort ascending dropna bins', (g, p, h) => {
     if (given(p.bins)) throw h.err('NotImplementedError', 'groupby.value_counts(bins=...) is not available in this sandbox')
     if (!g.single) throw h.err('NotImplementedError', 'value_counts after grouping a whole DataFrame is not available in this sandbox: select a column first')
     const gr = g.groups()
@@ -1231,6 +1229,8 @@ export class Window extends PyObj {
       case 'apply': return m('func raw engine engine_kwargs args kwargs', (p) => {
         const f = need(h, p.func, 'apply', 'func')
         const raw = flag(h, p.raw)
+        const extra = p.args && (p.args.k === 'tuple' || p.args.k === 'list') ? p.args.items : []
+        const kwargs = p.kwargs && p.kwargs.k === 'dict' ? Object.fromEntries(p.kwargs.d.items().map(([k, v]) => [h.str(k), v])) : {}
         const one = (s: Series): Series => {
           if (s.dtype === 'object' && s.values.some((c) => typeof c === 'string')) throw h.err('DataError', 'Cannot aggregate non-numeric type: object')
           const { start, end } = windowBounds(s.length, this.size, this.center, this.closed)
@@ -1241,7 +1241,7 @@ export class Window extends PyObj {
             const nobs = rows.filter((r) => !Number.isNaN(vals[r])).length
             if (nobs < minp || !rows.length) return NaN
             const w = s.pick(rows)
-            return h.num(h.call(f, [raw ? py.arr(w.toArray()) : py.obj(w)]))
+            return h.num(h.call(f, [raw ? py.arr(w.toArray()) : py.obj(w), ...extra], kwargs))
           })
           return s.with(out, 'float64')
         }
@@ -1269,6 +1269,7 @@ export const windowOf = (h: Host, obj: Series | Frame, p: Params, kind: 'rolling
     return py.obj(new Window(obj, null, given(p.min_periods) ? h.toInt(p.min_periods!) : 1, false, 'right'))
   }
   for (const k of ['win_type', 'on', 'step', 'axis']) if (given(p[k])) throw h.err('NotImplementedError', `rolling(${k}=...) is not available in this sandbox`)
+  if (given(p.method) && h.str(p.method!) !== 'single') throw h.err('NotImplementedError', `rolling(method='${h.str(p.method!)}') is not available in this sandbox`)
   const wv = need(h, p.window, 'rolling', 'window')
   if (wv.k !== 'int') throw h.err('ValueError', 'window must be an integer 0 or greater')
   if (wv.v < 0) throw h.err('ValueError', 'window must be an integer 0 or greater')
@@ -1280,4 +1281,3 @@ export const windowOf = (h: Host, obj: Series | Frame, p: Params, kind: 'rolling
   return py.obj(new Window(obj, wv.v, minp, flag(h, p.center), closed))
 }
 
-export { aggColumn, astypeCol, boxFloat, indexToColumns }

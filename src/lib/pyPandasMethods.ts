@@ -6,9 +6,9 @@
 import { PyDict, PyObj, parse, py, repr } from './minipy'
 import type { Host, Node, Value } from './minipy'
 import { NDArray } from './ndarray'
-import { Frame, IndexObj, IntervalIndexObj, ObjArray, DtypeObj, Series, PyCell, assignGrid, boxFloat, cellOf, cellsOf, commonDT, convertCells, dtName, frameIndexer, frameOp, frameToString, inferDT, inferValues, isListLike, isMissing, labelStr, method, numCell, positions, reindexCells, seriesIndexer, seriesOp, seriesToString, sortOrder, tableOfSeries, traceFrame, tableOfFrame, typedCells, unionIndex, valueOf, seriesIn, frameIn } from './pyPandas'
+import { Frame, IndexObj, IntervalIndexObj, ObjArray, sharedWidth, DtypeObj, Series, PyCell, boxFloat, cellOf, cellsOf, commonDT, convertCells, dtName, frameIndexer, frameOp, frameToString, inferDT, inferValues, isListLike, isMissing, labelStr, method, numCell, positions, reindexCells, seriesIndexer, seriesOp, seriesToString, sortOrder, typedCells, unionIndex, valueOf, seriesIn, frameIn } from './pyPandas'
 import type { Cats, Cell, Ctx, DT, Method, Params } from './pyPandas'
-import { OPTIONS, fixedStr, formatArray, fixedWidth } from './pyPandasFormat'
+import { OPTIONS, fixedStr, formatArray } from './pyPandasFormat'
 import { groupByFrame, groupBySeries, windowOf } from './pyPandasGroup'
 import { frameToCsv, frameToJson, seriesToCsv, seriesToJson } from './pyPandasIO'
 import { joinFrames, meltFrame, mergeFrames, pivotFrame, pivotTable, stackFrame, unstackFrame, unstackSeries } from './pyPandasReshape'
@@ -45,7 +45,6 @@ const oneOf = (h: Host, v: Value | undefined, d: string, allowed: string[], fn: 
   if (!allowed.includes(s)) throw h.err('NotImplementedError', `${fn}(${name}='${s}') is not available in this sandbox`)
   return s
 }
-const num = (h: Host, v: Value) => h.num(v)
 const callableValue = (v: Value | undefined) => !!v && (v.k === 'func' || v.k === 'fn' || v.k === 'bound' || v.k === 'type' || v.k === 'class')
 const rows = (n: number) => Array.from({ length: n }, (_, i) => i)
 /** inplace=True swaps the result in and returns None */
@@ -64,7 +63,6 @@ const noteOnce = (h: Host, key: string) => {
   h.emit({ type: 'note', tone: 'info', key, params: {} })
 }
 const fn = (name: string, call: (args: Value[], kw: Record<string, Value>) => Value): Value => ({ k: 'fn', name, call })
-export const seriesOf = (cells: Cell[], index: IndexObj | Cell[] | null, name: Cell, dt?: DT) => new Series(cells, index, name, dt)
 const has = (t: object, k: string) => Object.prototype.hasOwnProperty.call(t, k)
 
 /** the Python name of an aggregation: 'sum', np.sum → 'sum', a lambda → '<lambda>' */
@@ -270,7 +268,11 @@ const frameReduce = (h: Host, f: Frame, how: string, p: Params): Value => {
   }
   const vals = cols.map((k) => reduceCol(h, f.data[k], how, o))
   const t = inferValues(h, vals)
-  return py.obj(new Series(t.cells, f.columns.pick(cols, true), null, how === 'count' ? 'int64' : t.dt))
+  const out = new Series(t.cells, f.columns.pick(cols, true), null, how === 'count' ? 'int64' : t.dt)
+  const width = sharedWidth(cols.map((k) => f.data[k]))
+  if (width && t.dt !== 'object' && (how === 'min' || how === 'max')) out.width = width
+  else if (width?.startsWith('u') && (how === 'sum' || how === 'prod')) out.width = 'uint64'
+  return py.obj(out)
 }
 
 // ---------------------------------------------------------------- column kernels
@@ -501,11 +503,12 @@ const condCells = (h: Host, cond: Value, s: Series, whole: Series | Frame): bool
   return cells.map((x) => !!x)
 }
 
-const whereCol = (h: Host, s: Series, keep: boolean[], other: Value | undefined, whole: Series | Frame): Series => {
+const whereCol = (h: Host, s: Series, keep: boolean[], other: Value | undefined, whole: Series | Frame, axisV?: Value): Series => {
   const out = s.copy()
   const rs = rows(s.length).filter((i) => !keep[i])
-  if (!rs.length) return out
   const o = other && callableValue(other) ? h.call(other, [py.obj(whole)]) : other
+  if (whole instanceof Frame && o?.k === 'obj' && o.o instanceof Series && !given(axisV)) throw h.err('ValueError', 'Must specify axis=0 or 1')
+  if (!rs.length) return out
   let cells: Cell[]
   if (!o) cells = rs.map(() => NaN)
   else if (o.k === 'obj' && o.o instanceof Frame) {
@@ -517,8 +520,9 @@ const whereCol = (h: Host, s: Series, keep: boolean[], other: Value | undefined,
     })
   } else if (o.k === 'obj' && o.o instanceof Series) {
     const src = o.o
-    if (whole instanceof Frame && src.index.has(s.name) && !src.index.equals(s.index)) {
-      const c = src.values[src.index.locate(s.name)[0]]
+    if (whole instanceof Frame && axisOf(h, axisV, 'DataFrame') === 1) {
+      const at = src.index.locate(s.name)
+      const c = at.length ? src.values[at[0]] : NaN
       cells = rs.map(() => c)
     } else cells = rs.map((r) => {
       const at = src.index.locate(s.index.labels[r])
@@ -590,7 +594,7 @@ export const typeArg = (h: Host, v: Value): string => {
   return h.str(v)
 }
 
-const toCategorical = (s: Series, ordered = false, categories?: Cell[]): Series => {
+export const categoricalOf = (s: Series, ordered = false, categories?: Cell[]): Series => {
   if (s.cats && !categories) return s.copy()
   const present = s.values.filter((c) => !isMissing(c))
   const uniq = categories ?? (() => {
@@ -606,7 +610,7 @@ const toCategorical = (s: Series, ordered = false, categories?: Cell[]): Series 
 
 export const astypeCol = (h: Host, s: Series, t: string, ignore = false): Series => {
   try {
-    if (t === 'category') return toCategorical(s)
+    if (t === 'category') return categoricalOf(s)
     if (t === 'object' || t === 'O') {
       const out = s.with(s.dtype === 'object' ? [...s.values] : s.dtype === 'float64' ? s.values.map((c) => boxFloat(c as number)) : [...s.values], 'object')
       return out
@@ -656,10 +660,9 @@ export const astypeCol = (h: Host, s: Series, t: string, ignore = false): Series
 }
 
 /** NDArray where the values allow it; a dtype=object array for text */
-export const arrayOf = (cells: Cell[], dt: DT): Value => {
-  if (dt === 'object' && !cells.every((c) => typeof c === 'number' || c instanceof PyCell && c.v.k === 'float')) return py.obj(new ObjArray([...cells]))
+export const arrayOf = (cells: Cell[], dt: DT, width: string | null = null): Value => {
   if (dt === 'object') return py.obj(new ObjArray([...cells]))
-  return py.arr(NDArray.create(cells.map(numCell), [cells.length], dt === 'bool' ? 'bool' : dt === 'int64' ? 'int64' : 'float64'))
+  return py.arr(NDArray.create(cells.map(numCell), [cells.length], dt === 'bool' ? 'bool' : width === 'uint8' ? 'uint8' : dt === 'int64' ? 'int64' : 'float64'))
 }
 
 const uniqueCells = (cells: Cell[]) => {
@@ -792,8 +795,12 @@ const dtypeMatches = (s: Series, t: string): boolean => {
   const name = dtName(s)
   switch (t) {
     case 'number': return isNumberCol(s)
-    case 'int': case 'integer': case 'signedinteger': case 'int_': return s.dtype === 'int64' && !s.cats
-    case 'float': case 'floating': case 'float_': return s.dtype === 'float64' && !s.cats
+    case 'int': case 'int_': return s.dtype === 'int64' && !s.cats && (!s.width || s.width === 'int32')
+    case 'integer': return s.dtype === 'int64' && !s.cats
+    case 'signedinteger': return s.dtype === 'int64' && !s.cats && !s.width?.startsWith('u')
+    case 'unsignedinteger': return s.dtype === 'int64' && !s.cats && !!s.width?.startsWith('u')
+    case 'float': case 'float_': return s.dtype === 'float64' && !s.cats && (!s.width || s.width === 'float32')
+    case 'floating': return s.dtype === 'float64' && !s.cats
     case 'bool': case 'bool_': return s.dtype === 'bool'
     case 'object': case 'O': case 'str': return s.dtype === 'object' && !s.cats
     case 'category': return !!s.cats
@@ -935,9 +942,12 @@ const floatColumns = (h: Host, f: Frame, numericOnly: boolean) => {
 
 export const transposeFrame = (f: Frame): Frame => {
   const dt = f.data.some((s) => s.cats) ? 'object' : commonDT(f.data.map((s) => s.dtype))
+  const width = sharedWidth(f.data)
   const data = f.index.labels.map((_, r) => {
     const vals = f.data.map((s) => (dt === 'object' && s.dtype === 'float64' ? boxFloat(s.values[r] as number) : s.values[r]))
-    return new Series(vals, f.columns, f.index.labels[r], dt)
+    const out = new Series(vals, f.columns, f.index.labels[r], dt)
+    out.width = width
+    return out
   })
   return new Frame(f.index, data, f.columns)
 }
@@ -949,49 +959,28 @@ const byAxis = (f: Frame, axis: 0 | 1, kernel: (s: Series) => Series): Frame => 
   return transposeFrame(t.same(t.data.map(kernel)))
 }
 
-const namedRow = (f: Frame, r: number, indexLabel: boolean, typeName: string): Value => {
+const PY_KEYWORDS = ['False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield']
+
+/** a row of itertuples(): a namedtuple whose bad field names become positions */
+const namedRow = (f: Frame, r: number, indexLabel: boolean, tname: string): Value => {
   const names: string[] = []
-  const vals: Value[] = []
+  const items: Value[] = []
   if (indexLabel) {
     names.push('Index')
-    vals.push(valueOf(f.index.labels[r], f.index.dt))
+    items.push(valueOf(f.index.labels[r], f.index.dt))
   }
   f.data.forEach((s, k) => {
     const raw = labelStr(f.columns.labels[k])
-    names.push(/^[A-Za-z_][A-Za-z0-9_]*$/.test(raw) && !PY_KEYWORDS.includes(raw) ? raw : `_${names.length}`)
-    vals.push(valueOf(s.values[r], s.dtype))
+    names.push(/^[A-Za-z][A-Za-z0-9_]*$/.test(raw) && !PY_KEYWORDS.includes(raw) ? raw : `_${names.length}`)
+    items.push(valueOf(s.values[r], s.dtype))
   })
-  return py.obj(new NamedRow(typeName, names, vals))
+  return { k: 'tuple', items, names, tname }
 }
 
-const PY_KEYWORDS = ['False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield']
-
-/** a row from itertuples(): a namedtuple */
-class NamedRow extends PyObj {
-  readonly cls: string
-  names: string[]
-  vals: Value[]
-  constructor(cls: string, names: string[], vals: Value[]) {
-    super()
-    this.cls = cls
-    this.names = names
-    this.vals = vals
-  }
-  repr() { return `${this.cls}(${this.names.map((n, i) => `${n}=${repr(this.vals[i])}`).join(', ')})` }
-  len() { return this.vals.length }
-  iter() { return this.vals }
-  getItem(idx: Value, h: Host): Value {
-    if (idx.k === 'slice') return py.tuple(positions(h, idx, this.vals.length).map((i) => this.vals[i]))
-    const i = h.toInt(idx)
-    const n = this.vals.length
-    if (i < -n || i >= n) throw h.err('IndexError', 'tuple index out of range')
-    return this.vals[i < 0 ? i + n : i]
-  }
-  getAttr(name: string) {
-    const i = this.names.indexOf(name)
-    return i < 0 ? undefined : this.vals[i]
-  }
-  contains(v: Value) { return this.vals.some((x) => repr(x) === repr(v)) }
+/** what a generator-returning pandas method gives back */
+const generatorOf = (name: string, items: Value[]): Value => {
+  let i = 0
+  return { k: 'iter', name, next: () => items[i++] }
 }
 
 /** df.to_records() */
@@ -1317,7 +1306,7 @@ const frameTransform = (h: Host, fr: Frame, f: Value, axis: 0 | 1, args: Value[]
     if (res.k === 'obj' && res.o instanceof Frame && res.o.nrows === fr.nrows) return res.o
     if (res.k === 'array' && res.a.ndim === 2) return fr.same(fr.data.map((s, k) => {
       const [r, c] = res.a.shape
-      return s.with(Array.from({ length: r }, (_, i) => res.a.values()[i * c + k]), res.a.dtype === 'bool' ? 'bool' : res.a.dtype === 'int64' ? 'int64' : 'float64')
+      return s.with(Array.from({ length: r }, (_, i) => res.a.values()[i * c + k]), res.a.dtype === 'bool' ? 'bool' : res.a.dtype === 'float64' ? 'float64' : 'int64')
     }))
     throw h.err('ValueError', 'Function did not transform')
   }
@@ -1586,9 +1575,9 @@ const SERIES: Record<string, Method<Series>> = {
       const v = cellOf(h, p.na_value!)
       return arrayOf(s.values.map((c) => (isMissing(c) ? v : c)), s.dtype === 'float64' ? 'float64' : inferDT(s.values.map((c) => (isMissing(c) ? v : c))))
     }
-    return arrayOf(s.values, s.dtype)
+    return arrayOf(s.values, s.dtype, s.width)
   }],
-  ravel: ['order', (s) => arrayOf(s.values, s.dtype)],
+  ravel: ['order', (s) => arrayOf(s.values, s.dtype, s.width)],
   head: ['n', (s, p, h, c) => headTail(s, 'head', p.n, h, c)],
   tail: ['n', (s, p, h, c) => headTail(s, 'tail', p.n, h, c)],
   take: ['indices axis', (s, p, h) => py.obj(s.pick(positions(h, p.indices!, s.length, 'indices are out-of-bounds')))],
@@ -1615,8 +1604,14 @@ const SERIES: Record<string, Method<Series>> = {
     if (many) return py.obj(new Series(vals, new IndexObj(qs, null, 'float64'), s.name, dt))
     return dt === 'int64' ? py.int(vals[0]) : py.float(vals[0])
   }],
-  all: ['axis bool_only skipna', (s, p, h) => py.bool(anyAll(h, s, 'all', flag(h, p.skipna, true)))],
-  any: ['axis bool_only skipna', (s, p, h) => py.bool(anyAll(h, s, 'any', flag(h, p.skipna, true)))],
+  all: ['axis bool_only skipna', (s, p, h) => {
+    if (flag(h, p.bool_only)) throw h.err('ValueError', 'Series.all does not allow bool_only=True.')
+    return py.bool(anyAll(h, s, 'all', flag(h, p.skipna, true)))
+  }],
+  any: ['axis bool_only skipna', (s, p, h) => {
+    if (flag(h, p.bool_only)) throw h.err('ValueError', 'Series.any does not allow bool_only=True.')
+    return py.bool(anyAll(h, s, 'any', flag(h, p.skipna, true)))
+  }],
   idxmax: ['axis skipna', (s, p, h) => idxOf(h, s, 'max', flag(h, p.skipna, true))],
   idxmin: ['axis skipna', (s, p, h) => idxOf(h, s, 'min', flag(h, p.skipna, true))],
   argmax: ['axis skipna', (s, p, h) => py.int(argOf(h, s, 'max', flag(h, p.skipna, true)))],
@@ -1639,7 +1634,7 @@ const SERIES: Record<string, Method<Series>> = {
     }
     return py.obj(valueCountsOf(s, opts))
   }],
-  unique: ['', (s) => arrayOf(uniqueCells(s.values), s.dtype)],
+  unique: ['', (s) => arrayOf(uniqueCells(s.values), s.dtype, s.width)],
   nunique: ['dropna', (s, p, h) => py.int(uniqueCells(flag(h, p.dropna, true) ? s.values.filter((c) => !isMissing(c)) : s.values).length)],
   mode: ['dropna', (s, p, h) => py.obj(modeCol(s, flag(h, p.dropna, true)))],
   factorize: ['sort use_na_sentinel', (s, p, h) => factorize(h, s.values, s.dtype, flag(h, p.sort), flag(h, p.use_na_sentinel, true))],
@@ -1726,6 +1721,7 @@ const SERIES: Record<string, Method<Series>> = {
   }],
   apply: ['func convert_dtype args by_row **', (s, p, h) => {
     const f = need(h, p.func, 'apply', 'func')
+    if (p.by_row && p.by_row.k !== 'str') refuse(h, p.by_row, 'apply', 'by_row')
     const { args, kw } = unboxArgs(h, p)
     if (f.k === 'str' || f.k === 'dict' || isListLike(f)) return f.k === 'str' ? applyNamed(h, py.obj(s), f.v, args, kw) : seriesAgg(h, s, f)
     return py.obj(seriesApply(h, s, f, args, kw))
@@ -1838,17 +1834,17 @@ const SERIES: Record<string, Method<Series>> = {
     }
     if (flag(h, p.inplace)) throw h.err('TypeError', 'Cannot reset_index inplace on a Series to create a DataFrame')
     const name = given(p.name) ? cellOf(h, p.name!) : s.name ?? 0
-    return py.obj(indexToColumns(new Frame([name], [s], s.index)))
+    return py.obj(indexToColumns(h, new Frame([name], [s], s.index)))
   }],
   to_frame: ['name', (s, p, h) => py.obj(new Frame([given(p.name) ? cellOf(h, p.name!) : s.name ?? 0], [s.copy()], s.index))],
-  to_dict: ['into', (s) => ({ k: 'dict', d: dictFromPairs(s.index.iter().map((k, i) => [k, valueOf(s.values[i], s.dtype)])) })],
+  to_dict: ['into', (s, p, h) => (refuseInto(h, p), { k: 'dict', d: dictFromPairs(s.index.iter().map((k, i) => [k, valueOf(s.values[i], s.dtype)])) })],
   to_string: ['buf na_rep float_format header index length dtype name max_rows min_rows', (s, p, h) => {
     refuse(h, p.buf, 'to_string', 'buf')
     return py.str(seriesToString(s, { maxRows: given(p.max_rows) ? h.toInt(p.max_rows!) : null, minRows: given(p.min_rows) ? h.toInt(p.min_rows!) : null, index: flag(h, p.index, true), header: flag(h, p.header, true), name: flag(h, p.name), dtype: flag(h, p.dtype), length: flag(h, p.length), naRep: given(p.na_rep) ? h.str(p.na_rep!) : undefined, floatFormat: floatFormatArg(h, p.float_format) }))
   }],
   to_csv: ['path_or_buf sep na_rep float_format columns header index index_label mode encoding compression quoting quotechar lineterminator', (s, p, h) => seriesToCsv(h, s, p)],
   to_json: ['path_or_buf orient date_format double_precision force_ascii date_unit default_handler lines compression index indent', (s, p, h) => seriesToJson(h, s, p)],
-  items: ['', (s) => py.list(s.index.iter().map((k, i) => py.tuple([k, valueOf(s.values[i], s.dtype)])))],
+  items: ['', (s) => generatorOf('zip', s.index.iter().map((k, i) => py.tuple([k, valueOf(s.values[i], s.dtype)])))],
   keys: ['', (s) => py.obj(s.index)],
   get: ['key default', (s, p, h) => seriesGet(h, s, p)],
   item: ['', (s, _p, h) => {
@@ -1873,8 +1869,18 @@ const SERIES: Record<string, Method<Series>> = {
   squeeze: ['axis', (s) => (s.length === 1 ? valueOf(s.values[0], s.dtype) : py.obj(s))],
   transpose: ['*', (s) => py.obj(s)],
   xs: ['key axis level drop_level', (s, p, h) => {
-    refuse(h, p.level, 'xs', 'level')
-    return s.getItem(need(h, p.key, 'xs', 'key'), h)
+    const key = need(h, p.key, 'xs', 'key')
+    if (!given(p.level)) return seriesIndexer(s, 'loc').getItem(key, h)
+    const { rows: at, rest } = crossSection(h, s.index, key, p)
+    const out = s.pick(at)
+    out.index = rest
+    return py.obj(out)
+  }],
+  filter: ['items like regex axis', (s, p, h) => py.obj(s.pick(filterLabels(h, s.index, p)))],
+  droplevel: ['level axis', (s, p, h) => {
+    const out = s.copy()
+    out.index = dropIndexLevel(h, s.index, need(h, p.level, 'droplevel', 'level'))
+    return py.obj(out)
   }],
   equals: ['other', (s, p) => py.bool(seriesEquals(s, p.other))],
   dot: ['other', (s, p, h) => dotSeries(h, s, need(h, p.other, 'dot', 'other'))],
@@ -1952,12 +1958,21 @@ const SERIES: Record<string, Method<Series>> = {
     return isListLike(x) ? py.arr(NDArray.create(cellsOf(h, x).map((c) => find(numCell(c))), [cellsOf(h, x).length], 'int64')) : py.int(find(h.num(x)))
   }],
   info: ['verbose buf max_cols memory_usage show_counts', (s, p, h) => {
-    refuse(h, p.buf, 'info', 'buf')
+    for (const k of ['buf', 'max_cols', 'memory_usage', 'show_counts']) refuse(h, p[k], 'info', k)
+    if (p.verbose && !h.truthy(p.verbose)) refuse(h, p.verbose, 'info', 'verbose')
     const nn = s.values.filter((c) => !isMissing(c)).length
-    h.print(`<class 'pandas.core.series.Series'>\n${indexInfoLine(s.index)}\nSeries name: ${s.name === null ? 'None' : labelStr(s.name)}\nNon-Null Count  Dtype\n--------------  -----\n${`${nn} non-null`.padEnd(14)}  ${dtName(s)}\ndtypes: ${dtName(s)}(1)\nmemory usage: ${sizeFmt(memOfIndex(s.index) + memOfSeries(s), s.dtype === 'object' ? '+' : '')}\n`)
+    const dw = Math.max(5, dtName(s).length)
+    h.print(`<class 'pandas.core.series.Series'>\n${indexInfoLine(s.index)}\nSeries name: ${s.name === null ? 'None' : labelStr(s.name)}\nNon-Null Count  ${'Dtype'.padEnd(dw)}\n--------------  ${'-----'.padEnd(dw)}\n${`${nn} non-null`.padEnd(14)}  ${dtName(s).padEnd(dw)}\ndtypes: ${dtName(s)}(1)\nmemory usage: ${sizeFmt(memOfIndex(s.index) + memOfSeries(s), s.dtype === 'object' ? '+' : '')}\n`)
     return py.NONE
   }],
-  memory_usage: ['index deep', (s, p, h) => py.int((flag(h, p.index, true) ? memOfIndex(s.index) : 0) + memOfSeries(s))],
+  memory_usage: ['index deep', (s, p, h) => {
+    if (flag(h, p.deep)) refuse(h, p.deep, 'memory_usage', 'deep')
+    return py.int((flag(h, p.index, true) ? memOfIndex(s.index) : 0) + memOfSeries(s))
+  }],
+}
+
+const refuseInto = (h: Host, p: Params) => {
+  if (p.into && !(p.into.k === 'type' && p.into.name === 'dict')) refuse(h, p.into, 'to_dict', 'into')
 }
 
 const reprCell = (c: Cell) => (typeof c === 'string' ? `'${c}'` : labelStr(c))
@@ -2276,11 +2291,12 @@ const explodeCol = (h: Host, s: Series, ignore: boolean): Series => {
 }
 
 /** reset_index: the index levels become the first columns */
-export const indexToColumns = (f: Frame, levels?: number[]): Frame => {
+export const indexToColumns = (h: Host, f: Frame, levels?: number[], allowDuplicates = false): Frame => {
   const ix = f.index
   const n = ix.nlevels
   const chosen = levels ?? Array.from({ length: n }, (_, i) => i)
   const names = ix.names.map((x, j) => x ?? (n > 1 ? `level_${j}` : f.columns.has('index') ? 'level_0' : 'index'))
+  if (!allowDuplicates) for (const j of chosen) if (f.columns.has(names[j])) throw h.err('ValueError', `cannot insert ${labelStr(names[j])}, already exists`)
   const inserts = chosen.map((j) => {
     const lev = ix.level(j)
     return new Series([...lev.labels], null, names[j], lev.dt)
@@ -2328,7 +2344,7 @@ export const seriesAttr = (s: Series, name: string, h: Host): Value | undefined 
     case 'empty': return py.bool(s.length === 0)
     case 'index': return py.obj(s.index)
     case 'axes': return py.list([py.obj(s.index)])
-    case 'values': return arrayOf(s.values, s.dtype)
+    case 'values': return arrayOf(s.values, s.dtype, s.width)
     case 'array': return py.obj(new PandasArray(s))
     case 'T': return py.obj(s)
     case 'hasnans': return py.bool(s.values.some(isMissing))
@@ -2356,7 +2372,7 @@ const monotonic = (cells: Cell[], inc: boolean) => {
   return true
 }
 
-const memOfSeries = (s: Series) => (s.dtype === 'bool' ? 1 : s.width ? Number(/\d+/.exec(s.width)?.[0] ?? 64) / 8 : 8) * s.length
+const memOfSeries = (s: Series) => (s.cats ? s.length + 8 * s.cats.labels.length : (s.dtype === 'bool' ? 1 : s.width ? Number(/\d+/.exec(s.width)?.[0] ?? 64) / 8 : 8) * s.length)
 const memOfIndex = (ix: IndexObj) => {
   if (!ix.isRange) return 8 * ix.length
   // sys.getsizeof of the range and its start, stop and step: 0 is a smaller int
@@ -2420,7 +2436,6 @@ const dropFrame = (h: Host, f: Frame, p: Params): Frame => {
   return out === f ? f.copy() : out
 }
 
-const isMonoRange = (ix: IndexObj) => ix.isRange
 
 const renameFrame = (h: Host, f: Frame, p: Params): Frame => {
   refuse(h, p.level, 'rename', 'level')
@@ -2499,8 +2514,6 @@ const toDictFrame = (h: Host, f: Frame, orientV: Value | undefined, indexFlag: b
   throw h.err('ValueError', `orient '${orient}' not understood`)
 }
 
-const seriesInFrame = (f: Frame, k: number) => f.data[k]
-
 /** a covariance-like table: each pair computed once, the later column first, as pandas' nancorr does */
 const symmetric = (f: Frame, cols: number[], vals: number[][], g: (x: number[], y: number[]) => number): Frame => {
   const names = f.columns.pick(cols, true)
@@ -2519,10 +2532,13 @@ const FRAME: Record<string, Method<Frame>> = {
     return py.obj(axis === 0 ? f.take(positions(h, idx, f.nrows, 'indices are out-of-bounds'), null) : f.take(null, positions(h, idx, f.ncols, 'indices are out-of-bounds')))
   }],
   info: ['verbose buf max_cols memory_usage show_counts', (f, p, h) => {
-    refuse(h, p.buf, 'info', 'buf')
+    for (const k of ['buf', 'max_cols']) refuse(h, p[k], 'info', k)
+    if (p.verbose && !h.truthy(p.verbose)) refuse(h, p.verbose, 'info', 'verbose')
+    if (p.memory_usage?.k === 'str') refuse(h, p.memory_usage, 'info', 'memory_usage')
     return frameInfo(h, f, flag(h, p.show_counts, true), !p.memory_usage || h.truthy(p.memory_usage))
   }],
   memory_usage: ['index deep', (f, p, h) => {
+    if (flag(h, p.deep)) refuse(h, p.deep, 'memory_usage', 'deep')
     const useIndex = flag(h, p.index, true)
     const labels = [...(useIndex ? ['Index'] : []), ...f.columns.labels]
     const cells = [...(useIndex ? [memOfIndex(f.index)] : []), ...f.data.map(memOfSeries)]
@@ -2667,12 +2683,12 @@ const FRAME: Record<string, Method<Frame>> = {
   where: ['cond other inplace axis level', (f, p, h) => {
     refuse(h, p.level, 'where', 'level')
     const cond = need(h, p.cond, 'where', 'cond')
-    return finish(h, f, f.same(f.data.map((s) => whereCol(h, s, condCells(h, cond, s, f), p.other, f))), p.inplace)
+    return finish(h, f, f.same(f.data.map((s) => whereCol(h, s, condCells(h, cond, s, f), p.other, f, p.axis))), p.inplace)
   }],
   mask: ['cond other inplace axis level', (f, p, h) => {
     refuse(h, p.level, 'mask', 'level')
     const cond = need(h, p.cond, 'mask', 'cond')
-    return finish(h, f, f.same(f.data.map((s) => whereCol(h, s, condCells(h, cond, s, f).map((x) => !x), p.other, f))), p.inplace)
+    return finish(h, f, f.same(f.data.map((s) => whereCol(h, s, condCells(h, cond, s, f).map((x) => !x), p.other, f, p.axis))), p.inplace)
   }],
   clip: ['lower upper axis inplace', (f, p, h) => {
     const [lo, up] = swapBounds(h, p)
@@ -2749,6 +2765,8 @@ const FRAME: Record<string, Method<Frame>> = {
   }],
   apply: ['func axis raw result_type args by_row **', (f, p, h) => {
     const g = need(h, p.func, 'apply', 'func')
+    if (p.by_row && p.by_row.k !== 'str') refuse(h, p.by_row, 'apply', 'by_row')
+    if (given(p.result_type) && h.str(p.result_type!) === 'broadcast') refuse(h, p.result_type, 'apply', 'result_type')
     const axis = axisOf(h, p.axis, 'DataFrame')
     const { args, kw } = unboxArgs(h, p)
     if (g.k === 'str' || g.k === 'dict' || isListLike(g)) return frameAgg(h, f, g, axis, {})
@@ -2784,7 +2802,7 @@ const FRAME: Record<string, Method<Frame>> = {
     const t = settleObject(s.values, s.dtype)
     return s.with(t.cells, t.dt)
   })))],
-  copy: ['deep', (f) => py.obj(f.copy())],
+  copy: ['deep', (f, p, h) => py.obj(p.deep && !h.truthy(p.deep) ? f.same(f.data) : f.copy())],
   cumsum: ['axis skipna', (f, p, h) => py.obj(byAxis(f, axisOf(h, p.axis, 'DataFrame'), (s) => cumulate(h, s, 'cumsum', flag(h, p.skipna, true))))],
   cumprod: ['axis skipna', (f, p, h) => py.obj(byAxis(f, axisOf(h, p.axis, 'DataFrame'), (s) => cumulate(h, s, 'cumprod', flag(h, p.skipna, true))))],
   cummax: ['axis skipna', (f, p, h) => py.obj(byAxis(f, axisOf(h, p.axis, 'DataFrame'), (s) => cumulate(h, s, 'cummax', flag(h, p.skipna, true))))],
@@ -2918,7 +2936,7 @@ const FRAME: Record<string, Method<Frame>> = {
       const ix = !rest.length ? IndexObj.range(f.nrows) : rest.length === 1 ? f.index.level(rest[0]) : IndexObj.fromArrays(rest.map((j) => f.index.multi!.arrays[j]), rest.map((j) => f.index.multi!.names[j]), rest.map((j) => f.index.multi!.dts[j]))
       return finish(h, f, new Frame(f.columns, f.data.map((s) => s.copy()), ix), p.inplace)
     }
-    return finish(h, f, indexToColumns(f, levels), p.inplace)
+    return finish(h, f, indexToColumns(h, f, levels, flag(h, p.allow_duplicates)), p.inplace)
   }],
   set_index: ['keys | drop append inplace verify_integrity', (f, p, h) => finish(h, f, setIndexFrame(h, f, p), p.inplace)],
   merge: ['right how on left_on right_on left_index right_index sort suffixes indicator validate copy', (f, p, h) => py.obj(mergeFrames(h, f, need(h, p.right, 'merge', 'right'), p, h.nameOf(py.obj(f), 'left')))],
@@ -3016,13 +3034,13 @@ const FRAME: Record<string, Method<Frame>> = {
     return py.obj(f)
   }],
   transpose: ['* copy', (f) => py.obj(transposeFrame(f))],
-  items: ['', (f) => py.list(f.columns.iter().map((c, k) => py.tuple([c, py.obj(seriesInFrame(f, k))])))],
-  iterrows: ['', (f) => py.list(f.index.iter().map((l, r) => py.tuple([l, py.obj(f.row(r))])))],
+  items: ['', (f) => generatorOf('generator', f.columns.iter().map((c, k) => py.tuple([c, py.obj(f.data[k])])))],
+  iterrows: ['', (f) => generatorOf('generator', f.index.iter().map((l, r) => py.tuple([l, py.obj(f.row(r))])))],
   itertuples: ['index name', (f, p, h) => {
     const nameV = p.name
     const indexFlag = flag(h, p.index, true)
-    if (nameV && nameV.k === 'none') return py.list(rows(f.nrows).map((r) => py.tuple([...(indexFlag ? [valueOf(f.index.labels[r], f.index.dt)] : []), ...f.data.map((s) => valueOf(s.values[r], s.dtype))])))
-    return py.list(rows(f.nrows).map((r) => namedRow(f, r, indexFlag, nameV ? h.str(nameV) : 'Pandas')))
+    if (nameV && nameV.k === 'none') return generatorOf('zip', rows(f.nrows).map((r) => py.tuple([...(indexFlag ? [valueOf(f.index.labels[r], f.index.dt)] : []), ...f.data.map((s) => valueOf(s.values[r], s.dtype))])))
+    return generatorOf('map', rows(f.nrows).map((r) => namedRow(f, r, indexFlag, nameV ? h.str(nameV) : 'Pandas')))
   }],
   keys: ['', (f) => py.obj(f.columns)],
   duplicated: ['subset keep', (f, p, h, c) => {
@@ -3104,7 +3122,10 @@ const FRAME: Record<string, Method<Frame>> = {
     }
     return queryValue(h, f, parseQuery(h, expr))
   }],
-  to_dict: ['orient into index', (f, p, h) => toDictFrame(h, f, p.orient, flag(h, p.index, true))],
+  to_dict: ['orient into index', (f, p, h) => {
+    refuseInto(h, p)
+    return toDictFrame(h, f, p.orient, flag(h, p.index, true))
+  }],
   to_string: ['buf columns col_space header index na_rep formatters float_format sparsify index_names justify max_rows max_cols show_dimensions decimal line_width min_rows max_colwidth encoding', (f, p, h) => {
     for (const k of ['buf', 'formatters', 'sparsify', 'index_names', 'decimal', 'max_colwidth', 'encoding']) refuse(h, p[k], 'to_string', k)
     const src = given(p.columns) ? f.take(null, cellsToFrameKeys(h, f, p.columns)) : f
@@ -3125,6 +3146,7 @@ const FRAME: Record<string, Method<Frame>> = {
   update: ['other join overwrite filter_func errors', (f, p, h) => {
     oneOf(h, p.join, 'left', ['left'], 'update', 'join')
     refuse(h, p.filter_func, 'update', 'filter_func')
+    if (given(p.errors) && h.str(p.errors!) !== 'ignore') refuse(h, p.errors, 'update', 'errors')
     const overwrite = flag(h, p.overwrite, true)
     const o = need(h, p.other, 'update', 'other')
     const other = o.k === 'obj' && o.o instanceof Frame ? o.o : o.k === 'obj' && o.o instanceof Series ? new Frame([o.o.name ?? 0], [o.o], o.o.index) : null
@@ -3170,13 +3192,41 @@ const FRAME: Record<string, Method<Frame>> = {
   }],
   droplevel: ['level axis', (f, p, h) => {
     const axis = axisOf(h, p.axis, 'DataFrame')
-    const ix = axis === 0 ? f.index : f.columns
-    if (!ix.multi) throw h.err('ValueError', `Cannot remove 1 levels from an index with 1 levels: at least one level must be left.`)
-    const lv = axisLabels(h, need(h, p.level, 'droplevel', 'level')).map((l) => (typeof l === 'number' ? (l < 0 ? l + ix.nlevels : l) : ix.names.indexOf(l)))
-    const keep = Array.from({ length: ix.nlevels }, (_, i) => i).filter((j) => !lv.includes(j))
-    const out = keep.length === 1 ? ix.level(keep[0]) : IndexObj.fromArrays(keep.map((j) => ix.multi!.arrays[j]), keep.map((j) => ix.multi!.names[j]), keep.map((j) => ix.multi!.dts[j]))
+    const out = dropIndexLevel(h, axis === 0 ? f.index : f.columns, need(h, p.level, 'droplevel', 'level'))
     return py.obj(axis === 0 ? new Frame(f.columns, f.data.map((s) => s.copy()), out) : new Frame(out, f.data.map((s) => s.copy()), f.index))
   }],
+  xs: ['key axis level drop_level', (f, p, h) => {
+    const key = need(h, p.key, 'xs', 'key')
+    const axis = axisOf(h, p.axis, 'DataFrame')
+    if (given(p.level)) {
+      const { rows: at, rest } = crossSection(h, axis === 0 ? f.index : f.columns, key, p)
+      const t = axis === 0 ? f.take(at, null) : f.take(null, at)
+      return py.obj(axis === 0 ? new Frame(t.columns, t.data, rest) : new Frame(rest, t.data, t.index))
+    }
+    if (axis === 1) return f.byColumn(h, key, cellOf(h, key))
+    return frameIndexer(f, 'loc').getItem(key, h)
+  }],
+}
+
+/** the index without a level */
+const dropIndexLevel = (h: Host, ix: IndexObj, level: Value): IndexObj => {
+  if (!ix.multi) throw h.err('ValueError', 'Cannot remove 1 levels from an index with 1 levels: at least one level must be left.')
+  const lv = axisLabels(h, level).map((l) => (typeof l === 'number' ? (l < 0 ? l + ix.nlevels : l) : ix.names.indexOf(l)))
+  const keep = Array.from({ length: ix.nlevels }, (_, i) => i).filter((j) => !lv.includes(j))
+  return keep.length === 1 ? ix.level(keep[0]) : IndexObj.fromArrays(keep.map((j) => ix.multi!.arrays[j]), keep.map((j) => ix.multi!.names[j]), keep.map((j) => ix.multi!.dts[j]))
+}
+
+/** xs(key, level=…): the rows where that level holds key, and the index they keep */
+const crossSection = (h: Host, ix: IndexObj, key: Value, p: Params): { rows: number[]; rest: IndexObj } => {
+  if (!ix.multi) throw h.err('TypeError', 'Index must be a MultiIndex')
+  const l = cellOf(h, p.level!)
+  const j = typeof l === 'number' ? (l < 0 ? l + ix.nlevels : l) : ix.names.indexOf(l)
+  if (j < 0) throw h.err('KeyError', repr(py.str(`Level ${labelStr(l)} not found`)))
+  const k = cellOf(h, key)
+  const at = rows(ix.length).filter((r) => ix.multi!.arrays[j][r] === k)
+  if (!at.length) throw h.err('KeyError', repr(key))
+  const picked = ix.pick(at)
+  return { rows: at, rest: flag(h, p.drop_level, true) ? dropIndexLevel(h, picked, p.level!) : picked }
 }
 
 const frameAggCall = (h: Host, f: Frame, p: Params): Value => {
@@ -3286,9 +3336,9 @@ const frameInfo = (h: Host, f: Frame, showCounts: boolean, showMem: boolean): Va
   lines.push(`dtypes: ${[...counts].sort(([a], [b]) => (a < b ? -1 : 1)).map(([d, n]) => `${d}(${n})`).join(', ')}`)
   if (showMem) {
     const bytes = memOfIndex(f.index) + f.data.reduce((a, s) => a + memOfSeries(s), 0)
-    lines.push(`memory usage: ${sizeFmt(bytes, f.data.some((s) => s.dtype === 'object') || f.index.dt === 'object' ? '+' : '')}`)
+    lines.push(`memory usage: ${sizeFmt(bytes, f.data.some((s) => s.dtype === 'object' && !s.cats) || f.index.dt === 'object' ? '+' : '')}\n`)
   }
-  h.print(`${lines.join('\n')}\n`)
+  h.print(lines.join('\n'))
   return py.NONE
 }
 
@@ -3340,9 +3390,9 @@ const dotFrame = (h: Host, f: Frame, o: Value): Value => {
   const res = h.call(dotFn, [arr, o])
   if (res.k === 'array' && res.a.ndim === 2) {
     const [r, c] = res.a.shape
-    return py.obj(new Frame(IndexObj.range(c), rows(c).map((j) => new Series(rows(r).map((i) => res.a.values()[i * c + j]), f.index, j, res.a.dtype === 'int64' ? 'int64' : 'float64')), f.index))
+    return py.obj(new Frame(IndexObj.range(c), rows(c).map((j) => new Series(rows(r).map((i) => res.a.values()[i * c + j]), f.index, j, res.a.dtype === 'float64' ? 'float64' : 'int64')), f.index))
   }
-  if (res.k === 'array') return py.obj(new Series(res.a.values(), f.index, null, res.a.dtype === 'int64' ? 'int64' : 'float64'))
+  if (res.k === 'array') return py.obj(new Series(res.a.values(), f.index, null, res.a.dtype === 'float64' ? 'float64' : 'int64'))
   return res
 }
 
@@ -3392,18 +3442,20 @@ export const frameAttr = (f: Frame, name: string, h: Host): Value | undefined =>
 
 const NP_UFUNCS = new Set(['sqrt', 'exp', 'exp2', 'expm1', 'log', 'log2', 'log10', 'log1p', 'sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'arcsinh', 'arccosh', 'arctanh', 'abs', 'absolute', 'fabs', 'floor', 'ceil', 'rint', 'trunc', 'sign', 'square', 'negative', 'positive', 'cbrt', 'reciprocal', 'degrees', 'radians', 'deg2rad', 'rad2deg', 'power', 'float_power', 'add', 'subtract', 'multiply', 'divide', 'true_divide', 'floor_divide', 'mod', 'remainder', 'maximum', 'minimum', 'fmax', 'fmin', 'isnan', 'isfinite', 'isinf', 'logical_and', 'logical_or', 'logical_xor', 'logical_not', 'greater', 'greater_equal', 'less', 'less_equal', 'equal', 'not_equal'])
 /** numpy forwards these to the object's own method, so skipna and pandas' index apply */
-const NP_METHODS: Record<string, string> = { sum: 'sum', mean: 'mean', std: 'std', var: 'var', max: 'max', amax: 'max', min: 'min', amin: 'min', prod: 'prod', product: 'prod', any: 'any', all: 'all', cumsum: 'cumsum', cumprod: 'cumprod', argmax: 'argmax', argmin: 'argmin', round: 'round', around: 'round', clip: 'clip' }
+const NP_METHODS: Record<string, string> = { sum: 'sum', mean: 'mean', std: 'std', var: 'var', max: 'max', amax: 'max', min: 'min', amin: 'min', prod: 'prod', product: 'prod', any: 'any', all: 'all', cumsum: 'cumsum', cumprod: 'cumprod', argmax: 'argmax', argmin: 'argmin', argsort: 'argsort', round: 'round', around: 'round', clip: 'clip' }
 
 const arrayResultSeries = (h: Host, res: Value, s: Series): Series => {
   if (res.k !== 'array') return s.with(s.values.map(() => cellOf(h, res)), inferDT([cellOf(h, res)]))
   const t = typedCells(h, res)
-  return s.with(t.cells, t.dt)
+  const out = s.with(t.cells, t.dt)
+  out.width = t.width ?? null
+  return out
 }
 
 const forwardToMethod = (self: Series | Frame, name: string, args: Value[], kw: Record<string, Value>, h: Host): Value | undefined => {
   const m = NP_METHODS[name]
   if (!m || args[0].k !== 'obj' || args[0].o !== self) return undefined
-  if (m === 'argmax' || m === 'argmin') {
+  if (m === 'argmax' || m === 'argmin' || m === 'argsort') {
     if (self instanceof Frame) return undefined
     return h.call(self.getAttr(m, h)!, [])
   }
@@ -3424,7 +3476,19 @@ const NP_ARRAY_ONLY = new Set(['dot', 'matmul', 'inner', 'outer', 'vdot', 'cross
 /** a two-argument ufunc with no pandas operator behind it works on the table as one array, so its columns share a dtype */
 const NP_COMMON = new Set(['maximum', 'minimum', 'fmax', 'fmin', 'logical_and', 'logical_or', 'logical_xor'])
 
+/** np.where(mask, 'yes', 'no'): text the numeric arrays cannot hold */
+const whereText = (h: Host, args: Value[]): Value | undefined => {
+  if (args.length !== 3 || !args.slice(1).some((a) => a.k === 'str' || (a.k === 'obj' && a.o instanceof Series && a.o.dtype === 'object'))) return undefined
+  const cond = cellsOf(h, args[0])
+  const at = (v: Value, i: number): string => {
+    const c = isListLike(v) ? cellsOf(h, v)[i] : cellOf(h, v)
+    return c === null ? 'None' : typeof c === 'number' && Number.isNaN(c) ? 'nan' : typeof c === 'number' && v.k === 'float' ? repr(v) : labelStr(c)
+  }
+  return py.obj(new ObjArray(cond.map((c, i) => at(c ? args[1] : args[2], i)), [cond.length], true))
+}
+
 export const seriesNp = (s: Series, name: string, args: Value[], kw: Record<string, Value>, h: Host, impl: (a: Value[], k: Record<string, Value>) => Value): Value | undefined => {
+  if (name === 'where') return whereText(h, args)
   const fw = forwardToMethod(s, name, args, kw, h)
   if (fw) return fw
   if (NP_ARRAY_ONLY.has(name)) return impl(plainArgs(args), kw)
@@ -3579,4 +3643,3 @@ export const indexAttr = (ix: IndexObj, name: string, h: Host): Value | undefine
   return undefined
 }
 
-export { frameAgg, isMonoRange, assignGrid, tableOfFrame, tableOfSeries, traceFrame, seriesAgg, seriesOf as newSeries, fixedWidth, num }

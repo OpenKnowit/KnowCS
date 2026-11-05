@@ -1603,6 +1603,7 @@ const EXCEPTIONS: [string, string[]][] = [
   ['SyntaxError', ['Exception']], ['IndentationError', ['SyntaxError']], ['TypeError', ['Exception']], ['ValueError', ['Exception']], ['UnicodeError', ['ValueError']],
   ['Warning', ['Exception']], ['UserWarning', ['Warning']], ['DeprecationWarning', ['Warning']], ['RuntimeWarning', ['Warning']], ['FutureWarning', ['Warning']],
   ['LinAlgError', ['ValueError']], ['AxisError', ['ValueError', 'IndexError']], ['UFuncTypeError', ['TypeError']],
+  ['MergeError', ['ValueError']], ['ParserError', ['ValueError']], ['EmptyDataError', ['ValueError']], ['DataError', ['ValueError']], ['IntCastingNaNError', ['ValueError']], ['UndefinedVariableError', ['NameError']], ['OptionError', ['AttributeError', 'KeyError']], ['IndexingError', ['Exception']], ['SpecificationError', ['Exception']],
 ]
 /** every exception keeps its constructor arguments in .args */
 const EXC_HOST: HostClass = {

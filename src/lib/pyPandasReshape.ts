@@ -2,7 +2,7 @@
 import { py, repr } from './minipy'
 import type { Host, Value } from './minipy'
 import { NDArray, pyFloatRepr } from './ndarray'
-import { Frame, IndexObj, Series, cellOf, cellsOf, commonDT, convertCells, inferDT, inferValues, isListLike, isMissing, labelStr, numCell, reindexCells, sortOrder, tableOfFrame, tableOfSeries, traceFrame, typedCells, unionIndex, valueOf, seriesIn } from './pyPandas'
+import { Frame, IndexObj, Series, cellOf, cellsOf, commonDT, convertCells, inferDT, isListLike, isMissing, labelStr, numCell, reindexCells, sortOrder, tableOfFrame, tableOfSeries, traceFrame, typedCells, valueOf, seriesIn } from './pyPandas'
 import type { Cats, Cell, DT, Params } from './pyPandas'
 import { PyCell } from './pyPandasFormat'
 import { GroupBy } from './pyPandasGroup'
@@ -464,7 +464,14 @@ const buildPivot = (h: Host, f0: Frame, rowKeys: Series[], colKeys: Series[], en
   }
   const rowReps = orderOf(rk, rowOf)
   const colReps = ck.length ? orderOf(ck, colOf) : [-1]
-  const group = (r: number, c: number): number[] => rows(f.nrows).filter((x) => (r < 0 || rowOf(x) === rowOf(r)) && (c < 0 || colOf(x) === colOf(c)))
+  const buckets = new Map<string, number[]>()
+  for (const x of rows(f.nrows)) {
+    const k = `${rowOf(x)}\u0001${colOf(x)}`
+    const b = buckets.get(k)
+    if (b) b.push(x)
+    else buckets.set(k, [x])
+  }
+  const group = (r: number, c: number): number[] => (r < 0 || c < 0 ? rows(f.nrows).filter((x) => (r < 0 || rowOf(x) === rowOf(r)) && (c < 0 || colOf(x) === colOf(c))) : buckets.get(`${rowOf(r)}\u0001${colOf(c)}`) ?? [])
   const gb = new GroupBy(f, [], null, false, { asIndex: true, sort: true, dropna: true, groupKeys: true, observed: true }, 'df')
   const columnsOut: { top: Cell | null; val: Cell; sub: number; series: Series }[] = []
   const makeIndex = (extra: boolean) => {
@@ -704,6 +711,7 @@ const levelNumber = (h: Host, ix: IndexObj, v: Value | undefined): number => {
 }
 
 export const stackFrame = (h: Host, f: Frame, p: Params): Series | Frame => {
+  if (p.sort && !h.truthy(p.sort)) throw h.err('NotImplementedError', 'stack(sort=False) is not available in this sandbox')
   const dropna = flag(h, p.future_stack) ? false : p.dropna ? h.truthy(p.dropna) : true
   if (f.columns.multi) {
     const j = levelNumber(h, f.columns, p.level)
@@ -813,7 +821,7 @@ export const getDummies = (h: Host, args: Value[], kw: Record<string, Value>): F
   if (!isBool && !isFloat && !typ.startsWith('int') && !typ.startsWith('uint')) throw h.err('NotImplementedError', `get_dummies(dtype='${typ}') is not available in this sandbox`)
   const dummies = (s: Series, prefix: string | null, seen: Cell[]) => {
     const present = s.values.filter((c) => !isMissing(c))
-    const cats = s.cats ? s.cats.labels.filter((l) => true && (present.includes(l) || !!s.cats)) : sortedUniq(present)
+    const cats = s.cats ? s.cats.labels : sortedUniq(present)
     const all = dropFirst ? cats.slice(1) : cats
     const parts = all.map((c) => ({ name: prefix !== null ? `${prefix}${sep}${labelStr(c)}` : c, vals: s.values.map((v) => (isBool ? keyStr(v) === keyStr(c) : Number(keyStr(v) === keyStr(c)))) }))
     if (dummyNa) parts.push({ name: prefix !== null ? `${prefix}${sep}nan` : NaN as Cell, vals: s.values.map((v) => (isBool ? isMissing(v) : Number(isMissing(v)))) })
@@ -995,4 +1003,3 @@ export const qcutSeries = (h: Host, args: Value[], kw: Record<string, Value>): V
   return binned(h, src, xv, edges, false, kw.labels, { right: true, lowest: true, precision: given(kw.precision) ? h.toInt(kw.precision) : 3, ordered: true, retbins: flag(h, kw.retbins), dupes }, 'qcut')
 }
 
-export { inferValues, unionIndex, reindexCells }

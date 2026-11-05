@@ -1,12 +1,12 @@
 /** The names in `pandas` itself: constructors, readers and the module-level functions. */
-import { PyDict, PyObj, isNum, py, repr } from './minipy'
+import { PyDict, PyObj, isNum, py } from './minipy'
 import type { Host, Kw, Value } from './minipy'
 import { NDArray } from './ndarray'
-import { Frame, IndexObj, ObjArray, Series, boxFloat, cellOf, cellsOf, commonDT, convertCells, inferDT, inferValues, isListLike, isMissing, labelStr, numCell, reindexCells, tableOfFrame, tableOfSeries, traceFrame, typedCells, unionIndex, valueOf, seriesIn } from './pyPandas'
+import { Frame, IndexObj, ObjArray, Series, cellOf, cellsOf, inferDT, inferValues, isListLike, isMissing, reindexCells, tableOfFrame, tableOfSeries, traceFrame, typedCells, unionIndex, valueOf, seriesIn } from './pyPandas'
 import type { Cell, DT, Params } from './pyPandas'
 import { DEFAULT_OPTIONS, OPTIONS } from './pyPandasFormat'
-import { StringIO, jsonNormalize, readCsv, readJson } from './pyPandasIO'
-import { arrayOf, astypeCol, factorize, flag, given, need, typeArg, valueCountsOf } from './pyPandasMethods'
+import { jsonNormalize, readCsv, readJson, textFrom } from './pyPandasIO'
+import { arrayOf, astypeCol, categoricalOf, factorize, flag, given, need, typeArg, valueCountsOf } from './pyPandasMethods'
 import { concatObjects, crosstab, cutSeries, getDummies, meltFrame, mergeFrames, pivotFrame, pivotTable, qcutSeries } from './pyPandasReshape'
 
 const fromDictOfColumns = (h: Host, d: PyDict, colsArg: IndexObj | null, indexArg: IndexObj | null, dtype: Value | undefined): Frame => {
@@ -34,7 +34,9 @@ const fromDictOfColumns = (h: Host, d: PyDict, colsArg: IndexObj | null, indexAr
     if (isScalar(v)) return null
     if (v.k === 'array' && v.a.ndim === 2) throw h.err('ValueError', 'Per-column arrays must each be 1-dimensional')
     const t = typedCells(h, v)
-    return new Series(t.cells, null, cols[i], t.dt)
+    const col = new Series(t.cells, null, cols[i], t.dt)
+    col.width = t.width ?? null
+    return col
   })
   const lens = new Set(data.filter((s): s is Series => !!s && !labelled.length).map((s) => s.length))
   const n = index ? index.length : data.find((s) => s)?.length ?? 0
@@ -108,8 +110,13 @@ export const frameFrom = (h: Host, data: Value | undefined, kw: Kw): Frame => {
     const cols = colsArg ?? IndexObj.range(c)
     if (cols.length !== c) throw h.err('ValueError', `Shape of passed values is (${r}, ${c}), indices imply (${r}, ${cols.length})`)
     if (indexArg && indexArg.length !== r) throw h.err('ValueError', `Shape of passed values is (${r}, ${c}), indices imply (${indexArg.length}, ${c})`)
-    const dt: DT = d.a.dtype === 'bool' ? 'bool' : d.a.dtype === 'int64' ? 'int64' : 'float64'
-    return applyDtype(h, new Frame(cols, Array.from({ length: c }, (_, j) => new Series(Array.from({ length: r }, (_i, i) => (dt === 'bool' ? v[i * c + j] !== 0 : v[i * c + j])), null, cols.labels[j], dt)), indexArg ?? IndexObj.range(r)), dtype)
+    const dt: DT = d.a.dtype === 'bool' ? 'bool' : d.a.dtype === 'float64' ? 'float64' : 'int64'
+    const width = d.a.dtype === 'uint8' ? 'uint8' : null
+    return applyDtype(h, new Frame(cols, Array.from({ length: c }, (_, j) => {
+      const col = new Series(Array.from({ length: r }, (_i, i) => (dt === 'bool' ? v[i * c + j] !== 0 : v[i * c + j])), null, cols.labels[j], dt)
+      col.width = width
+      return col
+    }), indexArg ?? IndexObj.range(r)), dtype)
   }
   if (d.k === 'obj' && d.o instanceof ObjArray && d.o.shape.length === 2) {
     const [r, c] = d.o.shape
@@ -121,7 +128,7 @@ export const frameFrom = (h: Host, data: Value | undefined, kw: Kw): Frame => {
     const cols = colsArg ?? IndexObj.range(1)
     return new Frame(cols, [new Series([...d.o.labels], null, cols.labels[0], d.o.dt)], indexArg ?? IndexObj.range(d.o.length))
   }
-  if (d.k === 'array' || d.k === 'list' || d.k === 'tuple' || d.k === 'range' || d.k === 'obj') {
+  if (d.k === 'array' || d.k === 'list' || d.k === 'tuple' || d.k === 'range' || d.k === 'obj' || d.k === 'iter') {
     if (d.k === 'obj' && !d.o.iter && !d.o.toArray) throw h.err('ValueError', 'DataFrame constructor not properly called!')
     const rows = d.k === 'obj' && d.o.toArray && d.o.toArray().ndim === 2 ? null : h.iterate(d)
     if (!rows) return frameFrom(h, py.arr((d as { o: PyObj }).o.toArray!()), kw)
@@ -153,6 +160,8 @@ export const frameFrom = (h: Host, data: Value | undefined, kw: Kw): Frame => {
         return new Series(t.cells, null, c, t.dt)
       }), ix), dtype)
     }
+    const first = rows[0]
+    if (!colsArg && first.k === 'tuple' && first.names) return frameFrom(h, py.list(rows), { ...kw, columns: py.list(first.names.map(py.str)) })
     const nested = rows.some((r) => r.k === 'list' || r.k === 'tuple' || r.k === 'array' || r.k === 'range')
     if (!nested) {
       const t = inferValues(h, rows)
@@ -204,6 +213,7 @@ const seriesFrom = (h: Host, d: Value | undefined, kw: Kw): Series => {
     const t = typedCells(h, d!)
     if (index && index.length !== t.cells.length) throw h.err('ValueError', `Length of values (${t.cells.length}) does not match length of index (${index.length})`)
     out = new Series(t.cells, index, name, t.dt)
+    out.width = t.width ?? null
   }
   if (given(kw.dtype)) return astypeCol(h, out, typeArg(h, kw.dtype))
   return out
@@ -262,6 +272,26 @@ const setOption = (h: Host, name: string, v: Value) => {
   ;(OPTIONS as Record<string, unknown>)[k] = val
 }
 
+/** with pd.option_context(pat, val, …): the options hold inside the block */
+class OptionContext extends PyObj {
+  readonly cls = 'option_context'
+  readonly pairs: Value[]
+  saved: typeof OPTIONS | null = null
+  constructor(pairs: Value[]) {
+    super()
+    this.pairs = pairs
+  }
+  repr() { return '<pandas._config.config.option_context object>' }
+  enter(h: Host) {
+    this.saved = { ...OPTIONS }
+    for (let i = 0; i < this.pairs.length; i += 2) setOption(h, h.str(this.pairs[i]), this.pairs[i + 1])
+    return py.obj(this)
+  }
+  exit() {
+    if (this.saved) Object.assign(OPTIONS, this.saved)
+  }
+}
+
 export const pandasModule = (h: Host): Record<string, Value> => {
   const fn = (name: string, call: (args: Value[], kw: Kw) => Value): Value => ({ k: 'fn', name, call })
   const pd: Record<string, Value> = {
@@ -275,7 +305,7 @@ export const pandasModule = (h: Host): Record<string, Value> => {
         if (args[3]) kw2.dtype = args[3]
         return py.obj(frameFrom(h, args[0] ?? kw.data, kw2))
       },
-      attrs: {
+      attrs: new Map(Object.entries({
         from_dict: fn('from_dict', (args, kw) => {
           const data = args[0] ?? kw.data
           if (!data || data.k !== 'dict') throw h.err('TypeError', 'from_dict takes a dict')
@@ -317,7 +347,7 @@ export const pandasModule = (h: Host): Record<string, Value> => {
           }
           return py.obj(f)
         }),
-      },
+      })),
     },
     Series: { k: 'type', name: 'Series', call: (args, kw) => {
       const kw2 = { ...kw }
@@ -345,8 +375,8 @@ export const pandasModule = (h: Host): Record<string, Value> => {
       const step = c ? h.toInt(c) : 1
       return py.obj(IndexObj.range(Math.max(0, Math.ceil((stop - start) / step)), start, step, name))
     } },
-    read_csv: fn('read_csv', (args, kw) => readerCall(h, args, kw, ',', 'read_csv')),
-    read_table: fn('read_table', (args, kw) => readerCall(h, args, kw, '\t', 'read_table')),
+    read_csv: fn('read_csv', (args, kw) => readerCall(h, args, kw, ',')),
+    read_table: fn('read_table', (args, kw) => readerCall(h, args, kw, '\t')),
     read_json: fn('read_json', (args, kw) => {
       const src = args[0] ?? kw.path_or_buf
       if (!src) throw h.err('TypeError', "read_json() missing 1 required positional argument: 'path_or_buf'")
@@ -438,6 +468,18 @@ export const pandasModule = (h: Host): Record<string, Value> => {
       return py.tuple([codes, arrayOf(ix.labels, ix.dt)])
     }),
     to_numeric: fn('to_numeric', (args, kw) => toNumeric(h, args, kw)),
+    Categorical: { k: 'type', name: 'Categorical', call: (args, kw) => {
+      const v = need(h, args[0] ?? kw.values, 'Categorical', 'values')
+      for (const k of Object.keys(kw)) if (!['values', 'categories', 'ordered', 'dtype'].includes(k) || k === 'dtype') throw h.err('NotImplementedError', `Categorical(${k}=...) is not available in this sandbox`)
+      const t = typedCells(h, v)
+      const out = categoricalOf(new Series(t.cells, null, null, t.dt), flag(h, kw.ordered ?? args[2]), given(kw.categories ?? args[1]) ? cellsOf(h, kw.categories ?? args[1]) : undefined)
+      out.bare = true
+      return py.obj(out)
+    } },
+    option_context: fn('option_context', (args) => {
+      if (!args.length || args.length % 2) throw h.err('ValueError', 'Need to invoke as option_context(pat, val, [(pat, val), ...]).')
+      return py.obj(new OptionContext(args))
+    }),
     NamedAgg: { k: 'type', name: 'NamedAgg', call: (args, kw) => py.tuple([args[0] ?? kw.column, args[1] ?? kw.aggfunc]) },
     NA: py.float(NaN),
     set_option: fn('set_option', (args) => {
@@ -456,25 +498,24 @@ export const pandasModule = (h: Host): Record<string, Value> => {
       return py.NONE
     }),
     options: py.obj(new OptionsNode('')),
+    errors: { k: 'module', name: 'pandas.errors', attrs: Object.fromEntries(['MergeError', 'ParserError', 'EmptyDataError', 'DataError', 'IntCastingNaNError', 'UndefinedVariableError', 'OptionError', 'IndexingError', 'SpecificationError'].map((n) => [n, h.excClass(n)])) },
   }
-  const io: Value = { k: 'module', name: 'io', attrs: { StringIO: { k: 'type', name: 'StringIO', call: (args) => py.obj(new StringIO(args[0] ? h.str(args[0]) : '')) } } }
-  return { pandas: { k: 'module', name: 'pandas', attrs: pd }, io }
+  return { pandas: { k: 'module', name: 'pandas', attrs: pd } }
 }
 
-const readerCall = (h: Host, args: Value[], kw: Kw, sep: string, name: string): Value => {
+const readerCall = (h: Host, args: Value[], kw: Kw, sep: string): Value => {
   const src = args[0] ?? kw.filepath_or_buffer
-  if (src && src.k === 'obj' && src.o instanceof StringIO) {
-    const kw2 = { ...kw }
-    if (args[1]) kw2.sep = args[1]
-    return py.obj(readCsv(h, src.o.text.slice(src.o.pos), kw2, sep))
-  }
-  void name
-  throw h.err('FileNotFoundError', `[Errno 2] No such file or directory: '${src ? h.str(src) : ''}' (there are no files in the sandbox: wrap the CSV text in io.StringIO(...) instead)`)
+  if (!src) throw h.err('TypeError', "read_csv() missing 1 required positional argument: 'filepath_or_buffer'")
+  const text = textFrom(h, src)
+  if (text === undefined) throw h.err('FileNotFoundError', `[Errno 2] No such file or directory: '${h.str(src)}' (this sandbox starts with no files: write one first, or wrap the CSV text in io.StringIO(...))`)
+  const kw2 = { ...kw }
+  if (args[1]) kw2.sep = args[1]
+  return py.obj(readCsv(h, text, kw2, sep))
 }
 
 const toNumeric = (h: Host, args: Value[], kw: Kw): Value => {
   for (const k of Object.keys(kw)) if (!['arg', 'errors', 'downcast', 'dtype_backend'].includes(k)) throw h.err('TypeError', `to_numeric() got an unexpected keyword argument '${k}'`)
-  if (given(kw.downcast)) throw h.err('NotImplementedError', 'to_numeric(downcast=...) is not available in this sandbox')
+  for (const k of ['downcast', 'dtype_backend']) if (given(kw[k])) throw h.err('NotImplementedError', `to_numeric(${k}=...) is not available in this sandbox`)
   const a = args[0] ?? kw.arg
   const errors = given(kw.errors ?? args[1]) ? h.str(kw.errors ?? args[1]) : 'raise'
   if (!['raise', 'coerce', 'ignore'].includes(errors)) throw h.err('ValueError', 'invalid error value specified')
@@ -508,4 +549,3 @@ const toNumeric = (h: Host, args: Value[], kw: Kw): Value => {
   return arrayOf(nums, dt)
 }
 
-export { boxFloat, commonDT, convertCells, labelStr, numCell, repr }
