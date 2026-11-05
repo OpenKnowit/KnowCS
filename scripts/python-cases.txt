@@ -2460,3 +2460,412 @@ try:
     argparse.ArgumentParser(prog='z').exit(3, 'told\n')
 except SystemExit as e:
     print(e.code)
+### docs argparse
+import argparse, sys, io, contextlib
+parser = argparse.ArgumentParser(prog='PROG', description='Process some integers.')
+parser.add_argument('integers', metavar='N', type=int, nargs='+', help='an integer for the accumulator')
+parser.add_argument('--sum', dest='accumulate', action='store_const', const=sum, default=max, help='sum the integers (default: find the max)')
+print(parser.parse_args(['--sum', '7', '-1', '42']))
+args = parser.parse_args(['1', '2', '3', '4']); print(args.accumulate(args.integers))
+args = parser.parse_args(['1', '2', '3', '4', '--sum']); print(args.accumulate(args.integers))
+parser.print_help()
+p = argparse.ArgumentParser(prog='myprogram'); p.print_help(); p = argparse.ArgumentParser(prog='myprogram'); p.add_argument('--foo', help='foo of the %(prog)s program'); p.print_help()
+p = argparse.ArgumentParser(prog='PROG', usage='%(prog)s [options]'); p.add_argument('--foo', nargs='?', help='foo help'); p.add_argument('bar', nargs='+', help='bar help'); p.print_help()
+p = argparse.ArgumentParser(description='A foo that bars', epilog="And that's how you'd foo a bar", prog='argparse.py'); p.print_help()
+p = argparse.ArgumentParser(prog='PROG', add_help=False); p.add_argument('--foo', help='foo help'); p.print_help()
+p = argparse.ArgumentParser(prog='PROG', prefix_chars='-+'); p.add_argument('+f'); p.add_argument('++bar'); print(p.parse_args('+f X ++bar Y'.split()))
+p = argparse.ArgumentParser(prog='PROG', allow_abbrev=False); p.add_argument('--foobar', action='store_true'); p.add_argument('--foonley', action='store_false')
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args(['--foon'])
+except SystemExit as x:
+    print(x.code, e.getvalue())
+p = argparse.ArgumentParser(); p.add_argument('--foo', action='store_const', const=42); print(p.parse_args(['--foo']))
+p = argparse.ArgumentParser(); p.add_argument('--foo', action='store_true'); p.add_argument('--bar', action='store_false'); p.add_argument('--baz', action='store_false'); print(p.parse_args('--foo --bar'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--foo', action='append'); print(p.parse_args('--foo 1 --foo 2'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--str', dest='types', action='append_const', const=str); p.add_argument('--int', dest='types', action='append_const', const=int); print(p.parse_args('--str --int'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--verbose', '-v', action='count', default=0); print(p.parse_args(['-vvv']))
+p = argparse.ArgumentParser(); p.add_argument("--foo", action="extend", nargs="+", type=str); print(p.parse_args(["--foo", "f1", "--foo", "f2", "f3", "f4"]))
+p = argparse.ArgumentParser(); p.add_argument('--foo', action=argparse.BooleanOptionalAction); print(p.parse_args(['--no-foo']))
+p = argparse.ArgumentParser(); p.add_argument('--foo', nargs=2); p.add_argument('bar', nargs=1); print(p.parse_args('c --foo a b'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--foo', nargs='?', const='c', default='d'); p.add_argument('bar', nargs='?', default='d'); print(p.parse_args(['XX', '--foo', 'YY']), p.parse_args(['XX', '--foo']), p.parse_args([]))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('foo', nargs='+')
+print(p.parse_args(['a', 'b']))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('--foo'); p.add_argument('command'); p.add_argument('args', nargs=argparse.REMAINDER); print(p.parse_args('--foo B cmd --arg1 XX ZZ'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--foo', default=42); print(p.parse_args(['--foo', '2']), p.parse_args([]))
+ns = argparse.Namespace(); ns2 = argparse.Namespace(foo=101); print(p.parse_args([], namespace=ns2))
+p = argparse.ArgumentParser(); p.add_argument('--length', default='10', type=int); p.add_argument('--width', default=10.5, type=int); print(p.parse_args([]))
+p = argparse.ArgumentParser(); p.add_argument('foo', nargs='?', default=42); print(p.parse_args(['a']), p.parse_args([]))
+p = argparse.ArgumentParser(); p.add_argument('--foo', default=argparse.SUPPRESS); print(p.parse_args([]), p.parse_args(['--foo', '1']))
+p = argparse.ArgumentParser(); p.add_argument('count', type=int); p.add_argument('distance', type=float); p.add_argument('street', type=ascii); print(p.parse_args(['2', '3.5', 'x']))
+import math
+def perfect_square(string):
+    value = int(string)
+    sqrt = math.sqrt(value)
+    if sqrt != int(sqrt):
+        msg = "%r is not a perfect square" % string
+        raise argparse.ArgumentTypeError(msg)
+    return value
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('foo', type=perfect_square); print(p.parse_args(['9']))
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args(['7'])
+except SystemExit:
+    print(e.getvalue())
+p = argparse.ArgumentParser(prog='game.py'); p.add_argument('move', choices=['rock', 'paper', 'scissors']); print(p.parse_args(['rock']))
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args(['fire'])
+except SystemExit:
+    print(e.getvalue())
+p = argparse.ArgumentParser(prog='doors.py'); p.add_argument('door', type=int, choices=range(1, 4)); print(p.parse_args(['3']))
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args(['4'])
+except SystemExit:
+    print(e.getvalue())
+p = argparse.ArgumentParser(prog='frobble'); p.add_argument('--foo', action='store_true', help='foo the bars before frobbling'); p.add_argument('bar', nargs='+', help='one of the bars to be frobbled'); print(p.parse_args(['-h']) if False else p.format_help())
+p = argparse.ArgumentParser(prog='frobble'); p.add_argument('bar', nargs='?', type=int, default=42, help='the bar to %(prog)s (default: %(default)s)'); p.print_help()
+p = argparse.ArgumentParser(prog='frobble'); p.add_argument('--foo', help=argparse.SUPPRESS); p.print_help()
+p = argparse.ArgumentParser(prog='m'); p.add_argument('--foo'); p.add_argument('bar'); print(p.parse_args('X --foo Y'.split())); p.print_help()
+p = argparse.ArgumentParser(prog='m'); p.add_argument('--foo', metavar='YYY'); p.add_argument('bar', metavar='XXX'); print(p.parse_args('X --foo Y'.split())); p.print_help()
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-x', nargs=2); p.add_argument('--foo', nargs=2, metavar=('bar', 'baz')); p.print_help()
+p = argparse.ArgumentParser(); p.add_argument('bar'); print(p.parse_args(['XXX']))
+p = argparse.ArgumentParser(); p.add_argument('-f', '--foo-bar', '--foo'); p.add_argument('-x', '-y'); print(p.parse_args('-f 1 -x 2'.split()), p.parse_args('--foo 1 -y 2'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--foo', dest='bar'); print(p.parse_args('--foo XXX'.split()))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-x'); p.add_argument('--foo'); print(p.parse_args(['-x', 'X']), p.parse_args(['--foo', 'FOO']), p.parse_args(['--foo=FOO']), p.parse_args(['-xX']))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-x', action='store_true'); p.add_argument('-y', action='store_true'); p.add_argument('-z'); print(p.parse_args(['-xyzZ']))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('--foo', type=int); p.add_argument('bar', nargs='?')
+for argv in (['--foo', 'spam'], ['--bar'], ['badger', 'spam'], ['--foo']):
+    try:
+        with contextlib.redirect_stderr(io.StringIO()) as e:
+            p.parse_args(argv)
+    except SystemExit:
+        print(e.getvalue().splitlines()[-1])
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-x'); p.add_argument('foo', nargs='?'); print(p.parse_args(['-x', '-1']) if False else '', p.parse_args(['-5' , '-x', 'a']) if False else '')
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-1', dest='one'); p.add_argument('foo', nargs='?'); print(p.parse_args(['-1', 'X']))
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args(['-2'])
+except SystemExit:
+    print(e.getvalue().splitlines()[-1])
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('--foo', nargs='?'); p.add_argument('bar', nargs='?'); print(p.parse_args(['--', '-f']))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-bacon'); p.add_argument('-badger'); print(p.parse_args('-bac MMM'.split()), p.parse_args('-bad WOOD'.split()))
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args('-ba BA'.split())
+except SystemExit:
+    print(e.getvalue().splitlines()[-1])
+class C:
+    pass
+c = C(); p = argparse.ArgumentParser(); p.add_argument('--foo'); p.parse_args(args=['--foo', 'BAR'], namespace=c); print(c.foo)
+p = argparse.ArgumentParser(prog='PROG', add_help=False); g = p.add_argument_group('group'); g.add_argument('--foo', help='foo help'); g.add_argument('bar', help='bar help'); p.print_help()
+p = argparse.ArgumentParser(prog='PROG', add_help=False); g1 = p.add_argument_group('group1', 'group1 description'); g1.add_argument('foo', help='foo help'); g2 = p.add_argument_group('group2', 'group2 description'); g2.add_argument('--bar', help='bar help'); p.print_help()
+p = argparse.ArgumentParser(prog='PROG'); g = p.add_mutually_exclusive_group(); g.add_argument('--foo', action='store_true'); g.add_argument('--bar', action='store_false'); print(p.parse_args(['--foo']), p.parse_args(['--bar']), p.parse_args([])); print(p.format_usage())
+p = argparse.ArgumentParser(prog='PROG'); g = p.add_mutually_exclusive_group(required=True); g.add_argument('--foo', action='store_true'); g.add_argument('--bar', action='store_false'); print(p.format_usage())
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args([])
+except SystemExit:
+    print(e.getvalue().splitlines()[-1])
+p = argparse.ArgumentParser(); p.add_argument('foo', type=int); p.set_defaults(bar=42, baz='badger'); print(p.parse_args(['736']))
+p = argparse.ArgumentParser(); p.add_argument('--foo', default='bar'); p.set_defaults(foo='spam'); print(p.parse_args([]), p.get_default('foo'))
+p = argparse.ArgumentParser(); p.add_argument('--foo', action='store_true'); p.add_argument('bar'); print(p.parse_known_args(['--foo', '--badger', 'BAR', 'spam']))
+### docs enum
+from enum import Enum, IntEnum, Flag, IntFlag, auto, unique
+class Color(Enum):
+    RED = 1
+    GREEN = 2
+    BLUE = 3
+print(Color.RED, repr(Color.RED), type(Color.RED), isinstance(Color.GREEN, Color), Color.RED.name)
+for c in Color: print(c)
+apples = {}; apples[Color.RED] = 'red delicious'; apples[Color.GREEN] = 'granny smith'; print(apples == {Color.RED: 'red delicious', Color.GREEN: 'granny smith'})
+print(Color(1), Color(3), Color['RED'], Color['GREEN'])
+member = Color.RED; print(member.name, member.value)
+try:
+    Color.RED = 'x'
+except AttributeError as e:
+    print(e)
+try:
+    class Bad(Enum):
+        SQUARE = 2
+        SQUARE = 3
+except TypeError as e:
+    print(e)
+class Shape(Enum):
+    SQUARE = 2
+    DIAMOND = 1
+    CIRCLE = 3
+    ALIAS_FOR_SQUARE = 2
+print(Shape.SQUARE, Shape.ALIAS_FOR_SQUARE, Shape(2), list(Shape))
+for name, member in Shape.__members__.items(): print(name, member)
+print([name for name, member in Shape.__members__.items() if member.name != name])
+try:
+    Color.RED < Color.BLUE
+except TypeError as e:
+    print(e)
+print(Color.RED is Color.RED, Color.RED is Color.BLUE, Color.RED is not Color.BLUE, Color.BLUE == Color.RED, Color.BLUE != Color.RED, Color.BLUE == Color.BLUE, Color.BLUE == 2)
+class Mood(Enum):
+    FUNKY = 1
+    HAPPY = 3
+    def describe(self):
+        return self.name, self.value
+    def __str__(self):
+        return 'my custom str! {0}'.format(self.value)
+    @classmethod
+    def favorite_mood(cls):
+        return cls.HAPPY
+print(Mood.favorite_mood(), Mood.HAPPY.describe(), str(Mood.FUNKY))
+class Foo(Enum):
+    def some_behavior(self):
+        pass
+class Bar(Foo):
+    HAPPY = 1
+    SAD = 2
+print(list(Bar))
+try:
+    class More(Color):
+        PINK = 17
+except TypeError as e:
+    print(e)
+Animal = Enum('Animal', 'ANT BEE CAT DOG')
+print(Animal, Animal.ANT, Animal.ANT.value, list(Animal))
+class Numbers(IntEnum):
+    ONE = 1
+    TWO = 2
+    THREE = 3
+print(Numbers.THREE, Numbers.ONE + Numbers.TWO, Numbers.ONE < Numbers.THREE, ['a', 'b', 'c'][Numbers.ONE], [i for i in range(Numbers.THREE)], Numbers.ONE == 1, sum(Numbers), int(Numbers.TWO), float(Numbers.TWO))
+class Shape2(IntEnum):
+    CIRCLE = 1
+    SQUARE = 2
+class Request(IntEnum):
+    POST = 1
+    GET = 2
+print(Shape2 == 1, Shape2.CIRCLE == 1, Shape2.CIRCLE == Request.POST)
+class Perm(IntFlag):
+    R = 4
+    W = 2
+    X = 1
+print(Perm.R | Perm.W, Perm.R + Perm.W, Perm.R in (Perm.R | Perm.W), Perm.X in (Perm.R | Perm.W))
+class Perm2(IntFlag):
+    R = 4
+    W = 2
+    X = 1
+    RWX = 7
+print(Perm2.RWX, ~Perm2.RWX, Perm2(7), Perm2.R & Perm2.X, bool(Perm2.R & Perm2.X), Perm2.X | 4, Perm2.X | 8)
+class Col(Flag):
+    RED = auto()
+    BLUE = auto()
+    GREEN = auto()
+print(Col.RED & Col.GREEN, bool(Col.RED & Col.GREEN), Col.RED | Col.GREEN, Col.BLUE.value, list(Col))
+class Col2(Flag):
+    RED = auto()
+    BLUE = auto()
+    GREEN = auto()
+    WHITE = RED | BLUE | GREEN
+print(Col2.WHITE, Col2.WHITE.value, ~Col2.RED, Col2.RED | Col2.BLUE | Col2.GREEN)
+class Col3(Flag):
+    BLACK = 0
+    RED = auto()
+    BLUE = auto()
+    GREEN = auto()
+print(Col3.BLACK, bool(Col3.BLACK), Col3.RED & Col3.BLUE, Col3.RED.value)
+class Pet(str, Enum):
+    CAT = 'c'
+print(Pet.CAT, f'{Pet.CAT}', format(Pet.CAT), '{}'.format(Pet.CAT), str(Pet.CAT), Pet.CAT.value, Pet.CAT == 'c')
+class AutoName(Enum):
+    def _generate_next_value_(name, start, count, last_values):
+        return name
+class Ordinal(AutoName):
+    NORTH = auto()
+    SOUTH = auto()
+print(list(Ordinal))
+class NoValue(Enum):
+    def __repr__(self):
+        return '<%s.%s>' % (self.__class__.__name__, self.name)
+class Co2(NoValue):
+    RED = 'stop'
+    GREEN = 'go'
+print(Co2.GREEN, repr(Co2.GREEN), Co2.GREEN.value)
+class OrderedEnum(Enum):
+    def __ge__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value >= other.value
+        return NotImplemented
+    def __gt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value > other.value
+        return NotImplemented
+    def __le__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value <= other.value
+        return NotImplemented
+    def __lt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value < other.value
+        return NotImplemented
+class Grade(OrderedEnum):
+    A = 5
+    B = 4
+    C = 3
+print(Grade.C < Grade.A, sorted(Grade), max(Grade), min(Grade), Grade.A >= Grade.B)
+class DuplicateFreeEnum(Enum):
+    def __init__(self, *args):
+        cls = self.__class__
+        if any(self.value == e.value for e in cls):
+            a = self.name
+            e = cls(self.value).name
+            raise ValueError("aliases not allowed in DuplicateFreeEnum:  %r --> %r" % (a, e))
+try:
+    class Color4(DuplicateFreeEnum):
+        RED = 1
+        GREEN = 2
+        BLUE = 3
+        GRENE = 2
+except ValueError as e:
+    print(e)
+class Weekday(Enum):
+    MON = 1
+    TUE = 2
+    @classmethod
+    def from_str(cls, s):
+        return cls[s.upper()]
+    def next(self):
+        members = list(self.__class__)
+        return members[(members.index(self) + 1) % len(members)]
+print(Weekday.from_str('tue'), Weekday.TUE.next(), Weekday.MON.next(), list(Weekday).index(Weekday.TUE), Weekday.MON in list(Weekday), [m for m in Weekday if m.value > 1], {m.name: m.value for m in Weekday}, {m: m.value for m in Weekday}[Weekday.MON], tuple(Weekday), set(Weekday) == {Weekday.MON, Weekday.TUE}, next(iter(Weekday)), dict(Weekday.__members__)['MON'])
+print(getattr(Weekday, 'MON'), getattr(Weekday, 'NOPE', None), hasattr(Weekday, 'MON'), hasattr(Weekday, 'NOPE'), hasattr(Weekday.MON, 'name'), vars(Weekday.MON)['_name_'], Weekday.MON._name_, Weekday.MON._value_, Weekday._member_type_, Numbers._member_type_, Pet._member_type_)
+class Const(Enum):
+    PI = 3.14
+    E = 2.71
+    @property
+    def rounded(self): return round(self.value)
+    x = lambda self: 1
+    def __add__(self, o): return self.value + o
+    def __radd__(self, o): return o + self.value
+print(Const.PI.rounded, list(Const), Const.PI.x(), Const.PI + 1, 1 + Const.PI, sum([Const.PI, Const.E], 0))
+class Nest(Enum):
+    A = 1
+    class Inner:
+        pass
+print(Nest.A, Nest.Inner.name, Nest.Inner.value.__name__, len(Nest))
+### docs pathlib textwrap fractions contextlib inspect
+from pathlib import Path, PurePath, PurePosixPath
+print(PurePath('setup.py'), PurePath('foo', 'some/path', 'bar'), PurePath(Path('foo'), Path('bar')), PurePath(), PurePath('/etc', '/usr', 'lib64'), PurePath('foo//bar'), PurePath('foo/./bar'), PurePath('foo/../bar'))
+print(PurePosixPath('foo') == PurePosixPath('FOO'), PurePosixPath('foo') in {PurePosixPath('foo')}, PurePosixPath('/etc') / 'init.d' / 'apache2', '/usr' / PurePosixPath('bin'), PurePosixPath('/etc').joinpath('passwd'), PurePosixPath('/etc').joinpath(PurePosixPath('passwd')), PurePosixPath('/etc').joinpath('init.d', 'apache2'))
+p = PurePath('/usr/bin/python3'); print(p.parts, p.drive, p.root, PurePosixPath('etc').root, PurePosixPath('//etc').root, PurePosixPath('///etc').root, PurePosixPath('////etc').root, p.anchor)
+p = PurePosixPath('/a/b/c/d'); print(p.parents[0], p.parents[1], p.parents[2], PurePosixPath('/a/b/c').parent, PurePosixPath('/').parent, PurePosixPath('.').parent, PurePosixPath('foo/..').parent, PurePosixPath('my/library/setup.py').name, PurePosixPath('my/library.tar.gz').suffix, PurePosixPath('my/library.tar.gz').suffixes, PurePosixPath('my/library').suffixes, PurePosixPath('my/library.tar.gz').stem, PurePosixPath('my/library').stem, PurePosixPath('/etc/passwd').as_posix(), PurePosixPath('/etc/passwd').as_uri(), PurePosixPath('/a/b').is_absolute(), PurePosixPath('a/b').is_absolute())
+print(PurePosixPath('/etc/passwd').is_relative_to('/etc'), PurePosixPath('/etc/passwd').is_relative_to('/usr'), PurePosixPath('/etc/passwd').relative_to('/'), PurePosixPath('/etc/passwd').relative_to('/etc'), PurePosixPath('a/b.py').match('*.py'), PurePosixPath('/a/b/c.py').match('b/*.py'), PurePosixPath('/a/b/c.py').match('a/*.py'), PurePosixPath('/a.py').match('/*.py'), PurePosixPath('a/b.py').match('/*.py'))
+print(PurePosixPath('/Downloads/pathlib.tar.gz').with_name('setup.py'), PurePosixPath('/Downloads/draft.txt').with_stem('final'), PurePosixPath('/Downloads/pathlib.tar.gz').with_suffix('.bz2'), PurePosixPath('README').with_suffix('.txt'), PurePosixPath('README.txt').with_suffix(''))
+try:
+    PurePosixPath('/').with_name('setup.py')
+except ValueError as e:
+    print(e)
+try:
+    PurePosixPath('/etc/passwd').relative_to('/usr')
+except ValueError as e:
+    print(e)
+Path('docs').mkdir(); Path('docs/index.rst').write_text('x'); Path('setup.py').write_text('print(1)\n'); Path('test_a.py').write_text(''); Path('build/lib').mkdir(parents=True); Path('build/lib/m.py').write_text('')
+pp = Path('.')
+print(sorted(x for x in pp.iterdir() if x.is_dir()), sorted(pp.glob('**/*.py')), sorted(pp.glob('*.py')), sorted(pp.glob('*/*.py')), sorted(pp.rglob('*.py')), sorted(pp.glob('**/*')), sorted(pp.glob('build/**')), sorted(pp.glob('*/')), sorted(Path('docs').glob('../*.py')), sorted(pp.glob('./setup.py')))
+q = Path('docs') / 'index.rst'
+print(q, q.resolve() == Path.cwd() / 'docs' / 'index.rst', q.exists(), q.is_dir(), Path('..').resolve() == Path.cwd().parent, Path('docs/../setup.py').resolve() == Path.cwd() / 'setup.py', Path('docs/nope/../x').resolve() == Path.cwd() / 'docs/x')
+with q.open() as f:
+    print(f.readline())
+pp2 = Path('my_text_file'); print(pp2.write_text('Text file contents'), pp2.read_text(), pp2.stat().st_size, pp2.rename('new_name'), Path('new_name').read_text(), pp2.exists(), Path('new_name').replace('final_name'))
+print(Path('setup.py').read_text().splitlines(), [l for l in Path('setup.py').read_text().split('\n') if l], str(Path('a') / 'b') == 'a/b', len(Path('setup.py').read_text()))
+import textwrap
+sample_text = '''
+    The textwrap module can be used to format text for output in
+    situations where pretty-printing is desired.  It offers
+    programmatic functionality similar to the paragraph wrapping
+    or filling features found in many text editors.
+    '''
+print(textwrap.fill(sample_text, width=50))
+dedented_text = textwrap.dedent(sample_text)
+print(dedented_text)
+for width in [45, 60]:
+    print('{} Columns:\n'.format(width)); print(textwrap.fill(dedented_text, width=width)); print()
+dedented_text = textwrap.dedent(sample_text).strip()
+print(textwrap.fill(dedented_text, width=60))
+wrapped = textwrap.fill(dedented_text, width=50)
+wrapped += '\n\nSecond paragraph after a blank line.'
+final = textwrap.indent(wrapped, '> ')
+print('Quoted block:\n'); print(final)
+def should_indent(line):
+    print('Indent {!r}?'.format(line))
+    return len(line.strip()) % 2 == 0
+print('\nQuoted block:\n'); print(textwrap.indent(wrapped, 'EVEN ', predicate=should_indent))
+print(textwrap.fill(dedented_text, initial_indent='', subsequent_indent=' ' * 4, width=50))
+original = textwrap.fill(dedented_text, width=50); print(original)
+shortened = textwrap.shorten(original, 100); print(textwrap.fill(shortened, width=50))
+print(textwrap.shorten("Hello  world!", width=12), textwrap.shorten("Hello  world!", width=11), textwrap.shorten("Hello world", width=10, placeholder="..."))
+from fractions import Fraction
+print(Fraction(16, -10), Fraction(123), Fraction(), Fraction('3/7'), Fraction(' -3/7 '), Fraction('1.414213 \t\n'), Fraction('-.125'), Fraction('7e-6'), Fraction(2.25), Fraction(1.1))
+from math import pi, cos
+print(Fraction(cos(pi / 3)), Fraction(cos(pi / 3)).limit_denominator(), Fraction('3.1415926535897932').limit_denominator(1000), Fraction(1.1).limit_denominator(), Fraction.from_float(0.3), Fraction(3, 7).as_integer_ratio())
+import contextlib
+from contextlib import contextmanager
+@contextmanager
+def tag(name):
+    print("<%s>" % name)
+    yield
+    print("</%s>" % name)
+with tag("h1"):
+    print("foo")
+@contextmanager
+def managed_resource(*args, **kwds):
+    resource = {'args': args, 'kw': kwds, 'open': True}
+    try:
+        yield resource
+    finally:
+        resource['open'] = False
+with managed_resource(1, timeout=3600) as resource:
+    print(resource)
+print(resource)
+import io, os
+f = io.StringIO()
+with contextlib.redirect_stdout(f):
+    help(print) if False else print('via help')
+s = f.getvalue(); print(repr(s))
+with contextlib.suppress(FileNotFoundError):
+    os.remove('somefile.tmp')
+def myfunction(arg, ignore_exceptions=False):
+    if ignore_exceptions:
+        cm = contextlib.suppress(Exception)
+    else:
+        cm = contextlib.nullcontext()
+    with cm:
+        return arg / 0
+print(myfunction(1, ignore_exceptions=True))
+try:
+    myfunction(1)
+except ZeroDivisionError as e:
+    print(e)
+def process_file(file_or_path):
+    if isinstance(file_or_path, str):
+        cm = open(file_or_path)
+    else:
+        cm = contextlib.nullcontext(file_or_path)
+    with cm as file:
+        return file.read()
+Path('pf.txt').write_text('pf'); print(process_file('pf.txt'), process_file(io.StringIO('sio')))
+from inspect import signature, Parameter, getmembers, isfunction, ismethod, isclass, getdoc
+def foo(a, *, b:int, **kwargs):
+    pass
+sig = signature(foo)
+print(sig, sig.parameters['b'], sig.parameters['b'].annotation, str(sig.parameters['a']), sig.parameters['kwargs'].kind)
+def bar(a, b, c=10, *args, **kw): pass
+for p_ in signature(bar).parameters.values():
+    if p_.kind == p_.POSITIONAL_OR_KEYWORD and p_.default is p_.empty:
+        print('Parameter:', p_)
+for p_ in signature(bar).parameters.values():
+    print(p_.name, p_.kind.description)
+print(Parameter.empty is signature(bar).parameters['a'].default, signature(bar).parameters['c'].default, signature(bar).return_annotation is signature(bar).empty, len(signature(bar).parameters), [k for k in signature(bar).parameters], list(signature(bar).parameters.values())[0], tuple(signature(bar).parameters)[1])
+class Cl:
+    '''Doc.'''
+    def __init__(self, x): self.x = x
+    def go(self): pass
+    @property
+    def p(self): return self.x
+print([n for n, v in getmembers(Cl, isfunction)], [n for n, v in getmembers(Cl(1), ismethod)], isclass(Cl), getdoc(Cl), getdoc(Cl.go), [n for n, v in getmembers(Cl(1)) if not n.startswith('_')])

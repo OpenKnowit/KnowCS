@@ -65,8 +65,12 @@ export interface GradNode {
 
 let nextId = 1
 
+/** how many inference_mode blocks are open: tensors made inside are marked */
+export const inferenceMode = { depth: 0 }
+
 export class TT {
   a: NDArray
+  readonly inference = inferenceMode.depth > 0
   dtype: TDType
   requiresGrad = false
   grad: TT | null = null
