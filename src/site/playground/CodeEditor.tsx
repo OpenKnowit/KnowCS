@@ -74,7 +74,7 @@ export const CodeEditor = ({ value, onChange, onRun, errorLine, marks, label, mi
   }
 
   return (
-    <div className={`flex overflow-hidden rounded-xl border border-slate-800 bg-slate-900 ${tall ? 'min-h-[18rem] flex-1' : ''}`}>
+    <div className={`flex overflow-hidden rounded-xl border border-slate-800 bg-slate-900 ${tall ? 'lg:min-h-[18rem] lg:flex-1' : ''}`}>
       <div aria-hidden className="select-none border-r border-slate-700/60 py-3 pl-3 pr-2 text-right font-mono text-[12.5px] leading-6 text-slate-500">
         {lines.map((_, i) => (
           <div key={i} className={errorLine === i + 1 ? 'font-bold text-rose-400' : marks?.includes(i + 1) ? 'font-bold text-sky-300' : ''}>{i + 1}</div>
@@ -82,7 +82,8 @@ export const CodeEditor = ({ value, onChange, onRun, errorLine, marks, label, mi
       </div>
       {/* the coloured copy sits under a transparent textarea: typing, selection and the caret stay native */}
       <div className="min-w-0 flex-1 overflow-x-auto">
-        <div className="relative min-h-full w-max min-w-full" style={{ minHeight: `${minRows * 1.5 + 1.5}rem` }}>
+        {/* tall fills the desktop workbench; on a phone it is only as high as its lines, so the result stays close */}
+        <div className={`relative min-h-full w-max min-w-full ${tall ? 'lg:min-h-[var(--min-h)]' : 'min-h-[var(--min-h)]'}`} style={{ ['--min-h' as string]: `${minRows * 1.5 + 1.5}rem` }}>
           {marks?.map((l) => (
             <div key={l} aria-hidden className="pointer-events-none absolute inset-x-0 border-l-2 border-sky-400 bg-sky-400/15" style={{ top: 12 + (l - 1) * 24, height: 24 }} />
           ))}

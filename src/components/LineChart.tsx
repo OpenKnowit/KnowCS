@@ -70,7 +70,7 @@ export const LineChart = ({
     <svg
       ref={svgRef}
       viewBox={`0 0 ${W} ${height}`}
-      className="w-full h-auto select-none touch-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-lg"
+      className="w-full h-auto select-none touch-pan-y focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-lg"
       role="img"
       aria-labelledby={titleId}
       tabIndex={0}

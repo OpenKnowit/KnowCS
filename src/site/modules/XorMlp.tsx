@@ -303,7 +303,7 @@ export default function XorMlp() {
             <Diagram net={net} act={act} values={{ x: s.x, h: fwd.h, o: fwd.o }} deltas={step ? { k: step.deltaK, j: step.deltaJ } : null} />
             <div className="mt-2 flex flex-wrap gap-1.5">
               {XOR.map((d, i) => (
-                <button key={i} type="button" onClick={() => setSample(i)} aria-pressed={i === sample} className={`rounded-lg border px-2.5 py-1 font-mono text-xs font-bold ${i === sample ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>
+                <button key={i} type="button" onClick={() => setSample(i)} aria-pressed={i === sample} className={`rounded-lg border px-2.5 py-1 coarse:py-1.5 font-mono text-xs font-bold ${i === sample ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>
                   ({d.x.join(',')}) → {fmt(outs[i], 3)}
                 </button>
               ))}

@@ -164,7 +164,7 @@ export default function GaussianNb() {
               <Card title={t('lab.gnb.training')} sub={t('lab.gnb.training_sub')}>
                 <textarea
                   value={csv}
-                  spellCheck={false}
+                  spellCheck={false} autoCapitalize="off" autoCorrect="off"
                   aria-label={t('lab.gnb.training_aria')}
                   onChange={(e) => {
                     setCsv(e.target.value)

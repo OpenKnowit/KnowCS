@@ -165,7 +165,7 @@ export default function Perceptron() {
             <Card title={t('lab.perc.setup')}>
               <label className="grid gap-1">
                 <span className="text-xs font-bold text-slate-500">{t('lab.perc.rows_label')}</span>
-                <textarea value={dataText} spellCheck={false} onChange={(e) => { setDataText(e.target.value); custom() }} className="min-h-[120px] rounded-[10px] border border-slate-300 p-2 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300" />
+                <textarea value={dataText} spellCheck={false} autoCapitalize="off" autoCorrect="off" onChange={(e) => { setDataText(e.target.value); custom() }} className="min-h-[120px] rounded-[10px] border border-slate-300 p-2 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300" />
               </label>
               <div className="mt-3 grid grid-cols-4 gap-2">
                 <NumberField label="w₁" value={w0[0]} step={0.1} onChange={(v) => { setW0([v, w0[1]]); custom() }} />

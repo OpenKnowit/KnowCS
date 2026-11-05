@@ -147,7 +147,7 @@ export const KernelModule = () => {
   }
 
   const shapeOf = (n: number) => `(${n}, ${n})`
-  const seg = (on: boolean) => `rounded-md px-2.5 py-1 font-mono text-xs font-bold ${on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`
+  const seg = (on: boolean) => `rounded-md px-2.5 py-1 font-mono text-xs font-bold coarse:py-1.5 ${on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`
 
   return (
     <div className="space-y-6">
@@ -249,12 +249,11 @@ export const KernelModule = () => {
             }}
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
-            title={t('kernel_module.drop_hint')}
-            className={`rounded border-2 shadow-sm ${dragging ? 'border-indigo-500 ring-4 ring-indigo-200' : 'border-slate-200'}`}
+                        className={`rounded border-2 shadow-sm ${dragging ? 'border-indigo-500 ring-4 ring-indigo-200' : 'border-slate-200'}`}
           >
             <PixelCanvas image={image} cell={cell} label={t('kernel_module.input_label', { n: image.length })} />
           </div>
-          <p className="mt-2 max-w-[288px] text-center text-[11px] text-slate-500">{t('kernel_module.drop_hint')}</p>
+          <p className="mt-2 max-w-[288px] text-center text-[11px] text-slate-500">{t('kernel_module.crop_note')}<span className="coarse:hidden"> {t('kernel_module.drop_hint')}</span></p>
         </div>
 
         <div className="relative flex flex-col items-center justify-center">

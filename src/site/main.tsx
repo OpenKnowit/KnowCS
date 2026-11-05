@@ -7,6 +7,12 @@ import { legacyTarget } from '../lib/sitemap'
 import { Shell } from './Shell'
 import type { Section } from './Shell'
 
+// iOS Safari zooms the whole page when an input smaller than 16px gets focus, and many of the labs' number boxes are.
+// maximum-scale stops that; iOS still lets people pinch to zoom, which is why this is not set for other browsers.
+if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+  document.querySelector('meta[name="viewport"]')?.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1')
+}
+
 // Every HTML page loads this entry; <body data-page data-id> says which page to render.
 const { page = 'home', id = '' } = document.body.dataset
 

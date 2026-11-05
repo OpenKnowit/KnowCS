@@ -9,7 +9,7 @@ const playgroundHref = (code: string, lib: 'numpy' | 'pytorch' | 'keras'): strin
 export function RunInPlayground({ code, lib, className = '' }: { code: string; lib: 'numpy' | 'pytorch' | 'keras'; className?: string }) {
   const { t } = useTranslation()
   return (
-    <a href={playgroundHref(code, lib)} className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-blue-500 ${className}`}>
+    <a href={playgroundHref(code, lib)} className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 py-1 text-xs coarse:py-1.5 font-bold text-white hover:bg-blue-500 ${className}`}>
       <Play size={12} aria-hidden />
       {t('site.ui.run_playground')}
     </a>

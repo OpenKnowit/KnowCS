@@ -218,7 +218,7 @@ export function PageBar({ id, extra, bare = false }: { id: ModuleId; extra?: Rea
             <a href={`/#lecture-${mod.lec}`} className="block truncate text-[11px] font-bold uppercase tracking-[0.06em] text-blue-600 hover:underline">
               {t('site.lecture_short', { n: mod.lec })} · {t(`site.lectures.${mod.lec}`)}
             </a>
-            <h1 className={`truncate font-extrabold tracking-tight text-slate-900 ${bare ? 'text-[17px]' : 'text-[19px]'}`}>{t(`site.modules.${id}.title`)}</h1>
+            <h1 className={`truncate font-extrabold leading-tight tracking-tight text-slate-900 max-sm:line-clamp-2 max-sm:whitespace-normal ${bare ? 'text-[17px]' : 'text-[19px] max-sm:text-[17px]'}`}>{t(`site.modules.${id}.title`)}</h1>
           </div>
           {extra}
           <div className={`flex items-center ${bare ? 'gap-1.5' : 'gap-2.5'}`}>
@@ -356,7 +356,7 @@ export function Presets<T extends string>({ items, value, onPick, title, childre
   }
   return (
     <section className="min-w-0 rounded-[20px] border border-slate-200 bg-white p-4 sm:p-5">
-      <button type="button" aria-expanded={open} onClick={toggle} className="flex w-full min-w-0 items-center gap-2 text-left">
+      <button type="button" aria-expanded={open} onClick={toggle} className="flex w-full min-w-0 items-center gap-2 text-left coarse:min-h-8">
         <h2 className="shrink-0 text-[15px] font-extrabold">{title}</h2>
         {!open && current && <span className="min-w-0 truncate text-[13px] font-semibold text-blue-700">{current.title}</span>}
         <ChevronRight size={16} aria-hidden className={`ml-auto shrink-0 text-slate-400 transition-transform ${open ? 'rotate-90' : ''}`} />

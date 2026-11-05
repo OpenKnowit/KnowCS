@@ -64,7 +64,7 @@ function ExampleMenu({ groups, value, onPick }: { groups: { title: string; items
   }, [open])
   return (
     <div ref={box} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="true" className="flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1 text-[13px] font-bold text-slate-700 hover:border-slate-400">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="true" className="flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1 text-[13px] font-bold text-slate-700 hover:border-slate-400 coarse:py-1.5">
         {t('lab.common.example')}
         <ChevronDown size={14} aria-hidden className={open ? 'rotate-180' : ''} />
       </button>
@@ -132,7 +132,7 @@ function Aligned({ rows, onTry }: { rows: [string, (number | string)[]][]; onTry
         ))}
       </div>
       {onTry && (
-        <button type="button" onClick={onTry} className="shrink-0 text-xs font-semibold text-blue-600 hover:underline">
+        <button type="button" onClick={onTry} className="shrink-0 text-xs font-semibold text-blue-600 hover:underline coarse:-my-1 coarse:py-1.5">
           {t('lab.bc.try')}
         </button>
       )}
@@ -238,7 +238,7 @@ function Notes({ load, onBack }: { load: (a: number[], b: number[], op: Op) => v
               <td>{shapeLabel(qb)}</td>
               <Ans k={`bc${i}`} v={quizAnswer(qa, qb)} />
               <td>
-                <button type="button" onClick={() => load(qa, qb, '+')} className="text-xs font-semibold text-blue-600 hover:underline">
+                <button type="button" onClick={() => load(qa, qb, '+')} className="text-xs font-semibold text-blue-600 hover:underline coarse:-my-1 coarse:py-1.5">
                   {t('lab.bc.try')}
                 </button>
               </td>
@@ -461,7 +461,7 @@ export default function NumpyBroadcasting() {
                 <ShapeEditor name="A" label={nameA} shape={a} onChange={(s) => change(s, b)} />
                 <div className="flex justify-center gap-1" role="group" aria-label={t('numpy_module.broadcast.op')}>
                   {(['+', '-', '*', '/'] as Op[]).map((o) => (
-                    <button key={o} type="button" onClick={() => setOp(o)} aria-pressed={op === o} className={`h-7 w-7 rounded-lg font-mono text-sm font-bold ${op === o ? 'bg-slate-800 text-white' : 'border border-gray-200 bg-white text-gray-500'}`}>
+                    <button key={o} type="button" onClick={() => setOp(o)} aria-pressed={op === o} className={`h-7 w-7 rounded-lg font-mono text-sm font-bold coarse:h-9 coarse:w-9 ${op === o ? 'bg-slate-800 text-white' : 'border border-gray-200 bg-white text-gray-500'}`}>
                       {opSign(o)}
                     </button>
                   ))}
@@ -521,7 +521,7 @@ export default function NumpyBroadcasting() {
                       <li key={i}>
                         <button type="button" disabled={!can} onClick={() => goLine(i)} className={`flex w-full min-w-max items-center gap-3 pr-3 text-left ${on ? 'bg-sky-400/15 shadow-[inset_2px_0_0_#38bdf8]' : can ? 'hover:bg-white/5' : 'cursor-default'}`}>
                           <span className={`w-8 shrink-0 select-none text-right ${on ? 'font-bold text-sky-300' : 'text-slate-500'}`}>{i + 1}</span>
-                          <span className="whitespace-pre text-slate-100">{highlightPython(line.text)}</span>
+                          <span className="whitespace-pre text-slate-100 coarse:leading-7">{highlightPython(line.text)}</span>
                         </button>
                       </li>
                     )
@@ -534,7 +534,7 @@ export default function NumpyBroadcasting() {
                   <div className="mb-1.5 text-[11px] text-slate-400">{t('lab.bc.syntax')}</div>
                   <div className="flex flex-wrap gap-1" role="group" aria-label={t('lab.bc.syntax')}>
                     {SYNTAXES.map((s) => (
-                      <button key={s.id} type="button" onClick={() => setSyntax(s.id)} aria-pressed={syntax === s.id} className={`rounded-md px-2 py-1 font-mono text-[11.5px] ${syntax === s.id ? 'bg-sky-400 font-bold text-slate-900' : 'bg-white/10 text-slate-300 hover:bg-white/15'}`}>
+                      <button key={s.id} type="button" onClick={() => setSyntax(s.id)} aria-pressed={syntax === s.id} className={`rounded-md px-2 py-1 font-mono text-[11.5px] coarse:py-1.5 ${syntax === s.id ? 'bg-sky-400 font-bold text-slate-900' : 'bg-white/10 text-slate-300 hover:bg-white/15'}`}>
                         {s.label}
                       </button>
                     ))}
@@ -546,7 +546,7 @@ export default function NumpyBroadcasting() {
 
               {/* ---------- the visual and the output ---------- */}
               <div ref={right} className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <section className="flex min-h-0 min-w-0 flex-1 rounded-[18px] border border-slate-200 bg-white">
+                <section className="flex min-h-0 min-w-0 flex-1 flex-col rounded-[18px] border border-slate-200 bg-white lg:flex-row">
                   <div className="min-h-0 min-w-0 flex-1 space-y-3 p-4 lg:overflow-y-auto">
                     {pairwise ? (
                       <>
@@ -570,18 +570,18 @@ export default function NumpyBroadcasting() {
                     )}
                   </div>
                   {/* the step rail */}
-                  <nav aria-label={t('lab.bc.step_rail')} className="flex w-[74px] shrink-0 flex-col items-stretch gap-1 overflow-y-auto border-l border-slate-100 px-1.5 py-3">
-                    <button type="button" onClick={() => goStep(at - 1)} disabled={at === 0} aria-label={t('numpy_module.broadcast.back')} className="mx-auto rounded-md p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30">
-                      <ChevronLeft size={15} aria-hidden className="rotate-90" />
+                  <nav aria-label={t('lab.bc.step_rail')} className="order-first flex shrink-0 items-center gap-1 overflow-x-auto border-b border-slate-100 px-1.5 py-1.5 lg:order-none lg:w-[74px] lg:flex-col lg:items-stretch lg:overflow-y-auto lg:overflow-x-visible lg:border-b-0 lg:border-l lg:py-3">
+                    <button type="button" onClick={() => goStep(at - 1)} disabled={at === 0} aria-label={t('numpy_module.broadcast.back')} className="mx-auto shrink-0 rounded-md p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30 coarse:p-2">
+                      <ChevronLeft size={15} aria-hidden className="lg:rotate-90" />
                     </button>
                     {rail.map((r) => (
-                      <button key={r.key} type="button" disabled={r.disabled} onClick={() => goStep(r.key)} aria-current={at === r.key ? 'step' : undefined} className={`flex flex-col items-center gap-0.5 rounded-lg py-1 text-center text-[10.5px] leading-tight ${at === r.key ? 'bg-blue-50 font-bold text-blue-700' : r.disabled ? 'text-slate-300' : 'text-slate-500 hover:bg-slate-100'}`}>
+                      <button key={r.key} type="button" disabled={r.disabled} onClick={() => goStep(r.key)} aria-current={at === r.key ? 'step' : undefined} className={`flex min-w-[3.25rem] flex-1 shrink-0 flex-col items-center gap-0.5 rounded-lg py-1 text-center text-[10.5px] leading-tight lg:min-w-0 lg:flex-none ${at === r.key ? 'bg-blue-50 font-bold text-blue-700' : r.disabled ? 'text-slate-300' : 'text-slate-500 hover:bg-slate-100'}`}>
                         <span className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold ${at === r.key ? 'bg-blue-600 text-white' : r.disabled ? 'bg-slate-100 text-slate-300' : r.key < at ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}`}>{r.key + 1}</span>
                         {r.label}
                       </button>
                     ))}
-                    <button type="button" onClick={() => goStep(at + 1)} disabled={at === last} aria-label={t('numpy_module.broadcast.next')} className="mx-auto rounded-md p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30">
-                      <ChevronRight size={15} aria-hidden className="rotate-90" />
+                    <button type="button" onClick={() => goStep(at + 1)} disabled={at === last} aria-label={t('numpy_module.broadcast.next')} className="mx-auto shrink-0 rounded-md p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30 coarse:p-2">
+                      <ChevronRight size={15} aria-hidden className="lg:rotate-90" />
                     </button>
                     {outHidden && (
                       <button type="button" onClick={() => hideOutput(false)} aria-label={t('lab.bc.show_output')} title={t('lab.bc.show_output')} className="mx-auto mt-auto rounded-md p-1.5 text-slate-500 hover:bg-slate-100">

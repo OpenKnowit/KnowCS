@@ -547,19 +547,22 @@ function LayersPanel({ st, infos, active, setActive, commit, example }: { st: La
   const last = layers[layers.length - 1]
   const out = infos.length ? infos[infos.length - 1].output : input
   const shapeAt = at === 0 ? input : infos[at - 1].output
-  const iconBtn = 'grid h-6 w-6 place-items-center rounded text-slate-500 hover:bg-white disabled:opacity-30'
+  const iconBtn = 'grid h-6 w-6 place-items-center rounded text-slate-500 hover:bg-white disabled:opacity-30 coarse:h-7 coarse:w-7'
   // floats in the gap above card i, so showing it never moves the add block out from under the pointer
   const marker = (i: number) => hoverAdd && at === i && <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-[6px] h-1 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.2)]" />
   const card = (on: boolean, err = false) => `rounded-xl border p-2 ${err ? 'border-rose-300 bg-rose-50/70' : on ? 'border-blue-400 bg-blue-50/60' : 'border-slate-200 bg-slate-50'}`
   const head = (key: number, label: ReactNode, color: string, right: ReactNode, actions?: ReactNode) => (
-    <div className="flex min-w-0 items-center gap-1.5">
-      <button type="button" aria-expanded={!closed.has(key)} aria-label={t(closed.has(key) ? 'site.ui.expand_all' : 'site.ui.collapse_all')} onClick={() => toggle(key)} className="grid h-6 w-6 shrink-0 place-items-center rounded hover:bg-white">
+    <div className="flex min-w-0 items-center gap-1 sm:gap-1.5">
+      <button type="button" aria-expanded={!closed.has(key)} aria-label={t(closed.has(key) ? 'site.ui.expand_all' : 'site.ui.collapse_all')} onClick={() => toggle(key)} className="grid h-6 w-6 shrink-0 place-items-center rounded coarse:h-7 coarse:w-7 hover:bg-white">
         <Chevron open={!closed.has(key)} />
       </button>
-      <button type="button" onClick={() => key > -2 && setActive(active === key ? null : key)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+      <button type="button" onClick={() => key > -2 && setActive(active === key ? null : key)} className="flex min-w-0 flex-1 items-center gap-2 text-left coarse:min-h-7">
         <i className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: color }} />
-        <b className="truncate text-[13px]">{label}</b>
-        <span className="ml-auto shrink-0 font-mono text-xs text-slate-600">{right}</span>
+        {/* on a phone the shape sits under the name, so the buttons never squeeze the name away */}
+        <span className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-2">
+          <b className="truncate text-[13px]">{label}</b>
+          <span className="shrink-0 font-mono text-[11px] leading-tight text-slate-600 sm:ml-auto sm:text-xs">{right}</span>
+        </span>
       </button>
       {actions}
     </div>
@@ -789,8 +792,11 @@ export default function CnnShapes() {
                 ))}
               </ul>
             </div>
-            <div className="h-[220px] min-h-0 lg:h-auto lg:flex-1">
-              <Volumes input={st.input} infos={infos} active={active} onPick={(i) => setActive(active === i ? null : i)} />
+            {/* wide enough to read on a phone: swipe along it */}
+            <div className="h-[220px] min-h-0 overflow-x-auto lg:h-auto lg:flex-1 lg:overflow-visible">
+              <div className="h-full min-w-[640px] lg:min-w-0">
+                <Volumes input={st.input} infos={infos} active={active} onPick={(i) => setActive(active === i ? null : i)} />
+              </div>
             </div>
           </section>
 

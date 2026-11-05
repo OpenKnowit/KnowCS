@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { FocusEvent as ReactFocusEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -107,6 +108,8 @@ export const AlphaBetaModule = () => {
     setView(fit)
   }
   const svgRef = useRef<SVGSVGElement>(null)
+  // a leaf is too small to type in when the tree is drawn small, as on a phone: the box then sits under the tree
+  const [editInBar, setEditInBar] = useState(false)
   const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null)
   const unit = () => {
     const r = svgRef.current?.getBoundingClientRect()
@@ -117,6 +120,29 @@ export const AlphaBetaModule = () => {
       const k = Math.max(0.3, Math.min(4, v.k * factor))
       return { k, tx: cx - ((cx - v.tx) * k) / v.k, ty: cy - ((cy - v.ty) * k) / v.k }
     })
+
+  const leafInput = (node: { id: string; value?: number }) => ({
+    type: 'number' as const,
+    inputMode: 'numeric' as const,
+    min: 0,
+    max: 20,
+    autoFocus: true,
+    defaultValue: node.value,
+    'aria-label': t('alphabeta.edit_leaf', { id: node.id }),
+    onFocus: (e: ReactFocusEvent<HTMLInputElement>) => e.currentTarget.select(),
+    onKeyDown: (e: ReactKeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') e.currentTarget.blur()
+      if (e.key === 'Escape') {
+        e.currentTarget.value = String(node.value)
+        e.currentTarget.blur()
+      }
+    },
+    onBlur: (e: ReactFocusEvent<HTMLInputElement>) => {
+      const n = Number(e.currentTarget.value)
+      if (e.currentTarget.value.trim() !== '' && Number.isFinite(n)) setLeaf(node.id, Math.max(0, Math.min(20, Math.round(n))))
+      setEditing(null)
+    },
+  })
 
   // 结构化步骤 → 本地化解释文案（当前步骤与追踪链共用）
   const explain = (s: AbStep): string => {
@@ -238,15 +264,15 @@ export const AlphaBetaModule = () => {
               </div>
             </div>
 
-            <div className={`${panel} relative h-[480px] overflow-hidden`}>
-              <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-lg border border-slate-200 bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-500 backdrop-blur">{t('alphabeta.canvas_label')}</div>
-              <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-xl border border-slate-200 bg-white/90 p-1 backdrop-blur">
-                <span className="hidden px-2 text-[11px] text-slate-500 sm:inline">{t('alphabeta.canvas_hint')}</span>
-                <button type="button" onClick={() => zoomAt(1 / 1.25)} aria-label={t('alphabeta.zoom_out')} title={t('alphabeta.zoom_out')} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100"><ZoomOut size={15} aria-hidden /></button>
-                <button type="button" onClick={() => zoomAt(1.25)} aria-label={t('alphabeta.zoom_in')} title={t('alphabeta.zoom_in')} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100"><ZoomIn size={15} aria-hidden /></button>
-                <button type="button" onClick={() => setView(fit)} aria-label={t('alphabeta.zoom_fit')} title={t('alphabeta.zoom_fit')} className="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100"><Maximize2 size={14} aria-hidden /></button>
+            <div className={`${panel} relative flex flex-col overflow-hidden sm:block sm:h-[480px]`}>
+              <div className="pointer-events-none px-4 pt-3 text-[11px] font-semibold text-slate-600 sm:absolute sm:left-4 sm:top-4 sm:z-10 sm:rounded-lg sm:border sm:border-slate-200 sm:bg-white/90 sm:px-3 sm:py-1 sm:text-slate-500 backdrop-blur">{t('alphabeta.canvas_label')}</div>
+              <div className="order-last flex items-center justify-end gap-1 border-t border-slate-100 p-1 sm:absolute sm:bottom-3 sm:right-3 sm:z-10 sm:rounded-xl sm:border sm:border-slate-200 sm:bg-white/90 sm:backdrop-blur">
+                <span className="hidden px-2 text-[11px] text-slate-500 sm:inline coarse:hidden">{t('alphabeta.canvas_hint')}</span>
+                <button type="button" onClick={() => zoomAt(1 / 1.25)} aria-label={t('alphabeta.zoom_out')} title={t('alphabeta.zoom_out')} className="grid h-7 w-7 place-items-center coarse:h-9 coarse:w-9 rounded-lg text-slate-600 hover:bg-slate-100"><ZoomOut size={15} aria-hidden /></button>
+                <button type="button" onClick={() => zoomAt(1.25)} aria-label={t('alphabeta.zoom_in')} title={t('alphabeta.zoom_in')} className="grid h-7 w-7 place-items-center coarse:h-9 coarse:w-9 rounded-lg text-slate-600 hover:bg-slate-100"><ZoomIn size={15} aria-hidden /></button>
+                <button type="button" onClick={() => setView(fit)} aria-label={t('alphabeta.zoom_fit')} title={t('alphabeta.zoom_fit')} className="grid h-7 w-7 place-items-center coarse:h-9 coarse:w-9 rounded-lg text-slate-600 hover:bg-slate-100"><Maximize2 size={14} aria-hidden /></button>
               </div>
-              <div className="pointer-events-none absolute right-4 top-4 z-10 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white/90 p-3 text-[11px] text-slate-600 backdrop-blur">
+              <div className="pointer-events-none z-10 flex flex-wrap gap-x-3 gap-y-1 border-b border-slate-100 px-4 py-2 text-[11px] text-slate-600 sm:absolute sm:right-4 sm:top-4 sm:flex-col sm:gap-2 sm:rounded-xl sm:border sm:border-slate-200 sm:bg-white/90 sm:p-3 sm:text-slate-600 backdrop-blur">
                 <span className="flex items-center gap-2"><span className="w-3.5 text-center text-slate-600">▲</span>{t('alphabeta.layers.max')}</span>
                 <span className="flex items-center gap-2"><span className="w-3.5 text-center text-slate-600">▼</span>{t('alphabeta.layers.min')}</span>
                 <span className="flex items-center gap-2"><span className="w-3.5 text-center text-slate-600">●</span>{t('alphabeta.layers.leaf')}</span>
@@ -254,7 +280,9 @@ export const AlphaBetaModule = () => {
               <svg
                 ref={svgRef}
                 viewBox={`0 0 ${W} ${H}`}
-                className="h-full w-full cursor-grab touch-none select-none active:cursor-grabbing"
+                className="h-auto max-h-[70dvh] w-full cursor-grab select-none active:cursor-grabbing sm:h-full sm:max-h-none"
+                // a finger on the fitted tree still scrolls the page; zoomed in, it moves the tree in every direction
+                style={{ aspectRatio: `${W} / ${H}`, touchAction: view.k > 1.01 ? 'none' : 'pan-y' }}
                 role="img"
                 aria-label={t('alphabeta.tree_label')}
                 onPointerDown={(e) => {
@@ -329,34 +357,23 @@ export const AlphaBetaModule = () => {
   
                   if (node.type === 'leaf') {
                     return (
-                      <g key={node.id} data-leaf className="cursor-pointer [&:hover>circle]:stroke-blue-500" onClick={() => setEditing(node.id)}>
+                      <g
+                        key={node.id}
+                        data-leaf
+                        className="cursor-pointer [&:hover>circle]:stroke-blue-500"
+                        onClick={() => {
+                          setEditInBar(unit() < 0.75)
+                          setEditing(node.id)
+                        }}
+                      >
+                        {/* a bigger target than the circle, for a finger on a small tree */}
+                        <rect x={node.x - 40} y={node.y - 40} width={80} height={80} fill="transparent" />
                         <circle cx={node.x} cy={node.y} r={22} fill={fill} stroke={stroke} strokeWidth={3} strokeDasharray={isPruned ? '5,4' : undefined} />
-                        {editing !== node.id && <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#be123c' : isActive ? '#ffffff' : '#0f172a'}>{node.value}</text>}
+                        {(editing !== node.id || editInBar) && <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize={14} fontWeight={800} fill={isPruned ? '#be123c' : isActive ? '#ffffff' : '#0f172a'}>{node.value}</text>}
                         <text x={node.x + 28} y={node.y + 4} fontSize={11} fontFamily="monospace" fill="#475569" fontWeight={700}>{node.id}</text>
-                        {editing === node.id && (
+                        {editing === node.id && !editInBar && (
                           <foreignObject x={node.x - 22} y={node.y - 22} width={44} height={44} onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="number"
-                              min={0}
-                              max={20}
-                              autoFocus
-                              defaultValue={node.value}
-                              aria-label={t('alphabeta.edit_leaf', { id: node.id })}
-                              onFocus={(e) => e.currentTarget.select()}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') e.currentTarget.blur()
-                                if (e.key === 'Escape') {
-                                  e.currentTarget.value = String(node.value)
-                                  e.currentTarget.blur()
-                                }
-                              }}
-                              onBlur={(e) => {
-                                const n = Number(e.currentTarget.value)
-                                if (e.currentTarget.value.trim() !== '' && Number.isFinite(n)) setLeaf(node.id, Math.max(0, Math.min(20, Math.round(n))))
-                                setEditing(null)
-                              }}
-                              className="block h-full w-full rounded-full border-[3px] border-blue-600 bg-white p-0 text-center text-[14px] font-extrabold text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                            />
+                            <input {...leafInput(node)} className="block h-full w-full rounded-full border-[3px] border-blue-600 bg-white p-0 text-center text-[14px] font-extrabold text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
                           </foreignObject>
                         )}
                       </g>
@@ -388,6 +405,12 @@ export const AlphaBetaModule = () => {
                 })}
                 </g>
               </svg>
+              {editing && editInBar && nodes[editing] && (
+                <label className="absolute inset-x-3 bottom-12 z-20 flex items-center justify-between gap-3 rounded-xl border border-blue-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-lg">
+                  {t('alphabeta.edit_leaf', { id: editing })}
+                  <input {...leafInput(nodes[editing])} className="h-9 w-20 rounded-lg border-2 border-blue-600 bg-white text-center font-mono text-base font-bold outline-none" />
+                </label>
+              )}
             </div>
           </section>
 
@@ -436,7 +459,7 @@ export const AlphaBetaModule = () => {
         </div>
 
         {/* step trace: click any step to jump there */}
-        <section className={`${panel} flex h-[260px] flex-col gap-3 p-5`}>
+        <section className={`${panel} flex h-[22rem] flex-col gap-3 p-5 lg:h-[260px]`}>
           <h3 className={`${heading} border-b border-slate-200 pb-2`}><ListOrdered size={15} className="text-blue-600" aria-hidden /> {t('alphabeta.timeline')}</h3>
           <ol ref={listRef} className="relative flex flex-1 flex-col gap-1 overflow-y-auto pr-2">
             {steps.map((s, k) => (

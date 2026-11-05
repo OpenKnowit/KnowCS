@@ -308,7 +308,7 @@
     "upload": "Import image",
     "random": "Random image",
     "privacy": "Imported images are processed only in your browser: they are never uploaded to a server or saved. PNG, JPEG, WebP, GIF or BMP, up to 10 MB. Only “Random image” goes online, asking <a>Lorem Picsum</a> for a photo.",
-    "drop_hint": "You can also drop an image here. It is converted to grey and cropped to a square.",
+    "drop_hint": "You can also drop an image here.",
     "input_label": "Input image, {{n}} by {{n}} pixels",
     "output_label": "Output feature map, {{n}} by {{n}} pixels",
     "size_note": "Output side = N − k + 1 = {{n}} − {{k}} + 1 = {{out}} (no padding).",
@@ -329,7 +329,8 @@
       "network": "Could not get a random image. Check your connection and try again; you can still import an image or use a preset.",
       "timeout": "The random image took too long. Try again later; you can still import an image or use a preset.",
       "bad_source": "The random image came from an unexpected address, so it was refused."
-    }
+    },
+    "crop_note": "Images are converted to grey and cropped to a square."
   },
   "bayes": {
     "basics": {
@@ -622,7 +623,7 @@
   },
   "numpy_api": {
     "title": "NumPy, live",
-    "subtitle": "{{n}} APIs you can run. Hover any result cell to see exactly which input cells made it.",
+    "subtitle": "{{n}} APIs you can run. Tap or hover any result cell to see exactly which input cells made it.",
     "search": "Search an API, e.g. argmax, stack, norm",
     "groups": "API groups",
     "no_match": "No API matches — try another word.",
@@ -635,10 +636,10 @@
     "line": "line {{n}}",
     "nothing": "No NumPy call to show — call a function or index an array.",
     "too_large": "{{shape}} is too big to draw; try a smaller example.",
-    "hover_hint": "Hover a result cell, or an input cell.",
-    "legend_source": "used for the hovered cell",
+    "hover_hint": "Tap or hover a result cell, or an input cell.",
+    "legend_source": "used for the selected cell",
     "legend_pick": "the value that was chosen",
-    "legend_dependent": "results that use the hovered cell",
+    "legend_dependent": "results that use the selected cell",
     "missing": "{{name}} isn't in the in-browser sandbox. It covers core numpy, np.linalg and np.random — pick something below.",
     "sandbox_note": "Runs in your browser with a small NumPy re-implementation: outputs match NumPy 2.2 for these examples, except random numbers (own generator) and scalars, which print as 12 instead of np.int64(12).",
     "link_hint": "Click a highlighted name in the note to open it in the NumPy panel.",
@@ -674,7 +675,7 @@
       "create": "Builds a new array from scratch — there is no input array to trace.",
       "random": "Fresh random values. The sandbox uses its own seeded generator, so the numbers differ from real NumPy, but the shape and range are the same.",
       "info": "Returns a Python value rather than an array.",
-      "move": "Nothing is computed: every result cell is a copy of exactly one input cell. Hover to see which one.",
+      "move": "Nothing is computed: every result cell is a copy of exactly one input cell. Tap or hover to see which one.",
       "move_many": "Nothing is computed: each result cell is copied from one of the {{n}} input arrays (tinted by origin).",
       "elementwise": "Each result cell uses only the matching cell of each input. Shapes {{shapes}} are broadcast to {{out}} first.",
       "reduce_all": "All {{n}} values collapse into a single number ({{op}}).",
@@ -683,10 +684,10 @@
       "scan_axis": "Running total along axis {{axis}}: each cell adds up everything before it in its lane.",
       "matmul": "result[i, j] = row i of the left × column j of the right, multiplied pairwise and summed ({{k}} products).",
       "outer": "result[i, j] = a[i] × b[j] — every pair, no summing.",
-      "sort": "Values are rearranged along axis {{axis}}; hover a cell to see where it came from.",
-      "sort_flat": "The whole array is flattened and sorted; hover a cell to see where it came from.",
+      "sort": "Values are rearranged along axis {{axis}}; tap or hover a cell to see where it came from.",
+      "sort_flat": "The whole array is flattened and sorted; tap or hover a cell to see where it came from.",
       "argsort": "argsort returns positions, not values: each number says where the k-th smallest value sits in the input.",
-      "unique": "Each distinct value once, sorted. Hover one to see every place it occurs.",
+      "unique": "Each distinct value once, sorted. Tap or hover one to see every place it occurs.",
       "trace": "Adds up the main diagonal.",
       "linalg": "Every result cell depends on the whole matrix — there is no cell-by-cell shortcut.",
       "poly_create": "A polynomial is just its coefficients, lowest degree first: [1, 2, 3] means 1 + 2x + 3x².",
@@ -699,14 +700,14 @@
       "poly_arith": "Polynomials combine with + − * ** like numbers; the solid curve is the result.",
       "polyfit": "Legacy API: same least-squares fit, but the coefficients come back highest degree first.",
       "polyval": "Legacy API: evaluates coefficients given highest degree first.",
-      "group": "Each result cell is built from a group of input cells. Hover it to see the group.",
-      "group_bincount": "result[k] counts the cells equal to k (or adds up their weights). Hover a count to see which cells it counted.",
-      "group_histogram": "Each count is the number of values that fall in that bin; the last bin includes its right edge. Hover a count to see its values.",
+      "group": "Each result cell is built from a group of input cells. Tap or hover it to see the group.",
+      "group_bincount": "result[k] counts the cells equal to k (or adds up their weights). Tap or hover a count to see which cells it counted.",
+      "group_histogram": "Each count is the number of values that fall in that bin; the last bin includes its right edge. Tap or hover a count to see its values.",
       "group_meshgrid": "X repeats x down every row (Y repeats y across every column), so X[i, j], Y[i, j] runs over every (x, y) pair. Shown: X.",
       "group_diff": "Each cell is the next value minus this one along the axis, so the result is one shorter.",
       "group_pad": "The input is copied into the middle; the new border cells come from no input at all.",
-      "group_isin": "True where the value appears among the test values. Hover a cell to see its match.",
-      "group_conv2d": "Each output cell is the sum of a K×K window of the input times the kernel (plus the bias). Hover an output cell to see its window; slide one step for each next cell."
+      "group_isin": "True where the value appears among the test values. Tap or hover a cell to see its match.",
+      "group_conv2d": "Each output cell is the sum of a K×K window of the input times the kernel (plus the bias). Tap or hover an output cell to see its window; slide one step for each next cell."
     },
     "api": {
       "array": "Turns a (nested) Python list into an array; the nesting depth becomes the number of axes.",
@@ -2084,7 +2085,7 @@
         "input": "The two arrays as they are: A in blue, B in orange.",
         "target": "Line the shapes up on the right and compare axis by axis, right to left, to get the target shape.",
         "expand": "Length-1 axes expand along the dashed cells to {{shape}}. Dashed cells are virtual copies; no data is duplicated.",
-        "result": "After the expansion the operation runs element by element, giving {{shape}}. Hover a cell to see which two numbers made it."
+        "result": "After the expansion the operation runs element by element, giving {{shape}}. Tap or hover a cell to see which two numbers made it."
       },
       "help": {
         "title": "Helper: what to construct",
@@ -2099,7 +2100,7 @@
       "pw_step": [
         "This line inserts a length-1 axis in the middle: (2, 2) → (2, 1, 2). Each test point gets its own block, ready to pair with every training point.",
         "This line inserts a length-1 axis at the front: (4, 2) → (1, 4, 2). All the training points go in one block.",
-        "Broadcast: (2, 1, 2) − (1, 4, 2). Axis −1: 2 and 2, equal. Axis −2: 1 and 4, stretch A. Axis −3: 2 and 1, stretch B. The result (2, 4, 2) is every test point minus every training point. Hover a result cell to see which two numbers made it.",
+        "Broadcast: (2, 1, 2) − (1, 4, 2). Axis −1: 2 and 2, equal. Axis −2: 1 and 4, stretch A. Axis −3: 2 and 1, stretch B. The result (2, 4, 2) is every test point minus every training point. Tap or hover a result cell to see which two numbers made it.",
         "Square each difference; the shape stays (2, 4, 2).",
         "Sum along the last axis (the two coordinates): (2, 4, 2) → (2, 4). D²[i, j] is the squared distance from test point i to training point j.",
         "The square root gives the distance matrix D, still (2, 4): one row per test point, one column per training point.",
@@ -4361,7 +4362,7 @@
       "figure_step": "The figure right after this call: what the call added is highlighted, the rest is faded.",
       "pixel": "img[{{row}}, {{col}}] = {{value}} → ({{value}} − {{vmin}}) / ({{vmax}} − {{vmin}}) = {{t}} along '{{cmap}}' → {{color}}",
       "pixel_rgb": "img[{{row}}, {{col}}] → {{color}}",
-      "pixel_hint": "Hover a pixel to see how its value becomes a colour.",
+      "pixel_hint": "Tap or hover a pixel to see how its value becomes a colour.",
       "result": "result",
       "series_shape": "Series · {{n}} rows",
       "frame_shape": "DataFrame · {{r}} rows × {{c}} columns",
@@ -4373,7 +4374,7 @@
       "params": "Params",
       "total_params": "Total parameters",
       "trainable": "Trainable",
-      "graph": "The computation graph autograd recorded. backward() walks it from the loss back to the leaves and stores ∂loss/∂x in each leaf's .grad. Hover a node to see where it came from.",
+      "graph": "The computation graph autograd recorded. backward() walks it from the loss back to the leaves and stores ∂loss/∂x in each leaf's .grad. Tap or hover a node to see where it came from.",
       "graph_label": "Autograd computation graph",
       "value": "value",
       "no_grad_kept": "no .grad (not a leaf)",
@@ -4419,7 +4420,7 @@
         "anatomy": "A Figure is the whole canvas; an Axes is one plot inside it. plt.subplots() returns both, then you call methods on ax (set_title, set_xlabel, legend). The plt.* functions do the same thing on the current Axes.",
         "subplot": "plt.subplot(rows, cols, index) picks one cell of a grid. The index counts from 1, left to right and then top to bottom, so subplot(2, 2, 3) is the bottom-left cell.",
         "fmt": "plot's third argument is a format string: colour letter + marker + line style. 'ro--' means red circles joined by a dashed line; a marker without a line style draws markers only.",
-        "imshow_gray": "Lecture 7 shows every grayscale image with cmap='gray', vmin=0, vmax=1, so 0 is black and 1 is white. Hover a pixel to see its value turn into a colour.",
+        "imshow_gray": "Lecture 7 shows every grayscale image with cmap='gray', vmin=0, vmax=1, so 0 is black and 1 is white. Tap or hover a pixel to see its value turn into a colour.",
         "vmin_vmax": "Without vmin / vmax, imshow maps the image's own minimum to black and maximum to white, so a dark image looks bright. Without cmap it isn't even grey. Only the third panel shows the true brightness.",
         "rgb": "A colour image is (H, W, 3): one 2-D array per channel. img[:, :, 0] is the red channel, drawn in grey: bright where there is a lot of red.",
         "grid": "plt.subplots(2, 3) returns a 2 × 3 array of Axes, and axes.flat walks it row by row. This is the usual way to show a batch of images, like the MNIST grid in lecture 6.",
@@ -4562,7 +4563,7 @@
       },
       "e": {
         "attrs": "Every tensor has a shape (torch.Size), a dtype and a device. Python ints become int64, factory functions like torch.zeros give float32, and in this sandbox the device is always the CPU.",
-        "matmul": "@ (torch.matmul) is the matrix product: each output is a row times a column. * multiplies element by element. Hover a result cell to see which inputs made it.",
+        "matmul": "@ (torch.matmul) is the matrix product: each output is a row times a column. * multiplies element by element. Tap or hover a result cell to see which inputs made it.",
         "indexing": "Indexing works as in NumPy: tensor[0] is a row, tensor[:, 0] a column, tensor[..., -1] the last column. Assigning to a slice changes the tensor in place.",
         "view": "view gives a new shape over the same memory, and -1 means work it out. unsqueeze(0) adds the batch dimension a model expects. A transposed tensor is not contiguous, so view fails on it while reshape copies.",
         "bridge": "torch.from_numpy and tensor.numpy() share memory with the NumPy array, so a change on one side shows on the other. torch.tensor(n) makes a copy.",

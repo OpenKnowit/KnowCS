@@ -33,14 +33,14 @@ function LabCard({ m, compact = false }: { m: ModuleInfo; compact?: boolean }) {
           </span>
         )}
       </div>
-      <div className={`flex flex-col gap-1.5 ${compact ? 'px-3 pb-3 pt-2.5' : 'px-4 pb-4 pt-3.5'}`}>
+      <div className={`flex flex-col gap-1.5 ${compact ? 'px-3 pb-3 pt-2.5' : 'px-3 pb-3 pt-2.5 sm:px-4 sm:pb-4 sm:pt-3.5'}`}>
         {!compact && (
-          <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-blue-600">
+          <span className="hidden text-[11px] font-bold uppercase tracking-[0.06em] text-blue-600 sm:block">
             {t('site.lecture_short', { n: m.lec })} · {t(`site.lectures.${m.lec}`)}
           </span>
         )}
-        <b className={`font-bold text-slate-900 group-hover:text-blue-700 ${compact ? 'text-sm' : 'text-base'}`}>{t(`site.modules.${m.id}.title`)}</b>
-        {!compact && <p className="text-[13px] leading-normal text-slate-500">{t(`site.modules.${m.id}.blurb`)}</p>}
+        <b className={`font-bold leading-snug text-slate-900 group-hover:text-blue-700 ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}>{t(`site.modules.${m.id}.title`)}</b>
+        {!compact && <p className="hidden text-[13px] leading-normal text-slate-500 sm:block">{t(`site.modules.${m.id}.blurb`)}</p>}
       </div>
     </a>
   )
@@ -92,7 +92,7 @@ export default function HomePage() {
   const shown = MODULES.filter(matches)
 
   return (
-    <main className="px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8">
+    <main className="px-4 sm:px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8">
       <h1 className="text-[clamp(24px,2.6vw,30px)] font-extrabold tracking-tight text-slate-900">{t('site.home.title_full')}</h1>
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <label className="flex h-[42px] w-full max-w-[420px] items-center gap-2.5 rounded-[10px] border border-slate-200 bg-white px-3.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
@@ -106,7 +106,7 @@ export default function HomePage() {
       {shown.length === 0 && <p className="mt-10 text-center text-slate-500">{t('site.home.no_match', { q: q.trim() })}</p>}
 
       {/* both views stay mounted, so switching never reloads a thumbnail */}
-      <div className={`${view === 'grid' ? 'grid' : 'hidden'} mt-6 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
+      <div className={`${view === 'grid' ? 'grid' : 'hidden'} mt-6 grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4`}>
           {shown.map((m) => (
             <LabCard key={m.id} m={m} />
           ))}

@@ -152,7 +152,7 @@ export const KnnModule = () => {
             <div aria-hidden />
             <div className="text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] whitespace-nowrap" aria-hidden>{t('knn.axis_height')}</div>
           </div>
-          <p className="mt-4 text-[10px] text-slate-400 text-center">{t('knn.keyboard_hint')}</p>
+          <p className="mt-4 text-center text-[10px] text-slate-400 coarse:hidden">{t('knn.keyboard_hint')}</p>
         </div>
 
         <div className="lg:col-span-5 space-y-4">

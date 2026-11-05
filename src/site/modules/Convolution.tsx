@@ -152,11 +152,11 @@ export default function Convolution() {
         <div className="grid grid-cols-[1.3fr_1fr] gap-2">
           <label className="grid gap-1">
             <span className="text-xs font-bold text-slate-500">{t('lab.conv.image')}</span>
-            <textarea value={imgText} spellCheck={false} onChange={(e) => { setImgText(e.target.value); custom() }} className="min-h-[130px] rounded-[10px] border border-slate-300 p-2 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300" />
+            <textarea value={imgText} spellCheck={false} autoCapitalize="off" autoCorrect="off" onChange={(e) => { setImgText(e.target.value); custom() }} className="min-h-[130px] rounded-[10px] border border-slate-300 p-2 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300" />
           </label>
           <label className="grid gap-1">
             <span className="text-xs font-bold text-slate-500">{t('lab.conv.kernel')}</span>
-            <textarea value={kText} spellCheck={false} onChange={(e) => { setKText(e.target.value); custom() }} className="min-h-[130px] rounded-[10px] border border-slate-300 p-2 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300" />
+            <textarea value={kText} spellCheck={false} autoCapitalize="off" autoCorrect="off" onChange={(e) => { setKText(e.target.value); custom() }} className="min-h-[130px] rounded-[10px] border border-slate-300 p-2 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300" />
           </label>
         </div>
         <div className="mt-3 grid gap-3">

@@ -154,7 +154,7 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
                 setCat(c)
                 open(config.entries.find((e) => e.cat === c)!)
               }}
-              className={`rounded-full px-2.5 py-1 text-xs font-bold transition ${c === cat ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              className={`rounded-full px-2.5 py-1 text-xs font-bold transition coarse:py-1.5 ${c === cat ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
               {t(`${ns}.cat.${c}`)}
             </button>
@@ -167,7 +167,7 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
             key={e.id}
             onClick={() => open(e)}
             aria-pressed={e.id === entry?.id}
-            className={`rounded-lg border px-2 py-1 font-mono text-xs transition ${e.id === entry?.id ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}
+            className={`rounded-lg border px-2 py-1 font-mono text-xs transition coarse:py-1.5 ${e.id === entry?.id ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-blue-300'}`}
           >
             {e.label}
           </button>

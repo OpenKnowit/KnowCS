@@ -431,7 +431,7 @@ export const NumpyPlayground = () => {
             <button onClick={runNow} className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-sky-700 hover:bg-sky-600 text-white text-xs font-semibold">
               <Play size={12} /> {t('numpy_module.playground.run')}
             </button>
-            <span className="text-[11px] text-slate-400">{t('numpy_module.playground.shortcut')}</span>
+            <span className="text-[11px] text-slate-400 coarse:hidden">{t('numpy_module.playground.shortcut')}</span>
             <RunInPlayground lib="numpy" code={code} className="ml-auto" />
           </div>
         </div>

@@ -318,7 +318,12 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
   const deferredRan = useDeferredValue(ran)
   const stale = deferredRan !== ran
   const result = useMemo(() => spec.run(realOn ? '' : deferredRan), [spec, deferredRan, realOn])
-  const runNow = () => (code !== ran ? setRan(code) : realOn && real.rerun())
+  const runNow = () => {
+    if (code !== ran) setRan(code)
+    else if (realOn) real.rerun()
+    // stacked on a phone: bring the result up from under the editor
+    if (window.matchMedia('(max-width: 1023px)').matches) colRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   const steps = useMemo<Step[]>(() => {
     const calls = spec.callApis ? result.calls.filter((c) => spec.callApis!.some((p) => c.api.startsWith(p))) : result.calls
@@ -420,11 +425,12 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
         <button type="button" onClick={onGallery} className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px] border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-700" aria-label={t('site.playground.gallery_open')} title={t('site.playground.gallery_open')}>
           <LayoutGrid size={17} aria-hidden />
         </button>
-        <div className="flex min-w-0 items-center gap-2 rounded-[9px] border border-slate-200 px-3 py-2">
+        {/* the sidebar is desktop-only, so on a phone this is the way to another example */}
+        <button type="button" onClick={onGallery} title={t('site.playground.gallery')} className="flex min-w-0 items-center gap-2 rounded-[9px] border border-slate-200 px-3 py-2 text-left hover:border-blue-300">
           <NotebookText size={16} className="shrink-0 text-blue-600" aria-hidden />
           <span className="text-sm font-medium text-slate-500">{current.name} /</span>
           <span className="truncate font-mono text-sm font-bold text-slate-900">{entry.label}</span>
-        </div>
+        </button>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-[9px] bg-slate-100 p-[3px]" role="radiogroup" aria-label={t('playground.ui.engine.label')}>
@@ -440,7 +446,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
                 disabled={disabled}
                 title={disabled ? t('playground.ui.engine.unavailable', { name: current.name }) : undefined}
                 onClick={() => setEngine(e)}
-                className={`rounded-md px-2.5 py-1 text-[12px] transition disabled:cursor-not-allowed disabled:opacity-40 ${on ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'font-medium text-slate-500 hover:text-slate-800'}`}
+                className={`rounded-md px-2.5 py-1 text-[12px] transition coarse:py-1.5 disabled:cursor-not-allowed disabled:opacity-40 ${on ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'font-medium text-slate-500 hover:text-slate-800'}`}
               >
                 {t(`playground.ui.engine.${e}`)}
               </button>
@@ -467,7 +473,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
   const figureStep = selected?.kind === 'event' && selected.ev.type === 'figure'
   const resultStep = selected?.kind === 'result'
   const visual = (
-    <section className="flex min-h-[22rem] flex-col lg:min-h-0 lg:flex-1" aria-label={t('site.playground.visual')}>
+    <section className="flex min-h-[12rem] flex-col lg:min-h-0 lg:flex-1" aria-label={t('site.playground.visual')}>
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-2.5">
         <span className="flex items-center gap-2 text-[13px] font-bold text-slate-900">
           <ChartArea size={15} className="text-blue-600" aria-hidden /> {t('site.playground.visual')}
@@ -477,10 +483,10 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
             <span className="font-mono text-[11px] text-slate-500">
               {t('playground.ui.steps')} {selIndex + 1} / {steps.length}
             </span>
-            <button type="button" onClick={() => go(selIndex - 1)} disabled={selIndex <= 0} aria-label={t('playground.ui.prev')} className="grid h-7 w-7 place-items-center rounded-md border border-slate-200 text-slate-600 hover:border-slate-400 disabled:opacity-40">
+            <button type="button" onClick={() => go(selIndex - 1)} disabled={selIndex <= 0} aria-label={t('playground.ui.prev')} className="grid h-7 w-7 place-items-center coarse:h-9 coarse:w-9 rounded-md border border-slate-200 text-slate-600 hover:border-slate-400 disabled:opacity-40">
               <ChevronLeft size={15} aria-hidden />
             </button>
-            <button type="button" onClick={() => go(selIndex + 1)} disabled={selIndex >= steps.length - 1} aria-label={t('playground.ui.next')} className="grid h-7 w-7 place-items-center rounded-md border border-slate-200 text-slate-600 hover:border-slate-400 disabled:opacity-40">
+            <button type="button" onClick={() => go(selIndex + 1)} disabled={selIndex >= steps.length - 1} aria-label={t('playground.ui.next')} className="grid h-7 w-7 place-items-center coarse:h-9 coarse:w-9 rounded-md border border-slate-200 text-slate-600 hover:border-slate-400 disabled:opacity-40">
               <ChevronRight size={15} aria-hidden />
             </button>
           </span>
@@ -500,7 +506,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
                 aria-pressed={on}
                 tabIndex={on || (selIndex < 0 && k === 0) ? 0 : -1}
                 onClick={() => go(k)}
-                className={`flex max-w-[13rem] shrink-0 items-center gap-1.5 rounded-lg border px-2 py-1 font-mono text-[11px] transition ${on ? `${K.on} text-white` : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'}`}
+                className={`flex max-w-[13rem] shrink-0 items-center gap-1.5 rounded-lg border px-2 py-1 font-mono text-[11px] coarse:py-1.5 transition ${on ? `${K.on} text-white` : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'}`}
               >
                 <K.icon size={12} className={on ? 'text-white' : K.icon_} aria-hidden />
                 {s.kind === 'result' ? (
@@ -614,7 +620,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
   )
   const outputPanel = realOn ? (
     // real Python: the whole column is a terminal, like an online compiler's output pane
-    <section className="flex min-h-[22rem] flex-col bg-slate-900 lg:min-h-0 lg:flex-1">
+    <section className="flex min-h-[14rem] flex-col bg-slate-900 lg:min-h-0 lg:flex-1">
       <div className="flex items-center gap-1 bg-slate-800 px-3" role="tablist" aria-label={t('playground.ui.output')}>
         {tabs.map((k) => tabButton(k, true))}
         <button type="button" onClick={() => setCleared(real.run)} className="ml-auto rounded-md px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white">
@@ -626,7 +632,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
       </div>
     </section>
   ) : (
-    <section className="flex shrink-0 flex-col" style={{ height: outH }}>
+    <section className="flex max-h-[60dvh] min-h-[7rem] shrink-0 flex-col lg:h-[var(--out-h)] lg:max-h-none" style={{ ['--out-h' as string]: `${outH}px` }}>
       <div className="flex gap-1 border-b border-slate-200 px-3" role="tablist" aria-label={t('playground.ui.output')}>
         {tabs.map((k) => tabButton(k, false))}
       </div>
@@ -641,15 +647,15 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
   const versions = lastReal ? ['python', 'numpy', 'pandas', 'matplotlib'].filter((k) => lastReal.versions[k]).map((k) => `${k === 'python' ? 'Python' : k} ${lastReal.versions[k]}`) : []
   const kernelDot = realOn ? (engineState === 'ready' ? 'bg-emerald-500' : engineState === 'failed' ? 'bg-rose-500' : 'bg-amber-500') : 'bg-sky-500'
   const statusBar = (
-    <div className="flex h-7 shrink-0 items-center gap-4 border-t border-slate-200 bg-white px-4 text-[11.5px] text-slate-500">
+    <div className="flex h-7 shrink-0 items-center gap-4 overflow-hidden whitespace-nowrap border-t border-slate-200 bg-white px-4 text-[11.5px] text-slate-500">
       <span className="flex items-center gap-1.5 font-semibold text-slate-700">
         <i className={`h-2 w-2 rounded-full ${kernelDot}`} aria-hidden />
         {t('site.playground.kernel')}: {realOn ? t('site.playground.kernel_real') : t('site.playground.kernel_mini')}
       </span>
-      <span>{realOn ? t(`playground.ui.engine.real_${engineState}`) : t('playground.ui.engine.mini_sub')}</span>
+      <span className="hidden sm:inline">{realOn ? t(`playground.ui.engine.real_${engineState}`) : t('playground.ui.engine.mini_sub')}</span>
       {realOn && versions.length > 0 && <span className="hidden font-mono md:inline">{versions.join(' · ')}</span>}
       <span className="ml-auto hidden font-mono sm:inline">{t('site.playground.lines', { count: code.split('\n').length })}</span>
-      <span className="font-mono">{realOn ? (lastReal ? t('playground.ui.real.took', { ms: lastReal.ms }) : '') : t('site.playground.traced', { count: steps.length })}</span>
+      <span className="ml-auto font-mono sm:ml-0">{realOn ? (lastReal ? t('playground.ui.real.took', { ms: lastReal.ms }) : '') : t('site.playground.traced', { count: steps.length })}</span>
     </div>
   )
 
@@ -657,12 +663,12 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
     <div className="flex min-w-0 flex-1 flex-col">
       {toolbar}
       <div ref={splitRef} className="flex min-h-0 flex-1 flex-col lg:flex-row" style={{ ['--split' as string]: `${split}%` }}>
-        <div className="flex min-h-[20rem] min-w-0 flex-1 flex-col bg-slate-900">
+        <div className="flex max-h-[50dvh] min-h-[11rem] min-w-0 flex-col bg-slate-900 lg:max-h-none lg:min-h-[20rem] lg:flex-1">
           <div className="flex h-10 items-end bg-slate-800 px-2">
             <span className="flex items-center gap-2 rounded-t-lg bg-slate-900 px-3.5 py-2 font-mono text-xs font-semibold text-slate-200">
               <FileCode size={14} className="text-sky-300" aria-hidden /> main.py
             </span>
-            <span className="ml-auto hidden pb-2 pr-2 text-[11px] text-slate-400 sm:inline">{t('playground.ui.shortcut')}</span>
+            <span className="ml-auto hidden pb-2 pr-2 text-[11px] text-slate-400 sm:inline coarse:hidden">{t('playground.ui.shortcut')}</span>
           </div>
           <div className="flex min-h-0 flex-1 flex-col overflow-auto p-3 [&>div]:rounded-lg [&>div]:border-0">
             <CodeEditor value={code} onChange={setCode} onRun={runNow} errorLine={realOn ? realErrorLine(real.run) : result.error?.line} label={t('playground.ui.editor')} tall minRows={14} />
@@ -694,7 +700,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
               onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
               onPointerMove={onDragRow}
               onKeyDown={onRowKey}
-              className="h-1.5 shrink-0 cursor-row-resize touch-none border-y border-slate-200 bg-slate-100 transition-colors hover:bg-blue-400 focus-visible:bg-blue-500 focus-visible:outline-none active:bg-blue-500"
+              className="hidden h-1.5 shrink-0 cursor-row-resize touch-none border-y lg:block border-slate-200 bg-slate-100 transition-colors hover:bg-blue-400 focus-visible:bg-blue-500 focus-visible:outline-none active:bg-blue-500"
             />
           )}
           {outputPanel}

@@ -136,11 +136,11 @@ export default function KMeansTable() {
           <div className="grid grid-cols-[1.4fr_1fr] gap-2">
             <label className="grid gap-1">
               <span className="text-xs font-bold text-slate-500">{t('lab.km.points')}</span>
-              <textarea value={pointsText} spellCheck={false} onChange={(e) => { setPointsText(e.target.value); setPreset(null); setRound(0) }} className="min-h-[140px] rounded-[10px] border border-slate-300 p-2 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300" />
+              <textarea value={pointsText} spellCheck={false} autoCapitalize="off" autoCorrect="off" onChange={(e) => { setPointsText(e.target.value); setPreset(null); setRound(0) }} className="min-h-[140px] rounded-[10px] border border-slate-300 p-2 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300" />
             </label>
             <label className="grid gap-1">
               <span className="text-xs font-bold text-slate-500">{t('lab.km.seeds')}</span>
-              <textarea value={seedsText} spellCheck={false} onChange={(e) => { setSeedsText(e.target.value); setPreset(null); setRound(0) }} className="min-h-[140px] rounded-[10px] border border-slate-300 p-2 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300" />
+              <textarea value={seedsText} spellCheck={false} autoCapitalize="off" autoCorrect="off" onChange={(e) => { setSeedsText(e.target.value); setPreset(null); setRound(0) }} className="min-h-[140px] rounded-[10px] border border-slate-300 p-2 font-mono text-[13px] outline-none focus:ring-2 focus:ring-blue-300" />
             </label>
           </div>
           <div className="mt-3">

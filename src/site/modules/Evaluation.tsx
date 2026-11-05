@@ -84,7 +84,7 @@ export default function Evaluation() {
                     <span className="text-xs font-bold text-slate-500">{t(`lab.eval.${name}`)}</span>
                     <input
                       type="text"
-                      spellCheck={false}
+                      spellCheck={false} autoCapitalize="off" autoCorrect="off"
                       value={labels[i]}
                       onChange={(e) => {
                         const next: [string, string] = [...labels]
@@ -126,7 +126,7 @@ export default function Evaluation() {
                         <td colSpan={2} />
                         {classes.map((name, j) => (
                           <th key={j}>
-                            <button type="button" onClick={() => setSel(j)} aria-pressed={j === s} className={`rounded-lg px-2.5 py-1 text-xs font-extrabold ${j === s ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50'}`}>{name}</button>
+                            <button type="button" onClick={() => setSel(j)} aria-pressed={j === s} className={`rounded-lg px-2.5 py-1 coarse:py-1.5 text-xs font-extrabold ${j === s ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50'}`}>{name}</button>
                           </th>
                         ))}
                       </tr>
@@ -136,7 +136,7 @@ export default function Evaluation() {
                             <th rowSpan={classes.length} className="pr-1 text-xs font-extrabold uppercase tracking-widest text-indigo-600 [writing-mode:vertical-rl] rotate-180">{rowsActual ? t('lab.eval.actual') : t('lab.eval.predicted')} →</th>
                           )}
                           <th>
-                            <button type="button" onClick={() => setSel(i)} aria-pressed={i === s} className={`rounded-lg px-2.5 py-1 text-xs font-extrabold ${i === s ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50'}`}>{name}</button>
+                            <button type="button" onClick={() => setSel(i)} aria-pressed={i === s} className={`rounded-lg px-2.5 py-1 coarse:py-1.5 text-xs font-extrabold ${i === s ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50'}`}>{name}</button>
                           </th>
                           {classes.map((_, j) => {
                             const a = rowsActual ? i : j

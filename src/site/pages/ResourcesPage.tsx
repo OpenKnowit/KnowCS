@@ -106,7 +106,7 @@ export default function ResourcesPage() {
   const lang = i18n.language
   const shown = items.filter((r) => (cat === 'all' || r.cat === cat) && (!query || `${inLang(r.title, lang)} ${inLang(r.desc, lang)} ${t(`site.resources.cats.${r.cat}`)} ${r.url}`.toLowerCase().includes(query)))
   return (
-    <main className="px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8">
+    <main className="px-4 sm:px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8">
       <h1 className="sr-only">{t('site.resources.title')}</h1>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="flex h-[42px] w-full max-w-[420px] items-center gap-2.5 rounded-[10px] border border-slate-200 bg-white px-3.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">

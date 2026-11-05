@@ -38,14 +38,14 @@ export const ShapeEditor = ({ name, label, shape, onChange }: ShapeEditorProps) 
               value={d}
               onChange={(e) => onChange(shape.map((x, i) => (i === k ? Number(e.target.value) : x)))}
               aria-label={t('numpy_module.broadcast.dim_label', { name, axis: k })}
-              className="bg-transparent font-mono text-sm pl-2 pr-1 py-1 outline-none cursor-pointer"
+              className="cursor-pointer bg-transparent py-1 pl-2 pr-1 font-mono text-sm outline-none coarse:py-1.5"
             >
               {Array.from({ length: MAX_DIM }, (_, i) => i + 1).map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
             <button
               onClick={() => onChange(shape.filter((_, i) => i !== k))}
               aria-label={t('numpy_module.broadcast.remove_axis', { name, axis: k })}
-              className="px-1 text-gray-300 hover:text-rose-500"
+              className="self-stretch px-1 text-gray-300 hover:text-rose-500 coarse:px-2"
             >
               <X size={12} />
             </button>
@@ -55,7 +55,7 @@ export const ShapeEditor = ({ name, label, shape, onChange }: ShapeEditorProps) 
         <button
           onClick={() => onChange([2, ...shape])}
           disabled={shape.length >= MAX_NDIM}
-          className="ml-1 px-2 py-1 rounded-md text-xs border border-dashed border-gray-300 text-gray-500 hover:border-gray-500 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="ml-1 rounded-md px-2 py-1 text-xs coarse:py-1.5 border border-dashed border-gray-300 text-gray-500 hover:border-gray-500 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {t('numpy_module.broadcast.add_axis')}
         </button>
@@ -91,7 +91,7 @@ export const Grid = ({ title, shape, cell, onHover }: GridProps) => {
         {Array.from({ length: blocks }, (_, b) => (
           <div key={b}>
             {n === 3 && <div className="text-[10px] font-mono text-gray-400 mb-0.5">[{b}, :, :]</div>}
-            <div className="inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(2.25rem, max-content))` }}>
+            <div className="inline-grid gap-1 [--cell:1.75rem] sm:[--cell:2.25rem]" style={{ gridTemplateColumns: `repeat(${cols}, minmax(var(--cell), max-content))` }}>
               {Array.from({ length: rows * cols }, (_, i) => {
                 const r = Math.floor(i / cols)
                 const c = i % cols
@@ -103,7 +103,7 @@ export const Grid = ({ title, shape, cell, onHover }: GridProps) => {
                     key={i}
                     onMouseEnter={() => onHover?.(idx)}
                     onClick={() => onHover?.(idx)}
-                    className={`flex h-9 cursor-default items-center justify-center rounded border px-1 font-mono text-[11px] transition-colors ${info.cls} ${ring}`}
+                    className={`flex h-7 cursor-default items-center justify-center rounded border px-0.5 font-mono text-[11px] transition-colors sm:h-9 sm:px-1 ${info.cls} ${ring}`}
                   >
                     {info.text}
                   </div>
