@@ -942,7 +942,8 @@
       "view_grid": "Grid",
       "view_chapters": "Chapters",
       "no_match": "No lab matches “{{q}}”.",
-      "starred": "Starred"
+      "starred": "Starred",
+      "disclaimer": "Where this differs from the course slides, follow the slides. Some pages were generated with Opus 5.5."
     },
     "playground": {
       "title": "Playground",

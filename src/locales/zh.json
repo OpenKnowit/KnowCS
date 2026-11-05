@@ -942,7 +942,8 @@
       "view_grid": "网格",
       "view_chapters": "章节",
       "no_match": "没有和“{{q}}”匹配的实验。",
-      "starred": "星标"
+      "starred": "星标",
+      "disclaimer": "如有与课件不同的内容，以课件为准。部分页面由 Opus 5.5 生成。"
     },
     "playground": {
       "title": "实验场",
