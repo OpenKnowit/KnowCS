@@ -813,7 +813,7 @@ export const pyFloatRepr = (v: number): string => {
 
 export const arrayRepr = (a: NDArray): string => {
   const name = a.matrix ? 'matrix' : 'array'
-  if (a.ndim === 0) return `${name}(${formatScalar(a.values()[0], a.dtype)})`
+  if (a.ndim === 0) return `${name}(${formatScalar(a.values()[0], a.dtype)}${a.dtype === 'uint8' || a.dtype === 'float32' ? `, dtype=${a.dtype}` : ''})`
   if (a.size === 0) {
     return a.ndim === 1 ? `${name}([], dtype=${a.dtype})` : `${name}([], shape=${shapeStr(a.shape)}, dtype=${a.dtype})`
   }

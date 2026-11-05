@@ -162,17 +162,12 @@ const f32clean = (v: number): number => {
   return v
 }
 
-const ndFor = (t: TT): NDArray => {
-  const vals = t.dtype === 'float32' ? t.values().map(f32clean) : t.values()
-  return NDArray.create(vals, t.shape, t.dtype === 'bool' ? 'bool' : isFloatT(t.dtype) ? 'float64' : t.dtype === 'uint8' ? 'uint8' : 'int64')
-}
+const ndFor = (t: TT): NDArray => NDArray.create(t.values(), t.shape, t.dtype === 'int32' ? 'int64' : t.dtype)
 
-/** array([...], dtype=float32) */
+/** array([...], dtype=float32); arrays have no int32 of their own, so its suffix is added here */
 const npRepr = (t: TT): string => {
   const base = arrayRepr(ndFor(t))
-  if (t.dtype === 'float64' || t.dtype === 'int64' || t.dtype === 'bool' || t.dtype === 'uint8') return base
-  if (!t.ndim) return base
-  return `${base.slice(0, -1)}, dtype=${t.dtype})`
+  return t.dtype === 'int32' && t.ndim ? `${base.slice(0, -1)}, dtype=int32)` : base
 }
 
 const scalarStr = (t: TT) => {

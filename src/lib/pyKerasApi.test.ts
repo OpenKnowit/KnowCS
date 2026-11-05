@@ -573,7 +573,7 @@ print(d.get_weights()[0].ravel().tolist())
 print(keras.regularizers.L1L2(l1=0.1, l2=0.2).get_config(), keras.regularizers.l2(0.5)(tf.constant([2.0])))`)
     // loss 1 + .2 * (.25 + .25); 1 + .1 * (.5 + .5); both; ...; 'l2' and 'l1' default to 0.01; (1 + 1)^2 + 1 * 1^2 ; dw = -lr * (2 * .5 * w) = -.1
     expect(r.error).toBeNull()
-    expect(r.stdout).toBe("1.1 1.1 1.2 1.1 1.005 1.01 5.0\n[0.9, 0.9]\n{'l1': 0.1, 'l2': 0.2} tf.Tensor(2.0, shape=(), dtype=float32)\n")
+    expect(r.stdout).toBe("1.1 1.1 1.2 1.1 1.005 1.01 5.0\n[0.8999999761581421, 0.8999999761581421]\n{'l1': 0.1, 'l2': 0.2} tf.Tensor(2.0, shape=(), dtype=float32)\n")
   })
 
   it('every initializer, by object and by name, reaches the kernel', () => {
