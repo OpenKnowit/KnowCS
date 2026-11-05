@@ -1065,7 +1065,8 @@
           "desc": "雲端免費 Jupyter Notebook，帶 GPU——筆記本電腦跑不動 PyTorch、Keras 時用它。"
         }
       },
-      "edit": "編輯列表"
+      "edit": "編輯列表",
+      "edit_short": "編輯"
     },
     "admin": {
       "title": "資源管理",

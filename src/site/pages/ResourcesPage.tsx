@@ -138,8 +138,9 @@ export default function ResourcesPage() {
       )}
       {/* a quiet way in for whoever maintains the list */}
       <div className="mt-10 flex justify-end">
-        <a href="/admin/" title={t('site.resources.edit')} aria-label={t('site.resources.edit')} className="grid h-7 w-7 place-items-center rounded-md text-slate-300 transition hover:bg-slate-200/60 hover:text-slate-500">
-          <Pencil size={13} aria-hidden />
+        <a href="/admin/" title={t('site.resources.edit')} aria-label={t('site.resources.edit')} className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-slate-400 transition hover:bg-slate-200/60 hover:text-slate-600">
+          <Pencil size={11} aria-hidden />
+          {t('site.resources.edit_short')}
         </a>
       </div>
     </main>

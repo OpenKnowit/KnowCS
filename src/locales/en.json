@@ -1065,7 +1065,8 @@
           "desc": "Free Jupyter notebooks in the cloud with GPUs — for the PyTorch and Keras labs once a laptop is too slow."
         }
       },
-      "edit": "Edit this list"
+      "edit": "Edit this list",
+      "edit_short": "Edit"
     },
     "admin": {
       "title": "Resources admin",
