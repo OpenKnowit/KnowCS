@@ -985,19 +985,19 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
       const unit = n ? flat.size / n : 1
       const v = flat.values()
       const row = (i: number) => v.slice(i * unit, i * unit + unit)
-      const compare = (x: number, y: number) => {
+      const compareRows = (x: number, y: number) => {
         for (let k = 0; k < unit; k++) {
           const c = ascending(v[x * unit + k], v[y * unit + k])
           if (c) return c
         }
-        return x - y
+        return 0
       }
-      const order = Array.from({ length: n }, (_, i) => i).sort(compare)
+      const order = Array.from({ length: n }, (_, i) => i).sort((x, y) => compareRows(x, y) || x - y)
       const firsts: number[] = []
       const counts: number[] = []
       const inverse = new Array<number>(n)
       order.forEach((i, k) => {
-        const same = k > 0 && compare(order[k - 1], i) === order[k - 1] - i
+        const same = k > 0 && compareRows(order[k - 1], i) === 0
         if (!same) {
           firsts.push(i)
           counts.push(0)
