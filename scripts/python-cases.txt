@@ -2869,3 +2869,481 @@ class Cl:
     @property
     def p(self): return self.x
 print([n for n, v in getmembers(Cl, isfunction)], [n for n, v in getmembers(Cl(1), ismethod)], isclass(Cl), getdoc(Cl), getdoc(Cl.go), [n for n, v in getmembers(Cl(1)) if not n.startswith('_')])
+### argparse in a training script
+import argparse
+def get_args(argv):
+    ap = argparse.ArgumentParser(description='Train a model', prog='train.py')
+    ap.add_argument('data', help='path to data')
+    ap.add_argument('--lr', '-l', type=float, default=1e-3, help='learning rate')
+    ap.add_argument('--batch-size', type=int, default=32, dest='bs')
+    ap.add_argument('--layers', type=int, nargs='+', default=[64, 32])
+    ap.add_argument('--opt', choices=['sgd', 'adam'], default='adam')
+    ap.add_argument('--no-aug', action='store_false', dest='aug')
+    ap.add_argument('-v', '--verbose', action='store_true')
+    ap.add_argument('--tag', action='append')
+    ap.add_argument('--n', action='count', default=0)
+    return ap, ap.parse_args(argv)
+ap, a = get_args(['d.csv'])
+print(a)
+print(vars(a), a.data, a.bs, a.layers, a.aug)
+_, b = get_args(['d.csv', '--lr', '0.1', '--batch-size=8', '--layers', '1', '2', '3', '-v', '--no-aug', '--tag', 'x', '--tag', 'y', '--n', '--n', '--opt', 'sgd'])
+print(b)
+print(ap.format_usage())
+print(ap.format_help())
+for argv in (['d', '--opt', 'bad'], [], ['d', '--lr', 'x'], ['d', '--nope']):
+    try:
+        get_args(argv)
+    except SystemExit as e:
+        print('exit', e.code)
+known, rest = ap.parse_known_args(['d', '--zzz', '1'])
+print(known.data, rest)
+print(argparse.Namespace(a=1, b='x'), argparse.Namespace(a=1) == argparse.Namespace(a=1), 'a' in argparse.Namespace(a=1))
+### pathlib walking a project
+from pathlib import Path, PurePath, PosixPath
+root = Path('proj')
+(root / 'data' / 'raw').mkdir(parents=True)
+(root / 'data' / 'raw' / 'a.csv').write_text('x,y\n1,2\n')
+(root / 'data' / 'b.txt').write_text('hello\nworld\n')
+(root / 'README.md').write_text('# title')
+print(sorted(p.as_posix() for p in root.rglob('*')))
+print(sorted(p.name for p in root.glob('**/*.csv')), sorted(p.name for p in (root / 'data').iterdir()), sorted(str(p) for p in root.glob('*')))
+p = root / 'data' / 'raw' / 'a.csv'
+print(p, repr(p), p.name, p.stem, p.suffix, p.suffixes, p.parent, p.parent.parent.name, list(p.parents), p.parts, p.is_file(), p.is_dir(), p.exists(), p.is_absolute(), p.as_posix())
+print(p.with_suffix('.tsv'), p.with_name('z.txt'), p.with_stem('q') if hasattr(p, 'with_stem') else None, p.relative_to(root), p.relative_to('proj/data'), root.joinpath('x', 'y'), Path('a') / 'b' / 'c.tar.gz', Path('c.tar.gz').suffixes, Path('.hidden').suffix, Path('a/b/').name, Path('/a/b').is_absolute(), Path('/a/b').root, Path('/a/b').anchor, Path('.'), Path(), Path('a//b/./c'))
+print(p.read_text(), p.read_text().splitlines(), len(p.read_text()), p.stat().st_size)
+with p.open() as f:
+    print(f.readline().strip(), f.read())
+with p.open('a') as f:
+    f.write('3,4\n')
+print(p.read_text().count('\n'))
+print(Path('a') == Path('a'), Path('a') < Path('b'), {Path('a'): 1}[Path('a')], sorted([Path('b'), Path('a')]), str(Path('a')) + '.x', f'{Path("a")}', '%s' % Path('a'), PurePath('x/y').name, isinstance(Path('a'), PurePath), isinstance(Path('a'), PosixPath), type(Path('a')).__name__)
+p.rename(root / 'moved.csv')
+print((root / 'moved.csv').exists(), p.exists())
+(root / 'moved.csv').unlink()
+try:
+    (root / 'moved.csv').unlink()
+except FileNotFoundError as e:
+    print(type(e).__name__, e, e.errno, e.filename)
+(root / 'moved.csv').unlink(missing_ok=True)
+try:
+    (root / 'data').mkdir()
+except FileExistsError as e:
+    print(e)
+(root / 'data').mkdir(exist_ok=True)
+try:
+    Path('nope.txt').read_text()
+except FileNotFoundError as e:
+    print(e)
+try:
+    Path('a').relative_to('b')
+except ValueError as e:
+    print(e)
+try:
+    Path('nosuch/x').mkdir()
+except FileNotFoundError as e:
+    print(e)
+try:
+    Path('a') / 1
+except TypeError as e:
+    print(e)
+print(Path('a').with_suffix('.b'), Path('x.txt').with_suffix(''))
+try:
+    Path('a').with_suffix('b')
+except ValueError as e:
+    print(e)
+try:
+    (root / 'data').rmdir()
+except OSError as e:
+    print(type(e).__name__)
+### paths through other libraries
+import csv, json, os
+from pathlib import Path
+d = Path('out')
+d.mkdir()
+f = d / 'r.csv'
+with open(f, 'w', newline='') as h:
+    w = csv.writer(h)
+    w.writerow(['a', 'b'])
+    w.writerows([[1, 2], [3, 4]])
+with open(f) as h:
+    print(list(csv.DictReader(h)))
+j = d / 'c.json'
+j.write_text(json.dumps({'k': [1, 2]}))
+print(json.loads(j.read_text()), json.load(open(j)), os.path.exists(f), os.path.getsize(j), os.path.basename(f), os.path.dirname(f), os.path.join(d, 'x'), os.fspath(f), os.path.splitext(f), sorted(os.listdir(d)), os.path.isdir(d), os.path.isfile(d), os.path.abspath(f).endswith('out/r.csv'))
+for base, dirs, files in os.walk(d):
+    print(base, dirs, sorted(files))
+os.makedirs(d / 'x' / 'y', exist_ok=True)
+print(sorted(os.listdir(d)))
+os.remove(j)
+print(j.exists())
+try:
+    os.makedirs(d / 'x')
+except FileExistsError as e:
+    print(e)
+try:
+    os.listdir('nosuch')
+except FileNotFoundError as e:
+    print(e)
+try:
+    open('nosuch/a.txt', 'w')
+except FileNotFoundError as e:
+    print(e)
+try:
+    open(d)
+except IsADirectoryError as e:
+    print(e)
+print(os.getcwd() != '', os.sep, os.linesep == '\n', os.path.sep, os.getenv('NOPE'), os.getenv('NOPE', 'd'), os.environ.get('NOPE'), 'NOPE' in os.environ)
+### enum as configuration
+from enum import Enum, IntEnum, Flag, IntFlag, auto, unique
+class Color(Enum):
+    RED = 1
+    GREEN = 2
+    BLUE = 3
+    CRIMSON = 1
+    @property
+    def pretty(self):
+        return self.name.title()
+    def __str__(self):
+        return f'color:{self.name}'
+    @classmethod
+    def default(cls):
+        return cls.GREEN
+    @staticmethod
+    def count():
+        return 3
+print(Color.RED, repr(Color.RED), Color.RED.value, Color.RED.name, Color.RED.pretty, Color.default(), Color.count(), Color(1), Color['BLUE'], Color.CRIMSON, Color.CRIMSON is Color.RED, list(Color), len(Color), Color.RED in Color, 1 in [c.value for c in Color], Color.RED == 1, Color.RED != Color.GREEN, Color.RED is Color(1), isinstance(Color.RED, Color), isinstance(Color.RED, Enum), type(Color.RED).__name__, Color.__name__, list(Color.__members__), hash(Color.RED) == hash(Color.RED), {Color.RED: 1}[Color.RED], sorted(Color, key=lambda c: -c.value)[0], bool(Color.RED), [c.name for c in Color], f'{Color.RED}', '%s' % Color.RED, str(Color.RED))
+print(Color)
+for bad in ('Color(9)', "Color['X']", 'Color.X', 'Color.RED < Color.GREEN', 'Color.RED + 1'):
+    try:
+        print(eval(bad))
+    except Exception as e:
+        print(type(e).__name__, e)
+try:
+    Color.RED = 5
+except AttributeError as e:
+    print(e)
+try:
+    Color.RED.value = 5
+except AttributeError as e:
+    print(e)
+try:
+    class Dup(Enum):
+        A = 1
+        A = 2
+except TypeError as e:
+    print(e)
+try:
+    @unique
+    class U(Enum):
+        A = 1
+        B = 1
+except ValueError as e:
+    print(e)
+class Auto(Enum):
+    A = auto()
+    B = auto()
+    C = 10
+    D = auto()
+print(list(Auto), Auto.D.value)
+class Lv(IntEnum):
+    LOW = 1
+    HIGH = 2
+print(Lv.LOW, repr(Lv.LOW), Lv.LOW + 1, Lv.LOW < Lv.HIGH, Lv.LOW == 1, int(Lv.HIGH), sorted([Lv.HIGH, Lv.LOW]), [10, 20, 30][Lv.HIGH], max(Lv), sum(Lv), Lv(1), f'{Lv.LOW}', f'{Lv.LOW:03d}', '%d' % Lv.HIGH, str(Lv.LOW), range(Lv.HIGH), {1: 'a'}[Lv.LOW], Lv.LOW * 2.5, -Lv.LOW, abs(Lv.LOW), Lv.HIGH // 2)
+class Mode(str, Enum):
+    TRAIN = 'train'
+    EVAL = 'eval'
+print(Mode.TRAIN, repr(Mode.TRAIN), Mode.TRAIN == 'train', Mode('eval'), Mode.TRAIN.value, Mode.TRAIN.upper(), 'x' + Mode.TRAIN.value, f'{Mode.TRAIN}', isinstance(Mode.TRAIN, str), len(Mode.TRAIN), {'train': 1}[Mode.TRAIN], '-'.join([Mode.TRAIN, Mode.EVAL]))
+class P(Flag):
+    R = auto()
+    W = auto()
+    X = auto()
+print(P.R, repr(P.R), P.R | P.W, repr(P.R | P.W), P.R & P.W, bool(P.R & P.W), P.R in (P.R | P.W), (P.R | P.W).value, ~P.R, list(P))
+class Q(IntFlag):
+    A = 1
+    B = 2
+print(Q.A | Q.B, Q.A + 1, int(Q.A | Q.B), Q(3), Q.A in Q(3), repr(Q.A))
+class F(Enum):
+    ONE = (1, 'a')
+    TWO = (2, 'b')
+    def __init__(self, n, s):
+        self.n = n
+        self.s = s
+print(F.ONE.value, F.ONE.n, F.TWO.s, F((2, 'b')))
+A = Enum('A', 'X Y')
+B = Enum('B', ['P', 'Q'])
+C = Enum('C', {'M': 5})
+print(list(A), B.Q.value, C.M, A.X.name)
+### pickle round trips
+import pickle
+class Rec:
+    def __init__(self, a):
+        self.a = a
+    def __eq__(self, o):
+        return isinstance(o, Rec) and self.a == o.a
+    def __repr__(self):
+        return f'Rec({self.a})'
+data = {'a': [1, 2, {'b': (3, 4)}], 'r': Rec(5), 's': {1, 2}, 'n': None, 'f': 1.5, 't': 'x'}
+s = pickle.dumps(data)
+back = pickle.loads(s)
+print(back, back == data, back is data, back['a'] is data['a'], back['r'] == data['r'], back['r'] is data['r'])
+with open('d.pkl', 'wb') as f:
+    pickle.dump(data, f)
+with open('d.pkl', 'rb') as f:
+    print(pickle.load(f))
+f = open('m.pkl', 'wb')
+pickle.dump(1, f)
+pickle.dump([2], f)
+f.close()
+f = open('m.pkl', 'rb')
+print(pickle.load(f), pickle.load(f))
+try:
+    pickle.load(f)
+except EOFError as e:
+    print(type(e).__name__, e)
+f.close()
+shared = [1]
+a, b = pickle.loads(pickle.dumps([shared, shared]))
+print(a is b)
+loop = []
+loop.append(loop)
+print(pickle.loads(pickle.dumps(loop)))
+try:
+    pickle.dumps(lambda x: x)
+except Exception as e:
+    print(type(e).__name__)
+def named():
+    return 1
+print(pickle.loads(pickle.dumps(named))())
+try:
+    pickle.loads('notbytes')
+except TypeError as e:
+    print(e)
+try:
+    pickle.dump(1, open('x.pkl', 'w'))
+except TypeError as e:
+    print(e)
+print(pickle.HIGHEST_PROTOCOL >= 4, pickle.DEFAULT_PROTOCOL >= 3)
+### contextlib and generators
+import contextlib, io, sys
+from contextlib import contextmanager
+@contextmanager
+def tag(n):
+    print('<' + n + '>')
+    try:
+        yield n.upper()
+    except ValueError as e:
+        print('caught', e)
+    finally:
+        print('</' + n + '>')
+with tag('a') as x:
+    print(x)
+with tag('b'):
+    raise ValueError('boom')
+try:
+    with tag('c'):
+        raise KeyError('k')
+except KeyError as e:
+    print('out', e)
+with tag('a') as x, tag('b') as y:
+    print(x, y)
+@tag('d')
+def deco():
+    print('in deco')
+deco()
+@contextmanager
+def noyield():
+    if False:
+        yield
+try:
+    with noyield():
+        pass
+except RuntimeError as e:
+    print(e)
+@contextmanager
+def twice():
+    yield
+    yield
+try:
+    with twice():
+        pass
+except RuntimeError as e:
+    print(e)
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    print('hidden', 1)
+print(repr(buf.getvalue()))
+with contextlib.redirect_stderr(io.StringIO()) as e:
+    print('err', file=sys.stderr)
+print(repr(e.getvalue()))
+with contextlib.suppress(ZeroDivisionError, KeyError):
+    1 / 0
+print('after')
+try:
+    with contextlib.suppress(KeyError):
+        1 / 0
+except ZeroDivisionError:
+    print('not suppressed')
+with contextlib.nullcontext(5) as v:
+    print(v)
+class Res:
+    def __enter__(self):
+        print('enter')
+        return self
+    def __exit__(self, t, v, tb):
+        print('exit', t.__name__ if t else None, v)
+        return True
+with Res():
+    raise IndexError('i')
+def gen():
+    try:
+        v = yield 1
+        print('got', v)
+        yield 2
+    except KeyError as e:
+        print('in gen', e)
+        yield 3
+g = gen()
+print(next(g), g.send('x'), g.throw(KeyError('z')))
+try:
+    next(g)
+except StopIteration:
+    print('stop')
+### textwrap, types, inspect, fractions
+import textwrap, types, inspect, fractions, uuid, secrets, platform, getpass
+from fractions import Fraction as Fr
+print(textwrap.dedent('''
+    a
+      b
+    c
+'''), textwrap.wrap('the quick brown fox jumps over the lazy dog', 10), textwrap.fill('the quick brown fox jumps', 12, initial_indent='> ', subsequent_indent='  '), textwrap.shorten('hello world again and again', 15), textwrap.shorten('hello world', 5), textwrap.shorten('a b', width=10, placeholder='..'), textwrap.indent('a\n\nb', '# '), textwrap.wrap(''), textwrap.wrap('abcdefghij', 3), textwrap.wrap('abcdefghij', 3, break_long_words=False))
+n = types.SimpleNamespace(a=1, b='x')
+n.c = [1]
+print(n, n.a, vars(n), n == types.SimpleNamespace(a=1, b='x', c=[1]), hasattr(n, 'z'))
+def f(a, b: int = 2, *args, c, d=4, **kw) -> str:
+    '''doc'''
+    return a
+class K:
+    '''kdoc'''
+    x = 1
+    def m(self, y):
+        '''mdoc'''
+        return y
+    @property
+    def p(self):
+        return 1
+    @staticmethod
+    def s():
+        pass
+    @classmethod
+    def c(cls):
+        pass
+sig = inspect.signature(f)
+print(sig, list(sig.parameters), sig.parameters['b'].default, sig.parameters['b'].annotation, sig.parameters['a'].default is inspect.Parameter.empty, sig.parameters['args'].kind, sig.parameters['c'].kind.name, sig.return_annotation, str(sig.parameters['b']))
+print(inspect.signature(K.m), inspect.signature(K().m), inspect.signature(lambda x, y=1: 0), inspect.isfunction(f), inspect.ismethod(K().m), inspect.isclass(K), inspect.ismodule(types), inspect.isbuiltin(len), inspect.isgenerator((i for i in [])), inspect.isgeneratorfunction(f), inspect.getdoc(f), inspect.getdoc(K), [n for n, _ in inspect.getmembers(K, inspect.isfunction)], f.__doc__, f.__name__, f.__annotations__, K.__doc__, K.m.__doc__, K.__name__, K().__class__.__name__, K.m.__name__, K().m.__name__)
+print(isinstance(f, types.FunctionType), isinstance(K().m, types.MethodType), isinstance(types, types.ModuleType), inspect.getmro(K)[0].__name__, callable(K), K.__mro__[0].__name__, K.__mro__[-1].__name__)
+print(Fr(1, 3) + Fr(1, 6), Fr(3, 4) * 2, Fr(1, 2) ** 2, Fr(1, 2) / Fr(1, 4), Fr(1, 2) - 1, 1 - Fr(1, 2), Fr(1, 2) + 0.5, float(Fr(1, 4)), int(Fr(7, 2)), repr(Fr(2, 4)), str(Fr(4, 2)), Fr(0.5), Fr('3/4'), Fr('0.25'), Fr(5), Fr(1, 2) == 0.5, Fr(1, 2) < 1, Fr(1, 3).numerator, Fr(1, 3).denominator, Fr(1, 3).limit_denominator(2), Fr(3.14159).limit_denominator(100), abs(Fr(-1, 2)), -Fr(1, 2), round(Fr(7, 3)), round(Fr(7, 3), 1), hash(Fr(2, 1)) == hash(2), sum([Fr(1, 2), Fr(1, 3)]), sorted([Fr(1, 2), Fr(1, 3)]), max(Fr(1, 2), 0.25), {Fr(1, 2): 1}[Fr(2, 4)], f'{Fr(1, 2)}', Fr(1, 2) % Fr(1, 3), Fr(7, 2) // 1, divmod(Fr(7, 2), 1))
+for bad in ('Fr(1, 0)', "Fr('x')", 'Fr(1, 2) + "a"'):
+    try:
+        print(eval(bad))
+    except Exception as e:
+        print(type(e).__name__, e)
+print(len(str(uuid.uuid4())), str(uuid.uuid4()).count('-'), len(secrets.token_hex(4)), 0 <= secrets.randbelow(3) < 3, secrets.choice([1]), isinstance(platform.python_version(), str), isinstance(platform.system(), str), isinstance(getpass.getuser(), str))
+### tempfile, glob, shutil, io
+import tempfile, glob, shutil, os, io, fnmatch
+with tempfile.TemporaryDirectory() as t:
+    p = os.path.join(t, 'a.txt')
+    with open(p, 'w') as f:
+        f.write('x')
+    print(os.path.exists(p), [os.path.basename(g) for g in glob.glob(os.path.join(t, '*.txt'))], glob.glob(os.path.join(t, '*.csv')))
+print(os.path.exists(p))
+with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f:
+    f.write('hello')
+    name = f.name
+print(name.endswith('.txt'), open(name).read())
+os.remove(name)
+d = tempfile.mkdtemp()
+print(os.path.isdir(d))
+fd, q = tempfile.mkstemp(suffix='.log')
+print(q.endswith('.log'), isinstance(fd, int), isinstance(tempfile.gettempdir(), str))
+os.makedirs('src/a/b')
+for n in ('src/x.py', 'src/a/y.py', 'src/a/b/z.txt'):
+    open(n, 'w').write(n)
+print(sorted(glob.glob('src/*')), sorted(glob.glob('src/**/*.py', recursive=True)), sorted(glob.glob('**/*.txt', recursive=True)), sorted(glob.glob('src/?.py')), sorted(glob.glob('src/[xy].py')), sorted(glob.iglob('src/*.py')), fnmatch.fnmatch('a.py', '*.py'), fnmatch.filter(['a.py', 'b.txt'], '*.py'))
+print(shutil.copy('src/x.py', 'c.py'), open('c.py').read(), shutil.copyfile('c.py', 'd.py'), shutil.copy2('c.py', 'e.py'), shutil.move('e.py', 'f.py'), os.path.exists('e.py'), shutil.which('nothing-here'))
+print(shutil.copytree('src', 'dst'), sorted(os.listdir('dst')), os.path.exists('dst/a/b/z.txt'))
+shutil.rmtree('dst')
+print(os.path.exists('dst'))
+for bad in ("shutil.copy('nope', 'x')", "shutil.rmtree('nope')", "shutil.copytree('src', 'src')", "os.rename('nope', 'x')"):
+    try:
+        print(eval(bad))
+    except Exception as e:
+        print(type(e).__name__, e)
+b = io.StringIO('l1\nl2\n')
+print(b.readline(), b.read(), b.tell(), b.seek(0), b.readlines(), list(io.StringIO('a\nb')), b.closed, io.StringIO().getvalue() == '')
+s = io.BytesIO()
+print(type(s).__name__, s.closed)
+s.close()
+print(s.closed)
+### things a change to the core could have broken
+import numpy as np
+class V:
+    def __init__(self, x):
+        self.x = x
+    def __index__(self):
+        return self.x
+    def __float__(self):
+        return 1.5
+    def __int__(self):
+        return 7
+    def __format__(self, spec):
+        return 'V' + spec
+    def __round__(self, n=None):
+        return 'r'
+    def keys(self):
+        return ['a']
+    def __getitem__(self, k):
+        return k * 2
+print([1, 2, 3][V(1)], list(range(5))[V(1):V(3)], float(V(1)), int(V(1)), f'{V(1)}', f'{V(1):x}', format(V(1), 'y'), round(V(1)), dict(V(1)), np.arange(4)[V(2)], '%d' % V(1), '%.1f' % V(1), '{}'.format(V(1)), '{:z}'.format(V(1)), '{!r}'.format('a'))
+x = [1]
+y = [1]
+print(x is x, x is y, x is not y, x == y, {} is {}, (1,) == (1,), None is None, 'a' is not None, print is print, V is V, int is int, True is True)
+d = {'a': 1}
+e = d
+print(d is e, dict(d) is d, list(x) is x, x[:] is x)
+a = []
+a.append(a)
+b = {}
+b['s'] = b
+print(a, b, repr('\x01\x7f\r\n\t\\\''), repr("a'b"), repr('a"b'), repr('\x00'), repr('é'))
+print(2 ** 60, 2 ** 53, -2 ** 53, 10 ** 15, 10 ** 16, 10 ** 17, int(1e16))
+class Obj:
+    pass
+o = Obj()
+o.a = 1
+o.__dict__['b'] = 2
+print(o.a, o.b, vars(o), o.__dict__, sorted(o.__dict__))
+del o.__dict__['a']
+print(hasattr(o, 'a'), vars(o))
+def fn(a: int, b: 'str' = 'x') -> float:
+    return 1.0
+print(fn.__annotations__, fn.__name__, fn.__defaults__, Obj().__class__.__name__, Obj.__module__, type(1).__name__, type('a'), type(None), type([]), type({}), type(fn).__name__, type(Obj()), type(Obj), type(np.zeros(1)).__name__)
+class M:
+    def f(self):
+        pass
+m = M()
+print(m.f.__self__ is m, m.f.__func__ is M.f, m.f.__name__)
+for bad in ["'%' % 1", "'%d %d' % 1", "'%d' % (1, 2)", "'a' + 1", "[1] + 1", "(1,) + 1", "1 + 'a'", "1 < 'a'", "[1] < 1", "dict([1])", "dict(1)", "V(1) + 1", "V(1) < 1", "int('x')", "int([])", "float([])", "hash([])", "print(1, sep=1)", "'abc'.join(1)", "','.join([1])", "ord('ab')", "chr(-1)", "len(1)", "iter(1)", "next([])", "{[]: 1}", "{}[1]", "[][1]", "(1).x", "None.x", "'a'.x", "x.y", "np.zeros(1).y", "sum(['a'])", "max([])", "min(1)", "abs('a')", "round('a')", "range('a')", "isinstance(1, 1)", "issubclass(int, 1)", "getattr(1, 'x')", "super().x", "OSError(1, 'a', 'f')", "str(OSError(1, 'a', 'f'))", "str(OSError(1, 'a'))", "str(OSError('a'))", "OSError(1, 'a', 'f').args", "OSError(1, 'a', 'f').errno", "OSError(1, 'a', 'f').strerror", "OSError(1, 'a', 'f').filename", "OSError('a').errno", "ValueError(1, 2).args", "str(ValueError(1, 2))", "str(KeyError('a'))", "repr(KeyError('a'))"]:
+    try:
+        print(bad, '→', eval(bad))
+    except Exception as e:
+        print(bad, '→', type(e).__name__, e)
+import sys
+print(type(sys.stdout).__name__ != '', hasattr(sys.stdout, 'write'), sys.stdout.write('x\n'), sys.stdout.flush(), sys.stderr.write(''), sys.path is not None, sys.version_info[0], sys.version_info >= (3, 8), sys.getrecursionlimit() > 0, sys.platform != '', sys.modules is not None, sys.byteorder)
+old = sys.stdout
+import io
+sys.stdout = io.StringIO()
+print('captured', 1, sep='-')
+got = sys.stdout.getvalue()
+sys.stdout = old
+print(repr(got))
+print('__file__' in globals() or True, __name__, __doc__)

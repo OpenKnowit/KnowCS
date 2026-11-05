@@ -4,6 +4,20 @@ import { PyError } from './ndarray'
 import { NOT_IMPLEMENTED, PyDict, PyObj, formatSpec, isNum, makeSet, numOf, py, repr, setItems, str, typeName } from './minipy'
 import type { ClassMeta, ClassValue, Fn, Host, HostClass, InstValue, Kw, PyLib, Value } from './minipy'
 
+const SANDBOX_CWD = '/sandbox'
+
+/** a path in the run's in-memory folder, in the one spelling it is stored under */
+export const fullPath = (p: string) => {
+  // the empty path names nothing: os.path.exists('') is False
+  if (!p) return '/\0'
+  const parts: string[] = []
+  for (const part of (p.startsWith('/') ? p : `${SANDBOX_CWD}/${p}`).split('/')) {
+    if (part === '..') parts.pop()
+    else if (part && part !== '.') parts.push(part)
+  }
+  return `/${parts.join('/')}`
+}
+
 // ---------------------------------------------------------------- numeric helpers (also used by math)
 
 export const gcdOf = (a: number, b: number): number => {
@@ -1207,19 +1221,9 @@ const dirsOf = (h: Host): Set<string> => {
   if (!d) h.state.set('dirs', (d = new Set()))
   return d
 }
-const CWD = '/sandbox'
+const CWD = SANDBOX_CWD
 const TEMP = '/tmp'
 const FIRST_DIRS = new Set(['/', CWD, TEMP, '/content', '/dev'])
-const fullPath = (p: string) => {
-  // the empty path names nothing: os.path.exists('') is False
-  if (!p) return '/\0'
-  const parts: string[] = []
-  for (const part of (p.startsWith('/') ? p : `${CWD}/${p}`).split('/')) {
-    if (part === '..') parts.pop()
-    else if (part && part !== '.') parts.push(part)
-  }
-  return `/${parts.join('/')}`
-}
 const isDirAt = (h: Host, full: string) => FIRST_DIRS.has(full) || dirsOf(h).has(full) || [...filesOf(h).keys()].some((k) => k.startsWith(`${full}/`))
 const isFileAt = (h: Host, full: string) => filesOf(h).has(full)
 /** what is directly inside a folder, sorted (a real OS gives them in no particular order) */
@@ -1955,6 +1959,7 @@ const makeSys = (h: Host): Value => {
     __stderr__: stderr,
     exit: F('exit', (a) => h.raise(h.excClass('SystemExit'), a.slice(0, 1))),
     getrecursionlimit: F('getrecursionlimit', () => int(1000)),
+    byteorder: S('little'),
     setrecursionlimit: F('setrecursionlimit', () => NONE),
     getsizeof: F('getsizeof', (a) => {
       // CPython 3.12 on 64-bit, for what a lesson on memory compares
@@ -4378,9 +4383,12 @@ const makeEnum = (h: Host): Value => {
 // ---------------------------------------------------------------- pickle
 
 const makePickle = (h: Host): Value => {
-  const PickleError = excIn('_pickle', 'PickleError', h.excClass('Exception'))
-  const PicklingError = excIn('_pickle', 'PicklingError', PickleError)
-  const UnpicklingError = excIn('_pickle', 'UnpicklingError', PickleError)
+  const inPickle = (name: string) => {
+    const c = h.excClass(name)
+    c.module = '_pickle'
+    return c
+  }
+  const [PickleError, PicklingError, UnpicklingError] = ['PickleError', 'PicklingError', 'UnpicklingError'].map(inPickle)
   const cannot = (what: string) => h.err('TypeError', `cannot pickle '${what}' object`)
   /** a library object with no copy of its own: its fields, copied all the way down; functions and the interpreter stay shared */
   const fieldsCopy = (x: unknown, memo: Map<unknown, unknown>): unknown => {
@@ -4608,6 +4616,32 @@ const makeContextlib = (h: Host): Value => {
       }
       throw h.err('RuntimeError', "generator didn't stop after throw()")
     },
+    /** @tag('x'): each call runs inside a fresh generator made from the same arguments */
+    __call__: (a) => {
+      const again = (a[0] as InstValue).state.again as () => Value
+      const f = a[1]
+      return { k: 'fn', name: f.k === 'func' ? f.name : 'inner', call: (args, kw) => {
+        const gen = again() as Value & { k: 'iter' }
+        if (gen.next() === undefined) throw h.err('RuntimeError', "generator didn't yield")
+        let out: Value
+        try {
+          out = h.call(f, args, kw)
+        } catch (e) {
+          if (!(e instanceof PyError) || e.fatal || !gen.throw) throw e
+          let next: Value | undefined
+          try {
+            next = gen.throw(e)
+          } catch (again2) {
+            if (caught(h, again2, 'StopIteration')) return py.NONE
+            throw again2
+          }
+          if (next === undefined) return py.NONE
+          throw h.err('RuntimeError', "generator didn't stop after throw()")
+        }
+        if (gen.next() !== undefined) throw h.err('RuntimeError', "generator didn't stop")
+        return out
+      } }
+    },
   })
   return mod('contextlib', {
     contextmanager: F('contextmanager', (a) => {
@@ -4616,6 +4650,7 @@ const makeContextlib = (h: Host): Value => {
       return { k: 'fn', name, bindable: true, attrs: new Map<string, Value>([['__wrapped__', f]]), call: (args, kw) => {
         const made = h.call(GeneratorCM, []) as InstValue
         made.attrs.set('gen', h.call(f, args, kw))
+        made.state.again = () => h.call(f, args, kw)
         return made
       } }
     }),
@@ -4877,6 +4912,7 @@ const makeInspect = (h: Host): Value => {
       return NONE
     }),
     cleandoc: F('cleandoc', (a) => S(cleandoc(h.str(a[0])))),
+    getmro: F('getmro', (a) => h.getAttr(a[0], '__mro__')),
     getmembers: F('getmembers', (a, kw) => {
       const pred = kw.predicate ?? a[1]
       const out: Value[] = []

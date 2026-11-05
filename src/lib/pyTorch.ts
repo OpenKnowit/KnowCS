@@ -36,7 +36,6 @@ interface TorchState {
   E: Engine
   flow: FlowState | null
   /** torch.save / torch.load keep objects here (no files in the sandbox) */
-  files: Map<string, Value>
   notes: Set<string>
   /** the last model called, to name parameters in the autograd graph */
   lastModel: Value | null
@@ -45,7 +44,7 @@ interface TorchState {
 const stateOf = (h: Host): TorchState => {
   let s = h.state.get('torch') as TorchState | undefined
   if (!s) {
-    s = { seed: 67280421310721, E: new Engine(h.rng), flow: null, files: new Map(), notes: new Set(), lastModel: null }
+    s = { seed: 67280421310721, E: new Engine(h.rng), flow: null, notes: new Set(), lastModel: null }
     h.state.set('torch', s)
   }
   return s
@@ -6493,6 +6492,18 @@ class SettingObj extends PyObj {
   exit() { this.restore() }
 }
 
+/** what torch.save puts in a file: torch's own copy, which pickle leaves as it is */
+class TorchSaved extends PyObj {
+  readonly cls = 'torch.save'
+  readonly value: Value
+  constructor(value: Value) {
+    super()
+    this.value = value
+  }
+  pickled() { return this }
+  repr() { return '<torch.save>' }
+}
+
 /** a module anywhere inside a saved object: where the pickle would find its class */
 const MODULE_FILE: Record<string, string> = { Linear: 'linear', Bilinear: 'linear', Identity: 'linear', Sequential: 'container', ModuleList: 'container', ModuleDict: 'container', Conv1d: 'conv', Conv2d: 'conv', Conv3d: 'conv', ReLU: 'activation', Sigmoid: 'activation', Tanh: 'activation', LSTM: 'rnn', GRU: 'rnn', RNN: 'rnn', Embedding: 'sparse', Dropout: 'dropout', BatchNorm1d: 'batchnorm', BatchNorm2d: 'batchnorm', LayerNorm: 'normalization', MaxPool2d: 'pooling', AvgPool2d: 'pooling', Flatten: 'flatten' }
 const holdsModule = (v: Value): string | null => {
@@ -6516,6 +6527,8 @@ const build = (h: Host): Record<string, Value> => {
   C.PRINT_OPTS.sciMode = null
   C.DEFAULTS.float = 'float32'
   const T = (v: Value | undefined, what: string) => tensorArg(h, v, what)
+  const pathText = (v: Value): string | null => (v.k === 'str' ? v.v : v.k === 'obj' && v.o.fspath ? v.o.fspath() : null)
+  const pickleCall = (name: 'dump' | 'load', args: Value[]) => h.call(h.getAttr(h.module('pickle'), name), args)
   /** a new tensor: requires_grad=…, and a 'create' step for the step list */
   const finish = (t: TT, kw: Kw, name: string) => {
     if (kw.requires_grad && h.truthy(kw.requires_grad)) {
@@ -9985,14 +9998,29 @@ const build = (h: Host): Record<string, Value> => {
     } },
     save: fnv('save', (args, kw) => {
       const a = bindPy(h, 'save', 'obj f pickle_module=None pickle_protocol=2 _use_new_zipfile_serialization=True _disable_byteorder_record=False', args, kw)
-      S.files.set(h.str(a.f!), snapshot(a.obj!, new Map()) as Value)
+      const saved = py.obj(new TorchSaved(snapshot(a.obj!, new Map()) as Value))
+      const path = pathText(a.f!)
+      if (path === null) {
+        if (!h.getAttrOr(a.f!, 'write')) throw h.err('AttributeError', "expected 'f' to be string, path, or a file-like object with a 'write' attribute")
+        pickleCall('dump', [saved, a.f!])
+        return py.NONE
+      }
+      const parent = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
+      if (parent && !h.truthy(h.call(h.getAttr(h.module('os.path'), 'isdir'), [py.str(parent)]))) throw h.err('RuntimeError', `Parent directory ${parent} does not exist.`)
+      const f = h.call(h.getAttr(h.module('builtins'), 'open'), [py.str(path), py.str('wb')])
+      pickleCall('dump', [saved, f])
+      h.call(h.getAttr(f, 'close'), [])
       return py.NONE
     }),
     load: fnv('load', (args, kw) => {
       const a = bindPy(h, 'load', 'f map_location=None pickle_module=None * weights_only=None mmap=None', args, kw)
-      const path = h.str(a.f!)
-      const v = S.files.get(path)
-      if (!v) throw h.err('FileNotFoundError', `[Errno 2] No such file or directory: '${path}'`)
+      const path = pathText(a.f!)
+      if (path === null && !h.getAttrOr(a.f!, 'read')) throw h.err('AttributeError', `'${typeName(a.f!)}' object has no attribute 'seek'. You can only torch.load from a file that is seekable. Please pre-load the data into a buffer like io.BytesIO and try to load from it instead.`)
+      const f = path === null ? a.f! : h.call(h.getAttr(h.module('builtins'), 'open'), [py.str(path), py.str('rb')])
+      const held0 = pickleCall('load', [f])
+      if (path !== null) h.call(h.getAttr(f, 'close'), [])
+      if (held0.k !== 'obj' || !(held0.o instanceof TorchSaved)) throw h.err('UnpicklingError', 'this file was not written by torch.save')
+      const v = held0.o.value
       // the default weights_only=True takes tensors, numbers and containers, not a pickled module
       const held = holdsModule(v)
       if (bool(a.weights_only, true) && held) {

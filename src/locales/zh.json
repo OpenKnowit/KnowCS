@@ -641,7 +641,7 @@
     "legend_pick": "被选中的那个值",
     "legend_dependent": "用到当前格子的结果",
     "missing": "浏览器沙盒里没有 {{name}}。沙盒覆盖 numpy 核心、np.linalg 和 np.random，请在下面选一个。",
-    "sandbox_note": "在浏览器中运行，基于重写的 Python 和 NumPy：包括语言本身、大部分标准库和约九成 NumPy 函数，已与 NumPy 2.2 对照。随机数（使用自己的生成器）和标量（显示为 12 而不是 np.int64(12)）不同。这里也可以 import pandas、matplotlib、torch、keras、sklearn 或 cv2。",
+    "sandbox_note": "在浏览器中运行，基于重写的 Python 和 NumPy：包括语言本身、大部分标准库和约九成 NumPy 函数，已与 NumPy 2.2 对照。随机数（使用自己的生成器）和标量（显示为 12 而不是 np.int64(12)）不同。这里也可以 import pandas、matplotlib、torch、keras、sklearn 或 cv2。程序写入的文件只保留到本次运行结束。",
     "link_hint": "点击笔记里高亮的名字，可以在 NumPy 面板中打开对应内容。",
     "cat": {
       "create": "创建",
@@ -4554,7 +4554,7 @@
     "pytorch": {
       "title": "PyTorch 实验台",
       "subtitle": "{{n}} 个出自第 9 讲的示例：张量、自动求导、nn.Module 与训练循环。点开一个步骤，可以看到网格、各层形状或梯度计算图。",
-      "sandbox_note": "在浏览器中运行，基于重写的 PyTorch：张量、自动求导（含 create_graph）、大部分 torch.nn、torch.linalg、优化器与学习率调度器、DataLoader。打印、数值和报错信息已用约 2000 段程序与 PyTorch 2.14 对照。随机数不同，不显示内存地址，没有 GPU，也不能下载 MNIST。",
+      "sandbox_note": "在浏览器中运行，基于重写的 PyTorch：张量、自动求导（含 create_graph）、大部分 torch.nn、torch.linalg、torch.distributions、优化器与学习率调度器、DataLoader。打印、数值和报错信息已用约 2000 段程序与 PyTorch 2.14 对照。随机数不同，不显示内存地址，没有 GPU，也不能下载 MNIST。写入的文件只保留到本次运行结束。",
       "cat": {
         "tensors": "张量",
         "autograd": "自动求导",

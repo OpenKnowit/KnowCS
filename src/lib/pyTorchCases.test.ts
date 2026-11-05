@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { runPython } from './minipy'
+import { PANDAS } from './pyPandas'
+import { SKLEARN } from './pySklearn'
 import { TORCH } from './pyTorch'
 import data from './pyTorchCases.json'
 
@@ -25,18 +27,18 @@ const close = (got: string, want: string): boolean => {
 /*
  * The deliberate differences, each with its reason.
  * - NO_OVERLOAD: PyTorch lists every overload after "but expected"; the sandbox names what it was given and stops there.
- * - SANDBOX_SUFFIX: the core adds a note to AttributeError, that the name may simply not be here yet.
+ * - SANDBOX_SUFFIX: the core adds a note to AttributeError, that the name may simply not be here yet, and to a missing file when nothing caught the error.
  * - NUMPY_SCALAR: NumPy scalars print as plain numbers everywhere in the sandbox, not np.float32(...).
  */
 const NO_OVERLOAD = /(received an invalid combination of arguments - got \(.*?\), but expected)[^]*$/
-const SANDBOX_SUFFIX = / \((or it is )?not available in this sandbox\)$/gm
+const SANDBOX_SUFFIX = / \((or it is )?not available in this sandbox\)$| \(this sandbox starts with no files;[^)]*\)$/gm
 const NUMPY_SCALAR = /np\.(?:float32|float64|int64)\(([^)]*)\)/g
 
 const normal = (s: string) => s.replace(NO_OVERLOAD, '$1').replace(SANDBOX_SUFFIX, '').replace(NUMPY_SCALAR, '$1')
 
 describe(`the sandbox prints what torch ${data.torch} prints`, () => {
   it.each(data.cases.map((c) => [c.src.replace(/^(import .*\n|def fill[^]*?view\(p\.shape\)\)\n)+/, '').slice(0, 120), c] as const))('%s', (_name, c) => {
-    const r = runPython(c.src, { libs: [TORCH], maxSize: 2_000_000, timeBudget: 20_000 })
+    const r = runPython(c.src, { libs: [TORCH, PANDAS, SKLEARN], maxSize: 2_000_000, timeBudget: 20_000 })
     const got = normal(r.stdout + (r.error ? `${r.error.type}: ${r.error.message}` : ''))
     const want = normal(c.out + (c.error ?? ''))
     if (!close(got, want)) expect(got).toBe(want)

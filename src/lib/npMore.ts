@@ -8,6 +8,7 @@ import type { ApiKind, ApiMeta, Fn, Host, Kw, Value } from './minipy'
 import { cholesky, eigGeneral, eigh, identity, lu, mul, qr, solveM, svdFull, svdThin, transposeM } from './npLinalg'
 import type { Mat } from './npLinalg'
 import * as R from './npRandom'
+import { fullPath } from './pyStdlib'
 import type { SandboxRandom } from './ndops'
 
 type Api = (name: string, call: Fn, kind?: ApiKind, extra?: Partial<ApiMeta>) => Value
@@ -1705,10 +1706,225 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
       return NONE
     }),
   })
-  // files: say why, rather than a confusing AttributeError
-  for (const name of ['load', 'save', 'savez', 'savez_compressed', 'loadtxt', 'savetxt', 'genfromtxt', 'fromfile', 'memmap', 'fromregex']) {
+  // files, in the run's in-memory folder: a .npy or .npz holds the arrays themselves (see pickle), a text file holds text
+  const builtin = (name: string) => (h.module('builtins') as { attrs: Record<string, Value> }).attrs[name]
+  const pathOf = (v: Value): string | null => (v.k === 'str' ? v.v : v.k === 'obj' && v.o.fspath ? v.o.fspath() : null)
+  const openFile = (path: string, mode: string) => h.call(builtin('open'), [S(path), S(mode)])
+  const closeFile = (f: Value) => h.call(h.getAttr(f, 'close'), [])
+  const pickled = (name: 'dump' | 'load', args: Value[]) => h.call(h.getAttr(h.module('pickle'), name), args)
+  const NOT_NPY = 'This file contains pickled (object) data. If you trust the file you can load it unsafely using the `allow_pickle=` keyword argument or `pickle.load()`.'
+  const fileText = (path: string) => (h.state.get('files') as Map<string, string> | undefined)?.get(fullPath(path))
+  /** what np.load gives for a .npz */
+  class NpzFile extends Base {
+    readonly cls = 'NpzFile'
+    readonly arrays: Map<string, NDArray>
+    readonly name: string | null
+    constructor(arrays: Map<string, NDArray>, name: string | null) {
+      super()
+      this.arrays = arrays
+      this.name = name
+    }
+    pickled() { return this }
+    repr() { return `NpzFile ${this.name === null ? 'object' : repr(S(this.name))} with keys: ${[...this.arrays.keys()].join(', ')}` }
+    len() { return this.arrays.size }
+    iter() { return [...this.arrays.keys()].map(S) }
+    contains(v: Value) { return v.k === 'str' && this.arrays.has(v.v) }
+    getItem(idx: Value): Value {
+      const a = idx.k === 'str' ? this.arrays.get(idx.v) : undefined
+      if (!a) throw h.err('KeyError', repr(S(`${h.str(idx)} is not a file in the archive`)))
+      return wrap(a.copy())
+    }
+    enter() { return { k: 'obj', o: this } as Value }
+    exit() {}
+    getAttr(name: string): Value | undefined {
+      const names = () => [...this.arrays.keys()].map(S)
+      switch (name) {
+        case 'files': return L(names())
+        case 'keys': return fn(name, () => L(names()))
+        case 'values': return fn(name, () => L([...this.arrays.values()].map((a) => wrap(a.copy()))))
+        case 'items': return fn(name, () => L([...this.arrays].map(([n, a]) => tuple([S(n), wrap(a.copy())]))))
+        case 'get': return fn(name, (args) => (this.contains(args[0]) ? this.getItem(args[0]) : args[1] ?? NONE))
+        case 'close': return fn(name, () => NONE)
+      }
+      return undefined
+    }
+  }
+  const toFile = (file: Value, ext: string, obj: Value) => {
+    const path = pathOf(file)
+    if (path === null) {
+      pickled('dump', [obj, file])
+      return NONE
+    }
+    const f = openFile(path.endsWith(ext) ? path : path + ext, 'wb')
+    pickled('dump', [obj, f])
+    closeFile(f)
+    return NONE
+  }
+  np.save = fn('save', (args, kw) => {
+    const arr = kw.arr ?? args[1]
+    if (!arr) throw h.err('TypeError', "save() missing 1 required positional argument: 'arr'")
+    if (arr.k === 'dict' || arr.k === 'inst' || arr.k === 'set') throw h.err('NotImplementedError', 'np.save of an object array is not available in this sandbox: use pickle.dump for this')
+    return toFile(kw.file ?? args[0], '.npy', wrap(A(arr).copy()))
+  })
+  const savez = (name: string) => fn(name, (args, kw) => {
+    const { file: fileKw, allow_pickle: _, ...named } = kw
+    const file = fileKw ?? args[0]
+    const rest = fileKw ? args : args.slice(1)
+    const arrays = new Map<string, NDArray>(rest.map((v, i): [string, NDArray] => [`arr_${i}`, A(v).copy()]))
+    for (const [k, v] of Object.entries(named)) {
+      if (arrays.has(k)) throw h.err('ValueError', `Cannot use un-named variables and keyword ${k}`)
+      arrays.set(k, A(v).copy())
+    }
+    const path = pathOf(file)
+    return toFile(file, '.npz', { k: 'obj', o: new NpzFile(arrays, path === null ? null : path.endsWith('.npz') ? path : `${path}.npz`) })
+  })
+  np.savez = savez('savez')
+  np.savez_compressed = savez('savez_compressed')
+  np.load = fn('load', (args, kw) => {
+    const file = kw.file ?? args[0]
+    const allow = !!(kw.allow_pickle ?? args[2]) && h.truthy(kw.allow_pickle ?? args[2])
+    const mmap = kw.mmap_mode ?? args[1]
+    if (mmap && mmap.k !== 'none') throw h.err('NotImplementedError', 'np.load: mmap_mode is not available in this sandbox')
+    const path = pathOf(file)
+    let out: Value
+    if (path !== null) {
+      const text = fileText(path)
+      if (text === '') throw h.err('EOFError', 'No data left in file')
+      if (text !== undefined && !text.startsWith('\0pickle:')) throw h.err(allow ? 'UnpicklingError' : 'ValueError', allow ? `Failed to interpret file ${repr(S(path))} as a pickle` : NOT_NPY)
+      const f = openFile(path, 'rb')
+      out = pickled('load', [f])
+      closeFile(f)
+    } else out = pickled('load', [file])
+    if (allow || out.k === 'array' || (out.k === 'obj' && out.o instanceof NpzFile)) return out
+    throw h.err('ValueError', NOT_NPY)
+  })
+  np.savetxt = fn('savetxt', (args, kw) => {
+    const named = ['fname', 'X', 'fmt', 'delimiter', 'newline', 'header', 'footer', 'comments', 'encoding']
+    const a = Object.fromEntries(named.map((n, i) => [n, kw[n] ?? args[i]])) as Record<string, Value | undefined>
+    const text = (v: Value | undefined, d: string) => (v && v.k !== 'none' ? h.str(v) : d)
+    const x = A(a.X, 'X')
+    if (x.ndim === 0 || x.ndim > 2) throw h.err('ValueError', `Expected 1D or 2D array, got ${x.ndim}D array instead`)
+    const rows = x.ndim === 1 ? x.size : x.shape[0]
+    const cols = x.ndim === 1 ? 1 : x.shape[1]
+    const delimiter = text(a.delimiter, ' ')
+    const newline = text(a.newline, '\n')
+    const comments = text(a.comments, '# ')
+    const given = a.fmt ?? S('%.18e')
+    let fmt: string
+    if (given.k === 'str') {
+      const count = (given.v.match(/%(?!%)/g) ?? []).length
+      if (count === 1) fmt = new Array<string>(cols).fill(given.v).join(delimiter)
+      else if (count === cols) fmt = given.v
+      else throw h.err('ValueError', `fmt has wrong number of % formats:  ${given.v}`)
+    } else {
+      const each = h.iterate(given).map((v) => h.str(v))
+      if (each.length !== cols) throw h.err('AttributeError', `fmt has wrong shape.  ${repr(given)}`)
+      fmt = each.join(delimiter)
+    }
+    const vals = x.values()
+    const cell = (v: number) => (x.dtype === 'int64' || x.dtype === 'uint8' ? int(v) : x.dtype === 'bool' ? bool(!!v) : float(v))
+    let out = ''
+    const header = text(a.header, '')
+    if (header) out += comments + header.replace(/\n/g, `\n${comments}`) + newline
+    for (let r = 0; r < rows; r++) out += h.str(h.binop('%', S(fmt), tuple(Array.from({ length: cols }, (_, c) => cell(vals[r * cols + c]))))) + newline
+    const footer = text(a.footer, '')
+    if (footer) out += comments + footer.replace(/\n/g, `\n${comments}`) + newline
+    const target = a.fname!
+    const path = pathOf(target)
+    if (path === null) {
+      h.call(h.getAttr(target, 'write'), [S(out)])
+      return NONE
+    }
+    const f = openFile(path, 'w')
+    h.call(h.getAttr(f, 'write'), [S(out)])
+    closeFile(f)
+    return NONE
+  })
+  /** the lines of a path, a text file or a list of strings */
+  const linesFrom = (src: Value): string[] => {
+    const path = pathOf(src)
+    if (path !== null) {
+      const text = fileText(path)
+      if (text === undefined) throw h.err('FileNotFoundError', `${path} not found.`)
+      return text.split('\n')
+    }
+    return h.iterate(src).map((v) => h.str(v).replace(/\r?\n$/, ''))
+  }
+  const fieldsOf = (lines: string[], comments: Value | undefined, delimiter: Value | undefined): string[][] => {
+    const marks = !comments ? ['#'] : comments.k === 'none' ? [] : comments.k === 'str' ? [comments.v] : h.iterate(comments).map((v) => h.str(v))
+    const sep = delimiter && delimiter.k !== 'none' ? h.str(delimiter) : null
+    const rows: string[][] = []
+    for (const line of lines) {
+      let body = line
+      for (const m of marks) {
+        const at = body.indexOf(m)
+        if (at >= 0) body = body.slice(0, at)
+      }
+      if (!body.trim()) continue
+      rows.push(sep === null ? body.trim().split(/\s+/) : body.split(sep).map((x) => x.trim()))
+    }
+    return rows
+  }
+  const NUMBER_TEXT = /^[-+]?(?:\d+\.?\d*(?:[eE][-+]?\d+)?|\.\d+(?:[eE][-+]?\d+)?|inf(?:inity)?|nan)$/i
+  const textNumber = (s: string): number | null => {
+    if (!NUMBER_TEXT.test(s)) return null
+    const low = s.toLowerCase().replace(/^\+/, '')
+    if (low.endsWith('nan')) return NaN
+    if (low.includes('inf')) return low.startsWith('-') ? -Infinity : Infinity
+    return Number(low)
+  }
+  const columnsOf = (u: Value | undefined): number[] | null => (!u || u.k === 'none' ? null : isNum(u) ? [h.toInt(u)] : h.iterate(u).map((c) => h.toInt(c)))
+  const pick = (row: string[], cols: number[] | null) => (cols ? cols.map((c) => row[c < 0 ? c + row.length : c]) : row)
+  /** the shape the two readers give: one row or one column is a vector, and a single value a scalar array */
+  const tableResult = (vals: number[], rows: number, cols: number, d: DType, unpack: boolean, ndmin: number): Value => {
+    if (!rows) return wrap(NDArray.create([], [0], d))
+    let shape = [rows, cols]
+    if (ndmin < 2) shape = rows === 1 && cols === 1 ? (ndmin === 1 ? [1] : []) : rows === 1 || cols === 1 ? [rows * cols] : shape
+    const t = NDArray.create(vals, shape, d)
+    return wrap(unpack && shape.length === 2 ? transpose(t) : t)
+  }
+  np.loadtxt = fn('loadtxt', (args, kw) => {
+    const named = ['fname', 'dtype', 'comments', 'delimiter', 'converters', 'skiprows', 'usecols', 'unpack', 'ndmin', 'encoding', 'max_rows', 'quotechar', 'like']
+    const a = Object.fromEntries(named.map((n, i) => [n, kw[n] ?? args[i]])) as Record<string, Value | undefined>
+    if (a.converters && a.converters.k !== 'none') throw h.err('NotImplementedError', 'np.loadtxt: converters is not available in this sandbox')
+    const d = dtypeArg(a.dtype) ?? 'float64'
+    const skip = a.skiprows ? h.toInt(a.skiprows) : 0
+    const rows = fieldsOf(linesFrom(a.fname!).slice(skip), a.comments, a.delimiter)
+    const kept = a.max_rows && a.max_rows.k !== 'none' ? rows.slice(0, h.toInt(a.max_rows)) : rows
+    const cols = columnsOf(a.usecols)
+    const width = kept[0] ? (cols ?? kept[0]).length : 0
+    const vals: number[] = []
+    kept.forEach((row, r) => {
+      if (!cols && row.length !== width) throw h.err('ValueError', `the number of columns changed from ${width} to ${row.length} at row ${r + 1}; use \`usecols\` to select a subset and avoid this error`)
+      pick(row, cols).forEach((s, c) => {
+        const n = textNumber(s ?? '')
+        if (n === null || (!isFloatD(d) && !Number.isInteger(n))) throw h.err('ValueError', `could not convert string ${repr(S(s ?? ''))} to ${d} at row ${r}, column ${(cols ? cols[c] : c) + 1}.`)
+        vals.push(n)
+      })
+    })
+    return tableResult(vals, kept.length, width, d, !!a.unpack && h.truthy(a.unpack), a.ndmin ? h.toInt(a.ndmin) : 0)
+  })
+  np.genfromtxt = fn('genfromtxt', (args, kw) => {
+    const named = ['fname', 'dtype', 'comments', 'delimiter', 'skip_header', 'skip_footer', 'converters', 'missing_values', 'filling_values', 'usecols', 'names']
+    const a = Object.fromEntries(named.map((n, i) => [n, kw[n] ?? args[i]])) as Record<string, Value | undefined>
+    for (const n of ['names', 'converters', 'missing_values']) if (a[n] && a[n]!.k !== 'none') throw h.err('NotImplementedError', `np.genfromtxt: ${n} is not available in this sandbox`)
+    if (a.dtype?.k === 'none') throw h.err('NotImplementedError', 'np.genfromtxt: dtype=None gives a structured array, which is not available in this sandbox')
+    const d = dtypeArg(a.dtype) ?? 'float64'
+    const fill = a.filling_values && a.filling_values.k !== 'none' ? h.num(a.filling_values) : isFloatD(d) ? NaN : -1
+    const lines = linesFrom(a.fname!).slice(a.skip_header ? h.toInt(a.skip_header) : 0)
+    const foot = a.skip_footer ? h.toInt(a.skip_footer) : 0
+    const rows = fieldsOf(foot ? lines.slice(0, -foot) : lines, a.comments, a.delimiter)
+    const cols = columnsOf(a.usecols)
+    const width = rows[0]?.length ?? 0
+    const bad = rows.flatMap((row, r) => (row.length === width ? [] : [`    Line #${r + 1 + (a.skip_header ? h.toInt(a.skip_header) : 0)} (got ${row.length} columns instead of ${width})`]))
+    if (bad.length) throw h.err('ValueError', `Some errors were detected !\n${bad.join('\n')}`)
+    const vals = rows.flatMap((row) => pick(row, cols).map((s) => textNumber(s ?? '') ?? fill))
+    return tableResult(vals, rows.length, cols ? cols.length : width, d, !!kw.unpack && h.truthy(kw.unpack), 0)
+  })
+  // the rest cannot work on what these files hold
+  for (const name of ['fromfile', 'memmap', 'fromregex']) {
     np[name] ??= fn(name, () => {
-      throw h.err('NotImplementedError', `np.${name} reads or writes a file, and this sandbox has no files: switch to Real Python, or build the data in the program`)
+      throw h.err('NotImplementedError', `np.${name} reads raw bytes, which this sandbox's files do not hold: use np.load or np.loadtxt`)
     })
   }
 

@@ -641,7 +641,7 @@
     "legend_pick": "the value that was chosen",
     "legend_dependent": "results that use the selected cell",
     "missing": "{{name}} isn't in the in-browser sandbox. It covers core numpy, np.linalg and np.random — pick something below.",
-    "sandbox_note": "Runs in your browser on a re-implementation of Python and NumPy: the language, most of the standard library and about nine in ten of NumPy's functions, checked against NumPy 2.2. Random numbers differ (own generator), and scalars print as 12 instead of np.int64(12). You can also import pandas, matplotlib, torch, keras, sklearn or cv2 here.",
+    "sandbox_note": "Runs in your browser on a re-implementation of Python and NumPy: the language, most of the standard library and about nine in ten of NumPy's functions, checked against NumPy 2.2. Random numbers differ (own generator), and scalars print as 12 instead of np.int64(12). You can also import pandas, matplotlib, torch, keras, sklearn or cv2 here. Files a program writes last for one run.",
     "link_hint": "Click a highlighted name in the note to open it in the NumPy panel.",
     "cat": {
       "create": "Create",
@@ -4554,7 +4554,7 @@
     "pytorch": {
       "title": "PyTorch playground",
       "subtitle": "{{n}} examples from lecture 9: tensors, autograd, nn.Module and the training loop. Open a step to see the grids, the layer shapes or the gradient graph.",
-      "sandbox_note": "Runs in your browser on a re-implementation of PyTorch: tensors, autograd (including create_graph), most of torch.nn, torch.linalg, the optimisers and schedulers, DataLoader. Printing, values and error messages are checked against PyTorch 2.14 on about 2,000 programs. Random numbers differ, memory addresses are not shown, and there is no GPU or MNIST download.",
+      "sandbox_note": "Runs in your browser on a re-implementation of PyTorch: tensors, autograd (including create_graph), most of torch.nn, torch.linalg, torch.distributions, the optimisers and schedulers, DataLoader. Printing, values and error messages are checked against PyTorch 2.14 on about 2,000 programs. Random numbers differ, memory addresses are not shown, and there is no GPU or MNIST download. Files last for one run.",
       "cat": {
         "tensors": "Tensors",
         "autograd": "Autograd",

@@ -69,6 +69,8 @@ with tempfile.TemporaryDirectory() as tmp:
         if code in seen:
             continue
         seen.add(code)
+        # a folder of its own: some programs write files
+        os.chdir(tempfile.mkdtemp(dir=tmp))
         buf = io.StringIO()
         error = None
         module = types.ModuleType('__main__')

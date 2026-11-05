@@ -3462,3 +3462,152 @@ def t(s):
 for s in ["Normal(0., -1.)", "Normal(torch.zeros(2), torch.tensor([1., 0.]))", "Normal(0., 1.).log_prob(torch.tensor(float('nan')))", "Normal(torch.zeros(2), 1.).log_prob(torch.zeros(3))", "Bernoulli(torch.tensor(1.5))", "Bernoulli(0.5)", "Bernoulli(logits=0.)", "Bernoulli()", "Bernoulli(0.5, logits=0.)", "Categorical()", "Categorical(probs=torch.tensor([0.5, 0.5]), logits=torch.zeros(2))", "Categorical(probs=torch.tensor(1.))", "Categorical(probs=torch.tensor([-1., 2.]))", "Categorical(probs=torch.tensor([1., 3.])).probs", "Categorical(torch.tensor([[0.5, 0.5], [0.1, 0.9]]))", "Categorical(torch.tensor([[0.5, 0.5], [0.1, 0.9]])).batch_shape", "Categorical(torch.tensor([[0.5, 0.5], [0.1, 0.9]])).log_prob(torch.tensor([0, 1]))", "Categorical(logits=torch.zeros(2)).log_prob(torch.tensor(5))", "Categorical(logits=torch.zeros(2))", "Categorical(probs=torch.tensor([0.5, 0.5])).mean", "Categorical(probs=torch.tensor([0.5, 0.5])).variance", "Categorical(probs=torch.tensor([0.2, 0.8])).mode", "Categorical(probs=torch.tensor([0.2, 0.8])).enumerate_support()", "Categorical(probs=torch.tensor([0.2, 0.8])).has_rsample", "Categorical(probs=torch.tensor([0.2, 0.8])).rsample()", "Normal(0., 1.).has_rsample", "Normal(0., 1.).mode", "Normal(torch.zeros(2), 1.)", "Normal(torch.zeros(2), 1.).batch_shape", "Normal(0, 1)", "Normal(0, 1).loc.dtype", "Normal(torch.tensor(0., dtype=torch.float64), 1.).sample().dtype", "Normal(0., 1.).sample((2, 3)).shape", "Normal(torch.zeros(2), 1.).sample((3,)).shape", "Normal(0., 1.).support", "Uniform(2., 1.)", "Uniform(0., 1.).log_prob(torch.tensor(2.))", "Uniform(0., 1.).cdf(torch.tensor(0.5))", "Uniform(0., 1.).icdf(torch.tensor(0.5))", "Uniform(0., 1.).stddev", "Uniform(0., 1.).mode", "Uniform(torch.zeros(2), 1.).rsample((3,)).shape", "Bernoulli(0.25).mode", "Bernoulli(torch.tensor([0.25, 0.75])).log_prob(torch.tensor([1., 2.]))", "Bernoulli(0.25).sample((2,)).shape", "Bernoulli(0.25).sample().dtype", "Bernoulli(0.25).has_rsample", "Categorical(probs=torch.tensor([0.2, 0.8])).sample().dtype", "torch.distributions.kl_divergence(Bernoulli(0.5), Bernoulli(0.25))", "torch.distributions.kl.kl_divergence(Normal(0., 2.), Normal(1., 1.))", "isinstance(Normal(0., 1.), torch.distributions.Distribution)", "torch.distributions.Normal.__name__", "Normal(0., 1.).batch_shape, Normal(0., 1.).event_shape", "Normal(0., 1.).expand((2,)).batch_shape", "Normal(0., 1.).cdf(torch.zeros(2))", "torch.autocast('gpu')", "torch.amp.autocast('cuda').__class__.__name__", "torch.autocast('cpu', enabled=False)._enabled", "torch.amp.GradScaler().is_enabled()", "torch.amp.GradScaler().get_scale()", "torch.amp.GradScaler().state_dict()", "torch.cuda.amp.GradScaler().is_enabled()", "torch.cuda.memory_allocated()", "torch.cuda.memory_reserved()", "torch.cuda.max_memory_allocated()", "torch.cuda.get_device_name(0)", "torch.cuda.current_device()", "torch.cuda.is_bf16_supported()", "torch.cuda.synchronize()", "torch.cuda.ipc_collect()", "torch.backends.cudnn.enabled", "torch.backends.cudnn.is_available()", "torch.backends.cudnn.version()", "torch.backends.cuda.is_built()", "torch.get_default_device()", "torch.set_default_device('cpu')", "torch.set_num_threads(0)", "torch.set_float32_matmul_precision('x')", "torch.set_num_interop_threads(1) if False else 1", "torch.is_autocast_enabled('cuda')", "torch.get_deterministic_debug_mode()", "torch.set_deterministic_debug_mode(0)", "torch.is_deterministic_algorithms_warn_only_enabled()", "torch.inference_mode().__class__.__name__", "torch.autograd.set_detect_anomaly(False).__class__.__name__", "torch.autograd.detect_anomaly().__class__.__name__", "torch.is_anomaly_check_nan_enabled()", "torch.ones(1).is_inference()", "torch.set_anomaly_enabled(False)"]:
     t(s)
 >>>
+
+# ---- files, paths, pickle and enums across libraries
+
+# files through every library
+<<<
+import pickle, json, numpy as np, pandas as pd, torch, torch.nn as nn
+from pathlib import Path
+from dataclasses import dataclass, asdict
+from enum import Enum
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+d = Path('runs') / 'exp'
+d.mkdir(parents=True)
+df = pd.DataFrame({'a': [1, 2], 'b': [3., 4.]})
+df.to_csv(d / 'x.csv', index=False)
+print(pd.read_csv(d / 'x.csv'), (d / 'x.csv').read_text())
+with open(d / 'df.pkl', 'wb') as f:
+    pickle.dump(df, f)
+with open(d / 'df.pkl', 'rb') as f:
+    print(pickle.load(f))
+a = np.arange(3.)
+b = pickle.loads(pickle.dumps(a))
+b[0] = 9
+print(a, b, b.dtype, np.array_equal(a, pickle.loads(pickle.dumps(a))))
+t = torch.ones(2, requires_grad=True)
+u = pickle.loads(pickle.dumps(t))
+print(u, u.requires_grad, u is t)
+m = nn.Linear(1, 1)
+nn.init.ones_(m.weight)
+nn.init.zeros_(m.bias)
+n = pickle.loads(pickle.dumps(m))
+with torch.no_grad():
+    n.weight.fill_(5.)
+print(m.weight, n.weight, n, n(torch.ones(1)))
+k = pickle.loads(pickle.dumps(KNeighborsClassifier(1).fit([[0], [1]], [0, 1])))
+print(k.predict([[1]]), k)
+s = pickle.loads(pickle.dumps(StandardScaler().fit([[0.], [2.]])))
+print(s.transform([[1.]]), s.mean_)
+torch.save(m.state_dict(), d / 'm.pt')
+print(list(torch.load(d / 'm.pt').keys()), (d / 'm.pt').exists())
+print(sorted(p.name for p in d.iterdir()))
+print(dict(pd.Series([1, 2], index=['a', 'b'])), dict(df.iloc[0]), list(dict(df).keys()), dict(m.state_dict()).keys(), list(dict(m.named_parameters()).keys()), dict(zip('ab', [1, 2])), dict(a=1), dict([('x', 1)]), dict({'y': 2}), dict(np.array([[1, 2]])))
+class Stage(Enum):
+    FIT = 'fit'
+    TEST = 'test'
+@dataclass
+class Cfg:
+    lr: float = 0.1
+    stage: Stage = Stage.FIT
+    path: Path = Path('a')
+c = Cfg()
+print(c, asdict(c), pickle.loads(pickle.dumps(c)) == c, pickle.loads(pickle.dumps(Stage.FIT)) is Stage.FIT, json.dumps({'s': Stage.FIT.value, 'p': str(c.path)}))
+print(np.full(2, len(Stage)), torch.tensor(len(Stage)))
+>>>
+# numpy files
+<<<
+import numpy as np, torch, io, os, shutil
+def t(s):
+    try:
+        print(s, '→', repr(eval(s)))
+    except BaseException as e:
+        print(s, '→', type(e).__name__ + ':', str(e)[:300])
+open('t.txt', 'w').write('hello')
+for s in ["torch.save(1, 'nosuch/a.pt')", "torch.load('nosuch.pt')", "torch.load(1)", "torch.save(1, 1)", "np.save('a', np.arange(3))", "os.path.exists('a.npy')", "np.load('a.npy')", "np.load('a')", "np.save('b.npy', [1, 2])", "np.load('b.npy')", "np.save('c.dat', np.eye(2))", "sorted(os.listdir('.'))", "np.load('c.dat')", "np.load('t.txt')", "np.load('t.txt', allow_pickle=True)", "np.save('nosuch/a', 1)", "np.savez('z', a=np.arange(2), b=np.eye(2))", "os.path.exists('z.npz')", "np.load('z.npz')['a']", "np.load('z.npz').files", "list(np.load('z.npz').keys())", "np.load('z.npz')['q']", "type(np.load('z.npz')).__name__", "np.savez('y.npz', np.arange(2), np.ones(1))", "np.load('y.npz').files", "np.savez_compressed('w', x=np.arange(2))", "np.load('w.npz')['x']", "np.savetxt('s.txt', np.array([[1, 2.5], [3, 4]]))", "open('s.txt').read()", "np.loadtxt('s.txt')", "np.savetxt('s2.csv', np.array([[1, 2], [3, 4]]), delimiter=',', fmt='%d', header='a,b')", "open('s2.csv').read()", "np.loadtxt('s2.csv', delimiter=',')", "np.loadtxt('s2.csv', delimiter=',', dtype=int)", "np.loadtxt('s2.csv', delimiter=',', usecols=1)", "np.loadtxt('s2.csv', delimiter=',', usecols=(0,))", "np.loadtxt('s2.csv', delimiter=',', skiprows=2)", "np.loadtxt('s2.csv', delimiter=',', unpack=True)", "np.loadtxt('s2.csv', delimiter=',', max_rows=1)", "np.loadtxt('s2.csv')", "np.loadtxt('nosuch')", "np.loadtxt(io.StringIO('1 2\\n3 4'))", "np.loadtxt(['1 2', '3 4'])", "np.loadtxt(io.StringIO('1 2\\n3'))", "np.loadtxt(io.StringIO('a b'))", "np.loadtxt(io.StringIO('# c\\n1 2 # x\\n'))", "np.loadtxt(io.StringIO('1'))", "np.loadtxt(io.StringIO('1 2'))", "np.loadtxt(io.StringIO('1\\n2'))", "np.savetxt('v.txt', np.arange(3))", "open('v.txt').read()", "np.savetxt('v2.txt', [1.5, 2.5], fmt='%.2f', footer='end', comments='% ')", "open('v2.txt').read()", "np.savetxt('v3.txt', np.array([[1.5, 2.5]]), fmt=['%.1f', '%d'], delimiter='\\t', newline='|')", "open('v3.txt').read()", "np.savetxt('v4.txt', np.zeros((1, 1, 1)))", "np.savetxt('v5.txt', 1)", "np.genfromtxt(io.StringIO('1,2\\n3,'), delimiter=',')", "np.genfromtxt(io.StringIO('a,b\\n1,2'), delimiter=',', skip_header=1)", "np.genfromtxt(io.StringIO('1 2\\n3 x'))", "np.genfromtxt(io.StringIO('1,2\\n3,4'), delimiter=',', dtype=int)", "np.genfromtxt(io.StringIO('1,\\n3,4'), delimiter=',', dtype=int)", "np.genfromtxt(io.StringIO('1 2\\n3'))", "np.genfromtxt('s2.csv', delimiter=',')", "np.loadtxt(io.StringIO('1 2'), ndmin=2)", "np.loadtxt(io.StringIO('1 2'), dtype='float32')", "np.loadtxt(io.StringIO('1.5'), dtype=int)", "np.loadtxt(io.StringIO('nan inf -inf 1e3 +2 .5'))"]:
+    t(s)
+b = io.BytesIO()
+torch.save({'a': 1}, b)
+b.seek(0)
+print(torch.load(b))
+with open('f.pt', 'wb') as f:
+    torch.save([1], f)
+print(os.path.exists('f.pt'), torch.load('f.pt'))
+with open('f.pt', 'rb') as f:
+    print(torch.load(f))
+b = io.BytesIO()
+np.save(b, np.arange(2))
+b.seek(0)
+print(np.load(b))
+with open('g.npy', 'wb') as f:
+    np.save(f, np.arange(2))
+    np.save(f, np.ones(1))
+with open('g.npy', 'rb') as f:
+    print(np.load(f), np.load(f))
+print(np.load('g.npy'))
+s = io.StringIO()
+np.savetxt(s, np.arange(2))
+print(repr(s.getvalue()))
+with np.load('z.npz') as d:
+    print(d['a'], sorted(d.files), 'a' in d, len(d), dict(d)['a'], list(d))
+os.rename('a.npy', 'aa.npy')
+print(np.load('aa.npy'))
+shutil.copy('f.pt', 'f2.pt')
+print(torch.load('f2.pt'))
+os.remove('f.pt')
+t("torch.load('f.pt')")
+a = np.arange(3)
+np.save('own.npy', a)
+a[0] = 9
+print(np.load('own.npy'), a)
+x = np.load('own.npy')
+x[1] = 7
+print(np.load('own.npy'), x)
+if os.path.exists('ck.pt'):
+    print('no')
+torch.save({'epoch': 1, 'w': torch.ones(1)}, 'ck.pt')
+if os.path.exists('ck.pt'):
+    c = torch.load('ck.pt')
+    print(c['epoch'], c['w'])
+>>>
+# script skeleton
+<<<
+import argparse
+import os
+import sys
+import math
+import time
+from pathlib import Path
+from dataclasses import dataclass
+from enum import Enum
+import torch
+@dataclass
+class Config:
+    lr: float = 0.1
+    epochs: int = 2
+class Mode(Enum):
+    TRAIN = 'train'
+    EVAL = 'eval'
+def parse():
+    p = argparse.ArgumentParser(description='demo')
+    p.add_argument('--lr', type=float, default=0.01, help='learning rate')
+    p.add_argument('--epochs', type=int, default=3)
+    p.add_argument('--name', default='m')
+    p.add_argument('--verbose', action='store_true')
+    return p.parse_args([])
+a = parse()
+print(a.lr, a.epochs, a.name, a.verbose, a)
+print(Config(), Config(lr=0.2).lr, Mode.TRAIN, Mode.TRAIN.value, Mode.TRAIN.name, Mode('eval'), list(Mode), Mode.TRAIN == Mode.TRAIN)
+d = Path('runs') / 'exp1'
+print(d, d.name, d.suffix, d.parent, Path('a/b.txt').stem, Path('a/b.txt').suffix, str(Path('a') / 'b'), d.exists())
+d.mkdir(parents=True, exist_ok=True)
+print(d.exists(), d.is_dir(), os.path.exists('runs/exp1'))
+f = d / 'x.txt'
+f.write_text('hello')
+print(f.read_text(), f.exists(), [p.name for p in d.iterdir()], [p.name for p in d.glob('*.txt')])
+torch.save({'a': 1}, d / 'c.pt')
+print(torch.load(d / 'c.pt'))
+if __name__ == '__main__':
+    print('main', sys.argv[0] != '', math.pi > 3, time.time() > 0)
+>>>

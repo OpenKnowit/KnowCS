@@ -32,7 +32,15 @@ const OPS = [
 
 const syntaxError = (msg: string, line: number) => new PyError('SyntaxError', msg, line)
 
-const ESCAPES: Record<string, string> = { n: '\n', t: '\t', r: '\r', '0': '\0', '\\': '\\', "'": "'", '"': '"' }
+const ESCAPES: Record<string, string> = { n: '\n', t: '\t', r: '\r', a: '\x07', b: '\b', f: '\f', v: '\v', '\\': '\\', "'": "'", '"': '"' }
+const NUMERIC_ESCAPE = /^(?:x([0-9a-fA-F]{2})|u([0-9a-fA-F]{4})|U([0-9a-fA-F]{8})|([0-7]{1,3}))/
+
+/** the escape after a backslash: what it means, and how many characters it took */
+const escapeAt = (text: string, at: number): [string, number] => {
+  const m = NUMERIC_ESCAPE.exec(text.slice(at, at + 9))
+  if (m) return [String.fromCodePoint(m[4] ? parseInt(m[4], 8) : parseInt(m[1] ?? m[2] ?? m[3], 16)), m[0].length]
+  return [ESCAPES[text[at]] ?? '\\' + text[at], 1]
+}
 
 /** offset / firstLine: an f-string's {expression} is tokenized in place, so its spans still point into the program */
 export const tokenize = (src: string, offset = 0, firstLine = 1): Tok[] => {
@@ -120,9 +128,14 @@ export const tokenize = (src: string, offset = 0, firstLine = 1): Tok[] => {
         }
         if (c === '\\' && j + 1 < src.length && !prefix.includes('r')) {
           const e = src[j + 1]
-          if (e === '\n') line++
-          else s += ESCAPES[e] ?? '\\' + e
-          j += 2
+          if (e === '\n') {
+            line++
+            j += 2
+          } else {
+            const [text, took] = escapeAt(src, j + 1)
+            s += text
+            j += 1 + took
+          }
         } else {
           s += c
           j++
@@ -862,7 +875,17 @@ class Parser {
     let lit = ''
     let i = 0
     const flush = () => {
-      if (lit) parts.push(lit.replace(/\\(.)/g, (_, e: string) => ESCAPES[e] ?? '\\' + e))
+      if (lit) {
+        let text = ''
+        for (let at = 0; at < lit.length;) {
+          if (lit[at] === '\\' && at + 1 < lit.length) {
+            const [one, took] = escapeAt(lit, at + 1)
+            text += one
+            at += 1 + took
+          } else text += lit[at++]
+        }
+        parts.push(text)
+      }
       lit = ''
     }
     while (i < raw.length) {
@@ -1705,7 +1728,7 @@ const EXCEPTIONS: [string, string[]][] = [
   ['OSError', ['Exception']], ['FileNotFoundError', ['OSError']], ['FileExistsError', ['OSError']], ['IsADirectoryError', ['OSError']], ['NotADirectoryError', ['OSError']], ['PermissionError', ['OSError']], ['TimeoutError', ['OSError']],
   ['RuntimeError', ['Exception']], ['NotImplementedError', ['RuntimeError']], ['RecursionError', ['RuntimeError']], ['StopIteration', ['Exception']],
   ['SyntaxError', ['Exception']], ['IndentationError', ['SyntaxError']], ['TypeError', ['Exception']], ['ValueError', ['Exception']], ['UnicodeError', ['ValueError']], ['UnicodeDecodeError', ['UnicodeError']],
-  ['_LinAlgError', ['RuntimeError']], ['Warning', ['Exception']], ['UserWarning', ['Warning']], ['DeprecationWarning', ['Warning']], ['RuntimeWarning', ['Warning']], ['FutureWarning', ['Warning']],
+  ['_LinAlgError', ['RuntimeError']], ['PickleError', ['Exception']], ['PicklingError', ['PickleError']], ['UnpicklingError', ['PickleError']], ['Warning', ['Exception']], ['UserWarning', ['Warning']], ['DeprecationWarning', ['Warning']], ['RuntimeWarning', ['Warning']], ['FutureWarning', ['Warning']],
   ['LinAlgError', ['ValueError']], ['AxisError', ['ValueError', 'IndexError']], ['UFuncTypeError', ['TypeError']],
   ['MergeError', ['ValueError']], ['ParserError', ['ValueError']], ['EmptyDataError', ['ValueError']], ['DataError', ['ValueError']], ['IntCastingNaNError', ['ValueError']], ['UndefinedVariableError', ['NameError']], ['OptionError', ['AttributeError', 'KeyError']], ['IndexingError', ['Exception']], ['SpecificationError', ['Exception']],
 ]
@@ -2698,8 +2721,9 @@ class Interp implements Host {
       if (type === 'c') return (v.k === 'str' ? v.v : String.fromCharCode(this.toInt(v))).padStart(Number(w))
       if (!'diuoxXeEfFgG'.includes(type)) throw this.err('ValueError', `unsupported format character '${type}'`)
       if (!isNum(v) && !(v.k === 'array' && v.a.size === 1) && !(v.k === 'obj' && v.o.asNumber) && !(v.k === 'inst' && (this.classAttr(v.cls, '__float__') || this.classAttr(v.cls, '__index__')))) throw this.err('TypeError', `%${type} format: a real number is required, not ${typeName(v)}`)
-      const x = this.num(v)
       const integer = 'diuoxX'.includes(type)
+      const toInt = integer && v.k === 'inst' ? this.classAttr(v.cls, '__int__') : undefined
+      const x = toInt ? this.num(this.call(toInt, [v])) : this.num(v)
       const num: Value = integer ? int(Math.trunc(x)) : float(x)
       const sign = flags.includes('+') ? '+' : flags.includes(' ') ? ' ' : ''
       const spec = `${left ? '<' : ''}${sign}${flags.includes('0') && !left ? '0' : ''}${w}${prec !== undefined && !integer ? `.${prec}` : ''}${type === 'i' || type === 'u' ? 'd' : type}`
@@ -4289,6 +4313,7 @@ class Interp implements Host {
             if (c.k === 'class') c.bases.forEach(walk)
           }
           walk(obj)
+          if (!order.includes(this.builtins.object)) order.push(this.builtins.object)
           return name === 'mro' ? fn(() => ({ k: 'list', items: order })) : tuple(order)
         }
         const c = this.classAttr(obj, name)
@@ -4654,9 +4679,8 @@ class Interp implements Host {
         const add = (k: Value, v: Value) => m.set(k, d.flavor === 'Counter' ? this.binop('+', m.get(k) ?? int(0), v) : v)
         if (args[0]?.k === 'dict') for (const [k, v] of args[0].d.items()) add(k, v)
         else if (args[0] && d.flavor === 'Counter') for (const k of this.iterate(args[0])) add(k, int(1))
-        else if (args[0]) for (const p of this.iterate(args[0])) {
-          const kv = this.iterate(p)
-          if (kv.length !== 2) throw this.err('ValueError', 'dictionary update sequence element has wrong length')
+        else if (args[0]) for (const [at, p] of this.iterate(args[0]).entries()) {
+          const kv = this.pairOf(p, at)
           add(kv[0], kv[1])
         }
         for (const k in kw) add(str_(k), kw[k])
@@ -4731,7 +4755,7 @@ class Interp implements Host {
         if (at < 0) return name === 'partition' ? tuple([S(sv), S(''), S('')]) : tuple([S(''), S(''), S(sv)])
         return tuple([S(sv.slice(0, at)), S(sep), S(sv.slice(at + sep.length))])
       }
-      case 'join': return (a) => S(this.iterate(a[0]).map((x, i) => {
+      case 'join': return (a) => S(this.iterateOr(a[0], 'can only join an iterable').map((x, i) => {
         const s = this.plainStr(x)
         if (s === null) throw this.err('TypeError', `sequence item ${i}: expected str instance, ${typeName(x)} found`)
         return s
@@ -5441,7 +5465,7 @@ class Interp implements Host {
         if (x.k === 'str') {
           const n = Number(x.v)
           if (x.v.trim() === '' || Number.isNaN(n) || (d === 'int64' && !/^\s*[-+]?\d+\s*$/.test(x.v))) {
-            throw this.err('ValueError', `invalid literal for ${name}(): ${reprStr(x.v)}`)
+            throw this.err('ValueError', `invalid literal for int() with base 10: ${reprStr(x.v)}`)
           }
           return fromScalar(n, d)
         }
@@ -5458,6 +5482,7 @@ class Interp implements Host {
     })
     return {
       print: fn('print', (args, kw) => {
+        for (const name of ['sep', 'end']) if (kw[name] && kw[name].k !== 'str' && kw[name].k !== 'none') throw this.err('TypeError', `${name} must be None or a string, not ${typeName(kw[name])}`)
         const sep = kw.sep && kw.sep.k === 'str' ? kw.sep.v : ' '
         const end = kw.end && kw.end.k === 'str' ? kw.end.v : '\n'
         const shown = args.map((a) => this.str(a))
@@ -5534,6 +5559,7 @@ class Interp implements Host {
         if (c.k !== 'class' && c.k !== 'type') throw this.err('TypeError', 'issubclass() arg 1 must be a class')
         const of = (t: Value): boolean => {
           if (t.k === 'tuple') return t.items.some(of)
+          if (t.k !== 'type' && t.k !== 'class' && t.k !== 'obj') throw this.err('TypeError', 'issubclass() arg 2 must be a class, a tuple of classes, or a union')
           return (t.k === 'type' && t.name === 'object') || this.classBelow(c, t)
         }
         return bool(of(args[1]))
@@ -5602,6 +5628,7 @@ class Interp implements Host {
       ...excs,
       abs: fn('abs', (args) => {
         const x = args[0]
+        if (x.k === 'str' || x.k === 'none' || x.k === 'list' || x.k === 'tuple' || x.k === 'dict' || x.k === 'set') throw this.err('TypeError', `bad operand type for abs(): '${typeName(x)}'`)
         if (x.k === 'inst') {
           const f = this.classAttr(x.cls, '__abs__')
           if (f) return this.call(f, [x])
@@ -5621,16 +5648,28 @@ class Interp implements Host {
         const spec = args[1]?.k === 'str' ? args[1].v : ''
         return str_(this.instFormat(args[0], spec) ?? (spec ? formatSpec(args[0], spec) : this.str(args[0])))
       }),
-      chr: fn('chr', (args) => str_(String.fromCharCode(this.toInt(args[0])))),
-      ord: fn('ord', (args) => int((args[0] as { v: string }).v.charCodeAt(0))),
+      chr: fn('chr', (args) => {
+        const n = this.toInt(args[0])
+        if (n < 0 || n >= 0x110000) throw this.err('ValueError', 'chr() arg not in range(0x110000)')
+        return str_(String.fromCodePoint(n))
+      }),
+      ord: fn('ord', (args) => {
+        const s = args[0]
+        if (s.k !== 'str') throw this.err('TypeError', `ord() expected string of length 1, but ${typeName(s)} found`)
+        const chars = [...s.v]
+        if (chars.length !== 1) throw this.err('TypeError', `ord() expected a character, but string of length ${chars.length} found`)
+        return int(chars[0].codePointAt(0)!)
+      }),
       dict: { k: 'type', name: 'dict', call: (args, kw) => {
         const d = new PyDict()
         const keys = args[0]?.k === 'obj' || args[0]?.k === 'inst' ? this.getAttrOr(args[0], 'keys') : undefined
         if (args[0]?.k === 'dict') for (const [k, v] of args[0].d.items()) d.set(k, v)
-        else if (keys) for (const k of this.iterate(this.call(keys, []))) d.set(k, this.call(this.getAttr(args[0], '__getitem__'), [k]))
-        else if (args[0]) for (const p of this.iterate(args[0])) {
-          const kv = this.iterate(p)
-          if (kv.length !== 2) throw this.err('ValueError', 'dictionary update sequence element has wrong length')
+        else if (keys) {
+          const from = args[0]
+          for (const k of this.iterate(this.call(keys, []))) d.set(k, from.k === 'obj' && from.o.getItem ? from.o.getItem(k, this) : this.call(this.getAttr(from, '__getitem__'), [k]))
+        }
+        else if (args[0]) for (const [at, p] of this.iterate(args[0]).entries()) {
+          const kv = this.pairOf(p, at)
           d.set(kv[0], kv[1])
         }
         for (const k in kw) d.set(str_(k), kw[k])
@@ -5715,6 +5754,7 @@ class Interp implements Host {
       }),
       round: fn('round', (args) => {
         const x = args[0]
+        if (x.k === 'str' || x.k === 'none' || x.k === 'list' || x.k === 'tuple' || x.k === 'dict' || x.k === 'set') throw this.err('TypeError', `type ${typeName(x)} doesn't define __round__ method`)
         const nd = args[1] && args[1].k !== 'none' ? this.toInt(args[1]) : null
         if (x.k === 'obj' || x.k === 'array') {
           const r = (x.k === 'obj' ? this.getAttrOr(x, '__round__') : undefined) ?? this.getAttr(x, 'round')
@@ -5766,7 +5806,7 @@ class Interp implements Host {
           return { k: 'super', self: args[1], after: args[0] }
         }
         const f = this.frame
-        if (!f?.owner || f.self?.k !== 'inst') throw this.err('RuntimeError', 'super(): no arguments — call it inside a method')
+        if (!f?.owner || f.self?.k !== 'inst') throw this.err('RuntimeError', 'super(): no arguments')
         return { k: 'super', self: f.self, after: f.owner }
       }),
       __math__: this.makeMath(),
@@ -5839,6 +5879,19 @@ class Interp implements Host {
     // a library class says what it inherits from; a Python class of the same name is not that
     if ((t.k === 'type' || (t.k === 'class' && t.builtin)) && x.parents?.includes(t.name.split('.').pop()!)) return true
     return t.k === 'type' && (x.name === t.name || (x.name === 'bool' && t.name === 'int'))
+  }
+
+  /** iterate, with the error this caller gives for what cannot be iterated */
+  iterateOr(v: Value, message: string): Value[] {
+    if (isNum(v) || v.k === 'none') throw this.err('TypeError', message)
+    return this.iterate(v)
+  }
+
+  /** an element of what dict() is given: a key and a value */
+  pairOf(p: Value, at: number): Value[] {
+    const kv = this.iterateOr(p, `cannot convert dictionary update sequence element #${at} to a sequence`)
+    if (kv.length !== 2) throw this.err('ValueError', `dictionary update sequence element #${at} has length ${kv.length}; 2 is required`)
+    return kv
   }
 
   isinstance(v: Value, t: Value): boolean {
