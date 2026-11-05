@@ -5333,7 +5333,6 @@ class Interp implements Host {
           throw this.err('TypeError', `bad operand type for abs(): '${x.o.cls}'`)
         }
         if (x.k === 'array') return arr(NDArray.create(x.a.values().map(Math.abs), x.a.shape, x.a.dtype === 'bool' ? 'int64' : x.a.dtype))
-        if (x.k === 'obj') return this.call(this.getAttr(x, 'abs'), [])
         return x.k === 'float' ? float(Math.abs(x.v)) : int(Math.abs(numOf(x)))
       }),
       type: ty('type', (args) => kindOf(args[0])),
