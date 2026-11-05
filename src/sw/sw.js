@@ -43,6 +43,8 @@ async function pageStaleWhileRevalidate(event) {
   const hit = await cache.match(key)
   const fresh = fetch(request).then(async (res) => {
     if (res.ok && !res.redirected) await cache.put(key, res.clone())
+    // the page is gone: stop serving the copy kept from an earlier visit
+    else if (res.status === 404 || res.status === 410) await cache.delete(key)
     return res
   })
   if (hit) {

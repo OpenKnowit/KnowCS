@@ -44,7 +44,7 @@ function pageMeta(page) {
     case "admin":
       return pick("site.admin.title", "site.admin.title")
     case "notfound":
-      return pick("notfound.title", "notfound.lead")
+      return pick("notfound.title", "notfound.title")
     case "notes":
       return pick("app.section.package.title", "app.section.package.subtitle")
     case "note":

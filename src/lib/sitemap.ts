@@ -165,19 +165,26 @@ export type PageSpec =
   | { kind: 'watch-item'; path: string; id: string }
   | { kind: 'redirect'; path: string; to: string }
 
+/** Watch, Check and the formula sheet are kept in the code but not published for now: set this to true to bring them back. */
+export const STUDY_PAGES_ONLINE: boolean = false
+
 /** Every HTML file the build emits. path is the output file, relative to the site root. */
 export const PAGES: PageSpec[] = [
   { kind: 'home', path: 'index.html' },
   { kind: 'playground', path: 'playground/index.html' },
   ...MODULES.map((m): PageSpec => ({ kind: 'module', path: `${m.id}/index.html`, id: m.id })),
-  { kind: 'watch', path: 'watch/index.html' },
-  { kind: 'drill', path: 'drill/index.html' },
-  { kind: 'formulas', path: 'formulas/index.html' },
+  ...(STUDY_PAGES_ONLINE
+    ? ([
+        { kind: 'watch', path: 'watch/index.html' },
+        { kind: 'drill', path: 'drill/index.html' },
+        { kind: 'formulas', path: 'formulas/index.html' },
+        ...EPISODES.map((e): PageSpec => ({ kind: 'watch-item', path: `watch/${e.id}/index.html`, id: e.id })),
+      ] as PageSpec[])
+    : []),
   { kind: 'papers', path: 'papers/index.html' },
   { kind: 'resources', path: 'resources/index.html' },
   { kind: 'admin', path: 'admin/index.html' },
   { kind: 'notfound', path: '404.html' },
-  ...EPISODES.map((e): PageSpec => ({ kind: 'watch-item', path: `watch/${e.id}/index.html`, id: e.id })),
   { kind: 'notes', path: 'notes/index.html' },
   ...NOTE_IDS.map((id): PageSpec => ({ kind: 'note', path: `notes/${id}/index.html`, id })),
   { kind: 'extend', path: 'extend/index.html' },

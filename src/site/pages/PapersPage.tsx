@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { EPISODES, LECTURES, MODULES, PAPERS, moduleUrl, watchUrl } from '../../lib/sitemap'
+import { EPISODES, LECTURES, MODULES, PAPERS, STUDY_PAGES_ONLINE, moduleUrl, watchUrl } from '../../lib/sitemap'
 import { usePaperLabel } from '../ui'
 
 /** /papers/: which topic each past paper asked, as a grid — the inverse view of the exam badges. */
@@ -41,7 +41,7 @@ export default function PapersPage() {
               {rows
                 .filter((m) => m.lec === n)
                 .map((m) => {
-                  const ep = EPISODES.find((e) => e.modules.includes(m.id))
+                  const ep = STUDY_PAGES_ONLINE ? EPISODES.find((e) => e.modules.includes(m.id)) : undefined
                   return (
                     <tr key={m.id} className="border-t border-slate-100 hover:bg-blue-50/40">
                       <td className="sticky left-0 z-10 w-[150px] bg-white px-3 py-2.5 text-[13px] shadow-[4px_0_6px_-4px_rgba(15,23,42,0.15)] sm:w-auto sm:px-4 sm:text-sm">
