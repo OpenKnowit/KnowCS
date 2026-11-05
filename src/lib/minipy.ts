@@ -1012,6 +1012,32 @@ const int = (v: number): Value => ({ k: 'int', v })
 const float = (v: number): Value => ({ k: 'float', v })
 const bool = (v: boolean): Value => ({ k: 'bool', v })
 const arr = (a: NDArray): Value => ({ k: 'array', a })
+
+const KEEPS_MATRIX: ApiKind[] = ['move', 'elementwise', 'reduce', 'scan', 'sort', 'matmul', 'unique', 'linalg']
+/** these go through np.asarray or ignore subclasses, so they return a plain array even for a matrix */
+const DROPS_MATRIX = ['copy', 'ravel', 'expand_dims', 'where', 'norm']
+
+// ---- np.matrix: an ndarray with a flag; these mirror numpy.matrix.__array_finalize__ and friends
+const isMatrix = (v: Value | undefined): boolean =>
+  !!v && ((v.k === 'array' && !!v.a.matrix) || ((v.k === 'list' || v.k === 'tuple') && v.items.some(isMatrix)))
+/** the same memory, seen as a plain ndarray */
+const plainView = (a: NDArray): NDArray => new NDArray(a.data, a.shape, a.strides, a.offset, a.dtype, a.base ?? a)
+/** the shape a result takes once it is a matrix: 0-d → 1×1, 1-D → a row, extra length-1 axes dropped */
+const matrixArray = (a: NDArray): NDArray => {
+  const sh = a.ndim > 2 ? a.shape.filter((d) => d > 1) : a.shape
+  if (sh.length > 2) throw new PyError('ValueError', 'shape too large to be a matrix.')
+  const shape = sh.length === 2 ? sh : sh.length === 1 ? [1, sh[0]] : [1, 1]
+  const out = shape.length === a.ndim && shape.every((d, i) => d === a.shape[i]) ? plainView(a) : reshape(a, shape)
+  out.matrix = true
+  return out
+}
+const plainValue = (v: Value): Value => (v.k === 'array' ? arr(plainView(v.a)) : v)
+const toMatrix = (v: Value): Value => (v.k === 'array' ? arr(matrixArray(v.a)) : v)
+/** run an API so that any matrix argument makes the array it returns a matrix too */
+const keepMatrix = (call: Fn): Fn => (args, kw) => {
+  const res = call(args, kw)
+  return args.some(isMatrix) ? toMatrix(res) : res
+}
 const tuple = (items: Value[]): Value => ({ k: 'tuple', items })
 const str_ = (v: string): Value => ({ k: 'str', v })
 
@@ -1021,7 +1047,7 @@ export const py = { NONE, int, float, bool, arr, tuple, str: str_, list: (items:
 export const typeName = (v: Value): string => {
   switch (v.k) {
     case 'none': return 'NoneType'
-    case 'array': return 'numpy.ndarray'
+    case 'array': return v.a.matrix ? 'numpy.matrix' : 'numpy.ndarray'
     case 'fn': return 'builtin_function_or_method'
     case 'type': case 'class': return 'type'
     case 'dtype': return 'numpy.dtype'
@@ -1519,6 +1545,31 @@ class Interp implements Host {
     return src.map((x) => this.toInt(x))
   }
 
+  /** `*` and `**` are the matrix product and power; everything else is element-wise and stays a matrix */
+  matrixOp(op: string, l: Value, r: Value): Value {
+    if (op === '*' && !isNum(l) && !isNum(r)) {
+      // matrix * x reads x as a matrix (a 1-D x is a row); x * matrix goes through np.dot(x, matrix)
+      const left = isMatrix(l) ? plainView(toArray(l)) : toArray(l)
+      const right = isMatrix(l) ? matrixArray(toArray(r)) : toArray(r)
+      return toMatrix(this.binop('@', arr(left), arr(plainView(right))))
+    }
+    if (op === '**') {
+      if (!isMatrix(l)) throw this.err('TypeError', `unsupported operand type(s) for ** or pow(): '${typeName(l)}' and 'matrix'`)
+      if (r.k !== 'int' && r.k !== 'bool') throw this.err('TypeError', 'exponent must be an integer')
+      return arr(this.matrixPower(toArray(l), numOf(r)))
+    }
+    return toMatrix(this.binop(op, plainValue(l), plainValue(r)))
+  }
+
+  matrixPower(a: NDArray, n: number): NDArray {
+    if (a.shape[0] !== a.shape[1]) throw this.err('LinAlgError', 'Last 2 dimensions of the array must be square')
+    const base = n < 0 ? inv(plainView(a)) : plainView(a)
+    const size = a.shape[0]
+    let out = NDArray.create(Array.from({ length: size * size }, (_, i) => (i % (size + 1) === 0 ? 1 : 0)), [size, size], base.dtype)
+    for (let i = 0; i < Math.abs(n); i++) out = dot(out, base) as NDArray
+    return matrixArray(out)
+  }
+
   binop(op: string, l: Value, r: Value): Value {
     if (l.k === 'obj' || r.k === 'obj') {
       const res = (l.k === 'obj' ? l.o.binop?.(op, r, false, this) : undefined) ?? (r.k === 'obj' ? r.o.binop?.(op, l, true, this) : undefined)
@@ -1533,6 +1584,7 @@ class Interp implements Host {
       if (op === '==' || op === '!=') return bool((op === '==') === (l === r))
       throw this.err('TypeError', `unsupported operand type(s) for ${op}: '${typeName(l)}' and '${typeName(r)}'`)
     }
+    if (isMatrix(l) || isMatrix(r)) return this.matrixOp(op, l, r)
     if (op === '@') {
       if (l.k !== 'array' && r.k !== 'array') throw this.err('TypeError', `unsupported operand type(s) for @: '${typeName(l)}' and '${typeName(r)}'`)
       if (toArray(l).ndim === 0 || toArray(r).ndim === 0) throw this.err('ValueError', 'matmul: Input operand does not have enough dimensions')
@@ -1661,13 +1713,39 @@ class Interp implements Host {
     throw this.err('TypeError', `${kind} indices must be integers or slices, not ${typeName(idx)}`)
   }
 
+  /** np.matrix(data): a list, an array, or text like "1 2; 3 4" */
+  makeMatrix(data: Value | undefined, dtype: DType | undefined): Value {
+    if (!data) throw this.err('TypeError', "matrix() missing required argument 'data'")
+    let src: Value = data
+    if (data.k === 'str') {
+      const rows = data.v.split(';').map((row) => row.trim().split(/[\s,]+/).filter(Boolean))
+      if (rows.some((row) => row.length !== rows[0].length)) throw this.err('ValueError', 'Rows not the same size.')
+      const cell = (t: string): Value => {
+        const x = Number(t)
+        if (t === '' || Number.isNaN(x)) throw this.err('NameError', `name '${t}' is not defined`)
+        return /^[-+]?\d+$/.test(t) ? int(x) : float(x)
+      }
+      src = { k: 'list', items: rows.map((row) => ({ k: 'list', items: row.map(cell) })) }
+    }
+    const a = toArray(src, dtype)
+    if (a.ndim > 2) throw this.err('ValueError', 'shape too large to be a matrix.')
+    return arr(matrixArray(a === (src as { a?: NDArray }).a ? a.copy() : a))
+  }
+
+  /** m[0] stays a row and m[:, 0] a column, each still 2-D */
+  matrixItem(value: NDArray, idx: Value): NDArray {
+    const out = value.ndim !== 1 ? plainView(value) : idx.k === 'tuple' && idx.items.length > 1 && isNum(idx.items[1]) ? reshape(value, [value.size, 1]) : reshape(value, [1, value.size])
+    out.matrix = true
+    return out
+  }
+
   getItem(node: Node & { k: 'sub' }, obj: Value, idx: Value): Value {
     if (obj.k === 'array') {
       const a = obj.a
       const before = snap(a)
       const items = this.toIndexItems(idx)
       const { plan, value } = getIndex(a, items)
-      const res: Value = typeof value === 'number' ? fromScalar(value, a.dtype) : arr(value)
+      const res: Value = typeof value === 'number' ? fromScalar(value, a.dtype) : a.matrix ? arr(this.matrixItem(value, idx)) : arr(value)
       if (this.tracing) {
         const out = typeof value === 'number' ? { shape: [], values: [value], dtype: a.dtype } : snap(value)
         this.record(this.targetOf(node), this.text(node), a, before, plan, 'read', out)
@@ -1732,11 +1810,11 @@ class Interp implements Host {
 
   /** 原地增量赋值 b += 1：b 是视图时同样会改到原数组 */
   inplace(name: string, a: NDArray, op: string, rhs: Value, stmt: Span) {
-    const res = binaryOp(op as BinOp, a, this.operand(rhs, op + '='))
+    const res = a.matrix && (op === '**' || (op === '*' && !isNum(rhs))) ? toArray(this.matrixOp(op, arr(a), rhs)) : binaryOp(op as BinOp, plainView(a), this.operand(rhs, op + '='))
     if (a.dtype !== 'float64' && res.dtype === 'float64') {
       throw this.err('UFuncTypeError', `Cannot cast ufunc '${op === '/' ? 'divide' : op}' output from dtype('float64') to dtype('${a.dtype}') with casting rule 'same_kind'`)
     }
-    if (res.size !== a.size) {
+    if (res.size !== a.size || (a.matrix && res.shape.some((d, i) => d !== a.shape[i]))) {
       throw this.err('ValueError', `non-broadcastable output operand with shape ${shapeStr(a.shape)} doesn't match the broadcast shape ${shapeStr(res.shape)}`)
     }
     const before = snap(a)
@@ -1934,7 +2012,7 @@ class Interp implements Host {
           return x.o.unary(n.op, this)
         }
         if (x.k === 'array') {
-          const res = arr(unaryOp(n.op, x.a))
+          const res = x.a.matrix ? toMatrix(arr(unaryOp(n.op, x.a))) : arr(unaryOp(n.op, x.a))
           if (this.tracing && n.op !== '+') this.pushCall(`op:${n.op}x`, 'elementwise', this.text(n), [{ label: this.text(n.x), v: arr(x.a.copy()) }], res, null)
           return res
         }
@@ -1985,8 +2063,8 @@ class Interp implements Host {
         this.callText = this.text(n)
         const res = this.binop(n.op, l, r)
         if ((l.k === 'array' || r.k === 'array') && this.tracing) {
-          const ops = this.collectOperands([n.l, n.r], [l, r], n.op !== '@').map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
-          this.pushCall(`op:${n.op}`, n.op === '@' ? 'matmul' : 'elementwise', this.text(n), ops, res, null)
+          const ops = this.collectOperands([n.l, n.r], [l, r], n.op !== '@' && !(n.op === '*' && isMatrix(l) && isMatrix(r))).map((o) => ({ label: o.label, v: o.v.k === 'array' ? arr(o.v.a.copy()) : o.v }))
+          this.pushCall(`op:${n.op}`, n.op === '@' || (n.op === '*' && (isMatrix(l) || isMatrix(r)) && !isNum(l) && !isNum(r)) ? 'matmul' : 'elementwise', this.text(n), ops, res, null)
         }
         return res
       }
@@ -2057,7 +2135,8 @@ class Interp implements Host {
       if (v.a.ndim === 0) throw this.err('TypeError', 'iteration over a 0-d array')
       return Array.from({ length: v.a.shape[0] }, (_, i) => {
         const { value } = getIndex(v.a, [{ kind: 'int', value: i }])
-        return typeof value === 'number' ? fromScalar(value, v.a.dtype) : arr(value)
+        if (typeof value === 'number') return fromScalar(value, v.a.dtype)
+        return v.a.matrix ? arr(matrixArray(value)) : arr(value)
       })
     }
     throw this.err('TypeError', `'${typeName(v)}' object is not iterable`)
@@ -2453,8 +2532,9 @@ class Interp implements Host {
   reduceFn(a: NDArray, kind: ReduceKind, args: Value[], kw: Record<string, Value>): Value {
     const axis = this.kwInt(kw, args, 0, 'axis')
     const res = reduce(a, kind, axis)
-    // keepdims=True leaves the reduced axis in place with length 1, so the result still broadcasts against a
-    if (kw.keepdims && this.truthy(kw.keepdims)) {
+    // keepdims=True leaves the reduced axis in place with length 1, so the result still broadcasts against a.
+    // A matrix does this by itself along an axis: m.sum(axis=1) is a column
+    if ((kw.keepdims && this.truthy(kw.keepdims)) || (a.matrix && axis !== null)) {
       const shape = axis === null ? a.shape.map(() => 1) : a.shape.map((d, i) => (i === normAxis(axis, a.ndim) ? 1 : d))
       const vals = typeof res === 'number' ? [res] : res.values()
       return arr(NDArray.create(vals, shape, typeof res === 'number' ? reduceDType(kind, a.dtype) : res.dtype))
@@ -2465,7 +2545,10 @@ class Interp implements Host {
 
   /** ndarray 方法表：impl(self) 返回可调用对象，便于在元素编号数组上重放 */
   arrayMethod(name: string): { impl: (a: NDArray) => Fn; meta: ApiMeta } | null {
-    const M = (kind: ApiKind, impl: (a: NDArray) => Fn, extra: Partial<ApiMeta> = {}) => ({ impl, meta: { name: `ndarray.${name}`, kind, ...extra } })
+    const M = (kind: ApiKind, impl: (a: NDArray) => Fn, extra: Partial<ApiMeta> = {}) => ({
+      impl: (a: NDArray): Fn => (a.matrix ? (args, kw) => toMatrix(impl(a)(args, kw)) : impl(a)),
+      meta: { name: `ndarray.${name}`, kind, ...extra },
+    })
     switch (name) {
       case 'reshape': return M('move', (a) => (args, kw) => arr(reshape(a, this.toShape(kw.shape ? [kw.shape] : args))))
       case 'transpose': return M('move', (a) => (args) => arr(transpose(a, args.length ? this.toShape(args) : undefined)))
@@ -2479,7 +2562,8 @@ class Interp implements Host {
       case 'round': return M('elementwise', (a) => (args, kw) => arr(this.roundArr(a, this.kwInt(kw, args, 0, 'decimals') ?? 0)))
       case 'clip': return M('elementwise', (a) => (args, kw) => this.clip(arr(a), kw.min ?? kw.a_min ?? args[0], kw.max ?? kw.a_max ?? args[1]))
       case 'tolist': return M('info', (a) => () => this.toList(a))
-      case 'item': return M('info', (a) => () => {
+      case 'item': return M('info', (a) => (args) => {
+        if (args[0]) return fromScalar(a.values()[this.toInt(args[0])], a.dtype)
         if (a.size !== 1) throw this.err('ValueError', 'can only convert an array of size 1 to a Python scalar')
         return fromScalar(a.values()[0], a.dtype)
       })
@@ -2687,13 +2771,21 @@ class Interp implements Host {
         case 'ndim': return int(a.ndim)
         case 'size': return int(a.size)
         case 'dtype': return { k: 'dtype', d: a.dtype }
-        case 'T': return arr(transpose(a))
+        case 'T': return a.matrix ? toMatrix(arr(transpose(a))) : arr(transpose(a))
         case 'base': return a.base ? arr(a.base) : NONE
         case 'strides': return tuple(a.strides.map((s) => int(s * 8)))
       }
+      if (a.matrix) {
+        switch (name) {
+          case 'A': return arr(plainView(a))
+          case 'A1': return arr(reshape(plainView(a), [-1]))
+          case 'H': return toMatrix(arr(transpose(a)))
+          case 'I': return toMatrix(arr(inv(plainView(a))))
+        }
+      }
       const m = this.arrayMethod(name)
       if (m) return { k: 'fn', name, call: m.impl(a), api: m.meta, self: a, rebind: m.impl }
-      throw this.err('AttributeError', `'numpy.ndarray' object has no attribute '${name}'`)
+      throw this.err('AttributeError', `'${typeName(obj)}' object has no attribute '${name}'`)
     }
     if (obj.k === 'list') {
       const m = this.listMethod(obj, name)
@@ -2871,11 +2963,11 @@ class Interp implements Host {
   predicate(name: string, f: (x: number) => boolean): Value {
     return {
       k: 'fn', name, api: { name: `np.${name}`, kind: 'elementwise' },
-      call: (args) => {
+      call: keepMatrix((args) => {
         const a = toArray(args[0])
         const res = NDArray.create(a.values().map((x) => (f(x) ? 1 : 0)), a.shape, 'bool')
         return args[0].k === 'array' || args[0].k === 'list' ? arr(res) : bool(res.values()[0] === 1)
-      },
+      }),
     }
   }
 
@@ -2883,7 +2975,7 @@ class Interp implements Host {
 
   makeNumpy(): Value {
     const api = (prefix: string) => (name: string, call: Fn, kind?: ApiKind, extra: Partial<ApiMeta> = {}): Value => ({
-      k: 'fn', name, call, api: kind ? { name: `${prefix}.${name}`, kind, ...extra } : undefined,
+      k: 'fn', name, call: kind && KEEPS_MATRIX.includes(kind) && !DROPS_MATRIX.includes(name) ? keepMatrix(call) : call, api: kind ? { name: `${prefix}.${name}`, kind, ...extra } : undefined,
     })
     const fn = api('np')
     const asArr = (v: Value | undefined, name: string): NDArray => {
@@ -2909,7 +3001,8 @@ class Interp implements Host {
         const a = asArr(args[0], name)
         const f = fill(args, kw)
         const dtype = this.dtypeOf(kw.dtype) ?? (name === 'full_like' ? a.dtype : a.dtype)
-        return arr(NDArray.create(new Array(a.size).fill(numOf(f)), a.shape, dtype))
+        const res = arr(NDArray.create(new Array(a.size).fill(numOf(f)), a.shape, dtype))
+        return a.matrix ? toMatrix(res) : res
       }, 'create')
     const reducer = (kind: ReduceKind) => fn(kind, (args, kw) => this.reduceFn(asArr(args[0], kind), kind, args.slice(1), kw), 'reduce', { axisPos: 1, defaultAxis: null })
     const elementwise = (name: string, f: (x: number) => number, out: 'float' | 'same' | 'int-keep' = 'float') =>
@@ -2919,7 +3012,7 @@ class Interp implements Host {
         const res = NDArray.create(a.values().map(f), a.shape, dtype)
         return args[0].k === 'array' || args[0].k === 'list' ? arr(res) : fromScalar(res.values()[0], dtype)
       }, 'elementwise')
-    const ufunc2 = (name: string, op: BinOp) => fn(name, (args) => this.binop(op, args[0], args[1]), 'elementwise')
+    const ufunc2 = (name: string, op: BinOp) => fn(name, (args) => this.binop(op, plainValue(args[0]), plainValue(args[1])), 'elementwise')
     const logical = (name: string, f: (x: number, y: number) => number) =>
       fn(name, (args) => {
         const a = toArray(args[0])
@@ -3034,7 +3127,16 @@ class Interp implements Host {
         const src = toArray(args[0], this.dtypeOf(kw.dtype ?? args[1]))
         return arr(src === (args[0] as { a?: NDArray }).a ? src.copy() : src)
       }, 'create'),
-      asarray: fn('asarray', (args, kw) => arr(toArray(args[0], this.dtypeOf(kw.dtype))), 'create'),
+      asarray: fn('asarray', (args, kw) => {
+        const a = toArray(args[0], this.dtypeOf(kw.dtype))
+        return arr(a.matrix ? plainView(a) : a)
+      }, 'create'),
+      matrix: { k: 'type', name: 'numpy.matrix', call: (args, kw) => this.makeMatrix(args[0], this.dtypeOf(kw.dtype ?? args[1])), api: { name: 'np.matrix', kind: 'create' } },
+      asmatrix: fn('asmatrix', (args, kw) => {
+        const a = toArray(args[0], this.dtypeOf(kw.dtype ?? args[1]))
+        if (a.ndim > 2) throw this.err('ValueError', 'shape too large to be a matrix.')
+        return arr(matrixArray(a))
+      }, 'create'),
       copy: fn('copy', (args) => arr(asArr(args[0], 'copy').copy()), 'move'),
       arange: fn('arange', (args, kw) => {
         const nums = args.map((x) => { if (!isNum(x)) throw this.err('TypeError', 'arange() arguments must be numbers'); return x })
@@ -3255,7 +3357,16 @@ class Interp implements Host {
       log: elementwise('log', Math.log),
       sin: elementwise('sin', Math.sin),
       cos: elementwise('cos', Math.cos),
+      tan: elementwise('tan', Math.tan),
+      sinh: elementwise('sinh', Math.sinh),
+      cosh: elementwise('cosh', Math.cosh),
       tanh: elementwise('tanh', Math.tanh),
+      arcsin: elementwise('arcsin', Math.asin),
+      arccos: elementwise('arccos', Math.acos),
+      arctan: elementwise('arctan', Math.atan),
+      arcsinh: elementwise('arcsinh', Math.asinh),
+      arccosh: elementwise('arccosh', Math.acosh),
+      arctanh: elementwise('arctanh', Math.atanh),
       log2: elementwise('log2', Math.log2),
       log10: elementwise('log10', Math.log10),
       square: elementwise('square', (x) => x * x, 'same'),
@@ -3471,6 +3582,7 @@ class Interp implements Host {
     }
     if (t.k === 'type') {
       const name = t.name
+      if (v.k === 'array' && (name === 'numpy.ndarray' || name === 'numpy.matrix')) return name === 'numpy.ndarray' || !!v.a.matrix
       if (v.k === 'obj') return v.o.cls === name || !!v.o.isa?.(name)
       if (v.k === 'inst') return v.cls.host !== null && t.host === v.cls.host
       const map: Record<string, Value['k'][]> = { int: ['int', 'bool'], float: ['float'], bool: ['bool'], str: ['str'], list: ['list'], tuple: ['tuple'], dict: ['dict'], range: ['range'], 'numpy.ndarray': ['array'] }

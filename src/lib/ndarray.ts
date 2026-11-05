@@ -71,6 +71,8 @@ export class NDArray {
   dtype: DType
   /** 拥有内存的数组；自身拥有内存时为 null（同 numpy 的 .base） */
   base: NDArray | null
+  /** np.matrix: always 2-D, prints as matrix(...), and `*` / `**` are the matrix product and power */
+  matrix?: boolean
 
   constructor(data: number[], shape: number[], strides: number[], offset: number, dtype: DType, base: NDArray | null) {
     this.data = data
@@ -665,14 +667,15 @@ const formatScientific = (values: number[]): string[] => {
 
 export const formatElements = (values: number[], dtype: DType): string[] => {
   let words: string[]
-  if (dtype === 'bool') words = values.map((v) => (v ? 'True' : 'False'))
+  if (dtype === 'bool') words = values.map((v) => (v ? ' True' : 'False'))
   else if (dtype === 'int64') words = values.map(String)
   else if (needsScientific(values)) words = formatScientific(values)
   else {
     const raw = values.map(fmtFloatRaw)
     const parts = raw.map((s) => (s.includes('.') ? s.split('.') : [s, null]))
-    const intW = Math.max(0, ...parts.map(([i]) => (i as string).length))
     const fracW = Math.max(0, ...parts.map(([, f]) => (f === null ? 0 : f.length)))
+    // nan and inf may sit under the digits and the point, so they only widen the column when they do not fit there
+    const intW = Math.max(0, ...parts.map(([i, f]) => (f === null ? (i as string).length - fracW - 1 : (i as string).length)))
     words = parts.map(([i, f]) =>
       f === null ? (i as string).padStart(intW + 1 + fracW) : `${(i as string).padStart(intW)}.${f.padEnd(fracW)}`,
     )
@@ -751,12 +754,13 @@ export const pyFloatRepr = (v: number): string => {
 }
 
 export const arrayRepr = (a: NDArray): string => {
-  if (a.ndim === 0) return `array(${formatScalar(a.values()[0], a.dtype)})`
+  const name = a.matrix ? 'matrix' : 'array'
+  if (a.ndim === 0) return `${name}(${formatScalar(a.values()[0], a.dtype)})`
   if (a.size === 0) {
-    return a.ndim === 1 ? `array([], dtype=${a.dtype})` : `array([], shape=${shapeStr(a.shape)}, dtype=${a.dtype})`
+    return a.ndim === 1 ? `${name}([], dtype=${a.dtype})` : `${name}([], shape=${shapeStr(a.shape)}, dtype=${a.dtype})`
   }
   const suffix = a.size > SUMMARY_THRESHOLD ? `, shape=${shapeStr(a.shape)}` : ''
-  return `array(${formatNested(a, true, 6)}${suffix})`
+  return `${name}(${formatNested(a, true, name.length + 1)}${suffix})`
 }
 
 export const arrayStr = (a: NDArray): string => {
