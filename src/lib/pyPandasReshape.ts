@@ -2,7 +2,7 @@
 import { py, repr } from './minipy'
 import type { Host, Value } from './minipy'
 import { NDArray, pyFloatRepr } from './ndarray'
-import { Frame, IndexObj, Series, cellOf, cellsOf, commonDT, convertCells, inferDT, isListLike, isMissing, labelStr, numCell, reindexCells, sortOrder, tableOfFrame, tableOfSeries, traceFrame, typedCells, valueOf, seriesIn } from './pyPandas'
+import { Frame, IndexObj, Series, cellOf, cellsOf, commonDT, convertCells, frameIn, inferDT, isListLike, isMissing, labelStr, numCell, reindexCells, sortOrder, tableOfFrame, tableOfSeries, traceFrame, typedCells, valueOf, seriesIn } from './pyPandas'
 import type { Cats, Cell, DT, Params } from './pyPandas'
 import { PyCell } from './pyPandasFormat'
 import { GroupBy } from './pyPandasGroup'
@@ -31,7 +31,7 @@ const pickOrMissing = (s: Series, at: number[]): Series => {
 const labelsArg = (v: Value): Value[] => (v.k === 'list' || v.k === 'tuple' ? v.items : [v])
 
 /** one join key side: cells per row, and the column it came from (if any) */
-const keyColumns = (h: Host, f: Frame, vs: Value[], side: string): { cells: Cell[]; dt: DT; label: Cell | null }[] => vs.map((v) => {
+const keyColumns = (h: Host, f: Frame, vs: Value[]): { cells: Cell[]; dt: DT; label: Cell | null }[] => vs.map((v) => {
   if (isListLike(v)) {
     const t = typedCells(h, v)
     return { cells: t.cells, dt: t.dt, label: null }
@@ -43,13 +43,10 @@ const keyColumns = (h: Host, f: Frame, vs: Value[], side: string): { cells: Cell
       const lev = f.index.level(f.index.names.indexOf(c))
       return { cells: lev.labels, dt: lev.dt, label: null }
     }
-    void side
     throw h.err('KeyError', repr(v))
   }
   return { cells: col.values, dt: col.dtype, label: c }
 })
-
-const seriesIn0 = (v: Value) => (v as { o: unknown }).o as Frame
 
 const asFrame = (h: Host, v: Value): Frame => {
   if (v.k === 'obj' && v.o instanceof Frame) return v.o
@@ -87,17 +84,17 @@ export const mergeFrames = (h: Host, left: Frame, rightV: Value, p: Params, labe
   } else if (leftIdx || rightIdx) {
     if (leftIdx && !ronV) throw h.err('MergeError', 'Must pass "right_on" OR "right_index".')
     if (rightIdx && !lonV) throw h.err('MergeError', 'Must pass "left_on" OR "left_index".')
-    lk = leftIdx ? indexKeys(left) : keyColumns(h, left, labelsArg(lonV!), 'left')
-    rk = rightIdx ? indexKeys(right) : keyColumns(h, right, labelsArg(ronV!), 'right')
+    lk = leftIdx ? indexKeys(left) : keyColumns(h, left, labelsArg(lonV!))
+    rk = rightIdx ? indexKeys(right) : keyColumns(h, right, labelsArg(ronV!))
   } else if (lonV || ronV) {
     if (!lonV || !ronV) throw h.err('MergeError', lonV ? 'Must pass "right_on" OR "right_index".' : 'Must pass "left_on" OR "left_index".')
-    lk = keyColumns(h, left, labelsArg(lonV), 'left')
-    rk = keyColumns(h, right, labelsArg(ronV), 'right')
+    lk = keyColumns(h, left, labelsArg(lonV))
+    rk = keyColumns(h, right, labelsArg(ronV))
   } else {
     const names = onV ? labelsArg(onV) : left.columns.labels.filter((c) => right.columns.has(c)).map((c) => valueOf(c, 'object'))
     if (!names.length) throw h.err('MergeError', `No common columns to perform merge on. Merge options: left_on=None, right_on=None, left_index=${leftIdx ? 'True' : 'False'}, right_index=${rightIdx ? 'True' : 'False'}`)
-    lk = keyColumns(h, left, names, 'left')
-    rk = keyColumns(h, right, names, 'right')
+    lk = keyColumns(h, left, names)
+    rk = keyColumns(h, right, names)
   }
   if (lk.length !== rk.length) throw h.err('ValueError', 'len(right_on) must equal len(left_on)')
   const lkey = (r: number) => lk.map((k) => keyStr(k.cells[r])).join('\0')
@@ -201,7 +198,7 @@ export const joinFrames = (h: Host, f: Frame, p: Params): Frame => {
     if (given(p.on)) throw h.err('ValueError', 'Joining multiple DataFrames only supported for joining on index')
     // pandas joins several frames by an outer concat on the index, then takes the rows the join asks for
     const how = given(p.how) ? h.str(p.how!) : 'left'
-    const all = seriesIn0(concatObjects(h, [py.list([py.obj(f), ...other.items])], { axis: py.int(1), ...(how === 'inner' ? { join: py.str('inner') } : {}) }))
+    const all = frameIn(concatObjects(h, [py.list([py.obj(f), ...other.items])], { axis: py.int(1), ...(how === 'inner' ? { join: py.str('inner') } : {}) }))
     if (how === 'left') return new Frame(all.columns, all.data.map((c) => {
       const t = reindexCells(c, f.index)
       return new Series(t.cells, f.index, c.name, c.dtype === 'int64' && !all.index.equals(f.index) ? 'float64' : t.dt)
@@ -537,12 +534,12 @@ const buildPivot = (h: Host, f0: Frame, rowKeys: Series[], colKeys: Series[], en
   else if (levels.length) columns = IndexObj.fromArrays(levels.map((l) => l.cells), levels.map((l) => l.name), levels.map((l) => l.dt))
   else columns = new IndexObj([])
   let out = new Frame(columns, take(columnsOut.map((x) => x.series)), index)
-  if (margins) out = addMargins(h, out, f, rk, ck, entries, gb, marginName, rowOf, colOf, rowReps, colReps, keepRow, keepCol, keepValueLevel)
+  if (margins) out = addMargins(h, out, f, rk, ck, entries, gb, marginName, rowOf, colOf, rowReps, colReps, keepRow, keepCol)
   return out
 }
 
 /** margins=True: an extra row and column aggregating everything in that row / column */
-const addMargins = (h: Host, table: Frame, f: Frame, rk: Series[], ck: Series[], entries: { label: Cell | null; value: Cell; f: Value }[], gb: GroupBy, name: Cell, rowOf: (r: number) => string, colOf: (r: number) => string, rowReps: number[], colReps: number[], keepRow: number[], keepCol: boolean[], keepValueLevel: boolean): Frame => {
+const addMargins = (h: Host, table: Frame, f: Frame, rk: Series[], ck: Series[], entries: { label: Cell | null; value: Cell; f: Value }[], gb: GroupBy, name: Cell, rowOf: (r: number) => string, colOf: (r: number) => string, rowReps: number[], colReps: number[], keepRow: number[], keepCol: boolean[]): Frame => {
   if (entries.some((e) => e.label !== null) || rk.length > 1 || ck.length > 1) throw h.err('NotImplementedError', 'pivot_table(margins=True) takes a single aggfunc, index and columns in this sandbox')
   const all = rows(f.nrows)
   const rowsKept = keepRow.map((i) => rowReps[i])
@@ -586,7 +583,6 @@ const addMargins = (h: Host, table: Frame, f: Frame, rk: Series[], ck: Series[],
       for (let lv = 1; lv < colLabels.length; lv++) finalCols[lv].push(name)
     } else finalCols[0].push(name)
   })
-  void keepValueLevel
   const cols = colLabels.length > 1 ? IndexObj.fromArrays(finalCols, table.columns.names, table.columns.multi!.dts.map(() => 'object')) : new IndexObj(finalCols[0], table.columns.name, 'object')
   return new Frame(cols, finalData, index)
 }
@@ -624,11 +620,9 @@ export const crosstab = (h: Host, args: Value[], kw: Record<string, Value>): Fra
   const dropnaFlag = flag(h, kw.dropna, true)
   const margins = flag(h, kw.margins)
   const marginName = given(kw.margins_name) ? cellOf(h, kw.margins_name) : 'All'
-  const sum = (x: Series) => x.values.reduce<number>((acc, c) => acc + numCell(c), 0)
   const countFn: Value = { k: 'fn', name: 'len', call: (fa) => py.int(seriesIn(fa[0]).length) }
   const src = new Frame([...labels, dummy], [...data, valuesV ? seriesOf(valuesV) : new Series(rows(n).map(() => 1), null, dummy, 'int64')], null)
   const fnV = aggV ?? countFn
-  void sum
   const table = pivotTable(h, src, { index: py.list(rNames.map((x) => valueOf(x, 'object'))), columns: py.list(cNames.map((x) => valueOf(x, 'object'))), values: py.str(dummy), aggfunc: fnV, margins: py.bool(margins), margins_name: valueOf(marginName, 'object'), dropna: py.bool(dropnaFlag), ...(aggV ? {} : { fill_value: py.int(0) }) })
   const norm = kw.normalize ? (kw.normalize.k === 'str' ? kw.normalize.v : kw.normalize.k === 'int' ? (kw.normalize.v === 0 ? 'index' : kw.normalize.v === 1 ? 'columns' : '') : h.truthy(kw.normalize) ? 'all' : '') : ''
   if (kw.normalize && kw.normalize.k === 'str' && !['all', 'index', 'columns'].includes(kw.normalize.v)) throw h.err('ValueError', 'Not a valid normalize argument')
@@ -819,13 +813,12 @@ export const getDummies = (h: Host, args: Value[], kw: Record<string, Value>): F
   const isFloat = typ.startsWith('float')
   const isBool = typ === 'bool'
   if (!isBool && !isFloat && !typ.startsWith('int') && !typ.startsWith('uint')) throw h.err('NotImplementedError', `get_dummies(dtype='${typ}') is not available in this sandbox`)
-  const dummies = (s: Series, prefix: string | null, seen: Cell[]) => {
+  const dummies = (s: Series, prefix: string | null) => {
     const present = s.values.filter((c) => !isMissing(c))
     const cats = s.cats ? s.cats.labels : sortedUniq(present)
     const all = dropFirst ? cats.slice(1) : cats
     const parts = all.map((c) => ({ name: prefix !== null ? `${prefix}${sep}${labelStr(c)}` : c, vals: s.values.map((v) => (isBool ? keyStr(v) === keyStr(c) : Number(keyStr(v) === keyStr(c)))) }))
     if (dummyNa) parts.push({ name: prefix !== null ? `${prefix}${sep}nan` : NaN as Cell, vals: s.values.map((v) => (isBool ? isMissing(v) : Number(isMissing(v)))) })
-    void seen
     return parts.map((x) => ({ name: x.name, s: new Series(x.vals, s.index, null, isBool ? 'bool' : isFloat ? 'float64' : 'int64') }))
   }
   if (d.k === 'obj' && d.o instanceof Frame) {
@@ -853,7 +846,7 @@ export const getDummies = (h: Host, args: Value[], kw: Record<string, Value>): F
       }
     })
     which.forEach((c, i) => {
-      for (const x of dummies(f.col(c)!, prefixOf(c, i), [])) {
+      for (const x of dummies(f.col(c)!, prefixOf(c, i))) {
         labels.push(x.name)
         data.push(x.s)
       }
@@ -861,7 +854,7 @@ export const getDummies = (h: Host, args: Value[], kw: Record<string, Value>): F
     return new Frame(labels, data, f.index)
   }
   const s = d.k === 'obj' && d.o instanceof Series ? d.o : new Series(typedCells(h, d).cells, null, null, typedCells(h, d).dt)
-  const parts = dummies(s, prefixV ? h.str(prefixV) : null, [])
+  const parts = dummies(s, prefixV ? h.str(prefixV) : null)
   return new Frame(parts.map((x) => x.name), parts.map((x) => x.s), s.index)
 }
 

@@ -1,8 +1,9 @@
 /**
  * pandas for the sandbox: the data model (Index, Series, DataFrame), pandas' printing, selection (df[…], loc, iloc, at,
- * iat, boolean masks), aligned arithmetic and the `pandas` module itself. The methods live in pyPandasMethods.ts,
- * groupby and windows in pyPandasGroup.ts, reshaping in pyPandasReshape.ts, text in pyPandasStr.ts, files in
- * pyPandasIO.ts. Each table operation is recorded with the rows / columns it picked or the groups it formed.
+ * iat, boolean masks) and aligned arithmetic. The methods live in pyPandasMethods.ts, groupby and windows in
+ * pyPandasGroup.ts, reshaping in pyPandasReshape.ts, text in pyPandasStr.ts, files in pyPandasIO.ts, the names in
+ * `pandas` itself in pyPandasModule.ts, and text layout in pyPandasFormat.ts. Each table operation is recorded with the
+ * rows / columns it picked or the groups it formed.
  */
 import { NDArray, PyError } from './ndarray'
 import { PyDict, PyObj, isNum, py, repr } from './minipy'
@@ -34,7 +35,7 @@ export const normalise = (cells: Cell[], dt: DT): Cell[] => (dt === 'float64' ? 
 /** a cell as a number: booleans count, a boxed float unboxes, None is NaN */
 export const numCell = (c: Cell): number => (typeof c === 'number' ? c : c === null ? NaN : typeof c === 'boolean' ? Number(c) : c instanceof PyCell && (c.v.k === 'float' || c.v.k === 'int') ? c.v.v : NaN)
 
-export const cellOf = (h: Host, v: Value): Cell => {
+export const cellOf = (_h: Host, v: Value): Cell => {
   switch (v.k) {
     case 'int': case 'float': return v.v
     case 'bool': return v.v
@@ -50,7 +51,6 @@ export const cellOf = (h: Host, v: Value): Cell => {
       }
       return new PyCell(v)
   }
-  void h
   return new PyCell(v)
 }
 
@@ -412,6 +412,20 @@ export class ObjArray extends PyObj {
     if (ri.k === 'int' || ci?.k === 'int') return py.obj(new ObjArray(cells))
     return py.obj(new ObjArray(cells, [rows.length, cols.length]))
   }
+  /** the numpy functions that make sense on text */
+  npCall(name: string, args: Value[], kw: Kw, h: Host): Value | undefined {
+    if (args[0].k !== 'obj' || args[0].o !== this) return undefined
+    if (name === 'array' || name === 'asarray') return py.obj(this)
+    if (name === 'sort') return py.obj(new ObjArray(sortOrder([this.cells], [true]).map((i) => this.cells[i]), [this.cells.length]))
+    if (name !== 'unique') return undefined
+    for (const k of Object.keys(kw)) if (k !== 'return_counts') throw h.err('NotImplementedError', `np.unique(${k}=...) on text is not available in this sandbox`)
+    const order = sortOrder([this.cells], [true]).map((i) => this.cells[i])
+    const uniq = order.filter((c, i) => i === 0 || c !== order[i - 1])
+    const out = py.obj(new ObjArray(uniq))
+    if (!kw.return_counts || !h.truthy(kw.return_counts)) return out
+    const counts = uniq.map((u) => order.filter((c) => c === u).length)
+    return py.tuple([out, py.arr(NDArray.create(counts, [counts.length], 'int64'))])
+  }
   binop(op: string, other: Value, reflected: boolean, h: Host): Value | undefined {
     if (this.shape.length !== 1 || (op !== '==' && op !== '!=')) return undefined
     const res = new Series([...this.cells], null, null, 'object').binop(op, other, reflected, h)
@@ -443,6 +457,16 @@ export class DtypeObj extends PyObj {
   }
   repr() { return this.name === 'category' ? 'CategoricalDtype' : `dtype('${this.name === 'object' ? 'O' : this.name}')` }
   str() { return this.name }
+  npCall(name: string, args: Value[]): Value | undefined {
+    if (name !== 'issubdtype' || args[0].k !== 'obj' || args[0].o !== this || args[1]?.k !== 'type') return undefined
+    const t = args[1].name.replace('numpy.', '')
+    const n = this.name
+    const signed = n.startsWith('int')
+    const unsigned = n.startsWith('uint')
+    const floating = n.startsWith('float')
+    const matches: Record<string, boolean> = { number: signed || unsigned || floating, integer: signed || unsigned, signedinteger: signed, unsignedinteger: unsigned, floating, inexact: floating, bool_: n === 'bool', object_: n === 'object', generic: true }
+    return py.bool(matches[t] ?? t === n)
+  }
   private matches(o: Value): boolean {
     if (o.k === 'str') return o.v === this.name || (o.v === 'O' && this.name === 'object') || (o.v === 'int' && this.name === 'int64') || (o.v === 'float' && this.name === 'float64')
     if (o.k === 'type') {
@@ -459,7 +483,7 @@ export class DtypeObj extends PyObj {
   }
   getAttr(name: string): Value | undefined {
     if (name === 'name') return py.str(this.name)
-    if (name === 'kind') return py.str(this.name === 'int64' ? 'i' : this.name === 'float64' ? 'f' : this.name === 'bool' ? 'b' : 'O')
+    if (name === 'kind') return py.str(this.name.startsWith('int') ? 'i' : this.name.startsWith('uint') ? 'u' : this.name.startsWith('float') ? 'f' : this.name === 'bool' ? 'b' : 'O')
     return undefined
   }
 }
@@ -1246,7 +1270,7 @@ export class Series extends PyObj {
     const n = this.length
     const list = (rows: number[]) => {
       const t = displayCells(this, rows)
-      const quoted = t.cells.map((c, i) => (typeof c === 'string' && !this.cats!.kind.startsWith('interval') ? `'${c}'` : formatArray([c], t.dt)[0].trim() + (i < 0 ? '' : '')))
+      const quoted = t.cells.map((c) => (typeof c === 'string' && !this.cats!.kind.startsWith('interval') ? `'${c}'` : formatArray([c], t.dt)[0].trim()))
       return `[${quoted.join(', ')}]`
     }
     const all = Array.from({ length: n }, (_, i) => i)

@@ -1235,13 +1235,12 @@ const frameApply = (h: Host, fr: Frame, f: Value, axis: 0 | 1, resultType: strin
     return scalarSeries()
   }
   if (resultType === 'reduce') return py.obj(new Series(results.map((r) => cellOf(h, r)), resIndex, null, 'object'))
-  const toSeries = (r: Value, i: number): Series => {
+  const toSeries = (r: Value): Series => {
     if (r.k === 'obj' && r.o instanceof Series) return r.o
     const t = typedCells(h, r)
-    void i
     return new Series(t.cells, null, null, t.dt)
   }
-  const parts = results.map(toSeries)
+  const parts = results.map((r) => toSeries(r))
   if (axis === 1 && !(results[0].k === 'obj' && results[0].o instanceof Series) && resultType !== 'expand') return py.obj(new Series(results.map((r) => cellOf(h, r)), fr.index, null, 'object'))
   const lens = new Set(parts.map((x) => x.length))
   if (lens.size > 1 && axis === 0 && !(results[0].k === 'obj')) return py.obj(new Series(results.map((r) => cellOf(h, r)), resIndex, null, 'object'))
@@ -1637,7 +1636,7 @@ const SERIES: Record<string, Method<Series>> = {
   unique: ['', (s) => arrayOf(uniqueCells(s.values), s.dtype, s.width)],
   nunique: ['dropna', (s, p, h) => py.int(uniqueCells(flag(h, p.dropna, true) ? s.values.filter((c) => !isMissing(c)) : s.values).length)],
   mode: ['dropna', (s, p, h) => py.obj(modeCol(s, flag(h, p.dropna, true)))],
-  factorize: ['sort use_na_sentinel', (s, p, h) => factorize(h, s.values, s.dtype, flag(h, p.sort), flag(h, p.use_na_sentinel, true))],
+  factorize: ['sort use_na_sentinel', (s, p, h) => factorize(s.values, s.dtype, flag(h, p.sort), flag(h, p.use_na_sentinel, true))],
   isna: ['', (s) => py.obj(s.with(s.values.map(isMissing), 'bool'))],
   isnull: ['', (s) => py.obj(s.with(s.values.map(isMissing), 'bool'))],
   notna: ['', (s) => py.obj(s.with(s.values.map((c) => !isMissing(c)), 'bool'))],
@@ -1645,7 +1644,7 @@ const SERIES: Record<string, Method<Series>> = {
   fillna: ['value | method axis inplace limit', (s, p, h, c) => {
     const missing = rows(s.length).filter((i) => isMissing(s.values[i]))
     c.picks = { rows: missing, cols: null }
-    return finish(h, s, fillCol(h, s, p, s), p.inplace)
+    return finish(h, s, fillCol(h, s, p), p.inplace)
   }],
   ffill: ['axis inplace limit limit_area', (s, p, h) => {
     refuse(h, p.limit_area, 'ffill', 'limit_area')
@@ -1818,8 +1817,8 @@ const SERIES: Record<string, Method<Series>> = {
     out.index = ix
     return py.obj(out)
   }],
-  add_prefix: ['prefix axis', (s, p, h) => py.obj(prefixed(h, s, h.str(p.prefix!), ''))],
-  add_suffix: ['suffix axis', (s, p, h) => py.obj(prefixed(h, s, '', h.str(p.suffix!)))],
+  add_prefix: ['prefix axis', (s, p, h) => py.obj(prefixed(s, h.str(p.prefix!), ''))],
+  add_suffix: ['suffix axis', (s, p, h) => py.obj(prefixed(s, '', h.str(p.suffix!)))],
   reindex: ['index method copy level fill_value limit tolerance', (s, p, h) => {
     refuse(h, p.level, 'reindex', 'level')
     return py.obj(reindexSeries(h, s, toIndexObj(h, need(h, p.index, 'reindex', 'index')), p))
@@ -2068,7 +2067,7 @@ const modeCol = (s: Series, dropna: boolean): Series => {
   return new Series(sorted, IndexObj.range(sorted.length), s.name, s.dtype)
 }
 
-export const factorize = (h: Host, cells: Cell[], dt: DT, sort: boolean, sentinel: boolean): Value => {
+export const factorize = (cells: Cell[], dt: DT, sort: boolean, sentinel: boolean): Value => {
   const seen = new Map<unknown, number>()
   const uniques: Cell[] = []
   const codes = cells.map((c) => {
@@ -2091,7 +2090,6 @@ export const factorize = (h: Host, cells: Cell[], dt: DT, sort: boolean, sentine
     final = codes.map((x) => (x < 0 ? x : rank[x]))
     us = order.map((i) => us[i])
   }
-  void h
   return py.tuple([py.arr(NDArray.create(final, [final.length], 'int64')), py.obj(new IndexObj(us, null, dt))])
 }
 
@@ -2113,7 +2111,7 @@ const nExtreme = (h: Host, s: Series, p: Params, name: string, c: Ctx): Value =>
   return py.obj(s.pick(order))
 }
 
-const fillCol = (h: Host, s: Series, p: Params, whole: Series | Frame): Series => {
+const fillCol = (h: Host, s: Series, p: Params): Series => {
   const limit = given(p.limit) ? h.toInt(p.limit!) : null
   if (given(p.method)) {
     const m = h.str(p.method!)
@@ -2135,7 +2133,6 @@ const fillCol = (h: Host, s: Series, p: Params, whole: Series | Frame): Series =
     }
     return cellOf(h, v)
   }
-  void whole
   const rs: number[] = []
   const cells: Cell[] = []
   let used = 0
@@ -2227,8 +2224,7 @@ const interpolateCol = (h: Host, s: Series, p: Params): Series => {
   return s.with(out, 'float64')
 }
 
-const prefixed = (h: Host, s: Series, pre: string, suf: string): Series => {
-  void h
+const prefixed = (s: Series, pre: string, suf: string): Series => {
   const out = s.copy()
   out.index = new IndexObj(s.index.labels.map((l) => `${pre}${labelStr(l)}${suf}`), s.index.name, 'object')
   return out
@@ -2609,19 +2605,19 @@ const FRAME: Record<string, Method<Frame>> = {
       const o = v.o
       return finish(h, f, f.same(f.data.map((s) => {
         const src = o.col(s.name)
-        return src ? fillCol(h, s, { value: py.obj(src) }, f) : s.copy()
+        return src ? fillCol(h, s, { value: py.obj(src) }) : s.copy()
       })), p.inplace)
     }
     const perCol = (s: Series): Series => {
       if (v && v.k === 'dict') {
         const x = v.d.get(valueOf(s.name, f.columns.dt))
-        return x ? fillCol(h, s, { ...p, value: x }, f) : s.copy()
+        return x ? fillCol(h, s, { ...p, value: x }) : s.copy()
       }
       if (v && v.k === 'obj' && v.o instanceof Series) {
         const at = v.o.index.locate(s.name)
-        return at.length ? fillCol(h, s, { ...p, value: valueOf(v.o.values[at[0]], v.o.dtype) }, f) : s.copy()
+        return at.length ? fillCol(h, s, { ...p, value: valueOf(v.o.values[at[0]], v.o.dtype) }) : s.copy()
       }
-      return fillCol(h, s, p, f)
+      return fillCol(h, s, p)
     }
     return finish(h, f, f.same(f.data.map(perCol)), p.inplace)
   }],
@@ -3082,11 +3078,9 @@ const FRAME: Record<string, Method<Frame>> = {
     })
     const first = explodeCol(h, new Series(f.data[cols[0]].values, IndexObj.range(f.nrows), null, f.data[cols[0]].dtype), false)
     const at = first.index.labels as number[]
-    const pos = new Map<number, number>()
     const data = f.data.map((s, k) => {
       if (k === cols[0]) return first.with(first.values, 'object', s.name)
       if (!cols.includes(k)) return s.pick(at)
-      void pos
       return explodeCol(h, new Series(s.values, IndexObj.range(f.nrows), s.name, s.dtype), false)
     })
     const ix = flag(h, p.ignore_index) ? IndexObj.range(at.length) : f.index.pick(at)
@@ -3489,6 +3483,11 @@ const whereText = (h: Host, args: Value[]): Value | undefined => {
 
 export const seriesNp = (s: Series, name: string, args: Value[], kw: Record<string, Value>, h: Host, impl: (a: Value[], k: Record<string, Value>) => Value): Value | undefined => {
   if (name === 'where') return whereText(h, args)
+  if (s.dtype === 'object' && args[0].k === 'obj' && args[0].o === s) {
+    const text = new ObjArray([...s.values])
+    const res = text.npCall(name, [py.obj(text), ...args.slice(1)], kw, h)
+    if (res) return res
+  }
   const fw = forwardToMethod(s, name, args, kw, h)
   if (fw) return fw
   if (NP_ARRAY_ONLY.has(name)) return impl(plainArgs(args), kw)
@@ -3499,6 +3498,7 @@ export const seriesNp = (s: Series, name: string, args: Value[], kw: Record<stri
 }
 
 export const frameNp = (f: Frame, name: string, args: Value[], kw: Record<string, Value>, h: Host, impl: (a: Value[], k: Record<string, Value>) => Value): Value | undefined => {
+  if ((name === 'array' || name === 'asarray') && args[0].k === 'obj' && args[0].o === f && f.data.some((s) => s.dtype === 'object')) return frameArray(h, f, {})
   const fw = forwardToMethod(f, name, args, kw, h)
   if (fw) return fw
   if (NP_ARRAY_ONLY.has(name)) return impl(plainArgs(args), kw)

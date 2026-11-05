@@ -629,10 +629,9 @@ const cumKernel = (h: Host, how: string, skipna: boolean) => (s: Series) => {
 
 const METHODS: Record<string, GM> = {
   count: statMethod('count', ''),
-  size: ['', (g, _p, h) => {
+  size: ['', (g) => {
     const gr = g.groups()
     const name = !g.opts.asIndex ? 'size' : g.single && g.f.columns.labels[g.valueCols()[0]] !== '__values__' ? g.f.columns.labels[g.valueCols()[0]] : null
-    void h
     return g.finish(new Series(gr.members.map((m) => m.length), g.keyIndex(gr), name, 'int64'), gr)
   }],
   nunique: ['dropna', (g, _p, h) => {
@@ -651,11 +650,11 @@ const METHODS: Record<string, GM> = {
   std: statMethod('std', 'ddof engine engine_kwargs numeric_only'),
   var: statMethod('var', 'ddof engine engine_kwargs numeric_only'),
   sem: statMethod('sem', 'ddof numeric_only'),
-  skew: statMethod('skew', 'axis skipna numeric_only'),
+  skew: statMethod('skew', 'skipna numeric_only'),
   any: statMethod('any', 'skipna'),
   all: statMethod('all', 'skipna'),
-  idxmax: statMethod('idxmax', 'axis skipna numeric_only'),
-  idxmin: statMethod('idxmin', 'axis skipna numeric_only'),
+  idxmax: statMethod('idxmax', 'skipna numeric_only'),
+  idxmin: statMethod('idxmin', 'skipna numeric_only'),
   quantile: ['q interpolation numeric_only', (g, p, h) => {
     const interp = given(p.interpolation) ? h.str(p.interpolation!) : 'linear'
     const qv = p.q ?? py.float(0.5)
@@ -731,15 +730,15 @@ const METHODS: Record<string, GM> = {
     const n = gr.keys.length
     return py.obj(new Series(gr.ofRow.map((x) => (x < 0 ? NaN : asc ? x : n - 1 - x)), g.f.index, null, gr.ofRow.some((x) => x < 0) ? 'float64' : 'int64'))
   }],
-  cumsum: ['axis skipna numeric_only', (g, p, h) => g.rowwise(colsFor(g, h, p), cumKernel(h, 'cumsum', flag(h, p.skipna, true)))],
-  cumprod: ['axis skipna numeric_only', (g, p, h) => g.rowwise(colsFor(g, h, p), cumKernel(h, 'cumprod', flag(h, p.skipna, true)))],
-  cummax: ['axis skipna numeric_only', (g, p, h) => g.rowwise(colsFor(g, h, p), cumKernel(h, 'cummax', flag(h, p.skipna, true)))],
-  cummin: ['axis skipna numeric_only', (g, p, h) => g.rowwise(colsFor(g, h, p), cumKernel(h, 'cummin', flag(h, p.skipna, true)))],
-  diff: ['periods axis', (g, p, h) => g.rowwise(g.valueCols(), (s) => {
+  cumsum: ['skipna numeric_only', (g, p, h) => g.rowwise(colsFor(g, h, p), cumKernel(h, 'cumsum', flag(h, p.skipna, true)))],
+  cumprod: ['skipna numeric_only', (g, p, h) => g.rowwise(colsFor(g, h, p), cumKernel(h, 'cumprod', flag(h, p.skipna, true)))],
+  cummax: ['skipna numeric_only', (g, p, h) => g.rowwise(colsFor(g, h, p), cumKernel(h, 'cummax', flag(h, p.skipna, true)))],
+  cummin: ['skipna numeric_only', (g, p, h) => g.rowwise(colsFor(g, h, p), cumKernel(h, 'cummin', flag(h, p.skipna, true)))],
+  diff: ['periods', (g, p, h) => g.rowwise(g.valueCols(), (s) => {
     const res = seriesIn(h.call(s.getAttr('diff', h)!, [p.periods ?? py.int(1)]))
     return { cells: res.values, dt: 'float64' }
   })],
-  shift: ['periods freq axis fill_value', (g, p, h) => {
+  shift: ['periods freq fill_value', (g, p, h) => {
     if (given(p.freq)) throw h.err('NotImplementedError', 'groupby.shift(freq=...) is not available in this sandbox')
     return g.rowwise(g.valueCols(), (s) => {
       const res = seriesIn(h.call(s.getAttr('shift', h)!, [p.periods ?? py.int(1)], p.fill_value ? { fill_value: p.fill_value } : {}))
@@ -756,7 +755,7 @@ const METHODS: Record<string, GM> = {
       return { cells: res.values, dt: 'float64' }
     })
   }],
-  rank: ['method ascending na_option pct axis', (g, p, h) => g.rowwise(g.valueCols(), (s) => {
+  rank: ['method ascending na_option pct', (g, p, h) => g.rowwise(g.valueCols(), (s) => {
     const kw: Record<string, Value> = {}
     for (const k of ['method', 'ascending', 'na_option', 'pct']) if (p[k]) kw[k] = p[k]!
     const res = seriesIn(h.call(s.getAttr('rank', h)!, [], kw))
@@ -764,7 +763,7 @@ const METHODS: Record<string, GM> = {
   })],
   ffill: ['limit', (g, p, h) => g.rowwise(g.valueCols(), fillKernel(true, given(p.limit) ? h.toInt(p.limit!) : null))],
   bfill: ['limit', (g, p, h) => g.rowwise(g.valueCols(), fillKernel(false, given(p.limit) ? h.toInt(p.limit!) : null))],
-  fillna: ['value method axis inplace limit', (g, p, h) => {
+  fillna: ['value method', (g, p, h) => {
     if (given(p.method)) return h.str(p.method!).startsWith('f') || h.str(p.method!) === 'pad' ? g.rowwise(g.valueCols(), fillKernel(true, null)) : g.rowwise(g.valueCols(), fillKernel(false, null))
     const v = cellOf(h, need(h, p.value, 'fillna', 'value'))
     return g.rowwise(g.valueCols(), (s) => ({ cells: s.values.map((c) => (isMissing(c) ? v : c)), dt: commonDT([s.dtype, inferDT([v])]) }))
@@ -1266,6 +1265,7 @@ export class Window extends PyObj {
 export const windowOf = (h: Host, obj: Series | Frame, p: Params, kind: 'rolling' | 'expanding'): Value => {
   if (kind === 'expanding') {
     if (given(p.axis) && h.toInt(p.axis!) !== 0) throw h.err('NotImplementedError', 'expanding(axis=1) is not available in this sandbox')
+    if (given(p.method) && h.str(p.method!) !== 'single') throw h.err('NotImplementedError', `expanding(method='${h.str(p.method!)}') is not available in this sandbox`)
     return py.obj(new Window(obj, null, given(p.min_periods) ? h.toInt(p.min_periods!) : 1, false, 'right'))
   }
   for (const k of ['win_type', 'on', 'step', 'axis']) if (given(p[k])) throw h.err('NotImplementedError', `rolling(${k}=...) is not available in this sandbox`)

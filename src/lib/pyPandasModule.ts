@@ -2,7 +2,7 @@
 import { PyDict, PyObj, isNum, py } from './minipy'
 import type { Host, Kw, Value } from './minipy'
 import { NDArray } from './ndarray'
-import { Frame, IndexObj, ObjArray, Series, cellOf, cellsOf, inferDT, inferValues, isListLike, isMissing, reindexCells, tableOfFrame, tableOfSeries, traceFrame, typedCells, unionIndex, valueOf, seriesIn } from './pyPandas'
+import { Frame, IndexObj, ObjArray, Series, cellOf, dtName, cellsOf, inferDT, inferValues, isListLike, isMissing, reindexCells, tableOfFrame, tableOfSeries, traceFrame, typedCells, unionIndex, valueOf, seriesIn } from './pyPandas'
 import type { Cell, DT, Params } from './pyPandas'
 import { DEFAULT_OPTIONS, OPTIONS } from './pyPandasFormat'
 import { jsonNormalize, readCsv, readJson, textFrom } from './pyPandasIO'
@@ -272,6 +272,29 @@ const setOption = (h: Host, name: string, v: Value) => {
   ;(OPTIONS as Record<string, unknown>)[k] = val
 }
 
+/** pd.api.types.is_numeric_dtype and friends, on a Series, Index, array or dtype */
+const dtypeChecks = (h: Host): Record<string, Value> => {
+  const nameOf = (v: Value): string => {
+    if (v.k === 'obj' && v.o instanceof Series) return dtName(v.o)
+    if (v.k === 'obj' && v.o instanceof IndexObj) return v.o.dt
+    if (v.k === 'obj' && v.o instanceof ObjArray) return 'object'
+    if (v.k === 'array') return v.a.dtype
+    return typeArg(h, v)
+  }
+  const isInt = (n: string) => n.startsWith('int') || n.startsWith('uint')
+  const isFloat = (n: string) => n.startsWith('float')
+  const tests: Record<string, (n: string) => boolean> = {
+    is_numeric_dtype: (n) => isInt(n) || isFloat(n) || n === 'bool',
+    is_integer_dtype: isInt,
+    is_float_dtype: isFloat,
+    is_bool_dtype: (n) => n === 'bool',
+    is_object_dtype: (n) => n === 'object',
+    is_string_dtype: (n) => n === 'object' || n === 'str',
+    is_categorical_dtype: (n) => n === 'category',
+  }
+  return Object.fromEntries(Object.entries(tests).map(([name, t]) => [name, { k: 'fn', name, call: (args: Value[]) => py.bool(t(nameOf(args[0]))) } as Value]))
+}
+
 /** with pd.option_context(pat, val, …): the options hold inside the block */
 class OptionContext extends PyObj {
   readonly cls = 'option_context'
@@ -460,7 +483,7 @@ export const pandasModule = (h: Host): Record<string, Value> => {
       for (const k of Object.keys(kw)) if (!['values', 'sort', 'use_na_sentinel', 'size_hint'].includes(k)) throw h.err('TypeError', `factorize() got an unexpected keyword argument '${k}'`)
       const v = need(h, args[0] ?? kw.values, 'factorize', 'values')
       const t = typedCells(h, v)
-      const res = factorize(h, t.cells, t.dt, flag(h, kw.sort), flag(h, kw.use_na_sentinel, true))
+      const res = factorize(t.cells, t.dt, flag(h, kw.sort), flag(h, kw.use_na_sentinel, true))
       if (v.k === 'obj' && (v.o instanceof Series || v.o instanceof IndexObj)) return res
       // only a pandas object gets its uniques back as an Index
       const [codes, uniques] = (res as { items: Value[] }).items
@@ -498,6 +521,7 @@ export const pandasModule = (h: Host): Record<string, Value> => {
       return py.NONE
     }),
     options: py.obj(new OptionsNode('')),
+    api: { k: 'module', name: 'pandas.api', attrs: { types: { k: 'module', name: 'pandas.api.types', attrs: dtypeChecks(h) } } },
     errors: { k: 'module', name: 'pandas.errors', attrs: Object.fromEntries(['MergeError', 'ParserError', 'EmptyDataError', 'DataError', 'IntCastingNaNError', 'UndefinedVariableError', 'OptionError', 'IndexingError', 'SpecificationError'].map((n) => [n, h.excClass(n)])) },
   }
   return { pandas: { k: 'module', name: 'pandas', attrs: pd } }

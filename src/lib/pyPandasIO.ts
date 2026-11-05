@@ -183,10 +183,7 @@ export const readCsv = (h: Host, text: string, kw: Record<string, Value>, defaul
   const col = (j: number, label: Cell): { cells: Cell[]; dt: DT } => {
     const raw = rowsData.map((r) => r.fields[j] ?? null)
     const set = perColNa.has(label) ? new Set([...naSet, ...perColNa.get(label)!]) : naSet
-    const quotedAll = rowsData.map((r) => r.quoted[j])
-    const t = convertColumn(raw, naFilter ? set : new Set(), tv, fv)
-    if (t.dt === 'object' && quotedAll.length) return t
-    return t
+    return convertColumn(raw, naFilter ? set : new Set(), tv, fv)
   }
   const data = head.map((label, j) => {
     const t = col(j + offset, label)

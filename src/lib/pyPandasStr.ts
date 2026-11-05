@@ -171,8 +171,7 @@ export class StrAccessor extends PyObj {
   }
   repr() { return '<pandas.core.strings.accessor.StringMethods object>' }
   /** the result as what the source was: an Index stays an Index, except for booleans which come back as an array */
-  private wrap(cells: Cell[], dt: DT, h: Host): Value {
-    void h
+  private wrap(cells: Cell[], dt: DT): Value {
     if (this.fromIndex) {
       if (dt === 'bool') return py.arr(new Series(cells, null, null, 'bool').toArray())
       return py.obj(new IndexObj(cells, this.fromIndex.name, dt))
@@ -187,13 +186,13 @@ export class StrAccessor extends PyObj {
       return f(c)
     })
     const t = inferValues(h, res)
-    return this.wrap(t.cells, t.dt, h)
+    return this.wrap(t.cells, t.dt)
   }
   /** like each, for functions that also take lists (len, get, join) */
   private eachAny(h: Host, f: (x: Cell) => Value): Value {
     const res = this.s.values.map((c): Value => (isMissing(c) ? valueOf(c, 'object') : f(c)))
     const t = inferValues(h, res)
-    return this.wrap(t.cells, t.dt, h)
+    return this.wrap(t.cells, t.dt)
   }
   /** a predicate; na= replaces missing values, which otherwise make the column object */
   private test(h: Host, f: (x: string) => boolean, na: Value | undefined): Value {
@@ -204,7 +203,7 @@ export class StrAccessor extends PyObj {
       return py.bool(f(c))
     })
     const t = inferValues(h, res)
-    return this.wrap(t.cells, t.dt, h)
+    return this.wrap(t.cells, t.dt)
   }
   private expand(h: Host, rows: (Cell | null)[][]): Value {
     const width = Math.max(0, ...rows.map((r) => r.length))
@@ -420,7 +419,7 @@ export class StrAccessor extends PyObj {
           const parts = [text(c), ...lists.map((l) => text(l[i]))]
           return parts.some((x) => x === null) ? NaN : parts.join(sep)
         })
-        return this.wrap(cells, 'object', h)
+        return this.wrap(cells, 'object')
       })
       case 'count': return def('pat flags', (p) => {
         const re = reOf(p, 'g')
