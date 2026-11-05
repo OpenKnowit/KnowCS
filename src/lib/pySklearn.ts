@@ -8,8 +8,9 @@
  */
 import { NDArray, pyFloatRepr } from './ndarray'
 import { PyDict, PyObj, isNum, numOf, py, repr, toArray } from './minipy'
-import type { ApiKind, Host, Kw, PyLib, Value } from './minipy'
+import type { ApiKind, ClassValue, Host, Kw, PyLib, Value } from './minipy'
 import { Frame, Series } from './pyPandas'
+import { solveM, svdThin, transposeM } from './npLinalg'
 
 type Fn = (args: Value[], kw: Kw) => Value
 type Lab = number | string
@@ -152,6 +153,8 @@ const rngOf = (h: Host, v: Value | undefined): RandomState => {
     if (s < 0 || s > 4294967295) throw h.err('ValueError', 'Seed must be between 0 and 2**32 - 1')
     return new RandomState(s)
   }
+  // np.random.RandomState is the sandbox's own stream here, so it only hands over a seed
+  if (v.k === 'obj' && v.o.cls === 'RandomState') return new RandomState(h.toInt(h.call(h.getAttr(v, 'randint'), [py.int(2147483647)])))
   throw h.err('ValueError', `${repr(v)} cannot be used to seed a numpy.random.RandomState instance`)
 }
 
@@ -380,7 +383,20 @@ class Csr extends PyObj {
 
 // ---------------------------------------------------------------- reading inputs
 
-const notFitted = (h: Host, name: string) => h.err('NotFittedError', `This ${name} instance is not fitted yet. Call 'fit' with appropriate arguments before using this estimator.`)
+/** sklearn's own exceptions, which an except ValueError also catches */
+const excOf = (h: Host, name: string, bases: string[]): ClassValue => {
+  const key = `sklearn.${name}`
+  let c = h.state.get(key) as ClassValue | undefined
+  if (!c) {
+    const b = bases.map((n) => h.excClass(n))
+    c = { k: 'class', name, bases: b, ns: new Map(), host: b[0].host, builtin: true }
+    h.state.set(key, c)
+  }
+  return c
+}
+const notFittedClass = (h: Host) => excOf(h, 'NotFittedError', ['ValueError', 'AttributeError'])
+const notFitted = (h: Host, name: string): never => h.raise(notFittedClass(h), [py.str(`This ${name} instance is not fitted yet. Call 'fit' with appropriate arguments before using this estimator.`)])
+const badParam = (h: Host, msg: string): never => h.raise(excOf(h, 'InvalidParameterError', ['ValueError', 'TypeError']), [py.str(msg)])
 
 const firstString = (v: Value): string | null => {
   if (v.k === 'str') return v.v
@@ -461,12 +477,11 @@ const labelsOf = (h: Host, v: Value): Labels => {
     return { vals: s.values.map((c) => Number(c)), isStr: false, dtype: s.dtype }
   }
   if (v.k === 'obj' && v.o instanceof Frame && v.o.columns.length === 1) return labelsOf(h, py.obj(v.o.data[0]))
-  if (v.k === 'list' || v.k === 'tuple') {
-    if (v.items.some((x) => x.k === 'str')) {
-      if (v.items.some((x) => x.k === 'list' || x.k === 'tuple')) throw h.err('ValueError', 'y should be a 1d array of labels')
-      const vals = v.items.map((x) => h.str(x))
-      return { vals, isStr: true, dtype: uDtype(vals) }
-    }
+  const items = v.k === 'list' || v.k === 'tuple' ? v.items : v.k === 'iter' || (v.k === 'obj' && v.o.iter && !v.o.toArray) ? h.iterate(v) : null
+  if (items && items.some((x) => x.k === 'str')) {
+    if (items.some((x) => x.k === 'list' || x.k === 'tuple')) throw h.err('ValueError', 'y should be a 1d array of labels')
+    const vals = items.map((x) => h.str(x))
+    return { vals, isStr: true, dtype: v.k === 'obj' ? 'object' : uDtype(vals) }
   }
   let a: NDArray
   try {
@@ -891,7 +906,7 @@ const regressionTarget = (h: Host, yV: Value | undefined): { rows: number[][]; m
 }
 
 const inRange = (h: Host, e: Est, name: string, ok: boolean, what: string) => {
-  if (!ok) throw h.err('InvalidParameterError', `The '${name}' parameter of ${e.cls} must be ${what}. Got ${repr(e.param(name))} instead.`)
+  if (!ok) throw badParam(h, `The '${name}' parameter of ${e.cls} must be ${what}. Got ${repr(e.param(name))} instead.`)
 }
 
 // ---------------------------------------------------------------- model selection
@@ -1037,7 +1052,16 @@ class Splitter extends PyObj {
   }
   getAttr(name: string, h: Host): Value | undefined {
     if (name === 'split') {
-      return { k: 'fn', name, api: { name: `sklearn.${this.cls}.split`, kind: 'create' }, call: (args, kw) => py.list(this.splits(h, args[0] ?? kw.X, args[1] ?? kw.y).map(([a, b]) => py.tuple([vec(a, 'int64'), vec(b, 'int64')]))) } as Value
+      return { k: 'fn', name, api: { name: `sklearn.${this.cls}.split`, kind: 'create' }, call: (args, kw) => {
+        // a generator, so its errors wait for the first next() as they do in Python
+        let parts: [number[], number[]][] | null = null
+        let at = 0
+        return { k: 'iter', name: 'generator', next: () => {
+          parts ??= this.splits(h, args[0] ?? kw.X, args[1] ?? kw.y)
+          const p = parts[at++]
+          return p ? py.tuple([vec(p[0], 'int64'), vec(p[1], 'int64')]) : undefined
+        } } as Value
+      } } as Value
     }
     if (name === 'get_n_splits') {
       return { k: 'fn', name, call: (args, kw) => {
@@ -1118,7 +1142,7 @@ const scoreWith = (h: Host, est: Value, scoring: Value | undefined, X: Value, y:
     case 'neg_root_mean_squared_error': return -Math.sqrt(npMean(diffs(h, yV, pred()).map((d) => d * d)))
     case 'neg_mean_absolute_error': return -npMean(diffs(h, yV, pred()).map(Math.abs))
   }
-  throw h.err('InvalidParameterError', `The 'scoring' parameter of check_scoring must be a str among the scorer names. Got ${reprStr(name)} instead.`)
+  throw badParam(h, `The 'scoring' parameter of check_scoring must be a str among the scorer names. Got ${reprStr(name)} instead.`)
 }
 
 const numbersOf = (h: Host, v: Value): number[] => {
@@ -1231,7 +1255,7 @@ const trainTestSplit: (h: Host) => Fn = (h) => (args, kw) => {
   checkLengths(h, args)
   for (const name of ['test_size', 'train_size']) {
     const v = kw[name]
-    if (v && v.k !== 'none' && !((v.k === 'float' && v.v > 0 && v.v < 1) || (v.k === 'int' && v.v >= 1))) throw h.err('InvalidParameterError', `The '${name}' parameter of train_test_split must be a float in the range (0.0, 1.0), an int in the range [1, inf) or None. Got ${repr(v)} instead.`)
+    if (v && v.k !== 'none' && !((v.k === 'float' && v.v > 0 && v.v < 1) || (v.k === 'int' && v.v >= 1))) throw badParam(h, `The '${name}' parameter of train_test_split must be a float in the range (0.0, 1.0), an int in the range [1, inf) or None. Got ${repr(v)} instead.`)
   }
   const n = numSamples(h, args[0])
   const [nTrain, nTest] = shuffleSplitSizes(h, n, kw.test_size, kw.train_size)
@@ -1434,7 +1458,7 @@ const NORMALIZER: Spec = {
         const X = readX(h, args[0] ?? kw.X, 'Normalizer')
         if (e.st.m !== undefined && X.m !== e.st.m) throw h.err('ValueError', `X has ${X.m} features, but Normalizer is expecting ${e.st.m} features as input.`)
         const kind = strOf(e.param('norm'))
-        if (kind !== 'l1' && kind !== 'l2' && kind !== 'max') throw h.err('InvalidParameterError', `The 'norm' parameter of Normalizer must be a str among {'l1', 'l2', 'max'}. Got ${repr(e.param('norm'))} instead.`)
+        if (kind !== 'l1' && kind !== 'l2' && kind !== 'max') throw badParam(h, `The 'norm' parameter of Normalizer must be a str among {'l1', 'l2', 'max'}. Got ${repr(e.param('norm'))} instead.`)
         const out = X.rows.map((r) => {
           const n = kind === 'l2' ? Math.sqrt(dot(r, r)) : kind === 'l1' ? npSum(r.map(Math.abs)) : Math.max(...r.map(Math.abs))
           const s = safeScale([n])[0]
@@ -1728,7 +1752,7 @@ const ONE_HOT: Spec = {
       const u = strOf(e.param('handle_unknown'))
       if (u !== 'error' && u !== 'ignore') {
         if (u === 'infrequent_if_exist' || u === 'warn') throw h.err('NotImplementedError', `OneHotEncoder: handle_unknown=${reprStr(u)} is not available in this sandbox`)
-        throw h.err('InvalidParameterError', `The 'handle_unknown' parameter of OneHotEncoder must be a str among {'error', 'ignore', 'infrequent_if_exist', 'warn'}. Got ${repr(e.param('handle_unknown'))} instead.`)
+        throw badParam(h, `The 'handle_unknown' parameter of OneHotEncoder must be a str among {'error', 'ignore', 'infrequent_if_exist', 'warn'}. Got ${repr(e.param('handle_unknown'))} instead.`)
       }
       return u
     }
@@ -2269,6 +2293,54 @@ const heapPush = (d: number[], ix: number[], size: number, val: number, idx: num
   ix[cur] = idx
 }
 
+/** np.argpartition's introselect, which decides among tied distances when ArgKmin cannot be used */
+const argIntroselect = (v: number[], ix: number[], kth: number) => {
+  const swap = (a: number, b: number) => {
+    const t = ix[a]
+    ix[a] = ix[b]
+    ix[b] = t
+  }
+  const num = ix.length
+  let low = 0
+  let high = num - 1
+  if (kth < 3) {
+    for (let i = 0; i <= kth; i++) {
+      let m = i
+      for (let k = i + 1; k < num; k++) if (v[ix[k]] < v[ix[m]]) m = k
+      swap(i, m)
+    }
+    return
+  }
+  if (kth === num - 1) {
+    let m = 0
+    for (let k = 1; k < num; k++) if (!(v[ix[k]] < v[ix[m]])) m = k
+    swap(kth, m)
+    return
+  }
+  while (low + 1 < high) {
+    let ll = low + 1
+    let hh = high
+    const mid = low + ((high - low) >> 1)
+    if (v[ix[high]] < v[ix[mid]]) swap(high, mid)
+    if (v[ix[high]] < v[ix[low]]) swap(high, low)
+    if (v[ix[low]] < v[ix[mid]]) swap(low, mid)
+    swap(mid, low + 1)
+    const pivot = v[ix[low]]
+    for (;;) {
+      do ll++
+      while (v[ix[ll]] < pivot)
+      do hh--
+      while (pivot < v[ix[hh]])
+      if (hh < ll) break
+      swap(ll, hh)
+    }
+    swap(low, hh)
+    if (hh >= kth) high = hh - 1
+    if (hh <= kth) low = ll
+  }
+  if (high === low + 1 && v[ix[high]] < v[ix[low]]) swap(high, low)
+}
+
 type MetricFn = (a: number[], b: number[]) => number
 
 /** the distance the heap compares (squared for euclidean, p-th power for minkowski) and the step back to a true distance */
@@ -2289,7 +2361,8 @@ const metricOf = (h: Host, e: Est): { rdist: MetricFn; finish: (x: number) => nu
   throw h.err('NotImplementedError', `${e.cls}: metric=${reprStr(metric.v)} is not available in this sandbox (euclidean, manhattan, minkowski, chebyshev)`)
 }
 
-const kneighborsOf = (e: Est, q: number[][], skipSelf: boolean, k0: number): { dist: number[][]; ind: number[][] } => {
+const kneighborsOf = (e: Est, query: { rows: number[][]; isFloat: boolean }, skipSelf: boolean, k0: number): { dist: number[][]; ind: number[][] } => {
+  const q = query.rows
   const fit = e.st.X as number[][]
   const { rdist, finish, effective } = e.st.metric as ReturnType<typeof metricOf>
   const k = skipSelf ? k0 + 1 : k0
@@ -2301,6 +2374,20 @@ const kneighborsOf = (e: Est, q: number[][], skipSelf: boolean, k0: number): { d
   const dist: number[][] = []
   const ind: number[][] = []
   q.forEach((x, qi) => {
+    if (isBrute && !(query.isFloat && (e.st.floatFit as boolean))) {
+      // integer data cannot use ArgKmin: sklearn computes all distances, argpartitions, and sorts the first k
+      const all = fit.map((y, i) => (skipSelf && i === qi ? 0 : effective === 'euclidean' ? Math.max(0, -2 * dot(x, y) + dot(x, x) + dot(y, y)) : finish(rdist(x, y))))
+      const order = fit.map((_, i) => i)
+      argIntroselect(all, order, k - 1)
+      const top = order.slice(0, k).sort((a, b) => all[a] - all[b])
+      if (skipSelf) {
+        const at = top.indexOf(qi)
+        top.splice(at >= 0 ? at : 0, 1)
+      }
+      dist.push(top.map((i) => (effective === 'euclidean' ? Math.sqrt(all[i]) : all[i])))
+      ind.push(top)
+      return
+    }
     const d = new Array<number>(k).fill(Infinity)
     const ix = new Array<number>(k).fill(0)
     const xx = useGemm ? dot(x, x) : 0
@@ -2342,7 +2429,13 @@ const neighbourWeights = (h: Host, e: Est, dist: number[][]): number[][] | null 
     const out = numericArray(h, h.call(w, [mat(dist)]))
     return rowsOf(out)
   }
-  throw h.err('InvalidParameterError', `The 'weights' parameter of ${e.cls} must be a str among {'distance', 'uniform'}, a callable or None. Got ${repr(w)} instead.`)
+  throw badParam(h, `The 'weights' parameter of ${e.cls} must be a str among {'distance', 'uniform'}, a callable or None. Got ${repr(w)} instead.`)
+}
+
+const queryOf = (e: Est, Xv: Value | undefined, h: Host): { rows: number[][]; isFloat: boolean } => {
+  if (isNone(Xv)) return { rows: e.st.X as number[][], isFloat: e.st.floatFit as boolean }
+  const X = readTest(e, Xv, h)
+  return { rows: X.rows, isFloat: X.a.dtype === 'float64' }
 }
 
 const NEIGHBOR_PARAMS: [string, Value][] = [['n_neighbors', py.int(5)], ['weights', py.str('uniform')], ['algorithm', py.str('auto')], ['leaf_size', py.int(30)], ['p', py.int(2)], ['metric', py.str('minkowski')], ['metric_params', py.NONE], ['n_jobs', py.NONE]]
@@ -2351,11 +2444,12 @@ const fitNeighbors = (e: Est, h: Host, X: XData) => {
   const nn = e.param('n_neighbors')
   if (nn.k !== 'none') inRange(h, e, 'n_neighbors', nn.k === 'int' && nn.v >= 1, 'an int in the range [1, inf) or None')
   const algo = strOf(e.param('algorithm'))
-  if (!algo || !['auto', 'ball_tree', 'kd_tree', 'brute'].includes(algo)) throw h.err('InvalidParameterError', `The 'algorithm' parameter of ${e.cls} must be a str among {'auto', 'ball_tree', 'brute', 'kd_tree'}. Got ${repr(e.param('algorithm'))} instead.`)
+  if (!algo || !['auto', 'ball_tree', 'kd_tree', 'brute'].includes(algo)) throw badParam(h, `The 'algorithm' parameter of ${e.cls} must be a str among {'auto', 'ball_tree', 'brute', 'kd_tree'}. Got ${repr(e.param('algorithm'))} instead.`)
   if (e.param('metric_params').k !== 'none') throw h.err('NotImplementedError', `${e.cls}: metric_params is not available in this sandbox`)
   const metric = metricOf(h, e)
   rememberFeatures(e, X)
   e.st.X = X.rows
+  e.st.floatFit = X.a.dtype === 'float64'
   e.st.metric = metric
   e.st.brute = algo === 'brute' || (algo === 'auto' && (X.m > 15 || (nn.k === 'int' && nn.v >= Math.floor(X.n / 2))))
   e.fitted.set('n_samples_fit_', py.int(X.n))
@@ -2374,10 +2468,10 @@ const kneighborsMethod = (e: Est, h: Host): Fn => (args, kw) => {
   if (n <= 0) throw h.err('ValueError', `Expected n_neighbors > 0. Got ${n}`)
   const rd = args[2] ?? kw.return_distance
   const self = isNone(Xv)
-  const q = self ? (e.st.X as number[][]) : readTest(e, Xv, h).rows
+  const q = queryOf(e, Xv, h)
   const fitN = (e.st.X as number[][]).length
   const queries = n + (self ? 1 : 0)
-  if (queries > fitN) throw h.err('ValueError', `Expected n_neighbors <= n_samples_fit, but n_neighbors = ${queries}, n_samples_fit = ${fitN}, n_samples = ${q.length}`)
+  if (queries > fitN) throw h.err('ValueError', `Expected n_neighbors <= n_samples_fit, but n_neighbors = ${queries}, n_samples_fit = ${fitN}, n_samples = ${q.rows.length}`)
   const { dist, ind } = kneighborsOf(e, q, self, n)
   const indV = mat(ind, n, 'int64')
   return rd && !h.truthy(rd) ? indV : py.tuple([mat(dist, n), indV])
@@ -2393,10 +2487,10 @@ const KNN_CLASSIFIER: Spec = {
       requireFit(e, h)
       const Xv = args[0] ?? kw.X
       const self = isNone(Xv)
-      const q = self ? (e.st.X as number[][]) : readTest(e, Xv, h).rows
+      const q = queryOf(e, Xv, h)
       const k = e.int('n_neighbors', h)
       const queries = k + (self ? 1 : 0)
-      if (queries > (e.st.X as number[][]).length) throw h.err('ValueError', `Expected n_neighbors <= n_samples_fit, but n_neighbors = ${queries}, n_samples_fit = ${(e.st.X as number[][]).length}, n_samples = ${q.length}`)
+      if (queries > (e.st.X as number[][]).length) throw h.err('ValueError', `Expected n_neighbors <= n_samples_fit, but n_neighbors = ${queries}, n_samples_fit = ${(e.st.X as number[][]).length}, n_samples = ${q.rows.length}`)
       const { dist, ind } = kneighborsOf(e, q, self, k)
       const w = neighbourWeights(h, e, dist)
       if (w && w.some((r) => r.every((x) => x === 0))) throw h.err('ValueError', "All neighbors of some sample is getting zero weights. Please modify 'weights' to avoid this case if you are using a user-defined function.")
@@ -2447,10 +2541,10 @@ const KNN_REGRESSOR: Spec = {
       requireFit(e, h)
       const Xv = args[0] ?? kw.X
       const self = isNone(Xv)
-      const q = self ? (e.st.X as number[][]) : readTest(e, Xv, h).rows
+      const q = queryOf(e, Xv, h)
       const k = e.int('n_neighbors', h)
       const queries = k + (self ? 1 : 0)
-      if (queries > (e.st.X as number[][]).length) throw h.err('ValueError', `Expected n_neighbors <= n_samples_fit, but n_neighbors = ${queries}, n_samples_fit = ${(e.st.X as number[][]).length}, n_samples = ${q.length}`)
+      if (queries > (e.st.X as number[][]).length) throw h.err('ValueError', `Expected n_neighbors <= n_samples_fit, but n_neighbors = ${queries}, n_samples_fit = ${(e.st.X as number[][]).length}, n_samples = ${q.rows.length}`)
       const { dist, ind } = kneighborsOf(e, q, self, k)
       const w = neighbourWeights(h, e, dist)
       const Y = e.st.y as number[][]
@@ -2532,10 +2626,12 @@ const lloydStep = (X: number[][], C: number[][], m: number) => {
   })
   const empty = weight.flatMap((w, j) => (w === 0 ? [j] : []))
   if (empty.length) {
-    const far = X.map((x, i) => ({ d: sqEuclid(x, C[labels[i]]), i })).sort((a, b) => b.d - a.d || a.i - b.i)
-    if (far[0].d !== 0) {
+    const dist = X.map((x, i) => sqEuclid(x, C[labels[i]]))
+    if (Math.max(...dist) !== 0) {
+      const far = X.map((_, i) => i)
+      argIntroselect(dist, far, X.length - empty.length)
       empty.forEach((nc, t) => {
-        const idx = far[t].i
+        const idx = far[X.length - 1 - t]
         const old = labels[idx]
         for (let j = 0; j < m; j++) {
           sum[old][j] -= X[idx][j]
@@ -2651,9 +2747,9 @@ const KMEANS: Spec = {
       const init = e.param('init')
       const isArr = init.k === 'array' || init.k === 'list' || init.k === 'tuple'
       if (!isArr && init.k !== 'str') throw h.err('NotImplementedError', 'KMeans: a callable init is not available in this sandbox')
-      if (init.k === 'str' && init.v !== 'k-means++' && init.v !== 'random') throw h.err('InvalidParameterError', `The 'init' parameter of KMeans must be a str among {'k-means++', 'random'}, a callable or an array-like. Got ${repr(init)} instead.`)
+      if (init.k === 'str' && init.v !== 'k-means++' && init.v !== 'random') throw badParam(h, `The 'init' parameter of KMeans must be a str among {'k-means++', 'random'}, a callable or an array-like. Got ${repr(init)} instead.`)
       const nInitV = e.param('n_init')
-      if (!(nInitV.k === 'str' && nInitV.v === 'auto') && !(nInitV.k === 'int' && nInitV.v >= 1)) throw h.err('InvalidParameterError', `The 'n_init' parameter of KMeans must be a str among {'auto'} or an int in the range [1, inf). Got ${repr(nInitV)} instead.`)
+      if (!(nInitV.k === 'str' && nInitV.v === 'auto') && !(nInitV.k === 'int' && nInitV.v >= 1)) throw badParam(h, `The 'n_init' parameter of KMeans must be a str among {'auto'} or an int in the range [1, inf). Got ${repr(nInitV)} instead.`)
       let nInit = nInitV.k === 'int' ? nInitV.v : init.k === 'str' && init.v === 'random' ? 10 : 1
       if (isArr) nInit = 1
       const mean = meanAxis0(X.rows, X.m)
@@ -2948,20 +3044,16 @@ const countingNB = (name: 'MultinomialNB' | 'BernoulliNB'): Spec => ({
 const classWeights = (h: Host, cw: Value, classes: Lab[], enc: number[], est: string): number[] => {
   if (cw.k === 'none') return classes.map(() => 1)
   if (cw.k === 'str') {
-    if (cw.v !== 'balanced') throw h.err('InvalidParameterError', `The 'class_weight' parameter of ${est} must be an instance of 'dict', a str among {'balanced'} or None. Got ${repr(cw)} instead.`)
+    if (cw.v !== 'balanced') throw badParam(h, `The 'class_weight' parameter of ${est} must be an instance of 'dict', a str among {'balanced'} or None. Got ${repr(cw)} instead.`)
     const counts = classes.map(() => 0)
     enc.forEach((c) => counts[c]++)
     return counts.map((c) => enc.length / (classes.length * c))
   }
-  if (cw.k !== 'dict') throw h.err('InvalidParameterError', `The 'class_weight' parameter of ${est} must be an instance of 'dict', a str among {'balanced'} or None. Got ${repr(cw)} instead.`)
-  const out = classes.map(() => 1)
-  for (const [k, v] of cw.d.items()) {
-    const key: Lab = k.k === 'str' ? k.v : h.num(k)
-    const i = classes.indexOf(key)
-    if (i < 0) throw h.err('ValueError', `The classes, ${JSON.stringify([key])}, are not in class_weight`)
-    out[i] = h.num(v)
-  }
-  return out
+  if (cw.k !== 'dict') throw badParam(h, `The 'class_weight' parameter of ${est} must be an instance of 'dict', a str among {'balanced'} or None. Got ${repr(cw)} instead.`)
+  const given = new Map(cw.d.items().map(([k, v]) => [k.k === 'str' ? k.v : h.num(k), h.num(v)] as [Lab, number]))
+  const missing = classes.filter((c) => !given.has(c))
+  if (missing.length && classes.length - missing.length !== given.size) throw h.err('ValueError', `The classes, [${missing.map((c) => (typeof c === 'string' ? reprStr(c) : c)).join(', ')}], are not in class_weight`)
+  return classes.map((c) => given.get(c) ?? 1)
 }
 
 /** _plain_sgd for the perceptron loss: the exact sequential update */
@@ -3113,55 +3205,10 @@ const PERCEPTRON: Spec = {
   },
 }
 
-/** one-sided Jacobi SVD of A (m×n), singular values descending: U and V hold the vectors in columns */
-const svd = (A: number[][], n: number): { U: number[][]; S: number[]; V: number[][] } => {
-  const m = A.length
-  const k = Math.min(m, n)
-  // work on the taller shape, so that the rotated columns give the thin factors
-  const flipped = n > m
-  const B = flipped ? colsOf(A, n) : A.map((r) => [...r])
-  const rows = flipped ? n : m
-  const cols = flipped ? m : n
-  const U = colsOf(B, cols)
-  const V: number[][] = Array.from({ length: cols }, (_, i) => Array.from({ length: cols }, (_x, j) => (i === j ? 1 : 0)))
-  for (let sweep = 0; sweep < 60; sweep++) {
-    let off = 0
-    for (let p = 0; p < cols - 1; p++) {
-      for (let q = p + 1; q < cols; q++) {
-        const up = U[p]
-        const uq = U[q]
-        const alpha = dot(up, up)
-        const beta = dot(uq, uq)
-        const gamma = dot(up, uq)
-        if (Math.abs(gamma) <= 1e-16 * Math.sqrt(alpha * beta) || gamma === 0) continue
-        off++
-        const zeta = (beta - alpha) / (2 * gamma)
-        const t = Math.sign(zeta || 1) / (Math.abs(zeta) + Math.sqrt(1 + zeta * zeta))
-        const c = 1 / Math.sqrt(1 + t * t)
-        const s = c * t
-        for (let i = 0; i < rows; i++) {
-          const x = up[i]
-          up[i] = c * x - s * uq[i]
-          uq[i] = s * x + c * uq[i]
-        }
-        const vp = V[p]
-        const vq = V[q]
-        for (let i = 0; i < cols; i++) {
-          const x = vp[i]
-          vp[i] = c * x - s * vq[i]
-          vq[i] = s * x + c * vq[i]
-        }
-      }
-    }
-    if (!off) break
-  }
-  const sing = U.map((u) => Math.sqrt(dot(u, u)))
-  const order = sing.map((_, i) => i).sort((a, b) => sing[b] - sing[a]).slice(0, k)
-  const S = order.map((i) => sing[i])
-  const normU = order.map((i) => U[i].map((x) => (sing[i] > 0 ? x / sing[i] : 0)))
-  const normV = order.map((i) => V[i])
-  // columns as arrays: left vectors live in normU, right in normV (swapped back if we worked on the transpose)
-  return flipped ? { U: normV, S, V: normU } : { U: normU, S, V: normV }
+/** the thin SVD, with U and V as lists of vectors */
+const svd = (A: number[][]): { U: number[][]; S: number[]; V: number[][] } => {
+  const { u, s, v } = svdThin(A)
+  return { U: transposeM(u), S: s, V: transposeM(v) }
 }
 
 /** centre X and y as _preprocess_data does; returns the means to rebuild the intercept */
@@ -3221,7 +3268,7 @@ const LINEAR_REGRESSION: Spec = {
       const y = regressionTarget(h, yV)
       const on = e.flag('fit_intercept', h)
       const { Xc, Yc, xm, ym } = centreXY(X, y.rows, y.t, on)
-      const { U, S, V } = svd(Xc, X.m)
+      const { U, S, V } = svd(Xc)
       const cutoff = Math.max(X.n, X.m) * Number.EPSILON * (S[0] ?? 0)
       const rank = S.filter((s) => s > cutoff).length
       const coef = Array.from({ length: y.t }, (_, t) => {
@@ -3242,32 +3289,10 @@ const LINEAR_REGRESSION: Spec = {
   }),
 }
 
-/** solve a symmetric positive definite system by Cholesky */
-const cholSolve = (h: Host, A: number[][], b: number[]): number[] => {
-  const n = b.length
-  const L = A.map((r) => [...r])
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j <= i; j++) {
-      let s = L[i][j]
-      for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k]
-      if (i === j) {
-        if (s <= 0) throw h.err('LinAlgError', 'Matrix is singular.')
-        L[i][i] = Math.sqrt(s)
-      } else L[i][j] = s / L[j][j]
-    }
-  }
-  const y = new Array<number>(n)
-  for (let i = 0; i < n; i++) {
-    let s = b[i]
-    for (let k = 0; k < i; k++) s -= L[i][k] * y[k]
-    y[i] = s / L[i][i]
-  }
-  for (let i = n - 1; i >= 0; i--) {
-    let s = y[i]
-    for (let k = i + 1; k < n; k++) s -= L[k][i] * y[k]
-    y[i] = s / L[i][i]
-  }
-  return y
+const solveSym = (h: Host, A: number[][], b: number[]): number[] => {
+  const x = solveM(A, b.map((v) => [v]))
+  if (!x) throw h.err('LinAlgError', 'Singular matrix')
+  return x.map((r) => r[0])
 }
 
 const RIDGE: Spec = {
@@ -3297,12 +3322,12 @@ const RIDGE: Spec = {
         const col = Yc.map((r) => r[t])
         if (X.m > X.n) {
           const K = Xc.map((a, i) => Xc.map((b, j) => dot(a, b) + (i === j ? alpha : 0)))
-          const dual = cholSolve(h, K, col)
+          const dual = solveSym(h, K, col)
           return Array.from({ length: X.m }, (_x, j) => { let s = 0; Xc.forEach((r, i) => { s += r[j] * dual[i] }); return s })
         }
         const cols = colsOf(Xc, X.m)
         const A = cols.map((a, i) => cols.map((b, j) => dot(a, b) + (i === j ? alpha : 0)))
-        return cholSolve(h, A, cols.map((c) => dot(c, col)))
+        return solveSym(h, A, cols.map((c) => dot(c, col)))
       })
       regressorResult(e, X, y, coef, xm, ym, on)
       e.fitted.set('n_iter_', py.NONE)
@@ -3693,7 +3718,7 @@ const DECISION_TREE: Spec = {
         noSampleWeight(h, 'DecisionTreeClassifier.fit', kw, args[2])
         e.checkLocked(h)
         const crit = strOf(e.param('criterion'))
-        if (crit !== 'gini' && crit !== 'entropy' && crit !== 'log_loss') throw h.err('InvalidParameterError', `The 'criterion' parameter of DecisionTreeClassifier must be a str among {'entropy', 'gini', 'log_loss'}. Got ${repr(e.param('criterion'))} instead.`)
+        if (crit !== 'gini' && crit !== 'entropy' && crit !== 'log_loss') throw badParam(h, `The 'criterion' parameter of DecisionTreeClassifier must be a str among {'entropy', 'gini', 'log_loss'}. Got ${repr(e.param('criterion'))} instead.`)
         const md = e.param('max_depth')
         if (md.k !== 'none') inRange(h, e, 'max_depth', md.k === 'int' && md.v >= 1, 'an int in the range [1, inf) or None')
         const mss = e.param('min_samples_split')
@@ -3808,10 +3833,10 @@ const PCA: Spec = {
       if (nc.k === 'str') throw h.err('NotImplementedError', `PCA: n_components=${repr(nc)} is not available in this sandbox`)
       const solverName = solver === 'auto' ? (X.m <= 1000 && X.n >= 10 * X.m ? 'covariance_eigh' : 'full') : solver
       if (nc.k === 'int' && (nc.v < 0 || nc.v > lim)) throw h.err('ValueError', `n_components=${nc.v} must be between 0 and min(n_samples, n_features)=${lim} with svd_solver=${reprStr(solverName)}`)
-      if (nc.k === 'float' && !(nc.v > 0 && nc.v < 1)) throw h.err('InvalidParameterError', `The 'n_components' parameter of PCA must be an int in the range [0, inf), a float in the range (0.0, 1.0), a str among {'mle'} or None. Got ${repr(nc)} instead.`)
+      if (nc.k === 'float' && !(nc.v > 0 && nc.v < 1)) throw badParam(h, `The 'n_components' parameter of PCA must be an int in the range [0, inf), a float in the range (0.0, 1.0), a str among {'mle'} or None. Got ${repr(nc)} instead.`)
       const mean = meanAxis0(X.rows, X.m)
       const centred = X.rows.map((r) => r.map((x, j) => x - mean[j]))
-      const { S, V } = svd(centred, X.m)
+      const { S, V } = svd(centred)
       // svd_flip(u_based_decision=False): the largest entry of each component is positive
       const comps = V.map((c) => {
         const big = argmax(c.map(Math.abs))
@@ -3959,7 +3984,7 @@ const prfCore = (h: Host, tV: Value | undefined, pV: Value | undefined, kw: Kw, 
   const avg = kw.average === undefined ? 'binary' : kw.average.k === 'none' ? null : strOf(kw.average)
   if (avg !== null && !['binary', 'micro', 'macro', 'weighted'].includes(avg ?? '')) {
     if (avg === 'samples') throw h.err('ValueError', 'Samplewise metrics are not available outside of multilabel classification.')
-    throw h.err('InvalidParameterError', `The 'average' parameter of ${who} must be a str among {'binary', 'macro', 'micro', 'samples', 'weighted'} or None. Got ${repr(kw.average!)} instead.`)
+    throw badParam(h, `The 'average' parameter of ${who} must be a str among {'binary', 'macro', 'micro', 'samples', 'weighted'} or None. Got ${repr(kw.average!)} instead.`)
   }
   const present = uniqueSorted([...t.vals, ...p.vals], t.isStr)
   const posLabel: Lab = kw.pos_label ? (kw.pos_label.k === 'str' ? kw.pos_label.v : h.num(kw.pos_label)) : 1
@@ -4327,7 +4352,7 @@ const build = (h: Host): Record<string, Value> => {
       const nv = kw.normalize
       if (isNone(nv)) return mat(cm, labels.length, 'int64')
       const how = strOf(nv)
-      if (how !== 'true' && how !== 'pred' && how !== 'all') throw h.err('InvalidParameterError', `The 'normalize' parameter of confusion_matrix must be a str among {'all', 'pred', 'true'} or None. Got ${repr(nv!)} instead.`)
+      if (how !== 'true' && how !== 'pred' && how !== 'all') throw badParam(h, `The 'normalize' parameter of confusion_matrix must be a str among {'all', 'pred', 'true'} or None. Got ${repr(nv!)} instead.`)
       const rowT = cm.map((r) => r.reduce((a, b) => a + b, 0))
       const colT = labels.map((_, j) => cm.reduce((a, r) => a + r[j], 0))
       const all = rowT.reduce((a, b) => a + b, 0)
@@ -4501,7 +4526,7 @@ const build = (h: Host): Record<string, Value> => {
       load_digits: notEmbedded('load_digits'), load_wine: notEmbedded('load_wine'), load_breast_cancer: notEmbedded('load_breast_cancer'), load_diabetes: notEmbedded('load_diabetes'), fetch_openml: notEmbedded('fetch_openml'),
     }),
     'sklearn.base': mod('base', { clone: { k: 'fn', name: 'clone', call: (args) => cloneValue(args[0]) } }),
-    'sklearn.exceptions': mod('exceptions', { NotFittedError: { k: 'type', name: 'NotFittedError', call: (args) => { throw h.err('NotFittedError', args[0] ? h.str(args[0]) : '') } }, ConvergenceWarning: { k: 'type', name: 'ConvergenceWarning', call: () => py.NONE } }),
+    'sklearn.exceptions': mod('exceptions', { NotFittedError: notFittedClass(h), ConvergenceWarning: excOf(h, 'ConvergenceWarning', ['UserWarning']) }),
   }
   const root: Record<string, Value> = { __version__: py.str('1.7.2') }
   for (const [path, m] of Object.entries(modules)) root[path.split('.')[1]] = m

@@ -2,13 +2,13 @@
  * OpenCV for the sandbox: colour conversion, resizing, geometric warps, filtering, thresholding, histograms, morphology
  * and saturating arithmetic on NumPy arrays, following OpenCV's own fixed-point formulas so uint8 results match bit for bit.
  *
- * NDArray has no uint8: an int64 array stands for a uint8 image (see depthOf). Importing cv2 adds np.uint8 as an alias of int64.
+ * NDArray knows uint8, int64 and float64. uint8 is CV_8U. int64 becomes CV_32S, as it does in the real binding, and
+ * float64 stands for both CV_32F and CV_64F. A CV_16S result from Sobel and the like is tagged, so saturation stays right.
  * There are no files and no windows here, so imread, imshow and friends raise an error that says so.
  */
 import { NDArray, cStrides } from './ndarray'
-import type { DType } from './ndarray'
 import { isNum, numOf, py, toArray } from './minipy'
-import type { ApiKind, Host, Kw, PyLib, Value } from './minipy'
+import type { ApiKind, ClassValue, Host, Kw, PyLib, Value } from './minipy'
 
 type Depth = '8u' | '8s' | '16u' | '16s' | '32s' | '32f' | '64f'
 interface Img { h: number; w: number; c: number; v: number[]; dp: Depth }
@@ -35,32 +35,27 @@ const sat = (x: number, dp: Depth): number => {
   return r < lo ? lo : r > hi ? hi : r
 }
 
-/** the depth a cv2 result was made with, when the array cannot say so by itself (a CV_16S result that holds 0..255) */
+/** the depth a cv2 result was made with, when the dtype alone cannot say (CV_16S and CV_32F results) */
 const TAGS = new WeakMap<NDArray, Depth>()
 
-/** the dtype of a CV_8U result: np.uint8's, which installNumpyTypes settles once per run */
-let u8Dtype: DType = 'int64'
+const depthOf = (a: NDArray): Depth => TAGS.get(a) ?? (a.dtype === 'float64' ? '64f' : a.dtype === 'uint8' ? '8u' : '32s')
 
-/** float64 is CV_64F, uint8 is CV_8U; other integers are uint8 when they fit, otherwise the narrowest signed depth that holds them */
-const depthOf = (h: Host, a: NDArray): Depth => {
-  const tag = TAGS.get(a)
-  if (tag) return tag
-  if (a.dtype === 'float64') return '64f'
-  if ((a.dtype as string) === 'uint8') return '8u'
-  let lo = 0
-  let hi = 0
-  for (const x of a.values()) {
-    if (x < lo) lo = x
-    if (x > hi) hi = x
+const errorClass = (h: Host): ClassValue => {
+  let c = h.state.get('cv2.error') as ClassValue | undefined
+  if (!c) {
+    const base = h.excClass('Exception')
+    c = { k: 'class', name: 'error', bases: [base], ns: new Map(), host: base.host, builtin: true }
+    h.state.set('cv2.error', c)
   }
-  if (lo >= 0 && hi <= 255) return '8u'
-  if (lo >= -32768 && hi <= 32767) return '16s'
-  if (lo >= 0 && hi <= 65535) return '16u'
-  if (lo >= -2147483648 && hi <= 2147483647) return '32s'
-  throw cvErr(h, 'Bad argument', 'the array holds integers too large for an OpenCV image')
+  return c
 }
 
-const cvErr = (h: Host, kind: string, msg: string) => h.err('error', `OpenCV(4.13.0) (${kind}) ${msg}`)
+const cvErr = (h: Host, kind: string, msg: string): never => h.raise(errorClass(h), [py.str(`OpenCV(4.13.0) (${kind}) ${msg}`)])
+
+/** what the real library refuses on CV_32S, which is where a plain int64 array ends up */
+const no32s = (h: Host, im: Img, fn: string) => {
+  if (im.dp === '32s') cvErr(h, '-210:Unsupported format or combination of formats', `in function '${fn}': the array has dtype int64, which OpenCV reads as CV_32S. An image needs dtype=np.uint8`)
+}
 
 const asMat = (h: Host, v: Value | undefined, what: string): NDArray => {
   if (v && v.k === 'array') return v.a
@@ -73,21 +68,31 @@ const readImg = (h: Host, v: Value | undefined, what = 'src'): Img => {
   if (a.dtype === 'bool') throw cvErr(h, 'Bad argument', `${what} data type = bool is not supported`)
   if (a.ndim !== 2 && a.ndim !== 3) throw cvErr(h, 'Bad argument', `${what} must be a 2-D or 3-D array, got ${a.ndim}-D`)
   if (a.size === 0) throw cvErr(h, '-215:Assertion failed', '!_src.empty()')
-  return { h: a.shape[0], w: a.shape[1], c: a.ndim === 3 ? a.shape[2] : 1, v: a.values(), dp: depthOf(h, a) }
+  const dp = depthOf(a)
+  // the binding casts int64 to int32, wrapping what does not fit
+  return { h: a.shape[0], w: a.shape[1], c: a.ndim === 3 ? a.shape[2] : 1, v: dp === '32s' && !TAGS.has(a) ? a.values().map((x) => x | 0) : a.values(), dp }
 }
 
 /** a Mat with one channel comes back as 2-D, whatever the input looked like */
 const toValue = (im: { h: number; w: number; c: number; v: number[] }, dp: Depth): Value => {
   const shape = im.c === 1 ? [im.h, im.w] : [im.h, im.w, im.c]
-  const a = NDArray.create(im.v, shape, isFloatDepth(dp) ? 'float64' : dp === '8u' ? u8Dtype : 'int64')
+  const a = NDArray.create(im.v, shape, isFloatDepth(dp) ? 'float64' : dp === '8u' ? 'uint8' : 'int64')
   if (dp !== '8u' && dp !== '64f') TAGS.set(a, dp)
   return py.arr(a)
+}
+
+/** the same depth as the source, for results that only move its values around */
+const sameKind = (src: NDArray, values: number[], shape: number[]): Value => {
+  const out = NDArray.create(values, shape, src.dtype)
+  const tag = TAGS.get(src)
+  if (tag) TAGS.set(out, tag)
+  return py.arr(out)
 }
 
 const blank = (im: { h: number; w: number; c: number }, fill = 0): number[] => new Array(im.h * im.w * im.c).fill(fill)
 
 const need8u = (h: Host, im: Img, fn: string) => {
-  if (im.dp !== '8u') throw cvErr(h, '-215:Assertion failed', `${fn} needs an 8-bit image here, with values from 0 to 255 (got ${im.dp})`)
+  if (im.dp !== '8u') throw cvErr(h, '-215:Assertion failed', `_src.depth() == CV_8U in function '${fn}'${im.dp === '32s' ? ': an int64 array reads as CV_32S, an image needs dtype=np.uint8' : ''}`)
 }
 
 // ---------------------------------------------------------------- borders
@@ -483,7 +488,7 @@ const cvtColor = (h: Host, im: Img, code: number): { c: number; v: number[]; dp:
   }
   const dp = im.dp
   const is8 = dp === '8u'
-  if (!is8 && !isFloatDepth(dp) && dp !== '16u') throw cvErr(h, '-2:Unspecified error', `Unsupported depth of input image: 'VDepth::contains(depth)' where 'depth' is ${dp}`)
+  if (!is8 && !isFloatDepth(dp) && dp !== '16u') throw cvErr(h, '-2:Unspecified error', `Unsupported depth of input image: 'VDepth::contains(depth)' where 'depth' is ${dp}${dp === '32s' ? ' (an int64 array reads as CV_32S: an image needs dtype=np.uint8)' : ''}`)
   const alpha = is8 ? 255 : dp === '16u' ? 65535 : 1
   const v = im.v
   const swapRB = (src: number, dst: number, swap: boolean) => {
@@ -807,6 +812,7 @@ const resize = (h: Host, im: Img, dsize: [number, number] | null, fx: number, fy
   }
   const dst = { h: dh, w: dw, c: im.c, dp: im.dp }
   if (interp === INTER.NEAREST) return { ...dst, v: resizeNearest(im, dw, dh, ix, iy) }
+  no32s(h, im, 'resize')
   const isx = cvRound(sx)
   const isy = cvRound(sy)
   const fast = Math.abs(sx - isx) < Number.EPSILON && Math.abs(sy - isy) < Number.EPSILON
@@ -878,6 +884,7 @@ const warpInterp = (h: Host, flags: number, fn: string): 0 | 1 => {
 
 const warpAffine = (h: Host, im: Img, M0: number[], dw: number, dh: number, flags: number, border: number, cval: number[]): Img => {
   const interp = warpInterp(h, flags, 'warpAffine')
+  if (interp !== 0) no32s(h, im, 'remap')
   const M = [...M0]
   if (!(flags & INTER.WARP_INVERSE_MAP)) {
     let D = M[0] * M[4] - M[1] * M[3]
@@ -947,6 +954,7 @@ const invert3 = (h: Host, M: number[]): number[] => {
 
 const warpPerspective = (h: Host, im: Img, M0: number[], dw: number, dh: number, flags: number, border: number, cval: number[]): Img => {
   const interp = warpInterp(h, flags, 'warpPerspective')
+  if (interp !== 0) no32s(h, im, 'remap')
   const M = flags & INTER.WARP_INVERSE_MAP ? M0 : invert3(h, M0)
   const out = new Array<number>(dw * dh * im.c)
   const mult = interp === 0 ? 1 : TAB
@@ -1038,7 +1046,7 @@ const operand = (h: Host, v: Value | undefined, other: Value | undefined, what: 
     const fits = v.a.ndim <= 2 && ((r === 1 && c === 1) || (r === cn && c === 1) || (r === 1 && c === cn) || (r === 4 && c === 1 && v.a.dtype === 'float64' && cn <= 4))
     if (!same && o && o.ndim >= 2 && fits) {
       const xs = v.a.values()
-      return { kind: 'scalar', s: xs.length === 1 ? [xs[0], xs[0], xs[0], xs[0]] : [...xs, 0, 0, 0, 0].slice(0, 4) }
+      return { kind: 'scalar', s: [...xs, 0, 0, 0, 0].slice(0, 4) }
     }
   }
   return { kind: 'img', im: readImg(h, v, what) }
@@ -1052,17 +1060,13 @@ const arith = (h: Host, a0: Value | undefined, b0: Value | undefined, maskV: Val
   const base = a.kind === 'img' ? a.im : (b as { im: Img }).im
   if (a.kind === 'img' && b.kind === 'img') {
     if (a.im.h !== b.im.h || a.im.w !== b.im.w || a.im.c !== b.im.c) throw cvErr(h, '-209:Sizes of input arguments do not match', `The operation is neither 'array op array' (where arrays have the same size and the same number of channels), nor 'array op scalar', nor 'scalar op array' in function 'arithm_op'`)
-    if (a.im.dp !== b.im.dp && (!dtypeV || dtypeV.k === 'none')) {
-      const pair = [a.im.dp, b.im.dp]
-      if (!(pair.includes('8u') && pair.includes('16s'))) throw cvErr(h, '-5:Bad argument', `When the input arrays in add/subtract/multiply/divide functions have different types, the output array type must be explicitly specified in function 'arithm_op'`)
-    }
+    if (a.im.dp !== b.im.dp && (!dtypeV || dtypeV.k === 'none')) throw cvErr(h, '-5:Bad argument', `When the input arrays in add/subtract/multiply/divide functions have different types, the output array type must be explicitly specified in function 'arithm_op'`)
   }
   // a 4-element Scalar arrives as a 4x1 double Mat, so a 4x1 image reads it as an array of another type
   if (a.kind !== b.kind && base.h === 4 && base.w === 1 && base.c === 1 && (!dtypeV || dtypeV.k === 'none')) throw cvErr(h, '-5:Bad argument', `When the input arrays in add/subtract/multiply/divide functions have different types, the output array type must be explicitly specified in function 'arithm_op'`)
-  const wide = a.kind === 'img' && b.kind === 'img' && a.im.dp !== b.im.dp ? (a.im.dp === '8u' ? b.im.dp : a.im.dp) : base.dp
-  const dp = depthArg(h, dtypeV, wide)
+  const dp = depthArg(h, dtypeV, base.dp)
   const mask = maskV && maskV.k !== 'none' ? readImg(h, maskV, 'mask') : null
-  if (mask && (mask.h !== base.h || mask.w !== base.w || mask.c !== 1)) throw cvErr(h, '-215:Assertion failed', `(mtype == CV_8U || mtype == CV_8S) && _mask.sameSize(*psrc1) in function '${name}'`)
+  if (mask && (mask.h !== base.h || mask.w !== base.w || mask.c !== 1 || (mask.dp !== '8u' && mask.dp !== '8s'))) throw cvErr(h, '-215:Assertion failed', `(mtype == CV_8U || mtype == CV_8S) && _mask.sameSize(*psrc1) in function '${name}'`)
   const out = blank(base)
   const C = base.c
   for (let i = 0; i < base.h * base.w; i++) {
@@ -1110,7 +1114,7 @@ const required = (h: Host, a: Args, fn: string, ...names: string[]) => {
 }
 
 const build = (h: Host): Record<string, Value> => {
-  const attrs: Record<string, Value> = { __version__: py.str('4.13.0'), error: { k: 'type', name: 'cv2.error', call: (args) => { throw h.err('error', args[0] ? h.str(args[0]) : '') } } }
+  const attrs: Record<string, Value> = { __version__: py.str('4.13.0'), error: errorClass(h) }
 
   /** a cv2 function: its Python parameters and how the step-through panel should show it */
   const def = (name: string, params: string, kind: ApiKind | null, body: (a: Args, raw: { args: Value[]; kw: Kw }) => Value) => {
@@ -1256,7 +1260,7 @@ const build = (h: Host): Record<string, Value> => {
         for (let c = 0; c < C; c++) out[(y * W + x) * C + c] = v[(yy * W + xx) * C + c]
       }
     }
-    return py.arr(NDArray.create(out, C === 1 ? [H, W] : [H, W, C], m.dtype))
+    return sameKind(m, out, C === 1 ? [H, W] : [H, W, C])
   })
   def('rotate', 'src rotateCode dst', 'move', (a) => {
     required(h, a, 'rotate', 'src', 'rotateCode')
@@ -1274,7 +1278,7 @@ const build = (h: Host): Record<string, Value> => {
         for (let c = 0; c < C; c++) out[(y * ow + x) * C + c] = v[(sy * W + sx) * C + c]
       }
     }
-    return py.arr(NDArray.create(out, C === 1 ? [oh, ow] : [oh, ow, C], m.dtype))
+    return sameKind(m, out, C === 1 ? [oh, ow] : [oh, ow, C])
   })
   def('transpose', 'src dst', 'move', (a) => {
     required(h, a, 'transpose', 'src')
@@ -1284,7 +1288,7 @@ const build = (h: Host): Record<string, Value> => {
     const v = m.values()
     const out = new Array<number>(v.length)
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) for (let c = 0; c < C; c++) out[(x * H + y) * C + c] = v[(y * W + x) * C + c]
-    return py.arr(NDArray.create(out, C === 1 ? [W, H] : [W, H, C], m.dtype))
+    return sameKind(m, out, C === 1 ? [W, H] : [W, H, C])
   })
   def('copyMakeBorder', 'src top bottom left right borderType dst value', 'create', (a) => {
     required(h, a, 'copyMakeBorder', 'src', 'top', 'bottom', 'left', 'right', 'borderType')
@@ -1318,7 +1322,7 @@ const build = (h: Host): Record<string, Value> => {
     const out = new Array<number>(H * W * C)
     let at = 0
     for (let i = 0; i < H * W; i++) for (const p of views) for (let c = 0; c < p.c; c++) out[at++] = p.v[i * p.c + c]
-    return py.arr(NDArray.create(out, C === 1 ? [H, W] : [H, W, C], parts[0].dtype))
+    return sameKind(parts[0], out, C === 1 ? [H, W] : [H, W, C])
   })
   const concat = (name: string, vertical: boolean) => def(name, 'src dst', 'move', (a) => {
     required(h, a, name, 'src')
@@ -1328,13 +1332,13 @@ const build = (h: Host): Record<string, Value> => {
     if (parts.some((p) => (vertical ? p.shape[1] !== W0 : p.shape[0] !== H0) || (p.ndim === 3 ? p.shape[2] : 1) !== C)) throw cvErr(h, '-215:Assertion failed', vertical ? 'src[i].dims <= 2 && src[i].cols == src[0].cols && src[i].type() == src[0].type()' : 'src[i].dims <= 2 && src[i].rows == src[0].rows && src[i].type() == src[0].type()')
     if (vertical) {
       const H = parts.reduce((n, p) => n + p.shape[0], 0)
-      return py.arr(NDArray.create(parts.flatMap((p) => p.values()), C === 1 ? [H, W0] : [H, W0, C], parts[0].dtype))
+      return sameKind(parts[0], parts.flatMap((p) => p.values()), C === 1 ? [H, W0] : [H, W0, C])
     }
     const W = parts.reduce((n, p) => n + p.shape[1], 0)
     const vals = parts.map((p) => p.values())
     const out: number[] = []
     for (let y = 0; y < H0; y++) parts.forEach((p, k) => { for (let j = 0; j < p.shape[1] * C; j++) out.push(vals[k][y * p.shape[1] * C + j]) })
-    return py.arr(NDArray.create(out, C === 1 ? [H0, W] : [H0, W, C], parts[0].dtype))
+    return sameKind(parts[0], out, C === 1 ? [H0, W] : [H0, W, C])
   })
   concat('hconcat', false)
   concat('vconcat', true)
@@ -1343,6 +1347,7 @@ const build = (h: Host): Record<string, Value> => {
   def('filter2D', 'src ddepth kernel dst anchor delta borderType', null, (a) => {
     required(h, a, 'filter2D', 'src', 'ddepth', 'kernel')
     const im = readImg(h, a.src)
+    no32s(h, im, 'getLinearFilter')
     const { kh, kw, k } = kernelOf(h, a.kernel)
     const [ax, ay] = anchorOf(h, a.anchor, kw, kh)
     const border = borderType(h, a.borderType, BORDER.REFLECT_101)
@@ -1355,6 +1360,7 @@ const build = (h: Host): Record<string, Value> => {
   def('sepFilter2D', 'src ddepth kernelX kernelY dst anchor delta borderType', 'create', (a) => {
     required(h, a, 'sepFilter2D', 'src', 'ddepth', 'kernelX', 'kernelY')
     const im = readImg(h, a.src)
+    no32s(h, im, 'getLinearRowFilter')
     const kx = kernelOf(h, a.kernelX).k
     const ky = kernelOf(h, a.kernelY).k
     const [ax, ay] = anchorOf(h, a.anchor, kx.length, ky.length)
@@ -1384,6 +1390,7 @@ const build = (h: Host): Record<string, Value> => {
   def('GaussianBlur', 'src ksize sigmaX dst sigmaY borderType hint', null, (a) => {
     required(h, a, 'GaussianBlur', 'src', 'ksize', 'sigmaX')
     const im = readImg(h, a.src)
+    no32s(h, im, 'getLinearRowFilter')
     const ks = intPair(h, a.ksize, 'ksize')
     const sx = h.num(a.sigmaX!)
     const sy = numArg(h, a.sigmaY, 0)
@@ -1403,6 +1410,7 @@ const build = (h: Host): Record<string, Value> => {
   def('medianBlur', 'src ksize dst', null, (a) => {
     required(h, a, 'medianBlur', 'src', 'ksize')
     const im = readImg(h, a.src)
+    no32s(h, im, 'medianBlur')
     const k = h.toInt(a.ksize!)
     if (k % 2 !== 1) throw cvErr(h, '-215:Assertion failed', 'ksize % 2 == 1')
     if (im.dp !== '8u' && k > 5) throw cvErr(h, '-210:Unsupported format or combination of formats', 'medianBlur with ksize > 5 needs an 8-bit image')
@@ -1414,6 +1422,7 @@ const build = (h: Host): Record<string, Value> => {
   def('Sobel', 'src ddepth dx dy dst ksize scale delta borderType', null, (a) => {
     required(h, a, 'Sobel', 'src', 'ddepth', 'dx', 'dy')
     const im = readImg(h, a.src)
+    no32s(h, im, 'getLinearRowFilter')
     const ks = intArg(h, a.ksize, 3)
     const border = borderType(h, a.borderType, BORDER.REFLECT_101)
     const r = sobel(h, im, depthArg(h, a.ddepth, im.dp), h.toInt(a.dx!), h.toInt(a.dy!), ks, numArg(h, a.scale, 1), numArg(h, a.delta, 0), border)
@@ -1424,6 +1433,7 @@ const build = (h: Host): Record<string, Value> => {
   def('Scharr', 'src ddepth dx dy dst scale delta borderType', 'create', (a) => {
     required(h, a, 'Scharr', 'src', 'ddepth', 'dx', 'dy')
     const im = readImg(h, a.src)
+    no32s(h, im, 'getLinearRowFilter')
     const dx = h.toInt(a.dx!)
     const dy = h.toInt(a.dy!)
     if (dx < 0 || dy < 0 || dx + dy !== 1) throw cvErr(h, '-215:Assertion failed', 'dx >= 0 && dy >= 0 && dx+dy == 1')
@@ -1434,6 +1444,7 @@ const build = (h: Host): Record<string, Value> => {
   def('Laplacian', 'src ddepth dst ksize scale delta borderType', null, (a) => {
     required(h, a, 'Laplacian', 'src', 'ddepth')
     const im = readImg(h, a.src)
+    no32s(h, im, 'getLinearFilter')
     const dp = depthArg(h, a.ddepth, im.dp)
     const ks = intArg(h, a.ksize, 1)
     const scale = numArg(h, a.scale, 1)
@@ -1544,6 +1555,7 @@ const build = (h: Host): Record<string, Value> => {
   def('threshold', 'src thresh maxval type dst', null, (a) => {
     required(h, a, 'threshold', 'src', 'thresh', 'maxval', 'type')
     const im = readImg(h, a.src)
+    no32s(h, im, 'threshold')
     const flag = h.toInt(a.type!)
     let t = h.num(a.thresh!)
     const auto = flag & (THRESH.OTSU | THRESH.TRIANGLE)
@@ -1754,7 +1766,7 @@ const build = (h: Host): Record<string, Value> => {
     const lut = asMat(h, a.lut, 'lut')
     if (lut.size !== 256) throw cvErr(h, '-215:Assertion failed', '(lutcn == cn || lutcn == 1) && _lut.total() == 256 && _lut.isContinuous() && (depth == CV_8U || depth == CV_8S)')
     const t = lut.values()
-    return toValue({ ...im, v: im.v.map((x) => t[x]) }, depthOf(h, lut))
+    return toValue({ ...im, v: im.v.map((x) => t[x]) }, depthOf(lut))
   })
 
   // ---- histograms
@@ -1762,6 +1774,7 @@ const build = (h: Host): Record<string, Value> => {
     required(h, a, 'calcHist', 'images', 'channels', 'mask', 'histSize', 'ranges')
     if ((a.hist && a.hist.k !== 'none') || (a.accumulate && h.truthy(a.accumulate))) throw h.err('NotImplementedError', 'cv2.calcHist: hist and accumulate are not available in this sandbox')
     const imgs = h.iterate(a.images!).map((v) => readImg(h, v, 'images'))
+    for (const im of imgs) if (im.dp !== '8u' && im.dp !== '16u' && !isFloatDepth(im.dp)) cvErr(h, '-210:Unsupported format or combination of formats', `in function 'calcHist': ${im.dp === '32s' ? 'the array has dtype int64, which OpenCV reads as CV_32S. An image needs dtype=np.uint8' : `depth ${im.dp}`}`)
     const chans = h.iterate(a.channels!).map((x) => h.toInt(x))
     const sizes = h.iterate(a.histSize!).map((x) => h.toInt(x))
     const rng = h.iterate(a.ranges!).map((x) => h.num(x))
@@ -1828,6 +1841,7 @@ const build = (h: Host): Record<string, Value> => {
   const morphFn = (name: string, isMax: boolean) => def(name, 'src kernel dst anchor iterations borderType borderValue', null, (a) => {
     required(h, a, name, 'src', 'kernel')
     const im = readImg(h, a.src)
+    no32s(h, im, 'getMorphologyRowFilter')
     const o = morphArgs(a)
     const r = morph(im, isMax, o)
     const res = toValue(r, r.dp)
@@ -1839,6 +1853,7 @@ const build = (h: Host): Record<string, Value> => {
   def('morphologyEx', 'src op kernel dst anchor iterations borderType borderValue', 'create', (a) => {
     required(h, a, 'morphologyEx', 'src', 'op', 'kernel')
     const im = readImg(h, a.src)
+    no32s(h, im, 'getMorphologyRowFilter')
     const op = h.toInt(a.op!)
     const o = morphArgs(a)
     if (!o.k.length) {
@@ -1899,7 +1914,7 @@ const build = (h: Host): Record<string, Value> => {
       }
       for (let j = j1; j < j2; j++) out[i * kw + j] = 1
     }
-    return py.arr(NDArray.create(out, [kh, kw], u8Dtype))
+    return py.arr(NDArray.create(out, [kh, kw], 'uint8'))
   })
 
   // ---- constants
@@ -1918,60 +1933,7 @@ const build = (h: Host): Record<string, Value> => {
   }
   for (const [k, v] of Object.entries(ints)) attrs[k] = py.int(v)
 
-  installNumpyTypes(h)
   return { cv2: { k: 'module', name: 'cv2', attrs } }
-}
-
-/**
- * The image code around cv2 needs these and the core may lack them (np.uint8) or get them wrong on a list (np.float32([..]) gives nan).
- * What the core already does properly stays. An alias np.uint8 is int64 underneath; np.uint8(array) still wraps modulo 256 and np.uint8(300) still overflows, as in NumPy 2.
- */
-const installNumpyTypes = (h: Host) => {
-  const np = h.module('numpy')
-  if (np.k !== 'module') return
-  const castType = (name: string, d: 'int64' | 'float64', fix: (x: number) => number, dp: Depth | null, bits: number): Value => ({
-    k: 'type',
-    name: `numpy.${name}`,
-    dtype: d,
-    call: (args) => {
-      const x = args[0] ?? py.int(0)
-      const unfit = (v: number) => bits > 0 && ((v < 0 && name.startsWith('u')) || v >= 2 ** bits || (v < -(2 ** bits) && !name.startsWith('u')))
-      if (isNum(x)) {
-        const v = numOf(x)
-        if (x.k === 'int' && unfit(v)) throw h.err('OverflowError', `Python integer ${v} out of bounds for ${name}`)
-        return d === 'int64' ? py.int(fix(v)) : py.float(fix(v))
-      }
-      const a = toArray(x)
-      if ((x.k === 'list' || x.k === 'tuple') && a.dtype === 'int64') {
-        const bad = a.values().find(unfit)
-        if (bad !== undefined) throw h.err('OverflowError', `Python integer ${bad} out of bounds for ${name}`)
-      }
-      const out = NDArray.create(a.values().map(fix), a.shape, d)
-      if (dp) TAGS.set(out, dp)
-      return py.arr(out)
-    },
-  })
-  const wrap = (mod: number, signed: boolean) => (x: number) => {
-    const m = ((Math.trunc(x) % mod) + mod) % mod
-    return signed && m >= mod / 2 ? m - mod : m
-  }
-  np.attrs.uint8 ??= castType('uint8', 'int64', wrap(256, false), null, 8)
-  np.attrs.int16 ??= castType('int16', 'int64', wrap(65536, true), '16s', 15)
-  np.attrs.uint16 ??= castType('uint16', 'int64', wrap(65536, false), '16u', 16)
-  const u8 = np.attrs.uint8
-  u8Dtype = u8.k === 'type' && u8.dtype ? u8.dtype : 'int64'
-  const takesList = (v: Value | undefined) => {
-    if (!v || v.k !== 'type') return false
-    try {
-      return v.call([py.list([py.int(1)])], {}).k === 'array'
-    } catch {
-      return false
-    }
-  }
-  if (!takesList(np.attrs.float32)) np.attrs.float32 = castType('float32', 'float64', fround, '32f', 0)
-  if (!takesList(np.attrs.float64)) np.attrs.float64 = castType('float64', 'float64', (x) => x, null, 0)
-  if (!takesList(np.attrs.int32)) np.attrs.int32 = castType('int32', 'int64', Math.trunc, null, 0)
-  if (!takesList(np.attrs.int64)) np.attrs.int64 = castType('int64', 'int64', Math.trunc, null, 0)
 }
 
 export const CV2: PyLib = { modules: ['cv2'], load: build }

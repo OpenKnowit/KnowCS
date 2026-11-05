@@ -4690,7 +4690,14 @@ class Interp implements Host {
         const bv = broadcastTo(b, shape).values()
         return arr(NDArray.create(broadcastTo(a, shape).values().map((x, i) => f(x ? 1 : 0, bv[i] ? 1 : 0)), shape, 'bool'))
       }, 'elementwise')
-    const dt = (d: DType, name: string): Value => ({ k: 'type', name: `numpy.${name}`, dtype: d, call: (args) => fromScalar(castValue(numOf(args[0] ?? int(0)), d), d) })
+    const dt = (d: DType, name: string): Value => ({
+      k: 'type', name: `numpy.${name}`, dtype: d,
+      call: (args) => {
+        const v = args[0] ?? int(0)
+        if (v.k === 'array' || v.k === 'list' || v.k === 'tuple' || v.k === 'obj') return arr(NDArray.create(toArray(v).values(), toArray(v).shape, d))
+        return fromScalar(castValue(numOf(v), d), d)
+      },
+    })
     const shapeArg = (args: Value[]): number[] => (args.length === 1 && (args[0].k === 'tuple' || args[0].k === 'list') ? this.toShape(args) : args.map((x) => this.toInt(x)))
 
     const rnd = api('np.random')
