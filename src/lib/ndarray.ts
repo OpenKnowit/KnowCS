@@ -774,7 +774,7 @@ const formatNested = (a: NDArray, repr: boolean, indent: number): string => {
         const word = k < items.length - 1 ? w + sep : w
         const next = cur ? `${cur} ${word}` : word
         if (cur && lead + next.length + (k === items.length - 1 ? a.ndim - d : 0) > printOptions.linewidth) {
-          lines.push(cur)
+          lines.push(cur.trimEnd())
           cur = word
         } else cur = next
       })

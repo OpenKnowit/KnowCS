@@ -4703,7 +4703,7 @@ class Interp implements Host {
         const a = asArr(args[0], name)
         const dtype: DType = out === 'float' ? (a.dtype === 'float32' ? 'float32' : 'float64') : a.dtype === 'bool' ? 'int64' : a.dtype
         const res = NDArray.create(a.values().map(f), a.shape, dtype)
-        return args[0].k === 'array' || args[0].k === 'list' ? arr(res) : fromScalar(res.values()[0], dtype)
+        return args[0].k === 'array' || args[0].k === 'list' || args[0].k === 'tuple' || args[0].k === 'obj' ? arr(res) : fromScalar(res.values()[0], dtype)
       }, 'elementwise')
     const ufunc2 = (name: string, op: BinOp) => fn(name, (args) => this.binop(op, plainValue(args[0]), plainValue(args[1])), 'elementwise')
     const logical = (name: string, f: (x: number, y: number) => number) =>
@@ -4714,7 +4714,14 @@ class Interp implements Host {
         const bv = broadcastTo(b, shape).values()
         return arr(NDArray.create(broadcastTo(a, shape).values().map((x, i) => f(x ? 1 : 0, bv[i] ? 1 : 0)), shape, 'bool'))
       }, 'elementwise')
-    const dt = (d: DType, name: string): Value => ({ k: 'type', name: `numpy.${name}`, dtype: d, call: (args) => fromScalar(castValue(numOf(args[0] ?? int(0)), d), d) })
+    const dt = (d: DType, name: string): Value => ({
+      k: 'type', name: `numpy.${name}`, dtype: d,
+      call: (args) => {
+        const v = args[0] ?? int(0)
+        if (v.k === 'array' || v.k === 'list' || v.k === 'tuple' || v.k === 'obj') return arr(NDArray.create(toArray(v).values(), toArray(v).shape, d))
+        return fromScalar(castValue(numOf(v), d), d)
+      },
+    })
     const shapeArg = (args: Value[]): number[] => (args.length === 1 && (args[0].k === 'tuple' || args[0].k === 'list') ? this.toShape(args) : args.map((x) => this.toInt(x)))
 
     const rnd = api('np.random')
