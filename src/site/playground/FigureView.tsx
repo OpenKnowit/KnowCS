@@ -1,7 +1,7 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { PT, textHeightPx, textWidthPx, tickLabelDepth } from '../../lib/pyPlot'
+import { PT, textHeightPx, textWidthPx, tickLabelDepth } from '../../lib/pyPlotTicks'
 import type { Artist, AxesSpec, AxisSpec, Coord, Dash, FigureSpec, ImageArtist, LegendEntry, LegendSpec, MeshArtist, TextArrow, TextArtist } from '../../lib/pyEvents'
 
 // --- 把沙盒里的 matplotlib 图（FigureSpec）画成 SVG。位置、刻度都已在 pyPlot 里按 matplotlib 算好，这里只负责落笔：1 pt = 100/72 px ---

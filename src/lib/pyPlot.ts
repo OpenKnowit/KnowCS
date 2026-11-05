@@ -11,7 +11,7 @@ import type { Artist, AxesSpec, AxisSpec, BarArtist, Coord, Dash, Display, Figur
 import { CSS4, LISTED, LUT6, LUT8, RAMPS, RC_DEFAULTS, SAMPLED8, SEGMENTS } from './pyPlotCmaps'
 import { delaunay, gaussianKde, gridBands, gridLines, triBands, triLines } from './pyPlotGeom'
 import type { Path } from './pyPlotGeom'
-import { AUTO, MAXN_STEPS, autoMinor, formatG, linearTicks, logLabels, logNonsingular, logTicks, maxNTicks, multipleTicks, nonsingular, pyRound, scalarLabels, validateSteps } from './pyPlotTicks'
+import { AUTO, MAXN_STEPS, PT, autoMinor, formatG, linearTicks, logLabels, logNonsingular, logTicks, maxNTicks, multipleTicks, nonsingular, pyRound, scalarLabels, stripMath, textHeightPx, textWidthPx, tickLabelDepth, validateSteps } from './pyPlotTicks'
 import type { MaxN } from './pyPlotTicks'
 
 const fnv = (name: string, call: (args: Value[], kw: Kw) => Value): Value => ({ k: 'fn', name, call })
@@ -526,15 +526,6 @@ const cyclerOf = (h: Host, args: Value[], kw: Kw): CyclerObj => {
   const items = h.iterate(vals)
   return new CyclerObj(items, items.map((c) => toColor(h, c)))
 }
-
-/** text sizes: nothing is rendered in Python, so widths use DejaVu Sans's average advance */
-export const PT = 100 / 72
-export const stripMath = (s: string) => {
-  if (!s.includes('$')) return s
-  return s.replace(/\$([^$]*)\$/g, (_m, b: string) => b.replace(/\\mathdefault|\\mathrm|\\[a-zA-Z]+|[{}^_]/g, (t) => (t.length > 1 && t !== '\\mathdefault' && t !== '\\mathrm' ? 'x' : '')))
-}
-export const textWidthPx = (s: string, sizePt: number) => Math.max(...stripMath(s).split('\n').map((l) => l.length)) * 0.6 * sizePt * PT
-export const textHeightPx = (s: string, sizePt: number) => stripMath(s).split('\n').length * 1.2 * sizePt * PT
 
 // ---------------------------------------------------------------- artists: Python handles over plain specs
 
@@ -2463,23 +2454,6 @@ const fitAspect = (pb: Rect, boxAspect: number, figAspect: number, anchor: [numb
     H = hh
   }
   return [x + anchor[0] * (w - W), y + anchor[1] * (hh - H), W, H]
-}
-
-/** tick labels' depth beyond the spine, in pixels (estimated text sizes) */
-export const tickLabelDepth = (a: AxisSpec, horizontal: boolean, high: boolean): number => {
-  const out = a.dir === 'out' ? a.length : a.dir === 'inout' ? a.length / 2 : 0
-  const showing = (high ? a.label2 : a.label1) && a.visible
-  const shown = showing ? [...a.labels, ...a.minorLabels].filter((l, i) => l && a.styles[i]?.visible !== false) : []
-  const ticks = high ? a.tick2 : a.tick1
-  let ext = 0
-  for (const l of shown) {
-    const w = textWidthPx(l, a.labelSize)
-    const hh = textHeightPx(l, a.labelSize) * 0.97
-    const r = (a.rotation * Math.PI) / 180
-    const e = horizontal ? Math.abs(w * Math.sin(r)) + Math.abs(hh * Math.cos(r)) : Math.abs(w * Math.cos(r)) + Math.abs(hh * Math.sin(r))
-    if (e > ext) ext = e
-  }
-  return ((ticks ? out : 0) + a.pad) * PT + ext
 }
 
 // ---------------------------------------------------------------- legends and spines

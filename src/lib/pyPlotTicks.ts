@@ -1,8 +1,9 @@
 /**
  * matplotlib's tick machinery as pure functions (ported from matplotlib 3.10 ticker.py and transforms.py), so tick
  * positions and limits come out number for number: nonsingular, MaxNLocator, LogLocator, AutoMinorLocator,
- * ScalarFormatter, LogFormatterSciNotation.
+ * ScalarFormatter, LogFormatterSciNotation. The drawing needs the text estimates at the end, so it stays free of the library.
  */
+import type { AxisSpec } from './pyEvents'
 
 const TINY = 2.2250738585072014e-308
 
@@ -324,4 +325,30 @@ export const logLabels = (locs: number[], view: [number, number], base: number):
     const cs = Math.abs(c - Math.round(c)) < 1e-10 ? Math.round(c) : c
     return `$\\mathdefault{${sign}${shortG(cs)}\\times${base}^{${exponent}}}$`
   })
+}
+
+/** text sizes: nothing is rendered in Python, so widths use DejaVu Sans's average advance */
+export const PT = 100 / 72
+export const stripMath = (s: string) => {
+  if (!s.includes('$')) return s
+  return s.replace(/\$([^$]*)\$/g, (_m, b: string) => b.replace(/\\mathdefault|\\mathrm|\\[a-zA-Z]+|[{}^_]/g, (t) => (t.length > 1 && t !== '\\mathdefault' && t !== '\\mathrm' ? 'x' : '')))
+}
+export const textWidthPx = (s: string, sizePt: number) => Math.max(...stripMath(s).split('\n').map((l) => l.length)) * 0.6 * sizePt * PT
+export const textHeightPx = (s: string, sizePt: number) => stripMath(s).split('\n').length * 1.2 * sizePt * PT
+
+/** tick labels' depth beyond the spine, in pixels (estimated text sizes) */
+export const tickLabelDepth = (a: AxisSpec, horizontal: boolean, high: boolean): number => {
+  const out = a.dir === 'out' ? a.length : a.dir === 'inout' ? a.length / 2 : 0
+  const showing = (high ? a.label2 : a.label1) && a.visible
+  const shown = showing ? [...a.labels, ...a.minorLabels].filter((l, i) => l && a.styles[i]?.visible !== false) : []
+  const ticks = high ? a.tick2 : a.tick1
+  let ext = 0
+  for (const l of shown) {
+    const w = textWidthPx(l, a.labelSize)
+    const hh = textHeightPx(l, a.labelSize) * 0.97
+    const r = (a.rotation * Math.PI) / 180
+    const e = horizontal ? Math.abs(w * Math.sin(r)) + Math.abs(hh * Math.cos(r)) : Math.abs(w * Math.cos(r)) + Math.abs(hh * Math.sin(r))
+    if (e > ext) ext = e
+  }
+  return ((ticks ? out : 0) + a.pad) * PT + ext
 }
