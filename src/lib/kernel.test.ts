@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { KERNEL_PRESETS } from '../data/constants'
-import { buildSourceImage, convolvePixel } from './kernel'
+import { buildSourceImage, convolve, convolvePixel, kernelGain, kernelPreset, presetImage, presetNormalized, resample, resizeKernel } from './kernel'
 
 describe('buildSourceImage', () => {
   it('8×8 矩阵，中央 [2,6)×[2,6) 为 100，其余为 0', () => {
@@ -60,5 +60,81 @@ describe('convolvePixel', () => {
     expect(convolvePixel(img, zero, 2, 2)).toBe(0)
     const big = [[9, 9, 9], [9, 9, 9], [9, 9, 9]]
     expect(convolvePixel(img, big, 2, 2)).toBe(255)
+  })
+})
+
+describe('kernels of any size', () => {
+  it('keeps the course kernels at 3 × 3', () => {
+    for (const name of Object.keys(KERNEL_PRESETS) as (keyof typeof KERNEL_PRESETS)[]) expect(kernelPreset(name, 3)).toEqual(KERNEL_PRESETS[name])
+  })
+
+  it('builds Sobel the way OpenCV does', () => {
+    // cv2.getDerivKernels(1, 0, k): the derivative across, the binomial smoothing down
+    expect(kernelPreset('Sobel-X', 5)[0]).toEqual([-1, -2, 0, 2, 1])
+    expect(kernelPreset('Sobel-X', 5).map((r) => r[4])).toEqual([1, 4, 6, 4, 1])
+    expect(kernelPreset('Sobel-X', 7)[0]).toEqual([-1, -4, -5, 0, 5, 4, 1])
+    expect(kernelPreset('Sobel-X', 7).map((r) => r[6])).toEqual([1, 6, 15, 20, 15, 6, 1])
+    // same sign as the course's Sobel-Y: positive on top
+    expect(kernelPreset('Sobel-Y', 5)[0]).toEqual([1, 4, 6, 4, 1])
+    expect(kernelPreset('Sobel-Y', 5)[4]).toEqual([-1, -4, -6, -4, -1])
+  })
+
+  it('has edge kernels that sum to 0, so a flat picture gives nothing', () => {
+    const flat = Array.from({ length: 16 }, () => new Array<number>(16).fill(120))
+    for (const k of [3, 5, 7]) {
+      for (const name of ['Sobel-X', 'Sobel-Y', 'Laplacian'] as const) {
+        const m = kernelPreset(name, k)
+        expect(m.flat().reduce((a, b) => a + b, 0)).toBe(0)
+        expect(convolve(flat, m).flat().every((v) => v === 0)).toBe(true)
+      }
+    }
+  })
+
+  it('leaves a flat picture alone when a blur is normalized', () => {
+    const flat = Array.from({ length: 16 }, () => new Array<number>(16).fill(120))
+    for (const k of [3, 5, 7]) {
+      for (const name of ['Box blur', 'Gaussian', 'Identity'] as const) {
+        const m = kernelPreset(name, k)
+        expect(convolve(flat, m, kernelGain(m)).flat().every((v) => Math.abs(v - 120) < 1e-9)).toBe(true)
+      }
+    }
+  })
+
+  it('shrinks the output to N − k + 1, and matches NumPy on a worked example', () => {
+    expect(convolve(presetImage('square', 8), kernelPreset('Sobel-X', 3))).toHaveLength(6)
+    expect(convolve(presetImage('square', 32), kernelPreset('Sobel-X', 7))).toHaveLength(26)
+    expect(convolve(presetImage('square', 8), kernelPreset('Identity', 7))).toHaveLength(2)
+    // the 3 × 3 result the course demo has always shown
+    const row2 = convolve(buildSourceImage(), KERNEL_PRESETS['Sobel-X'])[2]
+    expect(row2).toEqual([255, 255, 0, 0, 255, 255])
+  })
+
+  it('normalizes the presets whose weights would saturate, not the course ones', () => {
+    expect(presetNormalized('Sobel-X', 3)).toBe(false)
+    expect(presetNormalized('Sobel-X', 5)).toBe(true)
+    expect(presetNormalized('Gaussian', 3)).toBe(true)
+    expect(presetNormalized('Identity', 7)).toBe(false)
+  })
+
+  it('keeps the middle of a hand-edited kernel when its size changes', () => {
+    const m = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    expect(resizeKernel(m, 5)[2]).toEqual([0, 4, 5, 6, 0])
+    expect(resizeKernel(resizeKernel(m, 5), 3)).toEqual(m)
+  })
+})
+
+describe('pictures', () => {
+  it('draws the course demo as the square preset', () => {
+    expect(presetImage('square', 8)).toEqual(buildSourceImage())
+  })
+  it('stays in 0–255 at every size', () => {
+    for (const name of ['square', 'circle', 'stripes', 'checker', 'gradient', 'house'] as const) {
+      for (const n of [8, 16, 128]) expect(presetImage(name, n).flat().every((v) => v >= 0 && v <= 255)).toBe(true)
+    }
+  })
+  it('averages when it scales down', () => {
+    expect(resample([[0, 100], [100, 200]], 1)).toEqual([[100]])
+    expect(resample([[0, 0, 10, 10], [0, 0, 10, 10], [20, 20, 30, 30], [20, 20, 30, 30]], 2)).toEqual([[0, 10], [20, 30]])
+    expect(resample(presetImage('gradient', 256), 64)).toHaveLength(64)
   })
 })

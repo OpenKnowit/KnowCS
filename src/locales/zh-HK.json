@@ -300,7 +300,36 @@
     "output_feature_map": "Output Feature Map",
     "output_note": "亮度 = |Σ I·K|，截斷到 0–255；卷積核直接滑動，不翻轉。",
     "advice": "卷積核本質上是一個局部特徵濾波器。當你使用 <1>\\text{Laplacian}</1> 算子時，它在做二階導數近似，能迅速捕捉到像素亮度的『突變點』。",
-    "cell_label": "卷積核第 {{r}} 行第 {{c}} 列"
+    "cell_label": "卷積核第 {{r}} 行第 {{c}} 列",
+    "kernel_size": "卷積核大小",
+    "normalize": "歸一化",
+    "normalize_hint": "把結果除以正權重之和，讓亮度保持在原來的範圍內",
+    "resolution": "分辨率",
+    "upload": "導入圖片",
+    "random": "隨機圖片",
+    "privacy": "導入的圖片只在你的瀏覽器裏處理，不會上傳到服務器，也不會保存。支持 PNG、JPEG、WebP、GIF、BMP，最大 10 MB。點「隨機圖片」時才會聯網，向 <a>Lorem Picsum</a> 請求一張照片。",
+    "drop_hint": "也可以把圖片拖到這裏。圖片會轉成灰度並裁成正方形。",
+    "input_label": "輸入圖像，{{n}} 乘 {{n}} 像素",
+    "output_label": "輸出特徵圖，{{n}} 乘 {{n}} 像素",
+    "size_note": "輸出邊長 = N − k + 1 = {{n}} − {{k}} + 1 = {{out}}（沒有填充）。",
+    "output_note_scaled": "亮度 = |Σ I·K| ÷ {{d}}，截斷到 0–255；卷積核直接滑動，不翻轉。",
+    "image": {
+      "square": "方塊",
+      "circle": "圓形",
+      "stripes": "條紋",
+      "checker": "棋盤",
+      "gradient": "漸變",
+      "house": "小房子"
+    },
+    "err": {
+      "too_big": "文件太大了：導入的圖片最大 10 MB。",
+      "bad_type": "這不是支持的圖片。請使用 PNG、JPEG、WebP、GIF 或 BMP，不支持 SVG。",
+      "too_many_pixels": "這張圖的像素太多了：最多 4000 萬像素。",
+      "decode": "這張圖無法解碼，文件可能已損壞。",
+      "network": "沒能取到隨機圖片，請檢查網絡後再試。你仍然可以導入圖片或使用預設。",
+      "timeout": "隨機圖片請求超時，請稍後再試。你仍然可以導入圖片或使用預設。",
+      "bad_source": "隨機圖片來自意料之外的地址，已拒絕。"
+    }
   },
   "bayes": {
     "basics": {

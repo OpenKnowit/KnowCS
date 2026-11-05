@@ -52,7 +52,7 @@ export interface NaiveBayesClassResult {
 export type NaiveBayesResults = Record<BayesClass, NaiveBayesClassResult>
 
 // 卷积模块
-export type KernelPresetName = 'Sobel-X' | 'Sobel-Y' | 'Laplacian' | 'Identity'
+export type KernelPresetName = 'Sobel-X' | 'Sobel-Y' | 'Laplacian' | 'Identity' | 'Box blur' | 'Gaussian'
 export type ActivePreset = KernelPresetName | 'Custom'
 
 // Alpha-Beta 剪枝模块（L10）

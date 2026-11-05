@@ -300,7 +300,36 @@
     "output_feature_map": "Output Feature Map",
     "output_note": "亮度 = |Σ I·K|，截断到 0–255；卷积核直接滑动，不翻转。",
     "advice": "卷积核本质上是一个局部特征过滤器。当你使用 <1>\\text{Laplacian}</1> 算子时，它在做二阶导数近似，能迅速捕捉到像素亮度的『突变点』。",
-    "cell_label": "卷积核第 {{r}} 行第 {{c}} 列"
+    "cell_label": "卷积核第 {{r}} 行第 {{c}} 列",
+    "kernel_size": "卷积核大小",
+    "normalize": "归一化",
+    "normalize_hint": "把结果除以正权重之和，让亮度保持在原来的范围内",
+    "resolution": "分辨率",
+    "upload": "导入图片",
+    "random": "随机图片",
+    "privacy": "导入的图片只在你的浏览器里处理，不会上传到服务器，也不会保存。支持 PNG、JPEG、WebP、GIF、BMP，最大 10 MB。点「随机图片」时才会联网，向 <a>Lorem Picsum</a> 请求一张照片。",
+    "drop_hint": "也可以把图片拖到这里。图片会转成灰度并裁成正方形。",
+    "input_label": "输入图像，{{n}} 乘 {{n}} 像素",
+    "output_label": "输出特征图，{{n}} 乘 {{n}} 像素",
+    "size_note": "输出边长 = N − k + 1 = {{n}} − {{k}} + 1 = {{out}}（没有填充）。",
+    "output_note_scaled": "亮度 = |Σ I·K| ÷ {{d}}，截断到 0–255；卷积核直接滑动，不翻转。",
+    "image": {
+      "square": "方块",
+      "circle": "圆形",
+      "stripes": "条纹",
+      "checker": "棋盘",
+      "gradient": "渐变",
+      "house": "小房子"
+    },
+    "err": {
+      "too_big": "文件太大了：导入的图片最大 10 MB。",
+      "bad_type": "这不是支持的图片。请使用 PNG、JPEG、WebP、GIF 或 BMP，不支持 SVG。",
+      "too_many_pixels": "这张图的像素太多了：最多 4000 万像素。",
+      "decode": "这张图无法解码，文件可能已损坏。",
+      "network": "没能取到随机图片，请检查网络后再试。你仍然可以导入图片或使用预设。",
+      "timeout": "随机图片请求超时，请稍后再试。你仍然可以导入图片或使用预设。",
+      "bad_source": "随机图片来自意料之外的地址，已拒绝。"
+    }
   },
   "bayes": {
     "basics": {

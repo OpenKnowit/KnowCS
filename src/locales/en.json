@@ -300,7 +300,36 @@
     "output_feature_map": "Output Feature Map",
     "output_note": "Brightness = |Σ I·K| clipped to 0–255; the kernel is slid without flipping.",
     "advice": "A convolution kernel is essentially a local feature filter. When you use the <1>\\text{Laplacian}</1> operator, it is approximating the second derivative and can quickly capture 'sudden changes' in pixel brightness.",
-    "cell_label": "Kernel cell row {{r}}, column {{c}}"
+    "cell_label": "Kernel cell row {{r}}, column {{c}}",
+    "kernel_size": "Kernel size",
+    "normalize": "Normalize",
+    "normalize_hint": "Divide the result by the sum of the positive weights, so brightness stays in its original range",
+    "resolution": "Resolution",
+    "upload": "Import image",
+    "random": "Random image",
+    "privacy": "Imported images are processed only in your browser: they are never uploaded to a server or saved. PNG, JPEG, WebP, GIF or BMP, up to 10 MB. Only “Random image” goes online, asking <a>Lorem Picsum</a> for a photo.",
+    "drop_hint": "You can also drop an image here. It is converted to grey and cropped to a square.",
+    "input_label": "Input image, {{n}} by {{n}} pixels",
+    "output_label": "Output feature map, {{n}} by {{n}} pixels",
+    "size_note": "Output side = N − k + 1 = {{n}} − {{k}} + 1 = {{out}} (no padding).",
+    "output_note_scaled": "Brightness = |Σ I·K| ÷ {{d}}, clipped to 0–255; the kernel slides as is, without flipping.",
+    "image": {
+      "square": "Square",
+      "circle": "Circle",
+      "stripes": "Stripes",
+      "checker": "Checkerboard",
+      "gradient": "Gradient",
+      "house": "House"
+    },
+    "err": {
+      "too_big": "That file is too large: imported images can be up to 10 MB.",
+      "bad_type": "That is not a supported image. Use PNG, JPEG, WebP, GIF or BMP; SVG is not supported.",
+      "too_many_pixels": "That image has too many pixels: the limit is 40 million.",
+      "decode": "That image could not be decoded. The file may be damaged.",
+      "network": "Could not get a random image. Check your connection and try again; you can still import an image or use a preset.",
+      "timeout": "The random image took too long. Try again later; you can still import an image or use a preset.",
+      "bad_source": "The random image came from an unexpected address, so it was refused."
+    }
   },
   "bayes": {
     "basics": {
