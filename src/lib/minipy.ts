@@ -1215,6 +1215,8 @@ export abstract class PyObj {
   format?(spec: string): string | undefined
   /** __index__: the integer this is when used as a list index or in range() */
   asIndex?(h: Host): number
+  /** __float__ / __int__: the number this is, when it has its own rule for not being one */
+  asNumber?(h: Host): number
   getAttr?(name: string, h: Host): Value | undefined
   setAttr?(name: string, v: Value, h: Host): boolean
   getItem?(idx: Value, h: Host): Value
@@ -1226,6 +1228,8 @@ export abstract class PyObj {
   unary?(op: '-' | '+' | '~', h: Host): Value
   call?(args: Value[], kw: Kw, h: Host): Value
   iter?(h: Host): Value[]
+  /** del x[i] */
+  delItem?(idx: Value, h: Host): void
   len?(h: Host): number
   contains?(v: Value, h: Host): boolean
   truthy?(h: Host): boolean
@@ -1608,7 +1612,7 @@ const EXCEPTIONS: [string, string[]][] = [
   ['OSError', ['Exception']], ['FileNotFoundError', ['OSError']], ['PermissionError', ['OSError']], ['TimeoutError', ['OSError']],
   ['RuntimeError', ['Exception']], ['NotImplementedError', ['RuntimeError']], ['RecursionError', ['RuntimeError']], ['StopIteration', ['Exception']],
   ['SyntaxError', ['Exception']], ['IndentationError', ['SyntaxError']], ['TypeError', ['Exception']], ['ValueError', ['Exception']], ['UnicodeError', ['ValueError']],
-  ['Warning', ['Exception']], ['UserWarning', ['Warning']], ['DeprecationWarning', ['Warning']], ['RuntimeWarning', ['Warning']], ['FutureWarning', ['Warning']],
+  ['_LinAlgError', ['RuntimeError']], ['Warning', ['Exception']], ['UserWarning', ['Warning']], ['DeprecationWarning', ['Warning']], ['RuntimeWarning', ['Warning']], ['FutureWarning', ['Warning']],
   ['LinAlgError', ['ValueError']], ['AxisError', ['ValueError', 'IndexError']], ['UFuncTypeError', ['TypeError']],
   ['MergeError', ['ValueError']], ['ParserError', ['ValueError']], ['EmptyDataError', ['ValueError']], ['DataError', ['ValueError']], ['IntCastingNaNError', ['ValueError']], ['UndefinedVariableError', ['NameError']], ['OptionError', ['AttributeError', 'KeyError']], ['IndexingError', ['Exception']], ['SpecificationError', ['Exception']],
 ]
@@ -1969,6 +1973,7 @@ class Interp implements Host {
 
   num(v: Value, what = 'a number'): number {
     if (isNum(v)) return numOf(v)
+    if (v.k === 'obj' && v.o.asNumber) return v.o.asNumber(this)
     if (v.k === 'array' && v.a.size === 1) return v.a.values()[0]
     if (v.k === 'obj' && v.o.toArray) {
       const a = v.o.toArray()
@@ -2412,6 +2417,8 @@ class Interp implements Host {
       const res = (l.k === 'obj' ? l.o.binop?.(op, r, false, this) : undefined) ?? (r.k === 'obj' ? r.o.binop?.(op, l, true, this) : undefined)
       if (res) return res
       if (op === '==' || op === '!=') return bool((op === '==') === (l.k === 'obj' && r.k === 'obj' && l.o === r.o))
+      // 'text' % obj: the object was asked first, and declined
+      if (l.k === 'str' && op === '%') return str_(this.percentFormat(l.v, r))
       throw this.err('TypeError', `unsupported operand type(s) for ${op}: '${typeName(l)}' and '${typeName(r)}'`)
     }
     if (l.k === 'inst' || r.k === 'inst') {
@@ -2428,6 +2435,8 @@ class Interp implements Host {
         if (eq) return bool(!this.truthy(eq))
       }
       if (op === '==' || op === '!=') return bool((op === '==') === (l === r))
+      // 'text' % obj: the object was asked first, and declined
+      if (l.k === 'str' && op === '%') return str_(this.percentFormat(l.v, r))
       if (['<', '>', '<=', '>='].includes(op)) throw this.err('TypeError', `'${op}' not supported between instances of '${typeName(l)}' and '${typeName(r)}'`)
       throw this.err('TypeError', `unsupported operand type(s) for ${op}: '${typeName(l)}' and '${typeName(r)}'`)
     }
@@ -2556,7 +2565,7 @@ class Interp implements Host {
       }
       if (type === 'c') return (v.k === 'str' ? v.v : String.fromCharCode(this.toInt(v))).padStart(Number(w))
       if (!'diuoxXeEfFgG'.includes(type)) throw this.err('ValueError', `unsupported format character '${type}'`)
-      if (!isNum(v) && !(v.k === 'array' && v.a.size === 1)) throw this.err('TypeError', `%${type} format: a real number is required, not ${typeName(v)}`)
+      if (!isNum(v) && !(v.k === 'array' && v.a.size === 1) && !(v.k === 'obj' && v.o.asNumber)) throw this.err('TypeError', `%${type} format: a real number is required, not ${typeName(v)}`)
       const x = this.num(v)
       const integer = 'diuoxX'.includes(type)
       const num: Value = integer ? int(Math.trunc(x)) : float(x)
@@ -2650,6 +2659,9 @@ class Interp implements Host {
           return { kind: 'array', arr: a }
         }
         case 'bool': return { kind: 'array', arr: NDArray.create([it.v ? 1 : 0], [], 'bool') }
+        case 'obj':
+          if (it.o.asIndex) return { kind: 'int', value: it.o.asIndex(this) }
+          throw this.err('IndexError', 'only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices')
         default:
           throw this.err('IndexError', 'only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices')
       }
@@ -2658,6 +2670,7 @@ class Interp implements Host {
 
   sliceInt(x: Value): number {
     if (x.k === 'int' || x.k === 'bool') return numOf(x)
+    if (x.k === 'obj' && x.o.asIndex) return x.o.asIndex(this)
     if (x.k === 'array' && x.a.ndim === 0 && !isFloatD(x.a.dtype)) return x.a.values()[0]
     throw this.err('TypeError', 'slice indices must be integers or None or have an __index__ method')
   }
@@ -3743,7 +3756,8 @@ class Interp implements Host {
         const i = numOf(idx)
         if (i < -n || i >= n) throw this.err('IndexError', 'list assignment index out of range')
         obj.items.splice(i < 0 ? i + n : i, 1)
-      } else throw this.err('TypeError', `'${typeName(obj)}' object doesn't support item deletion`)
+      } else if (obj.k === 'obj' && obj.o.delItem) obj.o.delItem(idx, this)
+      else throw this.err('TypeError', `'${typeName(obj)}' object doesn't support item deletion`)
     } else if (t.k === 'attr') {
       const obj = this.eval(t.obj)
       if (obj.k !== 'inst' || !obj.attrs.delete(t.name)) throw this.err('AttributeError', t.name)
@@ -4585,6 +4599,10 @@ class Interp implements Host {
           if (whole === '}}') return '}'
           const v = key === undefined || key === '' ? args[auto++] : /^\d+$/.test(key) ? args[Number(key)] : kw[key]
           if (!v) throw this.err('IndexError', 'Replacement index out of range for positional args tuple')
+          if (v.k === 'obj' && !conv) {
+            const own = v.o.format?.(spec ?? '')
+            if (own !== undefined) return own
+          }
           return spec ? formatSpec(v, spec) : conv === 'r' ? repr(v) : this.str(v)
         }))
       }
@@ -5465,7 +5483,7 @@ class Interp implements Host {
         const x = args[0]
         const nd = args[1] && args[1].k !== 'none' ? this.toInt(args[1]) : null
         if (x.k === 'obj' || x.k === 'array') {
-          const r = this.getAttr(x, 'round')
+          const r = (x.k === 'obj' ? this.getAttrOr(x, '__round__') : undefined) ?? this.getAttr(x, 'round')
           return this.call(r, nd === null ? [] : [int(nd)])
         }
         const v = this.num(x)
@@ -5551,6 +5569,8 @@ class Interp implements Host {
     if (t.k === 'tuple') return t.items.some((x) => this.isinstance(v, x))
     if (t.k === 'type' && t.name === 'object') return true
     if (t.k === 'class') {
+      // a library's own object, of a class Python code can also inherit from
+      if (v.k === 'obj') return !!v.o.isa?.(t.name.split('.').pop()!)
       if (v.k !== 'inst') return false
       const walk = (c: ClassValue): boolean => c === t || c.bases.some((b) => b.k === 'class' && walk(b))
       return walk(v.cls)

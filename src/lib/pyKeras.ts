@@ -162,7 +162,7 @@ const f32clean = (v: number): number => {
   return v
 }
 
-const ndFor = (t: TT): NDArray => NDArray.create(t.values(), t.shape, t.dtype === 'int32' ? 'int64' : t.dtype)
+const ndFor = (t: TT): NDArray => NDArray.create(t.values(), t.shape, t.dtype === 'int32' ? 'int64' : (t.dtype as DType))
 
 /** array([...], dtype=float32); arrays have no int32 of their own, so its suffix is added here */
 const npRepr = (t: TT): string => {
@@ -256,7 +256,7 @@ const tfOf = (v: Value | undefined): TT | null => (v && v.k === 'obj' && v.o ins
 const OP_NAME: Record<string, string> = { '+': 'AddV2', '-': 'Sub', '*': 'Mul', '/': 'RealDiv', '@': 'MatMul', '**': 'Pow', '<': 'Less', '>': 'Greater', '<=': 'LessEqual', '>=': 'GreaterEqual', '==': 'Equal', '!=': 'NotEqual', maximum: 'Maximum', minimum: 'Minimum', '//': 'FloorDiv', '%': 'FloorMod' }
 /** the tensor dtype NumPy data keeps */
 const ND_TF: Record<DType, TDType> = { float64: 'float64', float32: 'float32', int64: 'int64', bool: 'bool', uint8: 'uint8' }
-const TF_KIND: Record<TDType, string> = { float32: 'float', float64: 'double', int32: 'int32', int64: 'int64', bool: 'bool', uint8: 'uint8' }
+const TF_KIND: Record<TDType, string> = { float16: 'half', float32: 'float', float64: 'double', int8: 'int8', int16: 'int16', int32: 'int32', int64: 'int64', bool: 'bool', uint8: 'uint8' }
 
 /** a Python value as a TF operand: Python numbers take the tensor's dtype, tensors must match exactly */
 const tfOperand = (h: Host, v: Value, like: TT | null): TT | null => {

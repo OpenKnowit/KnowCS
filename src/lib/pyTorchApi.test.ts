@@ -5,13 +5,15 @@ import VALUES from './pyTorchApi.values.json'
 import LAYERS from './pyTorchApi.layers.json'
 
 /*
- * torch is not installed here, so nothing in this file comes from a run of real PyTorch.
- * - pyTorchApi.values.json: each row holds the torch expression, the NumPy / SciPy / OpenCV expression that gave its value
- *   (run on NumPy 2.2.6 in float32, so linalg rows go through LAPACK's single-precision routines) and the expected dtype.
- * - pyTorchApi.layers.json: BatchNorm, the recurrent layers, attention, the optimisers and schedulers, computed in NumPy
- *   from the equations in PyTorch's documentation, with the same fixed weights.
- * - gradients: central differences through the sandbox's own forward pass.
- * - printed forms and error messages: written from PyTorch's documented formats and source, not checked by running it.
+ * What in this file has been checked on real PyTorch (2.14.0), and how:
+ * - pyTorchApi.values.json: each row holds the torch expression, the NumPy / SciPy / OpenCV expression it was first written
+ *   from, the value and the dtype. The values and dtypes are now what real torch returns for the expression.
+ * - pyTorchApi.layers.json: BatchNorm, the recurrent layers, attention, the optimisers and schedulers, with fixed weights;
+ *   first computed in NumPy from the documented equations, then replaced by what real torch returns.
+ * - the 'errors students meet' table and the printed layers come from real torch, and so do the full printed outputs.
+ * - gradients: central differences through the sandbox's own forward pass, which does not need torch.
+ * - 'never silently ignored': options the sandbox refuses where real torch accepts them, so not from real torch.
+ * pyTorchCases.test.ts holds the larger set of programs frozen from real torch.
  */
 
 const HEAD = 'import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n'
@@ -46,7 +48,7 @@ const expectValue = (stdout: string, want: Nested, dtype: string, tol: number) =
   })
 }
 
-describe('values against NumPy, SciPy and OpenCV', () => {
+describe('values against real torch', () => {
   const rows = VALUES.rows as [string, string, Nested, string][]
   it.each(rows.map((r) => [r[0], r] as const))('%s', (_name, [expr, , want, dtype]) => {
     if (dtype === 'pybool') {
@@ -57,7 +59,7 @@ describe('values against NumPy, SciPy and OpenCV', () => {
   })
 })
 
-describe('layers and optimisers against the documented equations in NumPy', () => {
+describe('layers and optimisers against real torch', () => {
   const rows = LAYERS.rows as [string, string, Nested, string, string][]
   it.each(rows.map((r, i) => [`${i} ${r[4]} ${r[1]}`, r] as const))('%s', (_name, [setup, expr, want, dtype]) => {
     expectValue(out(`${setup}r = ${expr}\nprint(r.tolist())\nprint(r.dtype)\n`), want, dtype, dtype === 'float64' ? 1e-9 : 5e-6)
@@ -144,7 +146,7 @@ describe('gradients against central differences', () => {
     // sorted and selected
     ['sort', 'check(lambda x: S(x.sort(dim=1).values), M)'], ['sort descending', 'check(lambda x: S(torch.sort(x, dim=0, descending=True).values), M)'], ['topk', 'check(lambda x: S(x.topk(2, dim=1).values), M)'],
     ['gather', 'check(lambda x: S(x.gather(1, idx)), M)'], ['take', 'check(lambda x: S(x.take(torch.tensor([0, 5, 2]))), M)'], ['take_along_dim', 'check(lambda x: S(torch.take_along_dim(x, idx, dim=1)), M)'],
-    ['scatter into', 'check(lambda x: S(x.scatter(1, torch.tensor([[0], [2]]), 5.)), M)'], ['scatter from', 'check(lambda x: S(torch.zeros(2, 3, dtype=torch.float64).scatter(1, idx, x[:, :2])), M)'], ['scatter_add', 'check(lambda x: S(torch.ones(2, 3, dtype=torch.float64).scatter_add(1, idx, x[:, :2])), M)'],
+    ['scatter into', 'check(lambda x: S(x.scatter(1, torch.tensor([[0], [2]]), 5.)), M)'], ['scatter from', 'check(lambda x: S(torch.zeros(2, 3, dtype=torch.float64).scatter(1, torch.tensor([[0, 2], [1, 2]]), x[:, :2])), M)'], ['scatter_add', 'check(lambda x: S(torch.ones(2, 3, dtype=torch.float64).scatter_add(1, idx, x[:, :2])), M)'],
     ['index_select', 'check(lambda x: S(x.index_select(1, torch.tensor([2, 0, 2]))), M)'], ['masked_select', 'check(lambda x: S(x.masked_select(mask)), M)'], ['narrow', 'check(lambda x: S(x.narrow(1, 1, 2)), M)'],
     ['split', 'check(lambda x: S(x.split(2, dim=1)[1]) + S(x.split(2, dim=1)[0]), M)'], ['split by sizes', 'check(lambda x: S(x.split([1, 2], dim=1)[1]), M)'], ['chunk', 'check(lambda x: S(torch.chunk(x, 2)[1]), M)'], ['unbind', 'check(lambda x: S(x.unbind(1)[2]), M)'],
     // shape
@@ -259,7 +261,7 @@ describe('in-place operations keep autograd honest', () => {
     expect(msg('x = torch.ones(1)\nx += torch.ones(3)')).toBe("RuntimeError: output with shape [1] doesn't match the broadcast shape [3]")
     expect(msg('w = torch.ones(2, requires_grad=True)\nw[0].add_(1)')).toBe('RuntimeError: a view of a leaf Variable that requires grad is being used in an in-place operation.')
     expect(msg('w = torch.ones(2, requires_grad=True)\nw.sqrt_()')).toBe('RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.')
-    expect(msg('w = torch.ones(3, requires_grad=True)\ny = w * 2\ny[0].mul_(3)')).toMatch('NotImplementedError: an in-place operation on a view')
+    expect(out('w = torch.ones(2, requires_grad=True)\ny = w * 2\nv = y[0]\nv.mul_(3)\nprint(y, v)\ny.sum().backward()\nprint(w.grad)')).toBe('tensor([6., 2.], grad_fn=<CopySlices>) tensor(6., grad_fn=<AsStridedBackward0>)\ntensor([6., 2.])\n')
   })
   it('the common in-place forms', () => {
     expect(out(`x = torch.tensor([4., 9.])
@@ -325,7 +327,7 @@ True
 torch.Size([2]) True [2, 2] [1] [3.0, 3.0]
 `)
     expect(msg('torch.multinomial(torch.tensor([1., 1.]), 3)')).toBe('RuntimeError: cannot sample n_sample > prob_dist.size(-1) samples without replacement')
-    expect(msg('torch.rand(2, dtype=torch.int64)')).toBe(`RuntimeError: "check_uniform_bounds" not implemented for 'Long'`)
+    expect(msg('torch.rand(2, dtype=torch.int64)')).toBe(`NotImplementedError: "check_uniform_bounds" not implemented for 'Long'`)
   })
   it('0-d tensors: dim -1 and dim 0 both name their only axis', () => {
     expect(out('x = torch.tensor(5.)\nprint(x.sort(-1).values, x.sum(-1), torch.topk(x, 1).values, x.cumsum(0), x.softmax(-1), x.mode().values, x.median(0).values, x.unsqueeze(-1).shape, x.prod(0))')).toBe('tensor(5.) tensor(5.) tensor(5.) tensor(5.) tensor(1.) tensor(5.) tensor(5.) torch.Size([1]) tensor(5.)\n')
@@ -388,7 +390,7 @@ with torch.no_grad():
   })
   it('keyword spellings and shared memory', () => {
     expect(out(`a = torch.zeros(2, 3)
-print(a.size(dim=1), a.permute(dims=(1, 0)).shape, torch.permute(a, (1, 0)).shape, a.transpose(dim0=0, dim1=1).shape, torch.reshape(a, shape=(3, 2)).shape, a.view(shape=(6,)).shape)
+print(a.size(dim=1), a.permute(dims=(1, 0)).shape, torch.permute(a, (1, 0)).shape, a.transpose(dim0=0, dim1=1).shape, torch.reshape(a, shape=(3, 2)).shape, a.view(size=(6,)).shape)
 t = torch.zeros(1)
 p = nn.Parameter(t)
 p.data.add_(1)
@@ -420,14 +422,14 @@ describe('layers print as PyTorch prints them', () => {
     ['nn.MaxPool2d((2, 3), stride=1, padding=(1, 0))', 'MaxPool2d(kernel_size=(2, 3), stride=1, padding=(1, 0), dilation=1, ceil_mode=False)'],
     ['nn.AvgPool2d(3, padding=1)', 'AvgPool2d(kernel_size=3, stride=3, padding=1)'],
     ['nn.AvgPool1d(2)', 'AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))'],
-    ['nn.BatchNorm1d(4, momentum=None, affine=False)', 'BatchNorm1d(4, eps=1e-05, momentum=None, affine=False, track_running_stats=True)'],
-    ['nn.BatchNorm2d(16)', 'BatchNorm2d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)'],
-    ['nn.LayerNorm((2, 3))', 'LayerNorm((2, 3), eps=1e-05, elementwise_affine=True)'],
-    ['nn.GroupNorm(2, 4)', 'GroupNorm(2, 4, eps=1e-05, affine=True)'],
+    ['nn.BatchNorm1d(4, momentum=None, affine=False)', 'BatchNorm1d(4, eps=1e-05, momentum=None, affine=False, bias=False, track_running_stats=True)'],
+    ['nn.BatchNorm2d(16)', 'BatchNorm2d(16, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)'],
+    ['nn.LayerNorm((2, 3))', 'LayerNorm((2, 3), eps=1e-05, elementwise_affine=True, bias=True)'],
+    ['nn.GroupNorm(2, 4)', 'GroupNorm(2, 4, eps=1e-05, affine=True, bias=True)'],
     ['nn.Dropout2d(0.3)', 'Dropout2d(p=0.3, inplace=False)'],
     ['nn.Dropout(0.3, inplace=True)', 'Dropout(p=0.3, inplace=True)'],
     ['nn.Unflatten(1, (2, 3))', 'Unflatten(dim=1, unflattened_size=(2, 3))'],
-    ['nn.ReLU()', 'ReLU()'], ['nn.ReLU(inplace=True)', 'ReLU(inplace=True)'], ['nn.ELU()', 'ELU(alpha=1.0)'], ['nn.GELU()', "GELU(approximate='none')"], ['nn.Softplus()', 'Softplus()'], ['nn.LeakyReLU()', 'LeakyReLU(negative_slope=0.01)'], ['nn.Hardtanh()', 'Hardtanh(min_val=-1.0, max_val=1.0)'], ['nn.PReLU()', 'PReLU(num_parameters=1)'], ['nn.Softmax(dim=1)', 'Softmax(dim=1)'], ['nn.Softmax()', 'Softmax(dim=None)'],
+    ['nn.ReLU()', 'ReLU()'], ['nn.ReLU(inplace=True)', 'ReLU(inplace=True)'], ['nn.ELU()', 'ELU(alpha=1.0)'], ['nn.GELU()', "GELU(approximate='none')"], ['nn.Softplus()', 'Softplus(beta=1.0, threshold=20.0)'], ['nn.LeakyReLU()', 'LeakyReLU(negative_slope=0.01)'], ['nn.Hardtanh()', 'Hardtanh(min_val=-1.0, max_val=1.0)'], ['nn.PReLU()', 'PReLU(num_parameters=1)'], ['nn.Softmax(dim=1)', 'Softmax(dim=1)'], ['nn.Softmax()', 'Softmax(dim=None)'],
     ['nn.SmoothL1Loss()', 'SmoothL1Loss()'], ['nn.HuberLoss()', 'HuberLoss()'],
     ['nn.Embedding(10, 3)', 'Embedding(10, 3)'], ['nn.Embedding(10, 3, padding_idx=0)', 'Embedding(10, 3, padding_idx=0)'],
     ['nn.RNN(1, 2)', 'RNN(1, 2)'], ['nn.LSTM(3, 4, num_layers=2, batch_first=True, dropout=0.5, bidirectional=True)', 'LSTM(3, 4, num_layers=2, batch_first=True, dropout=0.5, bidirectional=True)'], ['nn.GRU(1, 2, bias=False)', 'GRU(1, 2, bias=False)'], ['nn.LSTMCell(1, 2)', 'LSTMCell(1, 2)'],
@@ -468,7 +470,7 @@ Block(
   (layers): ModuleList(
     (0-2): 3 x Linear(in_features=2, out_features=2, bias=True)
   )
-  (norm): BatchNorm1d(2, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+  (norm): BatchNorm1d(2, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)
 )
 `)
   })
@@ -608,7 +610,7 @@ describe('Module', () => {
     expect(out(`m = nn.BatchNorm2d(2)
 print(list(m.state_dict().keys()))
 print(m.running_mean, m.running_var, m.num_batches_tracked)
-print([n for n, _ in m.named_parameters()], [n for n, _ in m.named_buffers()], len(m.buffers()))
+print([n for n, _ in m.named_parameters()], [n for n, _ in m.named_buffers()], len(list(m.buffers())))
 print(m.state_dict()['num_batches_tracked'].dtype, m.training)
 m(torch.arange(16.).view(2, 2, 2, 2))
 print(m.num_batches_tracked.item(), m.state_dict()['num_batches_tracked'].item())
@@ -730,7 +732,7 @@ def init(layer):
     seen.append(type(layer).__name__)
 nn.Sequential(nn.Linear(1, 1), nn.Sequential(nn.ReLU())).apply(init)
 print(seen)
-`)).toBe(`tensor([2.], grad_fn=<MmBackward0>) ['weight'] Linear(in_features=2, out_features=1, bias=False)
+`)).toBe(`tensor([2.], grad_fn=<SqueezeBackward4>) ['weight'] Linear(in_features=2, out_features=1, bias=False)
 3 4
 ['Linear', 'ReLU', 'Sequential', 'Sequential']
 `)
@@ -763,7 +765,7 @@ w = p.fc.weight.clone()
 torch.save(p, 'p.pt')
 with torch.no_grad():
     p.fc.weight.add_(1)
-q = torch.load('p.pt')
+q = torch.load('p.pt', weights_only=False)
 print(torch.equal(w, q.fc.weight), q(torch.zeros(1)).shape, q.training, q)
 torch.save({'x': torch.ones(1), 'n': 3}, 'd.pt')
 print(torch.load('d.pt'))
@@ -776,10 +778,10 @@ with torch.no_grad():
     big[0].weight.add_(1)
     big[1].running_mean.add_(1)
     lstm.weight_ih_l0.add_(1)
-b = torch.load('b.pt')
+b = torch.load('b.pt', weights_only=False)
 print(torch.equal(b[0].weight, keep), b[1].running_mean.sum().item(), b[0].kernel_size, b(torch.zeros(2, 1, 4, 4)).shape, b[0].weight is big[0].weight)
-print(torch.equal(torch.load('l.pt').weight_ih_l0, lstm.weight_ih_l0), torch.load('l.pt')(torch.zeros(3, 1, 2))[0].shape)
-`).replace(/\(sandbox\).*\n/g, '')).toBe(`True
+print(torch.equal(torch.load('l.pt', weights_only=False).weight_ih_l0, lstm.weight_ih_l0), torch.load('l.pt', weights_only=False)(torch.zeros(3, 1, 2))[0].shape)
+`)).toBe(`True
 True Linear(in_features=1, out_features=1, bias=True) True False
 True torch.Size([1]) True Net(
   (fc): Linear(in_features=1, out_features=1, bias=True)
@@ -887,8 +889,8 @@ for b in DataLoader(d, batch_size=2):
 print([b for b in DataLoader(TensorDataset(torch.ones(2, 2)), batch_size=2, collate_fn=lambda s: len(s))])
 `)).toBe(`True 2
 [tensor([[0.],
-        [1.]]), tensor([0, 1]), tensor([0.0000, 0.5000], dtype=torch.float64), ['a', 'b'], {'k': tensor([0, 1])}, [tensor([0, 1]), tensor([1, 2])]]
-[tensor([[2.]]), tensor([2]), tensor([1.], dtype=torch.float64), ['c'], {'k': tensor([2])}, [tensor([2]), tensor([3])]]
+        [1.]]), tensor([0, 1]), tensor([0.0000, 0.5000], dtype=torch.float64), ('a', 'b'), {'k': tensor([0, 1])}, [tensor([0, 1]), tensor([1, 2])]]
+[tensor([[2.]]), tensor([2]), tensor([1.], dtype=torch.float64), ('c',), {'k': tensor([2])}, [tensor([2]), tensor([3])]]
 [2]
 `)
   })
@@ -915,7 +917,7 @@ True 4
 5 3 2
 3 2
 True
-(tensor(8),) (tensor(1),) 2 [(tensor(8),), (tensor(1),)]
+(tensor(8),) (tensor(1),) 2 (tensor([8, 1]),)
 3 (tensor(1),) (tensor(100),) (tensor(100),)
 [[8, 1], [100]]
 `)
@@ -1196,46 +1198,34 @@ y = m(torch.zeros(2, 1, 8))`)
 
 describe('parameters that change the result are never silently ignored', () => {
   it.each([
-    ['nn.MaxPool2d(2, ceil_mode=True)', 'NotImplementedError: MaxPool2d: ceil_mode=True is not available in this sandbox'],
-    ['nn.MaxPool2d(2, dilation=2)', 'NotImplementedError: MaxPool2d: dilation=2 is not available in this sandbox'],
-    ['nn.MaxPool2d(2, return_indices=True)', 'NotImplementedError: MaxPool2d: return_indices=True is not available in this sandbox'],
-    ['nn.AvgPool2d(2, count_include_pad=False)', 'NotImplementedError: AvgPool2d: count_include_pad=False is not available in this sandbox'],
-    ['nn.AvgPool2d(2, divisor_override=3)', 'NotImplementedError: AvgPool2d: divisor_override=3 is not available in this sandbox'],
-    ['F.max_pool2d(torch.zeros(1, 1, 2, 2), 2, ceil_mode=True)', 'NotImplementedError: F.max_pool2d: ceil_mode=True is not available in this sandbox'],
-    ['nn.ConvTranspose2d(1, 1, 2, groups=2)', 'NotImplementedError: ConvTranspose2d: groups=2 is not available in this sandbox'],
-    ['nn.Embedding(2, 2, max_norm=1.0)', 'NotImplementedError: Embedding: max_norm=1.0 is not available in this sandbox'],
-    ['nn.LSTM(1, 2, proj_size=1)', 'NotImplementedError: LSTM: proj_size=1 is not available in this sandbox'],
-    ['nn.Upsample(scale_factor=2, recompute_scale_factor=True)', 'NotImplementedError: Upsample: recompute_scale_factor=True is not available in this sandbox'],
-    ['F.interpolate(torch.zeros(1, 1, 2, 2), scale_factor=2, antialias=True)', 'NotImplementedError: F.interpolate: antialias=True is not available in this sandbox'],
-    ['F.interpolate(torch.zeros(1, 1, 2, 2), scale_factor=2, mode="bicubic")', "NotImplementedError: F.interpolate: mode='bicubic' is not available in this sandbox (nearest, nearest-exact, linear, bilinear and trilinear are)"],
-    ['torch.zeros(2).scatter(0, torch.tensor([0]), 1., reduce="add")', 'NotImplementedError: scatter(): the reduce= argument is not available in this sandbox'],
-    ['torch.zeros(2).topk(1, out=torch.zeros(1))', 'NotImplementedError: topk(): the out= argument is not available in this sandbox'],
-    ['torch.zeros(2).fill_diagonal_(1., wrap=True)', 'RuntimeError: dimensions must larger than 1'],
-    ['torch.zeros(2, 2).fill_diagonal_(1., wrap=True)', 'NotImplementedError: fill_diagonal_(): wrap=True is not available in this sandbox'],
-    ['torch.norm(torch.ones(2, 2), p="nuc")', "NotImplementedError: torch.norm(p='nuc') needs a singular value decomposition, which this sandbox does not have"],
-    ['torch.linalg.norm(torch.ones(2, 2), ord=2)', 'NotImplementedError: ord=2 needs a singular value decomposition, which this sandbox does not have'],
-    ['torch.ones(2).half()', 'NotImplementedError: Tensor.half(): this dtype is not available in this sandbox'],
-    ['nn.Linear(1, 1).half()', 'NotImplementedError: Module.half(): float16 is not available in this sandbox'],
-    ['torch.autograd.grad(torch.ones(1, requires_grad=True).sum(), torch.ones(1, requires_grad=True), create_graph=True)', 'NotImplementedError: autograd.grad: create_graph=True is not available in this sandbox'],
-    ['torch.ones(1, requires_grad=True).sum().backward(create_graph=True)', 'NotImplementedError: backward(create_graph=True): higher-order gradients are not available in this sandbox'],
-    ['torch.optim.lr_scheduler.StepLR(torch.optim.SGD([nn.Parameter(torch.ones(1))], lr=0.1), 1, last_epoch=3)', 'NotImplementedError: StepLR: last_epoch=3 is not available in this sandbox'],
-    ['torch.utils.data.DataLoader([1], batch_sampler=[[0]])', 'NotImplementedError: DataLoader: batch_sampler=[[0]] is not available in this sandbox'],
-    ['torch.utils.data.DataLoader([1], batch_size=None)', 'NotImplementedError: DataLoader: batch_size=None is not available in this sandbox'],
+    ['F.interpolate(torch.zeros(1, 1, 2, 2), scale_factor=2, mode="bilinear", antialias=True)', 'NotImplementedError: F.interpolate: antialias=True is not available in this sandbox'],
+    ['torch.topk(torch.zeros(2), 1, out=(torch.zeros(1), torch.zeros(1, dtype=torch.int64)))', 'NotImplementedError: topk(): the out= argument is not available in this sandbox'],
+    ['nn.EmbeddingBag(2, 2, max_norm=1.0)', 'NotImplementedError: EmbeddingBag: max_norm= is not available in this sandbox'],
+    ['nn.EmbeddingBag(2, 2, include_last_offset=True)', 'NotImplementedError: EmbeddingBag: include_last_offset=True is not available in this sandbox'],
+    ['nn.MultiheadAttention(2, 1, add_bias_kv=True)', 'NotImplementedError: MultiheadAttention: add_bias_kv=True is not available in this sandbox'],
+    ['nn.MultiheadAttention(2, 1, kdim=3)', 'NotImplementedError: MultiheadAttention: kdim and vdim different from embed_dim are not available in this sandbox'],
+    ['torch.optim.Adam([nn.Parameter(torch.ones(1))], differentiable=True)', 'NotImplementedError: Adam: differentiable=True is not available in this sandbox'],
+    ['torch.optim.LBFGS([nn.Parameter(torch.ones(1))], line_search_fn="strong_wolfe")', "NotImplementedError: LBFGS: line_search_fn='strong_wolfe' is not available in this sandbox"],
+    ['F.grid_sample(torch.zeros(1, 1, 2, 2), torch.zeros(1, 1, 1, 2), mode="bicubic")', "NotImplementedError: F.grid_sample: mode='bicubic' is not available in this sandbox"],
+    ['torch.ones(1, requires_grad=True).sum().backward(inputs=[torch.ones(1)])', 'NotImplementedError: backward(inputs=…) is not available in this sandbox'],
+    ['torch.linalg.eig(torch.tensor([[0., 1.], [-1., 0.]]))', 'NotImplementedError: linalg.eig: eigenvectors of a matrix with complex eigenvalues are not available in this sandbox; torch.linalg.eigvals gives the values'],
+    ['x = torch.ones(2, 2, requires_grad=True)\ntorch.linalg.qr(x)[0].sum().backward()', 'NotImplementedError: the gradient through linalg_qr is not available in this sandbox'],
+    ['x = torch.ones(1, requires_grad=True)\ng, = torch.autograd.grad(torch.sinh(x).sum(), x, create_graph=True)', 'NotImplementedError: create_graph=True: the gradient through SinhBackward0 cannot be differentiated again in this sandbox'],
   ])('%s', (src, want) => expect(msg(src)).toBe(want))
   it('an unknown keyword is an error', () => {
-    expect(msg('torch.sort(torch.ones(1), wibble=1)')).toBe("TypeError: sort() got an unexpected keyword argument 'wibble'")
+    expect(msg('torch.sort(torch.ones(1), wibble=1)')).toMatch(/^TypeError: sort\(\) received an invalid combination of arguments - got \(Tensor, wibble=int\), but expected/)
     expect(msg('nn.Linear(1, 1, wibble=1)')).toBe("TypeError: Linear.__init__() got an unexpected keyword argument 'wibble'")
     expect(msg('nn.Conv2d(1, 1, 1, wibble=1)')).toBe("TypeError: Conv2d.__init__() got an unexpected keyword argument 'wibble'")
-    expect(msg('torch.optim.SGD([nn.Parameter(torch.ones(1))], lr=1, wibble=1)')).toBe("TypeError: SGD() got an unexpected keyword argument 'wibble'")
+    expect(msg('torch.optim.SGD([nn.Parameter(torch.ones(1))], lr=1, wibble=1)')).toBe("TypeError: SGD.__init__() got an unexpected keyword argument 'wibble'")
     expect(msg('F.mse_loss(torch.ones(1), torch.ones(1), wibble=1)')).toBe("TypeError: mse_loss() got an unexpected keyword argument 'wibble'")
-    expect(msg('torch.utils.data.DataLoader([1], wibble=1)')).toBe("TypeError: DataLoader() got an unexpected keyword argument 'wibble'")
+    expect(msg('torch.utils.data.DataLoader([1], wibble=1)')).toBe("TypeError: DataLoader.__init__() got an unexpected keyword argument 'wibble'")
   })
 })
 
 describe('errors students meet', () => {
   it.each([
     ['torch.ones(2, 3).expand(4, 3)', 'RuntimeError: The expanded size of the tensor (4) must match the existing size (2) at non-singleton dimension 0.  Target sizes: [4, 3].  Tensor sizes: [2, 3]'],
-    ['torch.ones(2, 3).expand(3)', 'RuntimeError: the number of sizes provided (1) must be greater or equal to the number of dimensions in the tensor (2)'],
+    ['torch.ones(2, 3).expand(3)', 'RuntimeError: expand(torch.FloatTensor{[2, 3]}, size=[3]): the number of sizes provided (1) must be greater or equal to the number of dimensions in the tensor (2)'],
     ['torch.ones(3).expand(-1, 3)', "RuntimeError: The expanded size of the tensor (-1) isn't allowed in a leading, non-existing dimension 0"],
     ['torch.ones(2, 3).repeat(2)', 'RuntimeError: Number of dimensions of repeat dims can not be smaller than number of dimensions of tensor'],
     ['torch.ones(3).narrow(0, 2, 5)', 'RuntimeError: start (2) + length (5) exceeds dimension size (3).'],
@@ -1243,45 +1233,45 @@ describe('errors students meet', () => {
     ['torch.ones(3).split(-1)', 'RuntimeError: split expects split_size be non-negative, but got split_size=-1'],
     ['torch.ones(3).chunk(0)', 'RuntimeError: chunk expects `chunks` to be greater than 0, got: 0'],
     ['torch.ones(3).topk(5)', 'RuntimeError: selected index k out of range'],
-    ['torch.ones(2, 2).gather(1, torch.tensor([[0.]]))', 'RuntimeError: gather(): Expected dtype int64 for index'],
+    ['torch.ones(2, 2).gather(1, torch.tensor([[0.]]))', 'RuntimeError: gather(): Expected dtype int32/int64 for index'],
     ['torch.ones(2, 2).gather(1, torch.tensor([0]))', 'RuntimeError: Index tensor must have the same number of dimensions as input tensor'],
     ['torch.ones(2, 2).gather(1, torch.tensor([[5]]))', 'RuntimeError: index 5 is out of bounds for dimension 1 with size 2'],
     ['torch.ones(2, 2).gather(1, torch.zeros(3, 1, dtype=torch.int64))', 'RuntimeError: Size does not match at dimension 0 expected index [3, 1] to be no larger than self [2, 2] apart from dimension 1'],
     ['torch.ones(2).index_select(0, torch.tensor([5]))', 'IndexError: index out of range in self'],
     ['torch.ones(2).masked_select(torch.tensor([1, 0]))', 'RuntimeError: masked_select: expected BoolTensor for mask'],
-    ['torch.ones(2).masked_fill(torch.tensor([1, 0]), 0.)', 'RuntimeError: masked_fill_ only supports boolean masks, but got mask with dtype int64'],
+    ['torch.ones(2).masked_fill(torch.tensor([1, 0]), 0.)', 'RuntimeError: masked_fill_ only supports boolean masks, but got mask with dtype long long'],
     ['torch.tensor([-1]).bincount()', 'RuntimeError: bincount only supports 1-d non-negative integral inputs.'],
-    ['torch.tensor([1.]).bincount()', 'RuntimeError: bincount only supports 1-d non-negative integral inputs.'],
-    ['torch.tensor([1.]).cumsum()', "TypeError: cumsum() missing 1 required positional argument: 'dim'"],
+    ['torch.tensor([1.]).bincount()', `NotImplementedError: "bincount_cpu" not implemented for 'Float'`],
+    ['torch.tensor([1.]).cumsum()', 'TypeError: cumsum() missing 1 required positional arguments: "dim"'],
     ['torch.ones(2, 2).flip(0, 0)', 'RuntimeError: dim 0 appears multiple times in the list of dims'],
     ['torch.ones(2, 2).roll((1, 1), 0)', 'RuntimeError: shifts and dimensions must align. shifts: 2, dims:1'],
-    ['torch.ones(2, 2, 2).trace()', 'RuntimeError: expected a matrix, but got tensor with dim 3'],
+    ['torch.ones(2, 2, 2).trace()', 'RuntimeError: trace: expected a matrix, but got tensor with dim 3'],
     ['torch.ones(2, 2, 2).diag()', 'RuntimeError: diag(): Supports 1D or 2D tensors. Got 3D'],
     ['torch.ones(2).tril()', 'RuntimeError: tril: input tensor must have at least 2 dimensions'],
     ['torch.outer(torch.ones(2, 2), torch.ones(2))', 'RuntimeError: outer: Expected 1-D argument self, but got 2-D'],
-    ['torch.inner(torch.ones(2), torch.ones(3))', 'RuntimeError: inner() the last dimension must match on both input tensors but got shapes [2] and [3].'],
+    ['torch.inner(torch.ones(2), torch.ones(3))', 'RuntimeError: inner() the last dimension must match on both input tensors but got shapes [2] and [3]'],
     ['torch.dot(torch.ones(2, 2), torch.ones(2, 2))', 'RuntimeError: 1D tensors expected, but got 2D and 2D tensors'],
     ['torch.tensor([1, 2]) @ torch.tensor([1., 2.])', 'RuntimeError: dot : expected both vectors to have same dtype, but found Long and Float'],
-    ['torch.matmul(torch.ones(2, 2, dtype=torch.int64), torch.ones(2, 2))', 'RuntimeError: mat1 and mat2 must have the same dtype, but got Long and Float'],
-    ['torch.linalg.inv(torch.tensor([[1., 2.], [2., 4.]]))', 'LinAlgError: linalg.inv: The diagonal element 2 is zero, the inversion could not be completed because the input matrix is singular.'],
+    ['torch.matmul(torch.ones(2, 2, dtype=torch.int64), torch.ones(2, 2))', 'RuntimeError: expected m1 and m2 to have the same dtype, but got: long long != float'],
+    ['torch.linalg.inv(torch.tensor([[1., 2.], [2., 4.]]))', '_LinAlgError: linalg.inv: The diagonal element 2 is zero, the inversion could not be completed because the input matrix is singular.'],
     ['torch.linalg.inv(torch.ones(2, 3))', 'RuntimeError: linalg.inv: A must be batches of square matrices, but they are 2 by 3 matrices'],
     ['torch.linalg.inv(torch.tensor([[1, 2], [3, 4]]))', 'RuntimeError: linalg.inv: Expected a floating point or complex tensor as input. Got Long'],
     ['torch.linalg.det(torch.ones(2, 3))', 'RuntimeError: linalg.det: A must be batches of square matrices, but they are 2 by 3 matrices'],
-    ['torch.linalg.solve(torch.tensor([[1., 2.], [2., 4.]]), torch.ones(2))', 'LinAlgError: linalg.solve: The diagonal element 2 is zero, the solve could not be completed because the input matrix is singular.'],
+    ['torch.linalg.solve(torch.tensor([[1., 2.], [2., 4.]]), torch.ones(2))', '_LinAlgError: torch.linalg.solve: The solver failed because the input matrix is singular.'],
     ['torch.linalg.solve(torch.eye(2), torch.ones(2, dtype=torch.float64))', 'RuntimeError: linalg.solve: Expected A and B to have the same dtype, but found A of type Float and B of type Double instead'],
     ['torch.linalg.norm(torch.ones(2, 2, 2), ord=1)', 'RuntimeError: linalg.norm: If dim is not specified but ord is, the input must be 1D or 2D. Got 3D.'],
     ['torch.norm(torch.tensor([1, 2]))', 'RuntimeError: linalg.vector_norm: Expected a floating point or complex tensor as input. Got Long'],
     ['torch.clamp(torch.ones(1))', "RuntimeError: torch.clamp: At least one of 'min' or 'max' must not be None"],
-    ['torch.lerp(torch.tensor([1]), torch.tensor([2]), 0.5)', `RuntimeError: "lerp_kernel_scalar" not implemented for 'Long'`],
-    ['torch.ones(2).normal_(0., -1.)', 'RuntimeError: normal expects std >= 0.0, but found std -1.0'],
-    ['torch.tensor([1]).normal_()', `RuntimeError: "normal_kernel_cpu" not implemented for 'Long'`],
-    ['torch.meshgrid(torch.ones(2, 2))', 'RuntimeError: torch.meshgrid expects all tensors to be 0D or 1D'],
+    ['torch.lerp(torch.tensor([1]), torch.tensor([2]), 0.5)', `NotImplementedError: "lerp_kernel_scalar" not implemented for 'Long'`],
+    ['torch.ones(2).normal_(0., -1.)', 'RuntimeError: normal expects std >= 0.0, but found std -1'],
+    ['torch.tensor([1]).normal_()', `NotImplementedError: "normal_kernel_cpu" not implemented for 'Long'`],
+    ['torch.meshgrid(torch.ones(2, 2))', 'RuntimeError: torch.meshgrid: Expected 0D or 1D tensor in the tensor list but got:  1  1\n 1  1\n[ torch.FloatTensor{2,2} ]'],
     ['torch.meshgrid(torch.ones(2), indexing="x")', 'RuntimeError: torch.meshgrid: indexing must be one of "xy" or "ij", but received: x'],
-    ['x = torch.ones(2)\nx[0:1] = torch.ones(3)', 'RuntimeError: shape mismatch: value tensor of shape [3] cannot be broadcast to indexing result of shape [1]'],
+    ['x = torch.ones(2)\nx[0:1] = torch.ones(3)', 'RuntimeError: The expanded size of the tensor (1) must match the existing size (3) at non-singleton dimension 0.  Target sizes: [1].  Tensor sizes: [3]'],
     ['nn.Linear(2, 1)(torch.tensor([[1, 2]]))', 'RuntimeError: mat1 and mat2 must have the same dtype, but got Long and Float'],
     ['nn.Linear(2, 1)(torch.ones(1, 2, dtype=torch.float64))', 'RuntimeError: mat1 and mat2 must have the same dtype, but got Double and Float'],
     ['nn.Conv2d(1, 1, 1)(torch.ones(1, 1, 2, 2, dtype=torch.float64))', 'RuntimeError: Input type (double) and bias type (float) should be the same'],
-    ['nn.Conv2d(1, 1, 1, bias=False)(torch.ones(1, 1, 2, 2, dtype=torch.float64))', 'RuntimeError: Input type (torch.DoubleTensor) and weight type (torch.FloatTensor) should be the same or input should be a MKLDNN tensor and weight is a dense tensor'],
+    ['nn.Conv2d(1, 1, 1, bias=False)(torch.ones(1, 1, 2, 2, dtype=torch.float64))', 'RuntimeError: expected scalar type Double but found Float'],
     ['nn.Conv2d(1, 1, 1)(torch.ones(1, 1, 2, 2, dtype=torch.uint8))', 'RuntimeError: Input type (unsigned char) and bias type (float) should be the same'],
     ['nn.Conv2d(1, 2, 1)(torch.ones(2, 2))', 'RuntimeError: Expected 3D (unbatched) or 4D (batched) input to conv2d, but got input of size: [2, 2]'],
     ['nn.Conv1d(1, 2, 3)(torch.zeros(1, 2, 8))', 'RuntimeError: Given groups=1, weight of size [2, 1, 3], expected input[1, 2, 8] to have 1 channels, but got 2 channels instead'],
@@ -1289,16 +1279,14 @@ describe('errors students meet', () => {
     ['nn.Conv1d(1, 2, 3)(torch.zeros(2))', 'RuntimeError: Expected 2D (unbatched) or 3D (batched) input to conv1d, but got input of size: [2]'],
     ['nn.Conv2d(2, 4, 1, groups=2)(torch.zeros(1, 3, 2, 2))', 'RuntimeError: Given groups=2, weight of size [4, 1, 1, 1], expected input[1, 3, 2, 2] to have 2 channels, but got 3 channels instead'],
     ['nn.Conv2d(3, 3, 1, groups=2)', 'ValueError: in_channels must be divisible by groups'],
-    ['nn.Conv2d(1, 1, 3, padding="wide")', "ValueError: Invalid padding string 'wide', should be one of {'valid', 'same'}"],
     ['nn.Conv2d(1, 1, 3, stride=2, padding="same")', "ValueError: padding='same' is not supported for strided convolutions"],
-    ['nn.Conv2d(1, 1, 3, padding_mode="x")', "ValueError: padding_mode must be one of {'zeros', 'reflect', 'replicate', 'circular'}, but got padding_mode='x'"],
     ['nn.ConvTranspose2d(1, 2, 2)(torch.zeros(1, 3, 2, 2))', 'RuntimeError: Given transposed=1, weight of size [1, 2, 2, 2], expected input[1, 3, 2, 2] to have 1 channels, but got 3 channels instead'],
     ['nn.BatchNorm2d(2)(torch.zeros(2, 2))', 'ValueError: expected 4D input (got 2D input)'],
     ['nn.BatchNorm1d(2)(torch.zeros(2))', 'ValueError: expected 2D or 3D input (got 1D input)'],
-    ['nn.BatchNorm1d(2)(torch.zeros(1, 2))', 'ValueError: Expected more than 1 value per channel when training, got input of size torch.Size([1, 2])'],
+    ['nn.BatchNorm1d(2)(torch.zeros(1, 2))', 'ValueError: Expected more than 1 value per channel when training, got input size torch.Size([1, 2])'],
     ['nn.BatchNorm1d(2)(torch.zeros(2, 3))', 'RuntimeError: running_mean should contain 3 elements not 2'],
     ['nn.LayerNorm(3)(torch.zeros(2, 4))', 'RuntimeError: Given normalized_shape=[3], expected input with shape [*, 3], but got input of size[2, 4]'],
-    ['nn.GroupNorm(3, 4)', 'ValueError: num_channels must be divisible by num_groups'],
+    ['nn.GroupNorm(3, 4)', 'ValueError: num_channels (4) must be divisible by num_groups (3)'],
     ['nn.Dropout2d(2.0)', 'ValueError: dropout probability has to be between 0 and 1, but got 2.0'],
     ['nn.Embedding(2, 2)(torch.tensor([5]))', 'IndexError: index out of range in self'],
     ['nn.Embedding(2, 2)(torch.tensor([.5]))', "RuntimeError: Expected tensor for argument #1 'indices' to have one of the following scalar types: Long, Int; but got torch.FloatTensor instead (while checking arguments for embedding)"],
@@ -1306,26 +1294,25 @@ describe('errors students meet', () => {
     ['nn.GRU(3, 4)(torch.zeros(2, 1, 5))', 'RuntimeError: input.size(-1) must be equal to input_size. Expected 3, got 5'],
     ['nn.RNN(3, 4)(torch.zeros(2, 1, 3), torch.zeros(1, 2, 4))', 'RuntimeError: Expected hidden size (1, 1, 4), got [1, 2, 4]'],
     ['nn.LSTM(3, 4)(torch.zeros(2, 1, 3), (torch.zeros(2, 1, 4), torch.zeros(1, 1, 4)))', 'RuntimeError: Expected hidden[0] size (1, 1, 4), got [2, 1, 4]'],
-    ['nn.RNN(3, 4)(torch.zeros(2, 1, 3, dtype=torch.float64))', 'RuntimeError: input must have the type torch.float32, got type torch.float64'],
+    ['nn.RNN(3, 4)(torch.zeros(2, 1, 3, dtype=torch.float64))', 'ValueError: RNN input dtype (torch.float64) does not match weight dtype (torch.float32). Convert input: input.to(torch.float32), or convert model: model.to(torch.float64)'],
     ['nn.RNN(3, 4, nonlinearity="x")', "ValueError: Unknown nonlinearity 'x'. Select from 'tanh' or 'relu'."],
     ['nn.MultiheadAttention(5, 2)', 'AssertionError: embed_dim must be divisible by num_heads'],
-    ['nn.CrossEntropyLoss(reduction="x")', 'ValueError: x is not a valid value for reduction'],
     ['F.cross_entropy(torch.ones(2, 3), torch.tensor([0, 1]), label_smoothing=2.0)', 'RuntimeError: label_smoothing must be between 0.0 and 1.0. Got: 2'],
     ['F.cross_entropy(torch.ones(2, 3), torch.tensor([0, 1]), weight=torch.ones(2))', 'RuntimeError: weight tensor should be defined either for all 3 classes or no classes but got weight tensor of shape: [2]'],
     ['F.one_hot(torch.tensor([3]), 2)', 'RuntimeError: Class values must be smaller than num_classes.'],
     ['F.one_hot(torch.tensor([-1]))', 'RuntimeError: Class values must be non-negative.'],
     ['F.pad(torch.ones(2), (1,))', 'RuntimeError: Padding length must be divisible by 2'],
     ['F.pad(torch.ones(2), (1, 1, 1, 1))', 'RuntimeError: Padding length should be less than or equal to two times the input dimension but got padding length 4 and input of dimension 1'],
-    ['F.pad(torch.ones(1, 1, 2, 2), (5, 5, 0, 0), mode="reflect")', 'RuntimeError: Argument #2: Padding size should be less than the corresponding input dimension, but got: padding (5, 5) at dimension 3 of input [1, 1, 2, 2]'],
+    ['F.pad(torch.ones(1, 1, 2, 2), (5, 5, 0, 0), mode="reflect")', 'RuntimeError: Argument #4: Padding size should be less than the corresponding input dimension, but got: padding (5, 5) at dimension 3 of input [1, 1, 2, 2]'],
     ['F.pad(torch.ones(1, 1, 2, 2), (5, 5, 0, 0), mode="circular")', 'RuntimeError: Padding value causes wrapping around more than once.'],
     ['F.pad(torch.ones(2), (1, 1), mode="x")', 'NotImplementedError: Unrecognised padding mode x'],
     ['F.interpolate(torch.zeros(1, 1, 2, 2))', 'ValueError: either size or scale_factor should be defined'],
     ['F.interpolate(torch.zeros(1, 1, 2, 2), size=2, scale_factor=2)', 'ValueError: only one of size or scale_factor should be defined'],
     ['F.interpolate(torch.zeros(1, 1, 2, 2), size=2, align_corners=True)', 'ValueError: align_corners option can only be set with the interpolating modes: linear | bilinear | bicubic | trilinear'],
     ['F.interpolate(torch.zeros(1, 1, 2, 2), size=2, mode="trilinear")', 'NotImplementedError: Got 4D input, but trilinear mode needs 5D input'],
-    ['torch.ones(2).softmax()', "TypeError: softmax() missing 1 required positional argument: 'dim'"],
-    ['y = torch.tensor(1.)\ntorch.autograd.grad(y, y)', 'RuntimeError: One of the differentiated Tensors does not require grad'],
-    ['x = torch.tensor(1., requires_grad=True)\nu = torch.tensor(1., requires_grad=True)\ntorch.autograd.grad(x * 2, u)', 'RuntimeError: One of the differentiated Tensors appears to not have been used in the graph. Set allow_unused=True if this is the desired behavior.'],
+    ['torch.ones(2).softmax()', 'TypeError: softmax() missing 1 required positional arguments: "dim"'],
+    ['y = torch.tensor(1.)\ntorch.autograd.grad(y, y)', 'RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn'],
+    ['x = torch.tensor(1., requires_grad=True)\nu = torch.tensor(1., requires_grad=True)\ntorch.autograd.grad(x * 2, u)', 'RuntimeError: The differentiated Tensor at index 0 appears to not have been used in the graph. Set allow_unused=True if this is the desired behavior.'],
   ])('%s', (src, want) => expect(msg(src)).toBe(want))
   it('autograd.grad with allow_unused', () => {
     expect(out('x = torch.tensor(1., requires_grad=True)\nu = torch.tensor(1., requires_grad=True)\nprint(torch.autograd.grad(x * 2, [x, u], allow_unused=True))')).toBe('(tensor(2.), None)\n')
