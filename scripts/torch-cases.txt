@@ -1,0 +1,742 @@
+# One program per line (statements joined with ;). The last statement's repr is printed.
+# <<< and >>> enclose a longer program. scripts/gen-torch-cases.py runs them on real PyTorch.
+# Nothing here depends on random numbers, which the sandbox does not reproduce.
+
+# ---- printing
+torch.tensor(1)
+torch.tensor(1.5)
+torch.tensor(True)
+torch.tensor([1, 2])
+torch.tensor([1., 2.5])
+torch.tensor([[1, 2], [3, 4]])
+torch.tensor([[1.5, 2.], [3., 4.]])
+torch.tensor([1e10, 1.])
+torch.tensor([1e-5, 1.])
+torch.tensor([1.23456789])
+torch.tensor([1234.5678, 0.001])
+torch.tensor([100000., 1.])
+torch.tensor([float('nan'), 1.])
+torch.tensor([float('inf'), -float('inf'), 1.])
+torch.tensor([-0.])
+torch.tensor([1., 2.], dtype=torch.float64)
+torch.tensor([1, 2], dtype=torch.int32)
+torch.tensor([1, 2], dtype=torch.uint8)
+torch.tensor([1, 2], dtype=torch.int16)
+torch.tensor([1, 2], dtype=torch.int8)
+torch.tensor([1., 2.], dtype=torch.float16) if False else 0
+torch.tensor([True, False])
+torch.tensor(1.5, dtype=torch.float64)
+torch.tensor(1, dtype=torch.int32)
+torch.arange(2000)
+torch.arange(2000.)
+torch.arange(1001).view(7, 143)
+torch.zeros(1000)
+torch.ones(2, 2, 2)
+torch.zeros(1, 1, 1, 2)
+torch.tensor([])
+torch.zeros(0, 3)
+torch.tensor([[]])
+torch.ones(30)
+torch.arange(30.) / 7
+torch.arange(30.).view(2, 15) * 1000
+torch.tensor([1.], requires_grad=True)
+torch.tensor(2., requires_grad=True)
+torch.tensor([1., 2.], dtype=torch.float64, requires_grad=True)
+torch.nn.Parameter(torch.tensor([1., 2.]))
+torch.nn.Parameter(torch.tensor([1., 2.]), requires_grad=False)
+torch.nn.Parameter(torch.ones(2, 2))
+str(torch.tensor([1., 2.]))
+f'{torch.tensor(1.5)}'
+f'{torch.tensor(1.5):.2f}'
+f'{torch.tensor([1.5, 2.])}'
+format(torch.tensor(2.5), '.1f')
+torch.Size([1, 2])
+torch.zeros(2, 3).shape
+torch.zeros(2, 3).size()
+torch.zeros(2, 3).size(1)
+torch.zeros(2, 3).size(-1)
+torch.zeros(2, 3).shape[0]
+list(torch.zeros(2, 3).shape)
+tuple(torch.zeros(2, 3).shape)
+torch.zeros(2, 3).shape == (2, 3)
+torch.Size([2, 3]) + (4,)
+torch.Size([2, 3]).numel()
+len(torch.Size([2, 3]))
+torch.float32
+torch.int64
+torch.bool
+torch.double
+torch.float
+torch.long
+torch.int
+torch.zeros(1).dtype
+torch.zeros(1).device
+torch.device('cpu')
+torch.device('cuda:0')
+torch.device('cuda', 1)
+str(torch.device('cpu'))
+torch.device('cpu').type
+torch.device('cuda:1').index
+torch.get_default_dtype()
+torch.is_tensor(torch.zeros(1))
+torch.is_tensor(1)
+torch.is_floating_point(torch.zeros(1))
+torch.is_floating_point(torch.zeros(1, dtype=torch.long))
+torch.numel(torch.zeros(2, 3))
+torch.set_printoptions(precision=2); torch.tensor([1.23456, 2.])
+torch.set_printoptions(sci_mode=False); torch.tensor([1e-5, 1.])
+torch.set_printoptions(threshold=5); torch.arange(10)
+torch.set_printoptions(edgeitems=1, threshold=3); torch.arange(10)
+torch.set_printoptions(linewidth=20); torch.arange(20.)
+torch.set_printoptions(profile='full'); torch.arange(1200)[:3]
+
+# ---- tensor attributes
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.T
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.mT
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.H
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.ndim
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.dim()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.numel()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.nelement()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.is_leaf
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.requires_grad
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.grad
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.grad_fn
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.real
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.is_floating_point()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.is_complex()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.type()
+a = torch.tensor([1, 2]); a.type()
+a = torch.tensor([1, 2]); a.type(torch.FloatTensor)
+a = torch.tensor([1, 2]); a.type(torch.float64)
+a = torch.tensor([1., 2.]); a.type('torch.LongTensor')
+a = torch.tensor([1., 2.]); a.long()
+a = torch.tensor([1.5, 2.]); a.int()
+a = torch.tensor([1., 2.]); a.double()
+a = torch.tensor([1, 2]); a.float()
+a = torch.tensor([0., 2.]); a.bool()
+a = torch.tensor([1., 300.]); a.byte()
+a = torch.tensor([1., 2.]); a.short()
+a = torch.tensor([1., 2.]); a.char()
+a = torch.tensor([1., 2.]); a.to(torch.int64)
+a = torch.tensor([1., 2.]); a.to('cpu')
+a = torch.tensor([1., 2.]); a.to(torch.device('cpu'), dtype=torch.float64)
+a = torch.tensor([1., 2.]); a.to(dtype=torch.int32)
+a = torch.tensor([1., 2.]); a.to(torch.zeros(1, dtype=torch.long))
+a = torch.tensor([1., 2.]); a.cpu()
+a = torch.tensor([1., 2.]); a.clone()
+a = torch.tensor([1., 2.]); a.detach()
+a = torch.tensor([1., 2.], requires_grad=True); a.detach()
+a = torch.tensor([1., 2.], requires_grad=True); a.clone()
+a = torch.tensor([1., 2.]); a.requires_grad_()
+a = torch.tensor([1., 2.]); a.requires_grad_(False)
+a = torch.tensor([1., 2.]); a.tolist()
+a = torch.tensor(1.5); a.item()
+a = torch.tensor(1.5); a.tolist()
+a = torch.tensor([[1, 2]]); a.tolist()
+a = torch.tensor([1.5]); a.item()
+a = torch.tensor([1., 2.]); len(a)
+a = torch.tensor([1., 2.]); [x for x in a]
+a = torch.tensor([[1, 2], [3, 4]]); [x for x in a]
+a = torch.tensor(1.5); float(a)
+a = torch.tensor(1.5); int(a)
+a = torch.tensor(1.); bool(a)
+a = torch.tensor([1.5]); float(a)
+a = torch.tensor(3); list(range(a))
+a = torch.tensor(1); [10, 20][a]
+a = torch.tensor([1., 2.]); a.numpy()
+a = torch.tensor([1, 2]); a.numpy()
+a = torch.tensor([1., 2.]); a.numpy().dtype
+a = torch.tensor([1., 2.]); b = a.numpy(); b[0] = 9; a
+import numpy as np; b = np.array([1., 2.]); t = torch.from_numpy(b); t[0] = 9; b
+import numpy as np; torch.from_numpy(np.array([1, 2]))
+import numpy as np; torch.from_numpy(np.array([1., 2.]))
+import numpy as np; torch.tensor(np.array([1., 2.]))
+import numpy as np; torch.as_tensor(np.array([1, 2]))
+import numpy as np; torch.tensor(np.array([1, 2], dtype=np.uint8))
+import numpy as np; np.array(torch.tensor([1., 2.]))
+import numpy as np; np.sum(torch.tensor([1., 2.]).numpy())
+
+# ---- creation
+torch.zeros(2)
+torch.zeros((2, 3))
+torch.zeros([2, 3])
+torch.zeros(2, 3, dtype=torch.long)
+torch.ones(2, dtype=torch.bool)
+torch.full((2, 2), 7)
+torch.full((2,), 1.5)
+torch.full((2,), True)
+torch.eye(2)
+torch.eye(2, 3)
+torch.arange(3)
+torch.arange(1, 4)
+torch.arange(1, 4, 2)
+torch.arange(0, 1, 0.25)
+torch.arange(3.)
+torch.arange(3, dtype=torch.float32)
+torch.linspace(0, 1, 5)
+torch.linspace(0, 1, 3, dtype=torch.float64)
+torch.logspace(0, 2, 3)
+torch.zeros_like(torch.tensor([1, 2]))
+torch.ones_like(torch.tensor([1., 2.]))
+torch.full_like(torch.tensor([1, 2]), 5)
+torch.empty(2, 3).shape
+torch.empty_like(torch.ones(2)).shape
+torch.rand(2, 3).shape
+torch.randn(2, 3).dtype
+torch.randint(0, 5, (2, 3)).dtype
+torch.randint(5, (2,)).shape
+torch.randperm(3).dtype
+torch.rand_like(torch.ones(2)).shape
+torch.randn_like(torch.ones(2)).dtype
+torch.randint_like(torch.ones(2), 5).dtype
+torch.bernoulli(torch.ones(2))
+torch.multinomial(torch.tensor([0., 1.]), 2, replacement=True)
+torch.normal(0., 1., size=(2,)).shape
+torch.normal(torch.zeros(2), torch.ones(2)).shape
+torch.tensor([1, 2.5])
+torch.tensor([1, True])
+torch.tensor([[1, 2], [3, 4]], dtype=torch.float32)
+torch.tensor(((1, 2), (3, 4)))
+torch.tensor(range(3))
+torch.tensor([torch.tensor(1.), torch.tensor(2.)])
+torch.as_tensor([1, 2])
+torch.FloatTensor([1, 2])
+torch.LongTensor([1, 2])
+torch.IntTensor([1, 2])
+torch.BoolTensor([True])
+torch.DoubleTensor([1])
+torch.Tensor([1, 2])
+torch.Tensor(2, 3).shape
+torch.complex if False else 0
+torch.cartesian_prod(torch.tensor([1, 2]), torch.tensor([3]))
+torch.combinations(torch.tensor([1, 2, 3]))
+torch.meshgrid(torch.tensor([1, 2]), torch.tensor([3]), indexing='ij')
+torch.meshgrid(torch.tensor([1, 2]), torch.tensor([3]), indexing='xy')
+torch.tril(torch.ones(2, 2))
+torch.triu(torch.ones(2, 2), 1)
+torch.tril_indices(2, 2)
+torch.triu_indices(2, 2)
+torch.diag(torch.tensor([1, 2]))
+torch.diag(torch.tensor([[1, 2], [3, 4]]))
+torch.diag_embed(torch.tensor([1., 2.]))
+torch.block_diag(torch.ones(1), torch.ones(1, 2))
+
+# ---- arithmetic and grad_fn names
+x = torch.tensor([1., 2.], requires_grad=True); x + 1
+x = torch.tensor([1., 2.], requires_grad=True); 1 + x
+x = torch.tensor([1., 2.], requires_grad=True); x - 1
+x = torch.tensor([1., 2.], requires_grad=True); 1 - x
+x = torch.tensor([1., 2.], requires_grad=True); x * 2
+x = torch.tensor([1., 2.], requires_grad=True); x / 2
+x = torch.tensor([1., 2.], requires_grad=True); 1 / x
+x = torch.tensor([1., 2.], requires_grad=True); x ** 2
+x = torch.tensor([1., 2.], requires_grad=True); 2 ** x
+x = torch.tensor([1., 2.], requires_grad=True); x // 2
+x = torch.tensor([1., 2.], requires_grad=True); x % 2
+x = torch.tensor([1., 2.], requires_grad=True); -x
+x = torch.tensor([1., 2.], requires_grad=True); +x
+x = torch.tensor([1., 2.], requires_grad=True); abs(x)
+x = torch.tensor([1., 2.], requires_grad=True); x + x
+x = torch.tensor([1., 2.], requires_grad=True); x * x
+x = torch.tensor([1., 2.], requires_grad=True); x @ x
+x = torch.tensor([1., 2.], requires_grad=True); x.dot(x)
+x = torch.tensor([1., 2.], requires_grad=True); torch.dot(x, x)
+x = torch.ones(2, 2, requires_grad=True); x @ x
+x = torch.ones(2, 2, requires_grad=True); x.mm(x)
+x = torch.ones(2, 2, requires_grad=True); x.matmul(torch.ones(2))
+x = torch.ones(2, 2, requires_grad=True); torch.ones(2) @ x
+x = torch.ones(2, 2, requires_grad=True); x.mv(torch.ones(2))
+x = torch.ones(1, 2, 2, requires_grad=True); x @ x
+x = torch.tensor([1., 2.], requires_grad=True); x.sum()
+x = torch.tensor([1., 2.], requires_grad=True); x.mean()
+x = torch.tensor([1., 2.], requires_grad=True); x.prod()
+x = torch.tensor([1., 2.], requires_grad=True); x.max()
+x = torch.tensor([1., 2.], requires_grad=True); x.min()
+x = torch.tensor([1., 2.], requires_grad=True); x.std()
+x = torch.tensor([1., 2.], requires_grad=True); x.var()
+x = torch.tensor([1., 2.], requires_grad=True); x.norm()
+x = torch.tensor([1., 2.], requires_grad=True); x.exp()
+x = torch.tensor([1., 2.], requires_grad=True); x.log()
+x = torch.tensor([1., 2.], requires_grad=True); x.log2()
+x = torch.tensor([1., 2.], requires_grad=True); x.log10()
+x = torch.tensor([1., 2.], requires_grad=True); x.log1p()
+x = torch.tensor([1., 2.], requires_grad=True); x.expm1()
+x = torch.tensor([1., 2.], requires_grad=True); x.sqrt()
+x = torch.tensor([1., 2.], requires_grad=True); x.square()
+x = torch.tensor([1., 2.], requires_grad=True); x.sin()
+x = torch.tensor([1., 2.], requires_grad=True); x.cos()
+x = torch.tensor([1., 2.], requires_grad=True); x.tan()
+x = torch.tensor([.1, .2], requires_grad=True); x.asin()
+x = torch.tensor([.1, .2], requires_grad=True); x.acos()
+x = torch.tensor([.1, .2], requires_grad=True); x.atan()
+x = torch.tensor([1., 2.], requires_grad=True); x.sinh()
+x = torch.tensor([1., 2.], requires_grad=True); x.cosh()
+x = torch.tensor([1., 2.], requires_grad=True); x.tanh()
+x = torch.tensor([1., 2.], requires_grad=True); x.sigmoid()
+x = torch.tensor([1., 2.], requires_grad=True); x.relu()
+x = torch.tensor([1., 2.], requires_grad=True); x.softmax(0)
+x = torch.tensor([1., 2.], requires_grad=True); x.log_softmax(0)
+x = torch.tensor([1., 2.], requires_grad=True); x.abs()
+x = torch.tensor([1., 2.], requires_grad=True); x.neg()
+x = torch.tensor([1., 2.], requires_grad=True); x.pow(2)
+x = torch.tensor([1., 2.], requires_grad=True); x.add(1)
+x = torch.tensor([1., 2.], requires_grad=True); x.sub(1)
+x = torch.tensor([1., 2.], requires_grad=True); x.mul(2)
+x = torch.tensor([1., 2.], requires_grad=True); x.div(2)
+x = torch.tensor([1., 2.], requires_grad=True); x.clamp(0, 1)
+x = torch.tensor([1., 2.], requires_grad=True); x.clamp(min=1.5)
+x = torch.tensor([1.5, 2.5], requires_grad=True); x.floor()
+x = torch.tensor([1.5, 2.5], requires_grad=True); x.ceil()
+x = torch.tensor([1.5, 2.5], requires_grad=True); x.round()
+x = torch.tensor([1.5, 2.5], requires_grad=True); x.trunc()
+x = torch.tensor([1.5, 2.5], requires_grad=True); x.frac()
+x = torch.tensor([1.5, 2.5], requires_grad=True); x.sign()
+x = torch.tensor([1., 2.], requires_grad=True); x > 1
+x = torch.tensor([1., 2.], requires_grad=True); x.argmax()
+x = torch.tensor([1., 2.], requires_grad=True); x.view(2, 1)
+x = torch.tensor([1., 2.], requires_grad=True); x.reshape(2, 1)
+x = torch.tensor([1., 2.], requires_grad=True); x.unsqueeze(0)
+x = torch.ones(1, 2, requires_grad=True); x.squeeze()
+x = torch.ones(1, 2, requires_grad=True); x.squeeze(0)
+x = torch.ones(1, 2, requires_grad=True); x.t()
+x = torch.ones(1, 2, requires_grad=True); x.T
+x = torch.ones(1, 2, requires_grad=True); x.transpose(0, 1)
+x = torch.ones(1, 2, requires_grad=True); x.permute(1, 0)
+x = torch.ones(1, 2, requires_grad=True); x.flatten()
+x = torch.ones(1, 2, requires_grad=True); x.expand(3, 2)
+x = torch.ones(1, 2, requires_grad=True); x.repeat(2, 1)
+x = torch.ones(1, 2, requires_grad=True); x[0]
+x = torch.ones(1, 2, requires_grad=True); x[0, 0]
+x = torch.ones(1, 2, requires_grad=True); x[:, 1]
+x = torch.ones(1, 2, requires_grad=True); x[x > 0]
+x = torch.ones(1, 2, requires_grad=True); x.flip(1)
+x = torch.ones(1, 2, requires_grad=True); torch.cat([x, x])
+x = torch.ones(1, 2, requires_grad=True); torch.stack([x, x])
+x = torch.ones(1, 2, requires_grad=True); x.chunk(2, 1)
+x = torch.ones(1, 2, requires_grad=True); x.split(1, 1)
+x = torch.ones(1, 2, requires_grad=True); x.unbind(1)
+x = torch.ones(1, 2, requires_grad=True); torch.where(x > 0, x, x)
+x = torch.ones(1, 2, requires_grad=True); x.masked_fill(x > 0, 0.)
+x = torch.ones(1, 2, requires_grad=True); x.gather(1, torch.tensor([[0]]))
+x = torch.ones(1, 2, requires_grad=True); x.index_select(1, torch.tensor([0]))
+x = torch.ones(1, 2, requires_grad=True); x.sum(0)
+x = torch.ones(1, 2, requires_grad=True); x.mean(1)
+x = torch.ones(1, 2, requires_grad=True); x.max(1)
+x = torch.ones(1, 2, requires_grad=True); x.min(1)
+x = torch.ones(1, 2, requires_grad=True); x.sort()
+x = torch.ones(1, 2, requires_grad=True); x.topk(1)
+x = torch.ones(1, 2, requires_grad=True); x.cumsum(1)
+x = torch.ones(1, 2, requires_grad=True); x.cumprod(1)
+x = torch.ones(1, 2, requires_grad=True); x.detach().sum()
+x = torch.ones(1, 2, requires_grad=True); x.float()
+x = torch.ones(1, 2, requires_grad=True); x.double()
+x = torch.ones(1, 2, requires_grad=True); x.long()
+x = torch.ones(1, 2, requires_grad=True); x.to(torch.float64)
+x = torch.tensor(1., requires_grad=True); y = x * 2; y.grad_fn.name()
+x = torch.tensor(1., requires_grad=True); y = x * 2; y.is_leaf
+x = torch.tensor(1., requires_grad=True); y = x * 2; y.requires_grad
+x = torch.tensor(1., requires_grad=True); y = x * 2; y.grad_fn.next_functions[0][0].name()
+x = torch.tensor(1., requires_grad=True); with_no = None; y = x * 2; y.retain_grad(); (y * 3).backward(); y.grad
+x = torch.tensor(1., requires_grad=True); y = x * 2; y.retains_grad
+x = torch.tensor(1., requires_grad=True); (x * 2).backward(); x.grad
+x = torch.tensor(1., requires_grad=True); (x ** 3).backward(); x.grad
+x = torch.tensor([1., 2.], requires_grad=True); (x ** 2).sum().backward(); x.grad
+x = torch.tensor([1., 2.], requires_grad=True); (x ** 2).backward(torch.tensor([1., 1.])); x.grad
+x = torch.tensor([1., 2.], requires_grad=True); (x * x).sum().backward(); (x * x).sum().backward(); x.grad
+x = torch.tensor([1., 2.], requires_grad=True); (x * x).sum().backward(); x.grad.zero_(); x.grad
+x = torch.tensor([1., 2.], requires_grad=True); y = (x * x).sum(); y.backward(retain_graph=True); y.backward(); x.grad
+x = torch.tensor([1., 2.], requires_grad=True); torch.autograd.grad((x * x).sum(), x)
+x = torch.tensor([1., 2.], requires_grad=True); torch.autograd.grad((x * x).sum(), [x])
+x = torch.tensor(2., requires_grad=True); y = x ** 3; g, = torch.autograd.grad(y, x, create_graph=True); g
+x = torch.tensor(2., requires_grad=True); y = x ** 3; g, = torch.autograd.grad(y, x, create_graph=True); g.backward(); x.grad
+x = torch.tensor(2., requires_grad=True); y = x ** 3; y.backward(create_graph=True); x.grad
+<<<
+x = torch.tensor(1., requires_grad=True)
+with torch.no_grad():
+    y = x * 2
+print(y, y.requires_grad, torch.is_grad_enabled())
+with torch.enable_grad():
+    print(torch.is_grad_enabled())
+torch.set_grad_enabled(False)
+print((x * 2).requires_grad)
+torch.set_grad_enabled(True)
+with torch.inference_mode():
+    z = x * 2
+print(z.requires_grad)
+@torch.no_grad()
+def f(v):
+    return v * 2
+f(x)
+>>>
+<<<
+class Sq(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        return x ** 2
+    @staticmethod
+    def backward(ctx, g):
+        x, = ctx.saved_tensors
+        return 2 * x * g
+x = torch.tensor(3., requires_grad=True)
+y = Sq.apply(x)
+y.backward()
+(y, x.grad)
+>>>
+
+# ---- reductions and comparison
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.sum()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.sum(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.sum(1, keepdim=True)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.sum(dim=(0, 1))
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.sum(axis=0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.mean()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.mean(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.std()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.std(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.std(unbiased=False)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.var(0, unbiased=False)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); torch.std_mean(a)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); torch.var_mean(a, 0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.prod()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.prod(1)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.max()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.max(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.max(1).values
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.max(1).indices
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); v, i = a.min(0); (v, i)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.min(1, keepdim=True)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.argmax()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.argmax(1)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.argmin(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.amax(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.amin(1)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.aminmax()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.median()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.median(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.quantile(0.5)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.mode(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.norm()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.norm(dim=1)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.norm(p=1, dim=0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); torch.norm(a, p=2)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); torch.norm(a, 'fro')
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.cumsum(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.cumprod(1)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.cummax(1)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.cummin(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.diff()
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.sort(descending=True)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.sort(0)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.argsort(1, descending=True)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.topk(2)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.topk(1, dim=0, largest=False)
+a = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); a.kthvalue(1)
+a = torch.tensor([3, 1, 2, 3]); a.unique()
+a = torch.tensor([3, 1, 2, 3]); a.unique(return_counts=True)
+a = torch.tensor([3, 1, 2, 3]); a.unique(return_inverse=True)
+a = torch.tensor([3, 3, 1, 3]); a.unique_consecutive()
+a = torch.tensor([3, 1, 2, 3]); a.bincount()
+a = torch.tensor([0, 1, 1]); torch.bincount(a, minlength=4)
+a = torch.tensor([3, 1, 2, 3]); a.histc(bins=3, min=1, max=3) if False else a.float().histc(bins=3, min=1, max=3)
+torch.histogram(torch.tensor([1., 2., 1.]), bins=2)
+torch.bucketize(torch.tensor([1., 3.]), torch.tensor([0., 2., 4.]))
+torch.searchsorted(torch.tensor([1., 3.]), torch.tensor([2.]))
+torch.count_nonzero(torch.tensor([0, 1, 2]))
+torch.nonzero(torch.tensor([0, 1, 2]))
+torch.nonzero(torch.tensor([[0, 1], [1, 0]]))
+torch.nonzero(torch.tensor([0, 1]), as_tuple=True)
+torch.tensor([0, 1]).nonzero()
+torch.where(torch.tensor([0, 1]))
+torch.where(torch.tensor([True, False]), 1., 2.)
+torch.where(torch.tensor([True, False]), torch.tensor([1, 2]), torch.tensor([3, 4]))
+torch.any(torch.tensor([True, False]))
+torch.all(torch.tensor([True, False]))
+torch.tensor([[True, False]]).any(0)
+torch.tensor([[True, False]]).all(1)
+torch.equal(torch.ones(1), torch.ones(1))
+torch.equal(torch.ones(1), torch.ones(2))
+torch.allclose(torch.tensor([1.]), torch.tensor([1.0000001]))
+torch.isclose(torch.tensor([1.]), torch.tensor([1.1]))
+torch.isnan(torch.tensor([float('nan'), 1.]))
+torch.isinf(torch.tensor([float('inf'), 1.]))
+torch.isfinite(torch.tensor([float('inf'), 1.]))
+torch.nan_to_num(torch.tensor([float('nan'), float('inf')]))
+torch.nansum(torch.tensor([float('nan'), 1.]))
+torch.nanmean(torch.tensor([float('nan'), 1.]))
+torch.tensor([1, 2]) == torch.tensor([1, 3])
+torch.tensor([1, 2]) != 1
+torch.tensor([1, 2]) < 2
+torch.tensor([1., 2.]) >= 2
+torch.eq(torch.tensor([1]), 1)
+torch.ne(torch.tensor([1]), 1)
+torch.gt(torch.tensor([1]), 0)
+torch.ge(torch.tensor([1]), 1)
+torch.lt(torch.tensor([1]), 1)
+torch.le(torch.tensor([1]), 1)
+torch.tensor([1, 2]).eq(1).sum()
+torch.tensor([True, False]) & torch.tensor([True, True])
+torch.tensor([True, False]) | torch.tensor([False, False])
+torch.tensor([True, False]) ^ torch.tensor([True, True])
+~torch.tensor([True, False])
+torch.logical_and(torch.tensor([1, 0]), torch.tensor([1, 1]))
+torch.logical_or(torch.tensor([1, 0]), torch.tensor([0, 0]))
+torch.logical_not(torch.tensor([1, 0]))
+torch.logical_xor(torch.tensor([1, 0]), torch.tensor([1, 1]))
+torch.bitwise_and(torch.tensor([5]), torch.tensor([3]))
+torch.tensor([5]) << 1
+torch.tensor([5]) >> 1
+torch.maximum(torch.tensor([1, 5]), torch.tensor([3, 2]))
+torch.minimum(torch.tensor([1, 5]), torch.tensor([3, 2]))
+torch.max(torch.tensor([1, 5]), torch.tensor([3, 2]))
+torch.min(torch.tensor([1, 5]), torch.tensor([3, 2]))
+torch.max(torch.tensor([1, 5]))
+torch.max(torch.tensor([[1, 5]]), 1)
+torch.sum(torch.tensor([1, 2]))
+torch.mean(torch.tensor([1., 2.]))
+torch.mean(torch.tensor([1., 2.]), dim=0, keepdim=True)
+torch.prod(torch.tensor([2, 3]))
+torch.argmax(torch.tensor([1, 3, 2]))
+torch.argmin(torch.tensor([1, 3, 2]))
+torch.argsort(torch.tensor([3, 1, 2]))
+torch.sort(torch.tensor([3, 1, 2]))
+torch.topk(torch.tensor([3, 1, 2]), 2)
+torch.unique(torch.tensor([3, 1, 3]))
+torch.flip(torch.tensor([1, 2]), (0,))
+torch.flip(torch.tensor([1, 2]), [0])
+torch.fliplr(torch.tensor([[1, 2]]))
+torch.flipud(torch.tensor([[1], [2]]))
+torch.rot90(torch.tensor([[1, 2], [3, 4]]))
+torch.roll(torch.tensor([1, 2, 3]), 1)
+torch.roll(torch.tensor([[1, 2], [3, 4]]), 1, 0)
+torch.trace(torch.eye(2))
+torch.cross(torch.tensor([1., 0., 0.]), torch.tensor([0., 1., 0.]), dim=0)
+torch.outer(torch.tensor([1, 2]), torch.tensor([3, 4]))
+torch.inner(torch.tensor([1, 2]), torch.tensor([3, 4]))
+torch.dot(torch.tensor([1, 2]), torch.tensor([3, 4]))
+torch.mm(torch.eye(2), torch.eye(2))
+torch.mv(torch.eye(2), torch.ones(2))
+torch.bmm(torch.ones(1, 2, 2), torch.ones(1, 2, 2))
+torch.matmul(torch.ones(2), torch.ones(2))
+torch.kron(torch.eye(2), torch.ones(1, 2))
+torch.cov(torch.tensor([[1., 2., 3.], [1., 3., 2.]]))
+torch.corrcoef(torch.tensor([[1., 2., 3.], [1., 3., 2.]]))
+torch.lerp(torch.tensor([1.]), torch.tensor([3.]), 0.5)
+torch.cdist(torch.tensor([[0., 0.]]), torch.tensor([[3., 4.]]))
+torch.pdist(torch.tensor([[0., 0.], [3., 4.]]))
+torch.cosine_similarity(torch.tensor([[1., 0.]]), torch.tensor([[1., 1.]]))
+torch.clamp(torch.tensor([1, 5]), 2, 3)
+torch.clip(torch.tensor([1., 5.]), max=3)
+torch.remainder(torch.tensor([-1, 5]), 3)
+torch.fmod(torch.tensor([-1., 5.]), 3)
+torch.true_divide(torch.tensor([1]), 2)
+torch.floor_divide(torch.tensor([5]), 2)
+torch.div(torch.tensor([5]), 2)
+torch.div(torch.tensor([5]), 2, rounding_mode='floor')
+torch.div(torch.tensor([-5.]), 2, rounding_mode='trunc')
+torch.pow(torch.tensor([2]), 3)
+torch.pow(2, torch.tensor([3]))
+torch.exp(torch.tensor([0.]))
+torch.log(torch.tensor([1.]))
+torch.sqrt(torch.tensor([4.]))
+torch.square(torch.tensor([2]))
+torch.abs(torch.tensor([-1]))
+torch.absolute(torch.tensor([-1.]))
+torch.sign(torch.tensor([-2, 0]))
+torch.neg(torch.tensor([1]))
+torch.floor(torch.tensor([1.5]))
+torch.ceil(torch.tensor([1.5]))
+torch.round(torch.tensor([2.5, 3.5]))
+torch.round(torch.tensor([1.234]), decimals=1)
+torch.trunc(torch.tensor([-1.5]))
+torch.frac(torch.tensor([1.5]))
+torch.sin(torch.tensor([0.]))
+torch.cos(torch.tensor([0.]))
+torch.tan(torch.tensor([0.]))
+torch.atan2(torch.tensor([1.]), torch.tensor([1.]))
+torch.hypot(torch.tensor([3.]), torch.tensor([4.]))
+torch.sigmoid(torch.tensor([0.]))
+torch.relu(torch.tensor([-1.]))
+torch.softmax(torch.tensor([0., 0.]), 0)
+torch.log_softmax(torch.tensor([0., 0.]), 0)
+torch.tanh(torch.tensor([0.]))
+torch.special.expit(torch.tensor([0.]))
+torch.special.erf(torch.tensor([0.5]))
+torch.erf(torch.tensor([0.5]))
+torch.erfc(torch.tensor([0.5]))
+torch.lgamma(torch.tensor([3.]))
+torch.digamma(torch.tensor([3.]))
+torch.add(torch.tensor([1]), 2)
+torch.add(torch.tensor([1]), 2, alpha=3)
+torch.sub(torch.tensor([1]), 2)
+torch.mul(torch.tensor([1]), 2)
+torch.tensor([1]) + 1.5
+torch.tensor([1]) + torch.tensor([1.5])
+torch.tensor([1.]) + torch.tensor([1.], dtype=torch.float64)
+torch.tensor([1], dtype=torch.int32) + torch.tensor([1])
+torch.tensor([200], dtype=torch.uint8) + torch.tensor([100], dtype=torch.uint8)
+torch.tensor([200], dtype=torch.uint8) + 100
+torch.tensor([True]) + torch.tensor([True])
+torch.tensor([True]) + 1
+torch.tensor([1]) / 2
+torch.tensor([5]) // 2
+torch.tensor([5]) % 3
+torch.tensor([2]) ** 2
+torch.tensor([2]) ** 0.5
+torch.tensor([2]) ** -1 if False else 0
+2.0 * torch.tensor([1])
+torch.tensor(5) + 1
+torch.tensor(5.) * 2
+
+# ---- shapes
+a = torch.arange(6); a.view(2, 3)
+a = torch.arange(6); a.view(-1, 2)
+a = torch.arange(6); a.view((3, 2))
+a = torch.arange(6); a.reshape(2, -1)
+a = torch.arange(6); a.reshape((2, 3))
+a = torch.arange(6); torch.reshape(a, (2, 3))
+a = torch.arange(6); a.view(2, 3).view_as(torch.zeros(3, 2))
+a = torch.arange(6); a.reshape_as(torch.zeros(3, 2))
+a = torch.arange(6).view(2, 3); a.t()
+a = torch.arange(6).view(2, 3); a.transpose(0, 1)
+a = torch.arange(6).view(2, 3); torch.transpose(a, 0, 1)
+a = torch.arange(6).view(2, 3); a.permute(1, 0)
+a = torch.arange(6).view(2, 3); a.permute((1, 0))
+a = torch.arange(6).view(2, 3); torch.permute(a, (1, 0))
+a = torch.arange(6).view(2, 3); a.movedim(0, 1)
+a = torch.arange(6).view(2, 3); a.swapaxes(0, 1)
+a = torch.arange(6).view(2, 3); a.flatten()
+a = torch.arange(6).view(1, 2, 3); a.flatten(1)
+a = torch.arange(6).view(1, 2, 3); a.flatten(0, 1)
+a = torch.arange(6).view(1, 2, 3); torch.flatten(a, 1)
+a = torch.arange(6).view(1, 2, 3); a.unflatten(1, (1, 2)).shape
+a = torch.arange(6).view(1, 2, 3); a.squeeze()
+a = torch.arange(6).view(1, 2, 3); a.squeeze(0)
+a = torch.arange(6).view(1, 2, 3); a.squeeze(1)
+a = torch.arange(6).view(1, 2, 3); torch.squeeze(a)
+a = torch.arange(6).view(2, 3); a.unsqueeze(0).shape
+a = torch.arange(6).view(2, 3); a.unsqueeze(-1).shape
+a = torch.arange(6).view(2, 3); torch.unsqueeze(a, 1).shape
+a = torch.arange(6).view(2, 3); a[None].shape
+a = torch.arange(6).view(2, 3); a[:, None].shape
+a = torch.arange(6).view(2, 3); a[..., None].shape
+a = torch.arange(3).view(1, 3); a.expand(2, 3)
+a = torch.arange(3).view(1, 3); a.expand(2, -1)
+a = torch.arange(3).view(1, 3); a.expand_as(torch.zeros(2, 3))
+a = torch.arange(3).view(1, 3); a.repeat(2, 2)
+a = torch.arange(3); a.repeat(2)
+a = torch.arange(3); a.repeat_interleave(2)
+a = torch.arange(3); torch.repeat_interleave(a, 2)
+a = torch.arange(3); a.tile(2) if hasattr(a, 'tile') else torch.tile(a, (2,))
+a = torch.arange(4); a.chunk(2)
+a = torch.arange(5); a.chunk(2)
+a = torch.arange(5); torch.chunk(a, 3)
+a = torch.arange(5); a.split(2)
+a = torch.arange(5); a.split([1, 4])
+a = torch.arange(5); torch.split(a, 2)
+a = torch.arange(4).view(2, 2); a.unbind()
+a = torch.arange(4).view(2, 2); torch.unbind(a, 1)
+a = torch.arange(4); a.tensor_split(2)
+a = torch.arange(4); a.narrow(0, 1, 2)
+a = torch.arange(4).view(2, 2); a.diagonal()
+a = torch.arange(4).view(2, 2); a.diag()
+a = torch.arange(4).view(2, 2); a.trace()
+a = torch.arange(4).view(2, 2); a.tril()
+a = torch.arange(4).view(2, 2); a.triu()
+a = torch.arange(4).view(2, 2); a.flip(0)
+a = torch.arange(4).view(2, 2); a.flip((0, 1))
+a = torch.arange(4).view(2, 2); a.roll(1, 1)
+a = torch.arange(4).view(2, 2); a.rot90()
+a = torch.arange(4).view(2, 2); torch.cat([a, a])
+a = torch.arange(4).view(2, 2); torch.cat((a, a), 1)
+a = torch.arange(4).view(2, 2); torch.cat([a, a], dim=1)
+a = torch.arange(4).view(2, 2); torch.concat([a, a])
+a = torch.arange(4).view(2, 2); torch.stack([a, a]).shape
+a = torch.arange(4).view(2, 2); torch.stack([a, a], dim=2).shape
+a = torch.arange(4).view(2, 2); torch.hstack([a, a])
+a = torch.arange(4).view(2, 2); torch.vstack([a, a])
+a = torch.arange(4).view(2, 2); torch.dstack([a, a]).shape
+a = torch.arange(3); torch.column_stack([a, a])
+a = torch.arange(3); torch.row_stack([a, a])
+torch.atleast_1d(torch.tensor(1))
+torch.atleast_2d(torch.tensor([1, 2]))
+torch.atleast_3d(torch.tensor([1, 2])).shape
+torch.broadcast_to(torch.tensor([1, 2]), (2, 2))
+torch.broadcast_shapes((1, 2), (3, 1))
+torch.broadcast_tensors(torch.zeros(2), torch.zeros(3, 1))[0].shape
+a = torch.arange(12).view(3, 4); a[0]
+a = torch.arange(12).view(3, 4); a[0, 1]
+a = torch.arange(12).view(3, 4); a[0][1]
+a = torch.arange(12).view(3, 4); a[:, 1]
+a = torch.arange(12).view(3, 4); a[1:]
+a = torch.arange(12).view(3, 4); a[:2, 1:3]
+a = torch.arange(12).view(3, 4); a[-1]
+a = torch.arange(12).view(3, 4); a[::2]
+a = torch.arange(12).view(3, 4); a[..., 0]
+a = torch.arange(12).view(3, 4); a[[0, 2]]
+a = torch.arange(12).view(3, 4); a[[0, 2], [1, 3]]
+a = torch.arange(12).view(3, 4); a[torch.tensor([0, 2])]
+a = torch.arange(12).view(3, 4); a[a > 9]
+a = torch.arange(12).view(3, 4); a[torch.tensor(1)]
+a = torch.arange(12).view(3, 4); a[0] = 9; a
+a = torch.arange(12).view(3, 4); a[:, 1] = 0; a
+a = torch.arange(12).view(3, 4); a[a > 9] = -1; a
+a = torch.arange(12).view(3, 4); a[0, 0] = 2.7; a
+a = torch.arange(3.); a[0] = 5; a
+a = torch.arange(3.); b = a[1:]; b[0] = 9; a
+a = torch.arange(3.); b = a.view(3, 1); b[0] = 9; a
+a = torch.arange(3.); b = a.clone(); b[0] = 9; a
+a = torch.arange(4); a.index_select(0, torch.tensor([0, 2]))
+a = torch.arange(4); a.take(torch.tensor([0, 2]))
+a = torch.arange(4).view(2, 2); a.gather(1, torch.tensor([[1], [0]]))
+a = torch.arange(4).view(2, 2); torch.gather(a, 0, torch.tensor([[1, 0]]))
+a = torch.zeros(3); a.scatter(0, torch.tensor([0, 2]), 1.)
+a = torch.zeros(3); a.scatter(0, torch.tensor([0, 2]), torch.tensor([5., 6.]))
+a = torch.zeros(3); a.scatter_(0, torch.tensor([1]), 7.); a
+a = torch.zeros(3); a.scatter_add(0, torch.tensor([1, 1]), torch.tensor([1., 2.]))
+a = torch.zeros(3); a.index_fill(0, torch.tensor([1]), 3.)
+a = torch.zeros(3); a.index_add(0, torch.tensor([1]), torch.tensor([2.]))
+a = torch.zeros(3); a.index_copy(0, torch.tensor([1]), torch.tensor([2.]))
+a = torch.zeros(3); a.masked_fill(torch.tensor([True, False, True]), 1.)
+a = torch.zeros(3); a.masked_fill_(torch.tensor([True, False, True]), 1.); a
+a = torch.arange(3); a.masked_select(torch.tensor([True, False, True]))
+torch.masked_select(torch.arange(3), torch.tensor([True, False, True]))
+a = torch.zeros(3); a.fill_(2.); a
+a = torch.zeros(3); a.zero_(); a
+a = torch.zeros(3); a.add_(1); a
+a = torch.ones(3); a.sub_(1); a
+a = torch.ones(3); a.mul_(2); a
+a = torch.ones(3); a.div_(2); a
+a = torch.ones(3); a.pow_(2); a
+a = torch.ones(3); a.neg_(); a
+a = torch.ones(3); a.exp_(); a
+a = torch.ones(3); a.sqrt_(); a
+a = torch.ones(3); a.clamp_(0, .5); a
+a = torch.ones(3); a.copy_(torch.zeros(3)); a
+a = torch.ones(3); a += 1; a
+a = torch.ones(3); b = a; b += 1; a
+a = torch.ones(3); a *= 2; a
+a = torch.ones(3); a /= 2; a
+a = torch.ones(3); a -= 2; a
+a = torch.ones(3); a.add_(torch.ones(3), alpha=2); a
+a = torch.ones(1); a.add_(1).mul_(2)
+a = torch.arange(3); a /= 2
+a = torch.arange(3); a *= 1.5
+a = torch.arange(3); a.add_(1.5)
+a = torch.ones(2, 2); a.t_(); a
+a = torch.ones(1, 2); a.squeeze_(); a
+a = torch.ones(2); a.unsqueeze_(0); a
+a = torch.ones(2); a.resize_(1, 2).shape
+torch.ones(2).new_zeros(2, 2)
+torch.ones(2, dtype=torch.long).new_ones(2)
+torch.ones(2).new_full((2,), 5.)
+torch.ones(2).new_tensor([1, 2])
+torch.ones(2).new_empty(2).shape
+torch.ones(2).contiguous()
+torch.ones(2).is_contiguous()
+torch.ones(2, 2).t().is_contiguous()
+torch.ones(2).storage if False else 0
+torch.ones(2).dim_order() if False else 0
+torch.ones(2).pin_memory if False else 0
+torch.ones(2).share_memory_().is_shared()
