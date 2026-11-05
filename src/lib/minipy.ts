@@ -877,7 +877,7 @@ export type Value =
   | { k: 'ellipsis' }
   | { k: 'array'; a: NDArray }
   | { k: 'fn'; name: string; call: Fn; api?: ApiMeta; self?: NDArray; rebind?: (self: NDArray) => Fn }
-  | { k: 'type'; name: string; call: Fn; dtype?: DType; api?: ApiMeta; host?: HostClass }
+  | { k: 'type'; name: string; call: Fn; dtype?: DType; api?: ApiMeta; host?: HostClass; attrs?: Record<string, Value> }
   | { k: 'poly'; coef: number[]; domain: Interval; window: Interval }
   | { k: 'carray'; re: number[]; im: number[] }
   | { k: 'module'; name: string; attrs: Record<string, Value> }
@@ -963,6 +963,8 @@ export abstract class PyObj {
   exit?(h: Host): void
   /** np.asarray(x) — lets NumPy functions and plotting take this object */
   toArray?(): NDArray
+  /** np.name(…, this, …) handled by the object itself (a Series keeps its index); undefined = treat it as an array */
+  npCall?(name: string, args: Value[], kw: Kw, h: Host, impl: Fn): Value | undefined
   /** isinstance(x, T) for a library type named name */
   isa?(name: string): boolean
   /** a richer rendering for the output pane (a table, a figure …) when this is the cell's last value */
@@ -981,6 +983,8 @@ export interface Host {
   str(v: Value): string
   getAttr(obj: Value, name: string): Value
   module(name: string): Value
+  /** a variable visible at the current line, by name */
+  lookup(id: string): Value | undefined
   /** current line, and the source text of the call or operator being evaluated */
   readonly line: number
   readonly code: string
@@ -2750,6 +2754,7 @@ class Interp implements Host {
         break
       case 'type':
         if (name === '__name__') return str_(obj.name.split('.').pop()!)
+        if (obj.attrs?.[name]) return obj.attrs[name]
         break
       case 'range':
         if (name === 'start' || name === 'stop' || name === 'step') return int(obj[name])
@@ -2963,7 +2968,9 @@ class Interp implements Host {
   predicate(name: string, f: (x: number) => boolean): Value {
     return {
       k: 'fn', name, api: { name: `np.${name}`, kind: 'elementwise' },
-      call: keepMatrix((args) => {
+      call: keepMatrix((args, kw) => {
+        const viaObj = args[0].k === 'obj' ? args[0].o.npCall?.(name, args, kw, this, (a) => arr(NDArray.create(toArray(a[0]).values().map((x) => (f(x) ? 1 : 0)), toArray(a[0]).shape, 'bool'))) : undefined
+        if (viaObj) return viaObj
         const a = toArray(args[0])
         const res = NDArray.create(a.values().map((x) => (f(x) ? 1 : 0)), a.shape, 'bool')
         return args[0].k === 'array' || args[0].k === 'list' ? arr(res) : bool(res.values()[0] === 1)
@@ -2977,7 +2984,14 @@ class Interp implements Host {
     const api = (prefix: string) => (name: string, call: Fn, kind?: ApiKind, extra: Partial<ApiMeta> = {}): Value => ({
       k: 'fn', name, call: kind && KEEPS_MATRIX.includes(kind) && !DROPS_MATRIX.includes(name) ? keepMatrix(call) : call, api: kind ? { name: `${prefix}.${name}`, kind, ...extra } : undefined,
     })
-    const fn = api('np')
+    const npApi = api('np')
+    const fn: ReturnType<typeof api> = (name, call, kind, extra) => npApi(name, (args, kw) => {
+      for (const x of args) {
+        const res = x.k === 'obj' ? x.o.npCall?.(name, args, kw, this, call) : undefined
+        if (res) return res
+      }
+      return call(args, kw)
+    }, kind, extra)
     const asArr = (v: Value | undefined, name: string): NDArray => {
       if (!v) throw this.err('TypeError', `${name}() missing required argument`)
       return toArray(v)
@@ -3466,6 +3480,7 @@ class Interp implements Host {
       abs: fn('abs', (args) => {
         const x = args[0]
         if (x.k === 'array') return arr(NDArray.create(x.a.values().map(Math.abs), x.a.shape, x.a.dtype === 'bool' ? 'int64' : x.a.dtype))
+        if (x.k === 'obj') return this.call(this.getAttr(x, 'abs'), [])
         return x.k === 'float' ? float(Math.abs(x.v)) : int(Math.abs(numOf(x)))
       }),
       type: fn('type', (args) => (args[0].k === 'inst' ? args[0].cls : { k: 'type', name: typeName(args[0]), call: () => NONE })),
