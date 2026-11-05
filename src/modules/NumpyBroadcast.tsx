@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { AlertTriangle, Wand2, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { broadcastStrides, isRealCell, planBroadcast, shapeLabel, sourceIndex, suggestFix } from '../lib/broadcast'
+import { broadcastStrides, isRealCell, shapeLabel, sourceIndex } from '../lib/broadcast'
 import type { AxisStep } from '../lib/broadcast'
 import { MAX_DIM, MAX_NDIM, TONES, apply, opSign, size, valA, valB } from '../lib/broadcastDemo'
 import type { Op } from '../lib/broadcastDemo'
-import { PyInline } from '../components/PyCode'
 
-// --- The broadcasting lab's pieces: the shape editor, the axis-by-axis rule table, and the stretched grids (or the
-// error and its fix). The page that puts them in order is src/site/modules/NumpyBroadcasting.tsx. ---
+// --- The broadcasting lab's pieces: the shape editor, the axis-by-axis rule table, the operands and the stretched
+// grids. The page that puts them in order is src/site/modules/NumpyBroadcasting.tsx. ---
 
 // ---------- 形状编辑器 ----------
 
@@ -209,7 +208,8 @@ export const RuleTable = ({ a, b, steps, phase }: RuleTableProps) => {
 
 // ---------- the stretch: A and B drawn in the result's shape, ghost copies dashed, hover any cell ----------
 
-export const StretchView = ({ a, b, op, out }: { a: number[]; b: number[]; op: Op; out: number[] }) => {
+/** withResult = false stops at the stretch: the two operands in the result's shape, not yet combined */
+export const StretchView = ({ a, b, op, out, withResult = true }: { a: number[]; b: number[]; op: Op; out: number[]; withResult?: boolean }) => {
   const { t } = useTranslation()
   const [hover, setHover] = useState<number[] | null>(null)
   const [showGhost, setShowGhost] = useState(true)
@@ -257,12 +257,17 @@ export const StretchView = ({ a, b, op, out }: { a: number[]; b: number[]; op: O
         </label>
       </div>
       <div className="overflow-x-auto">
-        <div className="mx-auto flex w-max items-start justify-center gap-3 py-1">
+        {/* a narrow panel moves the result to its own row rather than cutting it off */}
+        <div className="flex flex-wrap items-start justify-center gap-3 py-1">
           <Grid title={<><b className={TONES.A.text}>A</b> {shapeLabel(a)} → {shapeLabel(out)}</>} shape={out} cell={operandCell('A', a)} onHover={setHover} />
           <OpSign>{sign}</OpSign>
           <Grid title={<><b className={TONES.B.text}>B</b> {shapeLabel(b)} → {shapeLabel(out)}</>} shape={out} cell={operandCell('B', b)} onHover={setHover} />
-          <OpSign>=</OpSign>
-          <Grid title={<><b className={TONES.R.text}>A {sign} B</b> {shapeLabel(out)}</>} shape={out} cell={resultCell} onHover={setHover} />
+          {withResult && (
+            <div className="flex items-start gap-3">
+              <OpSign>=</OpSign>
+              <Grid title={<><b className={TONES.R.text}>A {sign} B</b> {shapeLabel(out)}</>} shape={out} cell={resultCell} onHover={setHover} />
+            </div>
+          )}
         </div>
       </div>
       <div className="min-h-9 rounded-lg border border-gray-200 bg-white px-3 py-2 text-center font-mono text-sm" aria-live="polite">
@@ -280,40 +285,15 @@ export const StretchView = ({ a, b, op, out }: { a: number[]; b: number[]; op: O
   )
 }
 
-// ---------- the failure: which axis clashes, the operands as they are, and the reshape that fixes it ----------
+// ---------- the two operands as they are ----------
 
-export const FailView = ({ a, b, op, onFix }: { a: number[]; b: number[]; op: Op; onFix: (a: number[], b: number[]) => void }) => {
-  const { t } = useTranslation()
-  const plan = planBroadcast(a, b)
-  const fix = suggestFix(a, b)
-  const bad = plan.steps.find((s) => s.verdict === 'mismatch')!
+export const InputView = ({ a, b, op }: { a: number[]; b: number[]; op: Op }) => {
   const plainCell = (name: 'A' | 'B', shape: number[]) => (idx: number[]): CellInfo => ({ cls: TONES[name].real, text: String(name === 'A' ? valA(idx, shape) : valB(idx, shape)) })
   return (
-    <div className="space-y-4">
-      <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-        <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-        <div className="space-y-1">
-          <div className="font-bold">{t('numpy_module.broadcast.error_title')}</div>
-          <div>{t('numpy_module.broadcast.error_axis', { axis: bad.axis, a: bad.a, b: bad.b })}</div>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-start justify-center gap-6">
-        <Grid title={<><b className={TONES.A.text}>A</b> {shapeLabel(a)}</>} shape={a} cell={plainCell('A', a)} />
-        <OpSign>{opSign(op)}</OpSign>
-        <Grid title={<><b className={TONES.B.text}>B</b> {shapeLabel(b)}</>} shape={b} cell={plainCell('B', b)} />
-      </div>
-      {fix && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-emerald-200 bg-white p-3">
-          <Wand2 size={16} className="text-emerald-600" />
-          <span className="text-sm text-gray-700">
-            {t('numpy_module.broadcast.fix', { from: shapeLabel(fix.side === 'A' ? a : b), to: shapeLabel(fix.shape) })}{' '}
-            <PyInline tone="light" code={fix.code} className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs" />
-          </span>
-          <button type="button" onClick={() => (fix.side === 'A' ? onFix(fix.shape, b) : onFix(a, fix.shape))} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500">
-            {t('numpy_module.broadcast.fix_btn')}
-          </button>
-        </div>
-      )}
+    <div className="flex flex-wrap items-start justify-center gap-6 py-2">
+      <Grid title={<><b className={TONES.A.text}>A</b> {shapeLabel(a)}</>} shape={a} cell={plainCell('A', a)} />
+      <OpSign>{opSign(op)}</OpSign>
+      <Grid title={<><b className={TONES.B.text}>B</b> {shapeLabel(b)}</>} shape={b} cell={plainCell('B', b)} />
     </div>
   )
 }

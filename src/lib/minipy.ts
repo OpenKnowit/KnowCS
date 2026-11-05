@@ -3391,6 +3391,9 @@ class Interp implements Host {
       logical_and: logical('logical_and', (x, y) => x & y),
       logical_or: logical('logical_or', (x, y) => x | y),
       logical_not: fn('logical_not', (args) => arr(NDArray.create(asArr(args[0], 'logical_not').values().map((x) => (x ? 0 : 1)), asArr(args[0], 'logical_not').shape, 'bool')), 'elementwise'),
+      shape: fn('shape', (args) => tuple(toArray(args[0]).shape.map(int)), 'info'),
+      ndim: fn('ndim', (args) => int(toArray(args[0]).ndim), 'info'),
+      size: fn('size', (args) => int(toArray(args[0]).size), 'info'),
       // ---- constants & dtypes
       newaxis: NONE,
       nan: float(NaN),

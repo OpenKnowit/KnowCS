@@ -11,8 +11,9 @@ interface Quiz {
   on: boolean
   get: (key: string) => string
   set: (key: string, value: string) => void
+  toggle: () => void
 }
-const QuizCtx = createContext<Quiz>({ on: false, get: () => '', set: () => {} })
+const QuizCtx = createContext<Quiz>({ on: false, get: () => '', set: () => {}, toggle: () => {} })
 
 /**
  * A table cell holding an answer. With "Quiz me" on it becomes an input that is graded on blur.
@@ -186,7 +187,8 @@ function LabsDrawer({ current, onClose }: { current: ModuleId; onClose: () => vo
 const ICON_BTN = 'grid h-9 w-9 shrink-0 place-items-center rounded-[9px] border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900'
 
 /** Sticky bar under the site header: ☰ (all labs), lecture + title, extra buttons, prev / next. */
-export function PageBar({ id, extra }: { id: ModuleId; extra?: ReactNode }) {
+/** bare: just the row, for a page that places it inside its own panel */
+export function PageBar({ id, extra, bare = false }: { id: ModuleId; extra?: ReactNode; bare?: boolean }) {
   const { t } = useTranslation()
   const [drawer, setDrawer] = useState(false)
   const idx = MODULES.findIndex((m) => m.id === id)
@@ -207,8 +209,8 @@ export function PageBar({ id, extra }: { id: ModuleId; extra?: ReactNode }) {
     )
   return (
     <>
-      <div className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="flex items-center gap-3.5 px-4 py-2.5 sm:px-6">
+      <div className={bare ? '' : 'sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur'}>
+        <div className={bare ? 'flex items-center gap-2' : 'flex items-center gap-3.5 px-4 py-2.5 sm:px-6'}>
           <button type="button" onClick={() => setDrawer(true)} className={ICON_BTN} aria-label={t('site.ui.open_labs')} aria-expanded={drawer} aria-controls="labs-drawer">
             <Menu size={18} aria-hidden />
           </button>
@@ -216,14 +218,16 @@ export function PageBar({ id, extra }: { id: ModuleId; extra?: ReactNode }) {
             <a href={`/#lecture-${mod.lec}`} className="block truncate text-[11px] font-bold uppercase tracking-[0.06em] text-blue-600 hover:underline">
               {t('site.lecture_short', { n: mod.lec })} · {t(`site.lectures.${mod.lec}`)}
             </a>
-            <h1 className="truncate text-[19px] font-extrabold tracking-tight text-slate-900">{t(`site.modules.${id}.title`)}</h1>
+            <h1 className={`truncate font-extrabold tracking-tight text-slate-900 ${bare ? 'text-[17px]' : 'text-[19px]'}`}>{t(`site.modules.${id}.title`)}</h1>
           </div>
           {extra}
-          <div className="flex items-center gap-2.5">
+          <div className={`flex items-center ${bare ? 'gap-1.5' : 'gap-2.5'}`}>
             {pager(prev, 'prev')}
-            <span className="hidden font-mono text-xs font-semibold text-slate-500 sm:inline" aria-label={t('site.ui.position', { n: idx + 1, total: MODULES.length })}>
-              {idx + 1} / {MODULES.length}
-            </span>
+            {!bare && (
+              <span className="hidden font-mono text-xs font-semibold text-slate-500 sm:inline" aria-label={t('site.ui.position', { n: idx + 1, total: MODULES.length })}>
+                {idx + 1} / {MODULES.length}
+              </span>
+            )}
             {pager(next, 'next')}
           </div>
         </div>
@@ -233,29 +237,39 @@ export function PageBar({ id, extra }: { id: ModuleId; extra?: ReactNode }) {
   )
 }
 
-export function LabPage({ id, quiz = false, children }: { id: ModuleId; quiz?: boolean; children: ReactNode }) {
+/** the "Quiz me" switch for the answer cells inside the page */
+export function QuizToggle() {
   const { t } = useTranslation()
-  const [quizOn, setQuizOn] = useState(false)
-  const [answers, setAnswers] = useState<Record<string, string>>({})
-  const ctx = useMemo<Quiz>(() => ({ on: quizOn, get: (k) => answers[k] ?? '', set: (k, v) => setAnswers((a) => ({ ...a, [k]: v })) }), [quizOn, answers])
-  useEffect(() => recordVisit(id), [id])
-  const toggle = quiz ? (
+  const quiz = useContext(QuizCtx)
+  return (
     <button
       type="button"
-      onClick={() => setQuizOn((q) => !q)}
-      aria-pressed={quizOn}
+      onClick={quiz.toggle}
+      aria-pressed={quiz.on}
       title={t('site.ui.quiz_hint')}
-      className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-[13px] font-semibold ${quizOn ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'}`}
+      className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-[13px] font-semibold ${quiz.on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}
     >
       ✎<span className="hidden sm:inline"> {t('site.ui.quiz')}</span>
     </button>
-  ) : undefined
+  )
+}
+
+/** dashboard: the page lays out its own screen, title included (PageBar bare) */
+export function LabPage({ id, quiz = false, dashboard = false, children }: { id: ModuleId; quiz?: boolean; dashboard?: boolean; children: ReactNode }) {
+  const [quizOn, setQuizOn] = useState(false)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const ctx = useMemo<Quiz>(() => ({ on: quizOn, get: (k) => answers[k] ?? '', set: (k, v) => setAnswers((a) => ({ ...a, [k]: v })), toggle: () => setQuizOn((q) => !q) }), [quizOn, answers])
+  useEffect(() => recordVisit(id), [id])
   return (
     <QuizCtx.Provider value={ctx}>
-      <PageBar id={id} extra={toggle} />
-      <main className="px-4 pb-10 pt-5 sm:px-6">
-        {children}
-      </main>
+      {dashboard ? (
+        children
+      ) : (
+        <>
+          <PageBar id={id} extra={quiz ? <QuizToggle /> : undefined} />
+          <main className="px-4 pb-10 pt-5 sm:px-6">{children}</main>
+        </>
+      )}
     </QuizCtx.Provider>
   )
 }

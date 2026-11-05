@@ -2031,37 +2031,138 @@
       "cnn_needs_flatten": "Dense expects a flat vector — add Flatten first."
     },
     "bc": {
-      "shapes": "Shapes",
-      "idea": "When two arrays have different shapes, NumPy stretches every length-1 axis to the other side’s length (without copying any data), then works element by element. Whether the shapes fit is decided one axis at a time:",
-      "rule_1": "right-align the shapes; a missing axis counts as 1",
-      "rule_2": "from the right, each pair of lengths must be:",
-      "rule_eq": "equal",
-      "rule_one": "or one of them 1",
-      "rule_bad": "anything else is an error",
-      "check": "Check {{a}} and {{b}}, axis by axis",
-      "stretch_title": "See the stretch → {{shape}}",
-      "stretch_sub": "hover a result cell to see which two numbers made it",
-      "fail_title": "These shapes do not broadcast",
-      "quiz_title": "Exam drill: which shape comes out?",
-      "quiz_lead": "For each pair, write the result shape, or “error” if the shapes do not broadcast. Turn on “Quiz me” to hide the answers.",
-      "quiz_result": "A + B",
-      "check_it": "check",
-      "pit_try": "Try (3,) + (3, 1)",
-      "mismatch_try": "Try (3, 4) + (3,)",
-      "pw_title": "Pairwise distances, one line at a time",
-      "pw_sub": "the classic exam question (Midterm 2022 Spring Q2(c)): every test point against every training point, no loop",
-      "pw_code": "click a line, or step with ‹ ›",
-      "pw_oneliner": "All of it in one line:",
+      "try": "Try it",
+      "run": "Run",
+      "back": "Back to the first screen to run",
+      "to_notes": "Concept, APIs, mechanism and the exam",
+      "group_basic": "Basics",
+      "group_course": "In the course",
+      "group_exam": "Exam",
+      "code": "Code",
+      "code_hint": "synced with the left · click a line",
+      "syntax": "Same thing, other spellings: add a length-1 axis",
+      "resize_code": "Resize the code and the visual",
+      "resize_output": "Resize the output",
+      "hide_output": "Hide the output",
+      "show_output": "Show the output",
+      "step_rail": "Steps",
+      "steps": {
+        "input": "Input shapes",
+        "target": "Target shape",
+        "expand": "Expansion",
+        "result": "Result"
+      },
+      "step_note": {
+        "input": "The two arrays as they are: A in blue, B in orange.",
+        "target": "Line the shapes up on the right and compare axis by axis, right to left, to get the target shape.",
+        "expand": "Length-1 axes expand along the dashed cells to {{shape}}. Dashed cells are virtual copies; no data is duplicated.",
+        "result": "After the expansion the operation runs element by element, giving {{shape}}. Hover a cell to see which two numbers made it."
+      },
+      "help": {
+        "title": "Helper: what to construct",
+        "none": "Nothing to construct: these shapes already work as they are.",
+        "make": "Turn {{name}} from {{from}} into {{to}}:",
+        "pad": "{{name}} has fewer axes, so it gets 1s on the left when lined up: {{from}} → {{to}}.",
+        "then": "Then just write {{code}}. Broadcasting happens by itself.",
+        "clash": "Axis {{axis}} clashes: {{a}} and {{b}} are not equal, and neither is 1.",
+        "no_fix": "Adding one axis will not fix this. Make the clashing axis equal or 1, for example by picking other shapes above."
+      },
+      "pw_title": "Line by line: pairwise distances",
       "pw_step": [
-        "X_test[:, None, :] adds a length-1 axis in the middle: (2, 2) → (2, 1, 2). Each test point now sits in its own block, waiting to be paired with every training point.",
-        "X_train[None, :, :] adds a length-1 axis in front: (4, 2) → (1, 4, 2). All training points now lie in one block.",
-        "The broadcast: (2, 1, 2) − (1, 4, 2). Axis −1: 2 and 2, equal. Axis −2: 1 and 4, A is stretched. Axis −3: 2 and 1, B is stretched. The result (2, 4, 2) holds every test point minus every training point. Hover a result cell to see its two sources.",
-        "Square every difference. The shape stays (2, 4, 2).",
-        "Sum over the last axis, the two coordinates: (2, 4, 2) → (2, 4). D²[i, j] is the squared distance from test point i to training point j.",
+        "This line inserts a length-1 axis in the middle: (2, 2) → (2, 1, 2). Each test point gets its own block, ready to pair with every training point.",
+        "This line inserts a length-1 axis at the front: (4, 2) → (1, 4, 2). All the training points go in one block.",
+        "Broadcast: (2, 1, 2) − (1, 4, 2). Axis −1: 2 and 2, equal. Axis −2: 1 and 4, stretch A. Axis −3: 2 and 1, stretch B. The result (2, 4, 2) is every test point minus every training point. Hover a result cell to see which two numbers made it.",
+        "Square each difference; the shape stays (2, 4, 2).",
+        "Sum along the last axis (the two coordinates): (2, 4, 2) → (2, 4). D²[i, j] is the squared distance from test point i to training point j.",
         "The square root gives the distance matrix D, still (2, 4): one row per test point, one column per training point.",
-        "argsort along axis 1 orders each row’s training points from nearest to farthest (it returns column indices, not distances).",
-        "[:, :2] keeps the first two columns: the two nearest training points of each test point, which is what KNN with K = 2 votes with."
-      ]
+        "argsort along axis 1 orders each row's training points from near to far (it returns column indices, not distances).",
+        "[:, :2] keeps the first two columns: each test point's two nearest training points, the two that vote in KNN with K = 2."
+      ],
+      "papers": {
+        "pairwise": {
+          "title": "Pairwise distances (2022 Spring midterm Q2(c))",
+          "note": "Without loops, the distance from every test point to every training point. Line by line."
+        },
+        "e23s_i": {
+          "title": "2023 Spring midterm (b)(i)",
+          "note": "(4, 2) and (2,): they broadcast. The paper has B / A."
+        },
+        "e23s_ii": {
+          "title": "2023 Spring midterm (b)(ii)",
+          "note": "(4, 3) + (4,): the answer is Error."
+        },
+        "e23s_iii": {
+          "title": "2023 Spring midterm (b)(iii)",
+          "note": "A[:, np.newaxis] + B: (4, 1) + (3,) → (4, 3)."
+        },
+        "e24s_x": {
+          "title": "2024 Spring midterm Q2(a)(x)",
+          "note": "C / B, (3, 2, 4) and (3, 2): the answer is Error."
+        },
+        "e24s_xi": {
+          "title": "2024 Spring midterm Q2(a)(xi)",
+          "note": "C / B[..., np.newaxis]: (3, 2, 4) and (3, 2, 1) work."
+        }
+      },
+      "concept": {
+        "title": "Concept and why",
+        "p1": "<b>Broadcasting</b> solves one problem: it lets arrays with different shapes, whose operation could still make sense, be computed together.",
+        "p2": "It is how NumPy automatically reconciles arrays of different shapes during element-wise operations. When the shapes meet the broadcasting rules, NumPy treats missing axes and axes of length <c>1</c> as expanded to the matching size, then operates on the corresponding elements.",
+        "why": "Why",
+        "why_1": "Fast, convenient computation with fewer Python loops",
+        "why_2": "Saves memory by not storing the same data repeatedly",
+        "why_3": "Array code reads naturally and stays short",
+        "how": "How to write it",
+        "how_p": "<b>Broadcasting has no command of its own.</b> Write <c>a + b</c> or <c>a * b</c> and it happens by itself. Your job is to <b>adjust the shapes so the axes that should repeat have length <c>1</c>.</b>"
+      },
+      "api": {
+        "title": "Four APIs",
+        "lead": "These four are the usual ways to build the axes. <b><c>None</c>, <c>np.newaxis</c> and <c>np.expand_dims</c> all add an axis of length <c>1</c>; <c>reshape</c> can rearrange the whole shape.</b>",
+        "method": "Method",
+        "row": "As a row",
+        "col": "As a column",
+        "base": "Here <c>a = np.array([10, 20, 30])</c>, with shape <c>(3,)</c>.",
+        "none_t": "1. None and np.newaxis: exactly the same",
+        "none_p": "In fact <c>np.newaxis is None</c> is True. They are used in indexing: <b>wherever you write one, a length-<c>1</c> axis is inserted there.</b> <c>None</c> is short; <c>np.newaxis</c> says more directly that an axis is being added.",
+        "expand_t": "2. expand_dims: name the position in a function call",
+        "expand_p": "<c>axis</c> is <b>where the new axis sits in the result</b>, and <c>axis=-1</c> means last. The function form is handy when the position is in a variable: <c>np.expand_dims(a, axis=k)</c>.",
+        "reshape_t": "3. reshape: rearrange the whole shape",
+        "reshape_p": "It can add length-<c>1</c> axes and also merge or split axes, as long as <b>the total number of elements stays the same</b>. One <c>-1</c> works out a size for you.",
+        "memory": "On memory: the first three return views that share the data; <c>reshape</c> returns a view when it can and copies when it must.",
+        "pick": "<b>To add just one axis for broadcasting, the usual choice is <c>a[:, None]</c> or <c>a[None, :]</c>; to reorganise the whole shape, use <c>reshape</c>.</b>"
+      },
+      "mech": {
+        "title": "Mechanism",
+        "rule": "The rule: <b>line up the two shapes on the right, then compare axis by axis.</b> A pair of axes is compatible if any of these holds:",
+        "cond_1": "the two numbers are equal;",
+        "cond_2": "one of them is <c>1</c>;",
+        "cond_3": "one side has no such axis, which counts as <c>1</c>.",
+        "then": "When compatible, a <c>1</c> expands to the other side's size. <b>Every axis must be compatible for broadcasting to work.</b>",
+        "padded": "B padded",
+        "result": "Result",
+        "ex1": "Right to left: 4 and 4 are equal, compatible; 3 and 1, the 1 can expand to 3, compatible.",
+        "ex2": "Axis by axis: 4 and 1, 1 and 3, 2 and 1, all compatible.",
+        "ex3": "This pair fails: the rightmost 4 and 3 are not equal and neither is <c>1</c>, so it raises an error.",
+        "remember": "Remember: line up on the right; equal or 1 to match; missing axes count as 1."
+      },
+      "exam": {
+        "title": "How it is examined",
+        "result": "Result shape",
+        "lead": "Mostly in the midterm's Advanced Python question, and usually without naming broadcasting: the paper just says “no explicit loops” or hints at <c>np.expand_dims</c>.",
+        "t1": "1. Predict the output or the error (0.5–2 marks each)",
+        "t1_p": "Write out the shapes, line them up from the right, then work out the result. Practise below; write error when they cannot broadcast.",
+        "trap": "Trap: <c>(n,)</c> is not <c>(n, 1)</c>. <c>(3,) + (3, 1)</c> raises no error but gives 3×3.",
+        "t2": "2. Rewrite a loop as one line (6–9 marks, the most)",
+        "t2_p": "The formula changes each year: Euclidean distance, cosine similarity, Poincaré distance, Minkowski distance with KNN. The pattern barely does:",
+        "t3": "3. One small step inside a bigger question (1–4 marks)",
+        "t3_p": "For example the circular mask in the 2024 Spring final, <c>np.sqrt(x_dist**2 + y_dist[:, None]**2)</c>, or <c>np.abs(a[:, None] - a[None, :])</c> in the 2025 Fall midterm.",
+        "marks": "Where marks get lost",
+        "mark_1": "<c>axis</c> must be right: both 2023 marking schemes give no mark for a wrong axis.",
+        "mark_2": "Any way of adding the axis is fine: <c>expand_dims</c>, <c>None</c>, <c>newaxis</c> and <c>reshape</c> all count, but use <c>-1</c> rather than a fixed size in <c>reshape</c>.",
+        "mark_3": "If it asks for one line, write one line: in 2023 Fall a multi-line answer could get at most 4 of 8.",
+        "mark_4": "If loops are banned, do not use them: in the 2024 Spring final Q2(a) a correct result with explicit loops gets 1 mark.",
+        "mark_5": "Brackets count in predict-the-output questions: 2023 Spring gave no partial marks."
+      }
     }
   },
   "watch": {
