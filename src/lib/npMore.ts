@@ -42,7 +42,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     if (!v || v.k === 'none') return undefined
     if (v.k === 'dtype') return v.d
     if (v.k === 'type' && v.dtype) return v.dtype
-    if (v.k === 'str') return { int: 'int64', float: 'float64', bool: 'bool' }[v.v.replace(/\d+$/, '')] as DType | undefined
+    if (v.k === 'str') return v.v === 'uint8' ? 'uint8' : ({ int: 'int64', float: 'float64', bool: 'bool' }[v.v.replace(/\d+$/, '')] as DType | undefined)
     return undefined
   }
   const rows = (a: NDArray): Mat => {
@@ -1558,7 +1558,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   }
   const scalarKinds: Record<string, DType> = {
     int8: 'int64', int16: 'int64', intp: 'int64', intc: 'int64', int_: 'int64', short: 'int64', long: 'int64', longlong: 'int64', byte: 'int64',
-    ubyte: 'int64', ushort: 'int64', uint8: 'int64', uint16: 'int64', uint32: 'int64', uint64: 'int64', uint: 'int64', uintc: 'int64', uintp: 'int64', ulong: 'int64', ulonglong: 'int64',
+    ubyte: 'uint8', ushort: 'int64', uint8: 'uint8', uint16: 'int64', uint32: 'int64', uint64: 'int64', uint: 'int64', uintc: 'int64', uintp: 'int64', ulong: 'int64', ulonglong: 'int64',
     float16: 'float64', half: 'float64', single: 'float64', double: 'float64', longdouble: 'float64',
   }
   /** the width is honoured when converting; an array then holds its values as int64 */
@@ -1574,13 +1574,15 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     return { k: 'type', name: `numpy.${name}`, dtype: d, call: (args) => {
       const v = args[0] ?? int(0)
       if (v.k === 'array' || v.k === 'list') return mk(toArray(v).values().map((x) => fit(castValue(x, d))), toArray(v).shape, d)
+      // NumPy 2 refuses a Python int that does not fit, and wraps anything else
+      if (d === 'uint8' && v.k === 'int' && (v.v < 0 || v.v > 255)) throw h.err('OverflowError', `Python integer ${v.v} out of bounds for ${name}`)
       return scalar(fit(castValue(h.num(v), d)), d)
     } }
   }
   for (const [name, d] of Object.entries(scalarKinds)) np[name] ??= typeLike(name, d)
   // the abstract types are only asked about
   const FAMILY: Record<string, DType[]> = {
-    generic: ['int64', 'float64', 'bool'], number: ['int64', 'float64'], integer: ['int64'], signedinteger: ['int64'], unsignedinteger: [],
+    generic: ['int64', 'float64', 'bool', 'uint8'], number: ['int64', 'float64', 'uint8'], integer: ['int64', 'uint8'], signedinteger: ['int64'], unsignedinteger: ['uint8'],
     inexact: ['float64'], floating: ['float64'], complexfloating: [], flexible: [], character: [],
   }
   for (const name of Object.keys(FAMILY)) np[name] ??= { k: 'type', name: `numpy.${name}`, call: () => { throw h.err('TypeError', `cannot create 'numpy.${name}' instances`) } }
@@ -1659,7 +1661,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     })) })),
     promote_types: fn('promote_types', (args) => ({ k: 'dtype', d: commonDType(args.map((v) => NDArray.create([], [0], dtypeArg(v) ?? 'float64'))) })),
     can_cast: fn('can_cast', (args) => {
-      const rank: Record<DType, number> = { bool: 0, int64: 1, float64: 2 }
+      const rank: Record<DType, number> = { bool: 0, uint8: 1, int64: 2, float64: 3 }
       const from = dtypeArg(args[0]) ?? toArray(args[0]).dtype
       const to = dtypeArg(args[1]) ?? 'float64'
       return bool(rank[from] <= rank[to])

@@ -685,3 +685,22 @@ s = io.StringIO(); s.write('hi\n'); print('there', file=s); print(repr(s.getvalu
 s = io.StringIO('a\nb\n'); print(s.readline(), s.read(), list(io.StringIO('p\nq')), s.tell())
 os.remove('a.txt'); print(os.path.exists('a.txt'), sorted(os.listdir('.')))
 os.makedirs('dir/sub'); print(os.path.isdir('dir/sub'), os.path.isdir('zzz'), os.path.dirname('dir/sub/x.txt'))
+### numpy uint8
+import numpy as np
+a = np.array([250, 5], dtype=np.uint8)
+print(a, repr(a), a.dtype, a.dtype.name, a.itemsize, a.nbytes, a + 10, a * 2, a - 10, repr(a + 10), repr(-a), repr(~a), a / 2, repr(a // 2), repr(a % 3), a ** 2, repr(a & 3), repr(a | 1), repr(a ^ 1), a > 100, a == 5, a < 300)
+b = np.array([1.5, 2.5])
+print(repr(a + b), repr(a + 1.5), repr(a + np.array([1, 2])), repr(a + np.array([1, 2], dtype=np.uint8)), repr(np.array([True, False]) + a), a.sum(), a.mean(), a.max(), a.min(), a.prod(), repr(a.astype(int)), repr(a.astype(float)), repr(a.astype(bool)), a.std(), np.sum(a), np.cumsum(a), a.tolist(), a[0], int(a[0]) + 10, a[0:1], repr(a[0:1]))
+print(repr(np.array([1.7, -1.0, 300.5]).astype(np.uint8)), repr(np.array([1.7, 2.2]).astype('uint8')), repr(np.array([1, 2], dtype='uint8')), repr(np.uint8(np.array([256, -1]))), np.uint8(200), np.uint8(3.7), repr(np.zeros(2, dtype=np.uint8)), repr(np.ones((1, 2), np.uint8)), repr(np.full(2, 7, dtype=np.uint8)), repr(np.arange(2).astype(np.uint8)), repr(np.zeros_like(a)), repr(np.ones_like(a)), repr(np.empty((0,), dtype=np.uint8)))
+c = np.zeros((2, 2), dtype=np.uint8)
+c[0, 0] = 200; c[1] = 7
+print(c, repr(c), c.shape, repr(c.reshape(4)), repr(c.T), repr(c.copy()), repr(c.ravel()), repr(c.flatten()), repr(np.concatenate([c, c])), repr(np.vstack([c, c])[0]), repr(np.clip(c, 0, 100)), repr(np.where(c > 0, c, c)), repr(np.maximum(c, 1)), np.stack([c, c]).sum(axis=0).tolist(), repr(np.dot(c, c)), repr(c @ c), repr(np.expand_dims(c, 0)[0]), repr(np.flip(c, 0)), repr(np.transpose(c)), repr(np.unique(c)), repr(np.sort(c.ravel())), repr(np.mean(c, axis=0)), repr(c.max(axis=0)), c.sum(axis=0).tolist())
+c += 100; print(repr(c)); c //= 2; print(repr(c))
+print(repr(np.arange(30).astype(np.uint8)))
+print(repr(np.arange(24).reshape(2, 12).astype(np.uint8)))
+for bad in [lambda: np.array([300], dtype=np.uint8), lambda: a + 300, lambda: a - (-1), lambda: np.uint8(300), lambda: np.uint8(-1)]:
+    try:
+        print(bad())
+    except OverflowError as e:
+        print(type(e).__name__, e)
+print(np.issubdtype(a.dtype, np.integer), np.issubdtype(a.dtype, np.unsignedinteger), np.issubdtype(a.dtype, np.signedinteger), np.iinfo(a.dtype).max, np.can_cast(np.uint8, np.int64), np.can_cast(np.int64, np.uint8), np.result_type(a, np.array([1])), a.dtype == np.uint8, a.dtype == 'uint8', a.dtype == np.int64)

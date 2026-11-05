@@ -1130,6 +1130,12 @@ export type Value =
 
 export interface Frame { vars: Map<string, Value>; parent: Frame | null; isClass?: boolean; owner?: ClassValue | null; self?: Value; globals?: Set<string>; nonlocals?: Set<string> }
 
+/** the common type of two arrays; a Python int beside a uint8 array keeps it uint8 */
+const pairDType = (x: NDArray, y: NDArray): DType => {
+  const pythonInt = (t: NDArray) => t.ndim === 0 && t.dtype === 'int64'
+  return (x.dtype === 'uint8' && pythonInt(y)) || (y.dtype === 'uint8' && pythonInt(x)) ? 'uint8' : commonDType([x, y])
+}
+
 /** round() on a float looks at the exact binary value: round(2.675, 2) is 2.67, round(0.125, 2) is 0.12 */
 const roundExact = (x: number, nd: number): number => {
   if (!Number.isFinite(x) || Math.abs(x) >= 1e21 || nd > 20) return x
@@ -1425,7 +1431,7 @@ export const typeName = (v: Value): string => {
 }
 
 const fromScalar = (x: number, dtype: DType): Value =>
-  dtype === 'bool' ? bool(x !== 0) : dtype === 'int64' ? int(x) : float(x)
+  dtype === 'bool' ? bool(x !== 0) : dtype === 'float64' ? float(x) : int(x)
 
 type NumValue = Extract<Value, { k: 'int' | 'float' | 'bool' }>
 export const isNum = (v: Value): v is NumValue => v.k === 'int' || v.k === 'float' || v.k === 'bool'
@@ -1689,6 +1695,11 @@ export const toArray = (v0: Value, dtype?: DType): NDArray => {
   fill(v)
   if ((v.k === 'list' || v.k === 'tuple') && flat.length === 0) kind = 'float64'
   checkSize(shape)
+  // NumPy 2 refuses a Python int that does not fit a uint8; floats and arrays wrap instead
+  if (dtype === 'uint8' && kind !== 'float64') {
+    const bad = flat.find((x) => x < 0 || x > 255)
+    if (bad !== undefined) throw new PyError('OverflowError', `Python integer ${bad} out of bounds for uint8`)
+  }
   return NDArray.create(flat, shape, dtype ?? kind)
 }
 
@@ -2365,6 +2376,18 @@ class Interp implements Host {
   }
 
   binop(op: string, l: Value, r: Value): Value {
+    // a.dtype == np.uint8, a.dtype == 'float64', a.dtype == int
+    if ((op === '==' || op === '!=') && (l.k === 'dtype' || r.k === 'dtype')) {
+      const asDtype = (v: Value) => {
+        try {
+          return this.dtypeOf(v) ?? null
+        } catch {
+          return null
+        }
+      }
+      const same = asDtype(l) !== null && asDtype(l) === asDtype(r)
+      return bool(op === '==' ? same : !same)
+    }
     if (l.k === 'obj' || r.k === 'obj') {
       const res = (l.k === 'obj' ? l.o.binop?.(op, r, false, this) : undefined) ?? (r.k === 'obj' ? r.o.binop?.(op, l, true, this) : undefined)
       if (res) return res
@@ -3703,7 +3726,7 @@ class Interp implements Host {
     if (v.k === 'dtype') return v.d
     if (v.k === 'type' && v.dtype) return v.dtype
     if (v.k === 'str') {
-      const m: Record<string, DType> = { int: 'int64', int64: 'int64', int32: 'int64', float: 'float64', float64: 'float64', float32: 'float64', bool: 'bool' }
+      const m: Record<string, DType> = { uint8: 'uint8', int: 'int64', int64: 'int64', int32: 'int64', float: 'float64', float64: 'float64', float32: 'float64', bool: 'bool' }
       if (m[v.v]) return m[v.v]
       throw this.err('TypeError', `data type '${v.v}' not understood`)
     }
@@ -3875,7 +3898,7 @@ class Interp implements Host {
     const shape = broadcastShapes([a.shape, b.shape])
     const av = broadcastTo(a, shape).values()
     const bv = broadcastTo(b, shape).values()
-    const res = NDArray.create(av.map((x, i) => (Number.isNaN(x) || Number.isNaN(bv[i]) ? NaN : pick(x, bv[i]))), shape, commonDType([a, b]))
+    const res = NDArray.create(av.map((x, i) => (Number.isNaN(x) || Number.isNaN(bv[i]) ? NaN : pick(x, bv[i]))), shape, pairDType(a, b))
     return l.k === 'array' || r.k === 'array' || l.k === 'list' || r.k === 'list' ? arr(res) : fromScalar(res.values()[0], res.dtype)
   }
 
@@ -4174,8 +4197,8 @@ class Interp implements Host {
       switch (name) {
         case 'real': return obj
         case 'imag': return arr(NDArray.create(new Array<number>(a.size).fill(0), a.shape, a.dtype))
-        case 'itemsize': return int(a.dtype === 'bool' ? 1 : 8)
-        case 'nbytes': return int(a.size * (a.dtype === 'bool' ? 1 : 8))
+        case 'itemsize': return int(a.dtype === 'bool' || a.dtype === 'uint8' ? 1 : 8)
+        case 'nbytes': return int(a.size * (a.dtype === 'bool' || a.dtype === 'uint8' ? 1 : 8))
         case 'mT': return arr(transpose(a, a.shape.map((_, i) => (i === a.ndim - 1 ? a.ndim - 2 : i === a.ndim - 2 ? a.ndim - 1 : i))))
         case 'flat': return { k: 'obj', o: new FlatIter(a) }
         case 'flags': return { k: 'obj', o: new ArrayFlags(a) }
@@ -4861,7 +4884,7 @@ class Interp implements Host {
         const cv = broadcastTo(cond, shape).values()
         const xv = broadcastTo(x, shape).values()
         const yv = broadcastTo(y, shape).values()
-        const dtype: DType = x.dtype === 'float64' || y.dtype === 'float64' ? 'float64' : x.dtype === 'bool' && y.dtype === 'bool' ? 'bool' : 'int64'
+        const dtype = pairDType(x, y)
         return arr(NDArray.create(cv.map((v, i) => (v ? xv[i] : yv[i])), shape, dtype))
       }, 'elementwise'),
       nonzero: fn('nonzero', (args) => this.nonzero(asArr(args[0], 'nonzero')), 'info'),

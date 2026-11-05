@@ -217,7 +217,7 @@ const operand = (h: Host, v: Value): { t: TT; weak: boolean } | null => {
   return null
 }
 
-const ND_TO_T: Record<DType, TDType> = { float64: 'float64', int64: 'int64', bool: 'bool' }
+const ND_TO_T: Record<DType, TDType> = { float64: 'float64', int64: 'int64', bool: 'bool', uint8: 'uint8' }
 
 /** a NumPy array as a tensor; share = torch.from_numpy (same memory) */
 const fromNd = (a: NDArray, share: boolean): TT => (share ? new TT(a, ND_TO_T[a.dtype]) : TT.of(a.values(), a.shape, ND_TO_T[a.dtype]))
