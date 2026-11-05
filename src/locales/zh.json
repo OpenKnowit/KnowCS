@@ -942,8 +942,6 @@
       "view_grid": "网格",
       "view_chapters": "章节",
       "no_match": "没有和“{{q}}”匹配的实验。",
-      "labs_one": "{{count}} 个实验",
-      "labs_other": "{{count}} 个实验",
       "starred": "星标"
     },
     "playground": {

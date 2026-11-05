@@ -942,8 +942,6 @@
       "view_grid": "Grid",
       "view_chapters": "Chapters",
       "no_match": "No lab matches “{{q}}”.",
-      "labs_one": "{{count}} lab",
-      "labs_other": "{{count}} labs",
       "starred": "Starred"
     },
     "playground": {

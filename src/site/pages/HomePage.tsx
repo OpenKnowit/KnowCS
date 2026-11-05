@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LayoutGrid, List, Search, Star } from 'lucide-react'
-import { LECTURES, MODULES, STARRED, lectureScope, moduleUrl } from '../../lib/sitemap'
+import { LECTURES, MODULES, STARRED, moduleUrl } from '../../lib/sitemap'
 import type { ModuleInfo } from '../../lib/sitemap'
 import LabArt from '../LabArt'
 
@@ -120,9 +120,6 @@ export default function HomePage() {
                 <div className="md:w-[200px] md:shrink-0">
                   <div className="font-mono text-[28px] font-extrabold leading-none text-slate-300">{String(n).padStart(2, '0')}</div>
                   <h2 className="mt-2 text-base font-extrabold text-slate-900">{t(`site.lectures.${n}`)}</h2>
-                  <p className="mt-1 text-xs font-medium text-slate-500">
-                    {t(lectureScope(n) === 'mid' ? 'site.home.badge_mid' : 'site.home.badge_final')} · {t('site.home.labs', { count: labs.length })}
-                  </p>
                 </div>
                 <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                   {labs.map((m) => (
