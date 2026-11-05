@@ -943,7 +943,7 @@
       "view_chapters": "章節",
       "no_match": "沒有和“{{q}}”匹配的實驗。",
       "starred": "星標",
-      "disclaimer": "如有與課件不同的內容，以課件為準。部分頁面由 Opus 5.5 生成。"
+      "disclaimer": "如有與課件不同的內容，以課件為準。部分頁面由 Claude Opus 5.5 生成。"
     },
     "playground": {
       "title": "實驗場",

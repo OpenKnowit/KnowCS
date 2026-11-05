@@ -100,7 +100,6 @@ export default function HomePage() {
           <span className="sr-only">{t('site.home.find')}</span>
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('site.home.find_placeholder')} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-500" />
         </label>
-        <p className="order-last w-full text-xs leading-snug text-slate-500 xl:order-none xl:w-auto xl:min-w-0 xl:flex-1 xl:text-right">{t('site.home.disclaimer')}</p>
         <ViewSwitch view={view} onChange={setView} />
       </div>
 
@@ -131,6 +130,7 @@ export default function HomePage() {
             )
           })}
       </div>
+      <p className="mt-10 text-center text-xs leading-snug text-slate-500">{t('site.home.disclaimer')}</p>
     </main>
   )
 }
