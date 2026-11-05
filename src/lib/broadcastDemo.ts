@@ -145,31 +145,30 @@ export const TONES = {
   R: { real: 'bg-emerald-500 border-emerald-600 text-white', ghost: '', text: 'text-emerald-600', chip: 'bg-emerald-50 border-emerald-200' },
 }
 
-/** where broadcasting shows up in the course, each loadable into the lab with its real shapes (small sizes) */
-export const ML_USES: { id: string; code: string; shapes: string; a: number[]; b: number[]; op: Op }[] = [
-  { id: 'std', code: 'X - X.mean(axis=0)', shapes: '(n, d) − (d,)', a: [4, 3], b: [3], op: '-' },
-  { id: 'bias', code: 'X @ W + b', shapes: '(n, k) + (k,)', a: [4, 2], b: [2], op: '+' },
-  { id: 'knn', code: 'X[:, None, :] - Y[None, :, :]', shapes: '(n, 1, d) − (1, m, d) → (n, m, d)', a: [2, 1, 2], b: [1, 3, 2], op: '-' },
-  { id: 'gray', code: '(img * [0.299, 0.587, 0.114]).sum(axis=2)', shapes: '(H, W, 3) × (3,) → (H, W, 3)', a: [2, 2, 3], b: [3], op: '*' },
-]
-
-/** one side of a past-paper expression: its variable, the values the paper gives it, and any axis the paper adds */
-export interface ExamOperand {
+/** one side of a quoted expression: what to call it, the values the source gives it, and any axis the source adds */
+export interface QuotedOperand {
   name: string
+  /** the variable the axis goes on and what multiplies it, when this side is more than a variable */
+  variable?: string
+  prefix?: string
   shape: number[]
   values: number[]
   to?: number[]
-  /** the paper's own spelling of that added axis */
+  /** the source's own spelling of that added axis */
   paper?: string
 }
-/** a past-paper question, word for word: the code above the expression, then the expression's line */
-export interface ExamQuestion {
+/** code quoted word for word from a paper, the slides or a lab: the code above the expression, then its line */
+export interface QuotedCode {
   id: string
   setup: string
   line: string
+  /** the line again with {} for the expression, when a spelling or a fix rewrites it; print({}) if left out */
+  rewrite?: string
+  /** code after the expression's line */
+  after?: string
   op: Op
-  l: ExamOperand
-  r: ExamOperand
+  l: QuotedOperand
+  r: QuotedOperand
   syntax?: Syntax
 }
 const range = (n: number, from = 0) => Array.from({ length: n }, (_, i) => from + i)
@@ -187,10 +186,10 @@ C = np.array([[[0,1,2,3],
                [12,13,14,15]],
               [[16,17,18,19],
                [20,21,22,23]]])`
-const C_24S: ExamOperand = { name: 'C', shape: [3, 2, 4], values: range(24) }
-const B_24S: ExamOperand = { name: 'B', shape: [3, 2], values: new Array(6).fill(1) }
+const C_24S: QuotedOperand = { name: 'C', shape: [3, 2, 4], values: range(24) }
+const B_24S: QuotedOperand = { name: 'B', shape: [3, 2], values: new Array(6).fill(1) }
 
-export const EXAM_QUESTIONS: ExamQuestion[] = [
+export const EXAM_QUESTIONS: QuotedCode[] = [
   {
     id: 'e23s_i',
     setup: `import numpy as np
@@ -244,24 +243,124 @@ B = np.array([1, 2, 3])
   },
 ]
 
-/** a fix the learner applied to a question that cannot broadcast: this side gets this shape */
-export type ExamFix = { side: 'l' | 'r'; shape: number[] } | null
-export const examShape = (o: ExamOperand, side: 'l' | 'r', fix: ExamFix) => (fix?.side === side ? fix.shape : (o.to ?? o.shape))
+/** the slides and labs of the course. Page numbers: 2-advanced-python.pdf, COMP2211 Fall 2025 */
+const IMG = [200, 100, 0, 0, 100, 200, 50, 50, 50, 255, 255, 255]
+const LUMINANCE = [0.299, 0.587, 0.114]
+const GREY = [0, 3, 6, 9].map((i) => IMG[i] * LUMINANCE[0] + IMG[i + 1] * LUMINANCE[1] + IMG[i + 2] * LUMINANCE[2])
 
-/** the paper's code as printed; a spelling, an operator or a fix the learner changes rewrites only the expression's line */
-export const makeExam = (q: ExamQuestion, syntax: Syntax, op: Op, fix: ExamFix): Program => {
-  const a = examShape(q.l, 'l', fix)
-  const b = examShape(q.r, 'r', fix)
+export const COURSE_CODE: QuotedCode[] = [
+  {
+    id: 'c_xv',
+    setup: `import numpy as np
+# We will add the vector v to each row of the matrix x,
+# storing the result in the matrix y
+x = np.array([[1,2,3], [4,5,6], [7,8,9], [10, 11, 12]])
+v = np.array([1, 0, 1])`,
+    line: 'y = x + v  # Add v to each row of x using broadcasting',
+    rewrite: 'y = {}',
+    after: 'print(y)',
+    op: '+',
+    l: { name: 'x', shape: [4, 3], values: range(12, 1) },
+    r: { name: 'v', shape: [3], values: [1, 0, 1] },
+  },
+  {
+    id: 'c_rank',
+    setup: `import numpy as np
+A = np.array([1, 2, 3])
+print(A.ndim)  # Print 1
+print(A.shape) # Print (3,)
+B = np.array([[4, 4, 4],
+              [3, 3, 3]])
+print(B.ndim)  # Print 2
+print(B.shape) # Print (2,3)`,
+    line: 'print(A*B)',
+    op: '*',
+    l: { name: 'A', shape: [3], values: [1, 2, 3] },
+    r: { name: 'B', shape: [2, 3], values: [4, 4, 4, 3, 3, 3] },
+  },
+  {
+    id: 'c_scores',
+    setup: `import numpy as np
+scores = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
+score_mean = scores.mean(0)  # 0 here means the first dimension
+print(score_mean)`,
+    line: 'scores_centered = scores - score_mean',
+    rewrite: 'scores_centered = {}',
+    after: 'print(scores_centered)',
+    op: '-',
+    l: { name: 'scores', shape: [4, 3], values: range(12, 1) },
+    r: { name: 'score_mean', shape: [3], values: [5.5, 6.5, 7.5] },
+  },
+  {
+    id: 'c_lab1_open',
+    setup: `import numpy as np
+a = np.arange(4) * 10
+b = np.arange(1, 4)`,
+    line: 'a[:, None] + b',
+    rewrite: '{}',
+    op: '+',
+    l: { name: 'a', shape: [4], values: [0, 10, 20, 30], to: [4, 1], paper: 'a[:, None]' },
+    r: { name: 'b', shape: [3], values: [1, 2, 3] },
+    syntax: 'none',
+  },
+  {
+    id: 'c_lab1_ex',
+    setup: `import numpy as np
+a = np.arange(3)     # [0, 1, 2], shape (3,)
+b = np.array([1, 1, 1, 1, 1])   # shape (5,)`,
+    line: 'a.reshape(1, 3) * b.reshape(5, 1)',
+    rewrite: '{}',
+    op: '*',
+    l: { name: 'a', shape: [3], values: [0, 1, 2], to: [1, 3], paper: 'a.reshape(1, 3)' },
+    r: { name: 'b', shape: [5], values: [1, 1, 1, 1, 1], to: [5, 1], paper: 'b.reshape(5, 1)' },
+    syntax: 'reshape',
+  },
+  {
+    id: 'c_lab1_contrast',
+    setup: `import numpy as np
+# The lab reads a photo into img; here a 2×2 picture, so every value fits on screen
+img = np.array([[[200, 100, 0], [0, 100, 200]],
+                [[50, 50, 50], [255, 255, 255]]])
+luminance = np.array([0.299, 0.587, 0.114]) # Luminance coefficients
+grey_img = img @ luminance
+alpha = 0.5`,
+    line: 'new_img = alpha * grey_img[..., np.newaxis] + (1 - alpha) * img',
+    rewrite: 'new_img = {}',
+    after: 'print(new_img)',
+    op: '+',
+    l: { name: 'alpha * grey_img', variable: 'grey_img', prefix: 'alpha * ', shape: [2, 2], values: GREY.map((g) => 0.5 * g), to: [2, 2, 1], paper: 'grey_img[..., np.newaxis]' },
+    r: { name: '(1 - alpha) * img', variable: 'img', prefix: '(1 - alpha) * ', shape: [2, 2, 3], values: IMG.map((v) => 0.5 * v) },
+    syntax: 'newaxis',
+  },
+]
+
+/** a fix the learner applied to code that cannot broadcast: this side gets this shape */
+export type QuoteFix = { side: 'l' | 'r'; shape: number[] } | null
+export const quotedShape = (o: QuotedOperand, side: 'l' | 'r', fix: QuoteFix) => (fix?.side === side ? fix.shape : (o.to ?? o.shape))
+
+/** the source's code as printed; a spelling, an operator or a fix the learner changes rewrites only the expression's line */
+export const makeQuoted = (q: QuotedCode, syntax: Syntax, op: Op, fix: QuoteFix): Program & { expr: string } => {
+  const a = quotedShape(q.l, 'l', fix)
+  const b = quotedShape(q.r, 'r', fix)
   const asPrinted = !fix && op === q.op && (!q.syntax || syntax === q.syntax)
-  const expr = (o: ExamOperand, to: number[]) => (o.paper && syntax === q.syntax ? o.paper : (constructCode(o.name, to, syntax) ?? o.name))
+  const axis = (o: QuotedOperand, to: number[]) => {
+    const made = constructCode(o.variable ?? o.name, to, syntax)
+    return made && o.paper && syntax === q.syntax && !fix ? o.paper : made
+  }
+  const side = (o: QuotedOperand, to: number[]) => {
+    const e = `${o.prefix ?? ''}${axis(o, to) ?? o.variable ?? o.name}`
+    return o.prefix && (op === '*' || op === '/') ? `(${e})` : e
+  }
+  const expr = `${side(q.l, a)} ${op} ${side(q.r, b)}`
   const plan = planBroadcast(a, b)
-  const lines: ProgramLine[] = q.setup.split('\n').map((text) => ({ text, steps: text.startsWith('#') ? [] : text.startsWith('import') ? [] : [0] }))
-  lines.push({ text: asPrinted ? q.line : `print(${expr(q.l, a)} ${op} ${expr(q.r, b)})`, steps: plan.ok ? [1, 2, 3] : [1] })
+  const lines: ProgramLine[] = q.setup.split('\n').map((text) => ({ text, steps: text.startsWith('#') || text.startsWith('import') ? [] : [0] }))
+  lines.push({ text: asPrinted ? q.line : (q.rewrite ?? 'print({})').replace('{}', expr), steps: plan.ok ? [1, 2, 3] : [1] })
+  if (q.after) lines.push({ text: q.after, steps: plan.ok ? [3] : [1] })
   const constructs = ([[q.l, a], [q.r, b]] as const).flatMap(([o, to]) => {
-    const code = constructCode(o.name, to, syntax)
-    return code ? [{ name: o.name, from: o.shape, to, code: o.paper && syntax === q.syntax ? o.paper : code }] : []
+    const code = axis(o, to)
+    return code ? [{ name: o.variable ?? o.name, from: o.shape, to, code }] : []
   })
-  return { lines, code: lines.map((l) => l.text).join('\n'), constructs }
+  return { lines, code: lines.map((l) => l.text).join('\n'), constructs, expr }
 }
 
 /** the exam question: two shapes in, the result shape (or an error) out */

@@ -91,7 +91,7 @@ export const Grid = ({ title, shape, cell, onHover }: GridProps) => {
         {Array.from({ length: blocks }, (_, b) => (
           <div key={b}>
             {n === 3 && <div className="text-[10px] font-mono text-gray-400 mb-0.5">[{b}, :, :]</div>}
-            <div className="inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, 2.25rem)` }}>
+            <div className="inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(2.25rem, max-content))` }}>
               {Array.from({ length: rows * cols }, (_, i) => {
                 const r = Math.floor(i / cols)
                 const c = i % cols
@@ -103,7 +103,7 @@ export const Grid = ({ title, shape, cell, onHover }: GridProps) => {
                     key={i}
                     onMouseEnter={() => onHover?.(idx)}
                     onClick={() => onHover?.(idx)}
-                    className={`h-9 flex items-center justify-center rounded border font-mono text-[11px] transition-colors cursor-default ${info.cls} ${ring}`}
+                    className={`flex h-9 cursor-default items-center justify-center rounded border px-1 font-mono text-[11px] transition-colors ${info.cls} ${ring}`}
                   >
                     {info.text}
                   </div>

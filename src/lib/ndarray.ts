@@ -358,6 +358,11 @@ export const reduce = (a: NDArray, kind: ReduceKind, axis: number | null): NDArr
 
 export const dot = (a: NDArray, b: NDArray): NDArray | number => {
   if (a.ndim === 0 || b.ndim === 0) return binaryOp('*', a, b)
+  // N-D with a vector: a sum product along a's last axis, e.g. img @ luminance is (H, W, 3) @ (3,) → (H, W)
+  if (a.ndim > 2 && b.ndim === 1) {
+    const flat = dot(reshape(a, [-1, a.shape[a.ndim - 1]]), b) as NDArray
+    return reshape(flat, a.shape.slice(0, -1))
+  }
   const A = a.ndim === 1 ? reshape(a, [1, a.shape[0]]) : a
   const B = b.ndim === 1 ? reshape(b, [b.shape[0], 1]) : b
   if (A.ndim !== 2 || B.ndim !== 2) throw new PyError('NotImplementedError', 'dot/@ supports 1-D and 2-D arrays only in this sandbox')

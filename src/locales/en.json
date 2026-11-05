@@ -2102,6 +2102,30 @@
         "e24s_xi": {
           "title": "2024 Spring midterm Q2(a)(xi)",
           "note": "print(C / B[..., np.newaxis]). Answer: dividing by all ones leaves the values unchanged."
+        },
+        "c_xv": {
+          "title": "Add v to each row (Advanced Python slides p.84)",
+          "note": "y = x + v: (4, 3) + (3,), no loop."
+        },
+        "c_rank": {
+          "title": "Padding with 1 when ranks differ (slides p.87)",
+          "note": "print(A*B): (3,) gets a 1 on the left, then broadcasts with (2, 3)."
+        },
+        "c_scores": {
+          "title": "Centring a grade book (slides p.90)",
+          "note": "scores - score_mean: (4, 3) − (3,). X - X.mean(axis=0) in Lab 4's standardisation has the same shapes."
+        },
+        "c_lab1_open": {
+          "title": "Lab 1's opening example",
+          "note": "a[:, None] + b: (4, 1) + (3,) builds a table without a double loop."
+        },
+        "c_lab1_ex": {
+          "title": "Lab 1's exercise",
+          "note": "a.reshape(1, 3) * b.reshape(5, 1): (1, 3) × (5, 1) → (5, 3)."
+        },
+        "c_lab1_contrast": {
+          "title": "Lab 1 contrast adjustment (Task 2.2)",
+          "note": "The grey image gets an axis, then mixes with the colour image: (H, W, 1) + (H, W, 3). The lab reads a photo; here a 2×2 picture."
         }
       },
       "concept": {

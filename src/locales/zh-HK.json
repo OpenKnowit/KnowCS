@@ -2102,6 +2102,30 @@
         "e24s_xi": {
           "title": "2024 春期中 Q2(a)(xi)",
           "note": "print(C / B[..., np.newaxis])，答案：除以全 1，值不變。"
+        },
+        "c_xv": {
+          "title": "把 v 加到每一行（講義 Advanced Python p.84）",
+          "note": "y = x + v：(4, 3) + (3,)，不用循環。"
+        },
+        "c_rank": {
+          "title": "維數不同時補 1（講義 p.87）",
+          "note": "print(A*B)：(3,) 左邊補 1，再和 (2, 3) 廣播。"
+        },
+        "c_scores": {
+          "title": "成績表中心化（講義 p.90）",
+          "note": "scores - score_mean：(4, 3) − (3,)。Lab 4 標準化裏的 X - X.mean(axis=0) 也是這個形狀。"
+        },
+        "c_lab1_open": {
+          "title": "Lab 1 開頭的例子",
+          "note": "a[:, None] + b：(4, 1) + (3,)，不用雙重循環造出一張表。"
+        },
+        "c_lab1_ex": {
+          "title": "Lab 1 的練習",
+          "note": "a.reshape(1, 3) * b.reshape(5, 1)：(1, 3) × (5, 1) → (5, 3)。"
+        },
+        "c_lab1_contrast": {
+          "title": "Lab 1 調對比度（Task 2.2）",
+          "note": "灰度圖加一維，再和彩色圖混合：(H, W, 1) + (H, W, 3)。原題讀入照片，這裏換成 2×2 小圖。"
         }
       },
       "concept": {

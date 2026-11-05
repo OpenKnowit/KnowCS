@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { planBroadcast, shapeLabel, sourceIndex } from './broadcast'
-import { EXAM_QUESTIONS, SYNTAXES, apply, constructCode, examShape, flatOf, makeExam, makePairwise, makeProgram, valA, valB, withoutOnes } from './broadcastDemo'
+import { COURSE_CODE, EXAM_QUESTIONS, SYNTAXES, apply, constructCode, quotedShape, flatOf, makeQuoted, makePairwise, makeProgram, valA, valB, withoutOnes } from './broadcastDemo'
 import type { Op } from './broadcastDemo'
 import { runPython } from './minipy'
 
@@ -72,17 +72,17 @@ describe('the past-paper questions', () => {
   for (const q of EXAM_QUESTIONS) {
     const syntax = q.syntax ?? 'none'
     it(`${q.id} prints the paper's own line and gives NumPy's answer`, () => {
-      const p = makeExam(q, syntax, q.op, null)
+      const p = makeQuoted(q, syntax, q.op, null)
       expect(p.lines.at(-1)!.text).toBe(q.line)
       const r = runPython(p.code)
       expect(r.error ? r.error.type : r.stdout.trim()).toBe(REAL[q.id])
     })
     it(`${q.id}: the grids draw what its code computes, in every spelling`, () => {
-      const a = examShape(q.l, 'l', null)
-      const b = examShape(q.r, 'r', null)
+      const a = quotedShape(q.l, 'l', null)
+      const b = quotedShape(q.r, 'r', null)
       const plan = planBroadcast(a, b)
       for (const { id } of SYNTAXES) {
-        const r = runPython(makeExam(q, id, q.op, null).code.replace(/print\(\s*(.*?)\s*\)$/, 'print(np.array($1).ravel().tolist())'))
+        const r = runPython(makeQuoted(q, id, q.op, null).code.replace(/print\(\s*(.*?)\s*\)$/, 'print(np.array($1).ravel().tolist())'))
         if (!plan.ok) {
           expect(r.error?.type).toBe('ValueError')
           continue
@@ -100,8 +100,50 @@ describe('the past-paper questions', () => {
 
   it('keeps the data when a fix makes an impossible question work', () => {
     const q = EXAM_QUESTIONS.find((x) => x.id === 'e23s_ii')!
-    const p = makeExam(q, 'none', '+', { side: 'r', shape: [4, 1] })
+    const p = makeQuoted(q, 'none', '+', { side: 'r', shape: [4, 1] })
     expect(p.lines.at(-1)!.text).toBe('print(A + B[:, None])')
     expect(runPython(p.code).stdout).toContain('[10 10 10]')
   })
+})
+
+describe('the code quoted from the slides and labs', () => {
+  it('multiplies an N-D array by a vector the way Lab 1 needs', () => {
+    const r = runPython('import numpy as np\nimg = np.array([[[200, 100, 0], [0, 100, 200]], [[50, 50, 50], [255, 255, 255]]])\nprint((img @ np.array([1, 2, 3])).tolist())\nprint(np.dot(img, np.array([1, 2, 3])).shape)')
+    expect(r.error).toBeNull()
+    expect(r.stdout.trim()).toBe('[[400, 800], [300, 1530]]\n(2, 2)')
+  })
+
+  // real NumPy 2.2.6 on the same code; stdout, then the notebook's last value
+  const REAL: Record<string, string> = {
+    "c_xv": "[[ 2  2  4]\n [ 5  5  7]\n [ 8  8 10]\n [11 11 13]]",
+    "c_rank": "1\n(3,)\n2\n(2, 3)\n[[ 4  8 12]\n [ 3  6  9]]",
+    "c_scores": "[5.5 6.5 7.5]\n[[-4.5 -4.5 -4.5]\n [-1.5 -1.5 -1.5]\n [ 1.5  1.5  1.5]\n [ 4.5  4.5  4.5]]",
+    "c_lab1_open": "array([[ 1,  2,  3],\n       [11, 12, 13],\n       [21, 22, 23],\n       [31, 32, 33]])",
+    "c_lab1_ex": "array([[0, 1, 2],\n       [0, 1, 2],\n       [0, 1, 2],\n       [0, 1, 2],\n       [0, 1, 2]])",
+    "c_lab1_contrast": "[[[159.25 109.25  59.25]\n  [ 40.75  90.75 140.75]]\n\n [[ 50.    50.    50.  ]\n  [255.   255.   255.  ]]]"
+  }
+  for (const q of COURSE_CODE) {
+    const syntax = q.syntax ?? 'none'
+    it(`${q.id} is shown as printed and gives NumPy's answer`, () => {
+      const p = makeQuoted(q, syntax, q.op, null)
+      expect(p.lines.map((l) => l.text)).toContain(q.line)
+      const r = runPython(p.code)
+      expect(r.error).toBeNull()
+      expect([r.stdout.trim(), r.out].filter(Boolean).join('\n')).toBe(REAL[q.id])
+    })
+    it(`${q.id}: the grids draw what its code computes, in every spelling`, () => {
+      const a = quotedShape(q.l, 'l', null)
+      const b = quotedShape(q.r, 'r', null)
+      const plan = planBroadcast(a, b)
+      const cells = indices(plan.outShape!).map((i) => apply(q.op, q.l.values[flatOf(sourceIndex(i, a), a)], q.r.values[flatOf(sourceIndex(i, b), b)]))
+      for (const { id } of SYNTAXES) {
+        const p = makeQuoted(q, id, q.op, null)
+        const r = runPython(`${p.code}\nprint(np.array(${p.expr}).ravel().tolist())`)
+        expect(r.error).toBeNull()
+        const got: number[] = JSON.parse(r.stdout.trim().split('\n').at(-1)!)
+        expect(got).toHaveLength(cells.length)
+        got.forEach((v, i) => expect(v).toBeCloseTo(cells[i], 9))
+      }
+    })
+  }
 })

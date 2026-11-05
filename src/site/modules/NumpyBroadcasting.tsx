@@ -3,8 +3,8 @@ import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerE
 import { ArrowUp, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Eye, EyeOff, Play } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { planBroadcast, shapeLabel, suggestFix } from '../../lib/broadcast'
-import { BROADCAST_STEPS, EXAM_QUESTIONS, ML_USES, PRESETS, QUIZ, SYNTAXES, constructCode, examShape, makeExam, makePairwise, makeProgram, opSign, quizAnswer, withoutOnes } from '../../lib/broadcastDemo'
-import type { ExamFix, ExamQuestion, Op, Syntax } from '../../lib/broadcastDemo'
+import { BROADCAST_STEPS, COURSE_CODE, EXAM_QUESTIONS, PRESETS, QUIZ, SYNTAXES, constructCode, quotedShape, makeQuoted, makePairwise, makeProgram, opSign, quizAnswer, withoutOnes } from '../../lib/broadcastDemo'
+import type { QuoteFix, QuotedCode, Op, Syntax } from '../../lib/broadcastDemo'
 import { runPython } from '../../lib/minipy'
 import { InputView, RuleTable, ShapeEditor, StretchView } from '../../modules/NumpyBroadcast'
 import { CallView } from '../../modules/NpCallView'
@@ -19,7 +19,7 @@ import { Ans, LabPage, PageBar, QuizToggle, TableWrap } from '../ui'
 // L1 · NumPy broadcasting, two screens the page snaps between. The dashboard: shapes and what to construct on the left,
 // the program in the middle, the rule worked through on the right. The notes: concept, the four APIs, the mechanism, the exam.
 
-type Example = { id: string; title: string; note: string; a: number[]; b: number[]; op: Op; program?: boolean; exam?: ExamQuestion }
+type Example = { id: string; title: string; note: string; a: number[]; b: number[]; op: Op; program?: boolean; exam?: QuotedCode }
 
 const readNum = (key: string, fallback: number, min: number, max: number) => {
   try {
@@ -281,9 +281,9 @@ export default function NumpyBroadcasting() {
   const [syntax, setSyntax] = useState<Syntax>('none')
   /** the pairwise-distance program instead of the generated one */
   const [pairwise, setPairwise] = useState(false)
-  /** a past-paper question: its own code and data instead of the generated program */
-  const [exam, setExam] = useState<ExamQuestion | null>(null)
-  const [examFix, setExamFix] = useState<ExamFix>(null)
+  /** code quoted from a paper, the slides or a lab: its own code and data instead of the generated program */
+  const [exam, setExam] = useState<QuotedCode | null>(null)
+  const [quoteFix, setQuoteFix] = useState<QuoteFix>(null)
   const [step, setStep] = useState(3)
   const [pwStep, setPwStep] = useState(0)
   const [codeW, setCodeW] = useState(() => readNum(CODE_KEY, 35, 25, 65))
@@ -305,7 +305,7 @@ export default function NumpyBroadcasting() {
   const toNotes = () => notes.current?.scrollIntoView({ behavior: smooth(), block: 'start' })
 
   const plan = useMemo(() => planBroadcast(a, b), [a, b])
-  const program = useMemo(() => (pairwise ? makePairwise(syntax) : exam ? makeExam(exam, syntax, op, examFix) : makeProgram(a, b, op, syntax)), [pairwise, exam, examFix, a, b, op, syntax])
+  const program = useMemo(() => (pairwise ? makePairwise(syntax) : exam ? makeQuoted(exam, syntax, op, quoteFix) : makeProgram(a, b, op, syntax)), [pairwise, exam, quoteFix, a, b, op, syntax])
   const run = useMemo(() => runPython(program.code), [program.code])
   const traced = useMemo(() => (pairwise ? run.calls.filter((c) => c.line >= 4 && c.line <= 10) : []), [pairwise, run])
   // a clash stops at the rule: there is nothing to stretch
@@ -318,7 +318,7 @@ export default function NumpyBroadcasting() {
     setOp(nop)
     setPairwise(false)
     setExam(null)
-    setExamFix(null)
+    setQuoteFix(null)
     setStep(3)
   }
   const pickFrom = (na: number[], nb: number[], nop: Op) => {
@@ -328,11 +328,12 @@ export default function NumpyBroadcasting() {
 
   const groups = useMemo(() => {
     const basic: Example[] = PRESETS.map((p) => ({ ...p, title: t(`numpy_module.broadcast.preset.${p.id}`), note: t(`numpy_module.broadcast.story.${p.id}`) }))
-    const course: Example[] = ML_USES.filter((u) => u.id !== 'knn').map((u) => ({ id: `use-${u.id}`, a: u.a, b: u.b, op: u.op, title: t(`numpy_module.broadcast.cards.ml_${u.id}`), note: `${u.code}   ${u.shapes}` }))
     const paper = (id: string) => ({ title: t(`lab.bc.papers.${id}.title`), note: t(`lab.bc.papers.${id}.note`) })
+    const quoted = (q: QuotedCode): Example => ({ id: q.id, a: quotedShape(q.l, 'l', null), b: quotedShape(q.r, 'r', null), op: q.op, exam: q, ...paper(q.id) })
+    const course = COURSE_CODE.map(quoted)
     const exam: Example[] = [
       { id: 'pairwise', a: [2, 1, 2], b: [1, 4, 2], op: '-', program: true, ...paper('pairwise') },
-      ...EXAM_QUESTIONS.map((q) => ({ id: q.id, a: examShape(q.l, 'l', null), b: examShape(q.r, 'r', null), op: q.op, exam: q, ...paper(q.id) })),
+      ...EXAM_QUESTIONS.map((q) => ({ id: q.id, a: quotedShape(q.l, 'l', null), b: quotedShape(q.r, 'r', null), op: q.op, exam: q, ...paper(q.id) })),
     ]
     return [
       { title: t('lab.bc.group_basic'), items: basic },
@@ -358,7 +359,7 @@ export default function NumpyBroadcasting() {
   const applyFix = (side: 'A' | 'B', shape: number[]) => {
     if (side === 'A') setA(shape)
     else setB(shape)
-    if (exam) setExamFix({ side: side === 'A' ? 'l' : 'r', shape })
+    if (exam) setQuoteFix({ side: side === 'A' ? 'l' : 'r', shape })
     setStep(3)
   }
   // a question's own variables and values; the demo's otherwise
@@ -366,7 +367,10 @@ export default function NumpyBroadcasting() {
   const nameA = data?.nameA ?? 'A'
   const nameB = data?.nameB ?? 'B'
   const nameOf = (side: 'A' | 'B') => (side === 'A' ? nameA : nameB)
-  const rawName = (side: 'A' | 'B') => (exam ? nameOf(side) : side.toLowerCase())
+  const rawName = (side: 'A' | 'B') => {
+    const o = side === 'A' ? exam?.l : exam?.r
+    return o ? (o.variable ?? o.name) : side.toLowerCase()
+  }
 
   // the code and the visual follow each other: clicking a line picks its step, a step lights its lines
   const lineOn = (i: number) => {
@@ -597,7 +601,7 @@ export default function NumpyBroadcasting() {
                         </button>
                       </div>
                       <div className="min-h-0 flex-1 overflow-auto px-4 pb-2 pr-12" aria-live="polite">
-                        {run.stdout && <pre className="whitespace-pre font-mono text-[12px] leading-5 text-sky-700">{run.stdout.trimEnd()}</pre>}
+                        {(run.stdout || run.out) && <pre className="whitespace-pre font-mono text-[12px] leading-5 text-sky-700">{[run.stdout.trimEnd(), run.out].filter(Boolean).join('\n')}</pre>}
                         {run.error && (
                           <p className="whitespace-pre-wrap break-words font-mono text-[12px] leading-5 text-rose-600">
                             <b>{run.error.type}</b>: {run.error.message}
