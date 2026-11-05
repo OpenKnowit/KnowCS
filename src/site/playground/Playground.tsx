@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import type { CallTrace } from '../../lib/minipy'
 import { runIn } from '../../data/playgrounds/run'
+import { useLazyLibs } from './useLazyLibs'
 import type { Display, PyEvent } from '../../lib/pyEvents'
 import type { PlayConfig, PlayEntry } from '../../data/playgrounds/types'
 import { CodeEditor } from './CodeEditor'
@@ -75,7 +76,9 @@ export default function Playground({ config, initialEntry, initialCode, wide }: 
   const realOn = realOk && engine === 'real'
   useWarmEngine(realOk)
   const real = useRealRun(ran, realOn)
-  const result = useMemo(() => runIn(config, realOn ? '' : ran), [config, ran, realOn])
+  const libs = useLazyLibs(ran, !realOn)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- libs.tick: the libraries the program imports have arrived
+  const result = useMemo(() => runIn(config, realOn || libs.waiting ? '' : ran), [config, ran, realOn, libs.waiting, libs.tick])
   const runNow = () => (code !== ran ? setRan(code) : realOn && real.rerun())
 
   const steps = useMemo<Step[]>(() => {
