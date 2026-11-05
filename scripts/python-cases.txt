@@ -1,0 +1,706 @@
+### star args and defaults
+def f(a, b=2, *rest, c=3, **kw):
+    return a, b, rest, c, sorted(kw.items())
+print(f(1))
+print(f(1, 5, 6, 7, c=8, d=9, e=10))
+print(f(*[1, 2, 3], **{'c': 4, 'z': 5}))
+g = lambda *a, **k: (a, k)
+print(g(1, x=2))
+def h(a, /, b, *, c): return a + b + c
+print(h(1, 2, c=3))
+### unpacking
+a, *b, c = range(6)
+print(a, b, c)
+*x, y = 'hello'
+print(x, y)
+(p, q), r = (1, 2), 3
+print(p, q, r)
+print([*range(3), *'ab'], (*[1], 2), {**{'a': 1}, 'b': 2})
+for i, (j, k) in enumerate([(1, 2), (3, 4)]):
+    print(i, j, k)
+### try except
+def f(x):
+    try:
+        return 10 / x
+    except ZeroDivisionError as e:
+        print('zero:', e)
+        return -1
+    else:
+        print('never')
+    finally:
+        print('finally', x)
+print(f(2))
+print(f(0))
+try:
+    [][1]
+except (KeyError, IndexError) as e:
+    print(type(e).__name__, e)
+try:
+    {}['k']
+except LookupError as e:
+    print(repr(e), e.args)
+try:
+    raise ValueError('bad', 2)
+except Exception as e:
+    print(e, e.args, isinstance(e, ValueError))
+class MyErr(ValueError):
+    def __init__(self, code):
+        super().__init__(f'code {code}')
+        self.code = code
+try:
+    raise MyErr(7)
+except ValueError as e:
+    print(type(e).__name__, e, e.code)
+try:
+    try:
+        1 / 0
+    except ZeroDivisionError as e:
+        raise RuntimeError('wrapped') from e
+except RuntimeError as e:
+    print(e, type(e.__cause__).__name__)
+try:
+    try:
+        raise KeyError('a')
+    except KeyError:
+        raise
+except KeyError as e:
+    print('again', e)
+for i in range(2):
+    try:
+        continue
+    finally:
+        print('loop finally', i)
+### for and while else
+for i in range(3):
+    if i == 5: break
+else:
+    print('no break')
+n = 0
+while n < 3:
+    n += 1
+    if n == 2: break
+else:
+    print('no')
+print(n)
+### sets
+s = {3, 1, 2}
+print(s, len(s), 2 in s, sorted(s))
+s.add(4); s.discard(1); s.remove(2)
+print(s)
+a, b = {1, 2, 3}, {2, 3, 4}
+print(a | b, a & b, a - b, a ^ b, a <= b, a < a, {2} < a, a.isdisjoint({9}))
+print(a.union([7]), a.intersection([1, 9]), a.difference([1]), a.symmetric_difference([1, 9]))
+print(set(), set('aab') == {'a', 'b'}, frozenset([1, 2]), {x % 3 for x in range(10)})
+a |= {9}; print(a)
+print(set([1, 1, 2]), len({1, 1.0, True}))
+try:
+    set().pop()
+except KeyError as e:
+    print('empty', e)
+print({frozenset([1]): 'a'}[frozenset([1])])
+### dict methods
+d = {'a': 1, 'b': 2}
+print(d.get('z'), d.get('z', 0), d.setdefault('c', 3), d.pop('a'), d.pop('zz', 9), d)
+print(list(d.keys()), list(d.values()), list(d.items()), d.keys(), d.values(), d.items())
+d.update(x=1); d.update({'y': 2}); d.update([('w', 3)])
+print(d, len(d), 'x' in d, dict.fromkeys('ab', 0), dict(a=1), dict([('q', 1)]), dict(zip('ab', [1, 2])))
+del d['x']
+print(d.popitem(), {k: v * 2 for k, v in d.items()}, {**d, 'n': 1} == dict(d, n=1))
+print(d | {'new': 1})
+### str methods
+s = 'Hello, World'
+print(s.lower(), s.upper(), s.title(), s.swapcase(), s.capitalize(), s.casefold())
+print(s.find('o'), s.rfind('o'), s.index('W'), s.count('l'), s.startswith('He'), s.endswith(('x', 'ld')))
+print(s.replace('l', 'L', 2), s.split(', '), s.partition(', '), s.rpartition('o'), 'a b  c'.split(), 'a,b,c'.rsplit(',', 1), 'a\nb'.splitlines())
+print(s.center(20, '*'), s.ljust(14, '-'), s.rjust(14), '7'.zfill(3), '-7'.zfill(3))
+print(' x '.strip(), 'xxaxx'.lstrip('x'), 'xxaxx'.rstrip('x'), 'abc'.removeprefix('a'), 'abc'.removesuffix('c'))
+print('12'.isdigit(), 'a'.isalpha(), 'a1'.isalnum(), ' '.isspace(), 'A'.isupper(), 'a'.islower(), 'Ab Cd'.istitle(), 'x_1'.isidentifier(), '12'.isnumeric(), '12'.isdecimal())
+print('-'.join(['a', 'b']), 'tab\tx'.expandtabs(4), 'abc'.translate(str.maketrans('a', 'z')))
+print('{} {}'.format(1, 2), '{0} {0} {x}'.format(1, x=2), '{:>5}|{:<5}|{:^5}|{:05.2f}|{:,}|{:x}|{:e}|{:%}'.format(1, 2, 3, 3.14159, 1234567, 255, 1500.0, 0.25))
+print('%d %s %5.2f %x %r %%' % (1, 'a', 3.14159, 255, 'q'), '%(a)s' % {'a': 1}, '%05d' % 42, '%-5d|' % 42, '%e' % 1500.0)
+print('abc'[::-1], 'abc'[1:], 'abc' * 2, 'a' in 'abc', 'abc' < 'abd', len('abc'), ord('a'), chr(97))
+### f strings
+x, y, name = 3.14159, 42, 'bob'
+print(f'{x:.2f} {y:>5} {y:<5}| {y:^5} {y:05d} {y:x} {y:b} {y:o} {y:e} {name!r} {name!s} {name:>6} {x=} {y=:03d}')
+w = 8
+print(f'{x:{w}.3f}|{1234567:,}|{0.5:.0%}|{"nested"}|{y + 1}|{[1, 2][0]}|{ {"a": 1}["a"] }|{{literal}}')
+print(f'{True} {None} {[1, "a"]} {(1,)} { {1: 2} }')
+### generators
+def gen(n):
+    print('start')
+    for i in range(n):
+        got = yield i
+        if got: print('got', got)
+    return 'done'
+g = gen(3)
+print(next(g), g.send('x'), next(g))
+try:
+    next(g)
+except StopIteration as e:
+    print('stop', e.value)
+def inner():
+    yield 1
+    yield 2
+    return 3
+def outer():
+    r = yield from inner()
+    yield r
+print(list(outer()))
+print(sum(x * x for x in range(4)), list(x for x in 'ab'), max(x for x in [1, 3, 2]), any(x > 1 for x in [1, 2]), all(x for x in []))
+def naturals():
+    n = 0
+    while True:
+        yield n
+        n += 1
+g = naturals()
+print(next(g), next(g), [next(g) for _ in range(2)])
+ge = (i for i in range(2))
+print(next(ge), next(ge), next(ge, 'default'))
+print(type(g).__name__)
+### iterators
+it = iter([1, 2])
+print(next(it), next(it), next(it, None))
+print(list(zip('ab', [1, 2], (3, 4))), list(enumerate('ab', 1)), list(map(str, [1])), list(map(lambda a, b: a + b, [1], [2])), list(filter(None, [0, 1])), list(filter(lambda v: v > 1, [1, 2])), list(reversed([1, 2])), list(reversed('ab')))
+print(sorted([3, 1], reverse=True), sorted('ba'), sorted([(1, 'b'), (1, 'a')]), sorted(['bb', 'a'], key=len), min([3, 1]), max(3, 1), min('ab', key=ord), max([1, 2], default=0), min([], default=0), sum([1, 2], 10), abs(-2), round(2.5), round(3.14159, 2), round(1234, -2), divmod(7, 2), pow(2, 3), pow(2, 3, 5))
+print(int('12'), int('ff', 16), int(3.9), float('1.5'), str(1), bool(0), list('ab'), tuple('ab'), bin(5), hex(255), oct(8), callable(print), isinstance(1, int), isinstance(True, int), isinstance(1, (str, int)), issubclass(bool, int), type(1).__name__, type('').__name__, type([]).__name__, type({}).__name__, type(None).__name__, type(1.0).__name__, type(()).__name__, type(set()).__name__)
+print(hash(1), hash('') == hash(''), repr('a'), ascii('a'), len([1]), range(3), list(range(1, 7, 2)), range(5)[2], list(range(5))[::2], 3 in range(5), slice(1, 2))
+### classes
+class A:
+    count = 0
+    def __init__(self, v):
+        self.v = v
+        A.count += 1
+    def __repr__(self): return f'A({self.v})'
+    def __str__(self): return f'a={self.v}'
+    def __eq__(self, o): return self.v == o.v
+    def __lt__(self, o): return self.v < o.v
+    def __add__(self, o): return A(self.v + (o.v if isinstance(o, A) else o))
+    def __radd__(self, o): return A(self.v + o)
+    def __mul__(self, n): return A(self.v * n)
+    def __neg__(self): return A(-self.v)
+    def __abs__(self): return A(abs(self.v))
+    def __len__(self): return self.v
+    def __bool__(self): return self.v != 0
+    def __getitem__(self, i): return self.v + i
+    def __setitem__(self, i, x): self.v = i + x
+    def __contains__(self, x): return x == self.v
+    def __call__(self, x): return self.v * x
+    def __iter__(self): return iter(range(self.v))
+    def __hash__(self): return hash(self.v)
+    def __enter__(self):
+        print('enter'); return self
+    def __exit__(self, t, e, tb):
+        print('exit', t.__name__ if t else None); return True
+a, b = A(1), A(2)
+print(a, repr(a), [a], a == A(1), a != b, a < b, a + b, a + 1, 1 + a, a * 3, -a, abs(A(-1)), len(b), bool(A(0)), a[1], 1 in a, a(5), list(b), sorted([b, a]), sum([a, b], A(0)), {a: 1}[A(1)], A.count > 0)
+a[1] = 2; print(a)
+with A(1) as z:
+    print('in', z)
+    raise ValueError('swallowed')
+print('after', hasattr(a, 'v'), getattr(a, 'q', 9), type(a).__name__, a.__class__.__name__, isinstance(a, A))
+setattr(a, 'n', 1); print(a.n); delattr(a, 'n'); print(hasattr(a, 'n'), vars(A(3)), A(1).__dict__)
+### inheritance descriptors
+class Base:
+    kind = 'base'
+    def __init__(self, x): self.x = x
+    def who(self): return 'base'
+    def me(self): return self.who() + '!'
+    @staticmethod
+    def st(a): return a + 1
+    @classmethod
+    def make(cls, x): return cls(x)
+    @property
+    def double(self): return self.x * 2
+    @double.setter
+    def double(self, v): self.x = v / 2
+class Child(Base):
+    kind = 'child'
+    def __init__(self, x, y):
+        super().__init__(x)
+        self.y = y
+    def who(self): return 'child+' + super().who()
+    @classmethod
+    def make(cls, x): return cls(x, 0)
+c = Child(1, 2)
+print(c.me(), c.kind, Base.kind, c.x, c.y, Child.st(1), c.st(2), Child.make(5).x, c.double, isinstance(c, Base), issubclass(Child, Base), Child.__name__, Child.__mro__[1].__name__, Child.__bases__[0].__name__)
+c.double = 10; print(c.x)
+class Mix:
+    def hi(self): return 'mix'
+class D(Mix, Base): pass
+print(D(1).hi(), D(1).who())
+class G:
+    def __getattr__(self, n): return n.upper()
+print(G().abc)
+class Slots:
+    '''doc here'''
+    x: int = 1
+    y: str
+print(Slots.__doc__, Slots.x, Slots.__annotations__['x'].__name__)
+### decorators closures
+import functools
+def deco(f):
+    @functools.wraps(f)
+    def w(*a, **k):
+        print('call', f.__name__)
+        return f(*a, **k)
+    return w
+@deco
+def add(a, b=1):
+    '''adds'''
+    return a + b
+print(add(1), add.__name__, add.__doc__)
+def param(n):
+    def d(f):
+        def w(x): return f(x) * n
+        return w
+    return d
+@param(3)
+def one(x): return x
+print(one(2))
+count = 0
+def bump():
+    global count
+    count += 1
+bump(); bump(); print(count)
+def counter():
+    n = 0
+    def inc():
+        nonlocal n
+        n += 1
+        return n
+    return inc
+c = counter(); c(); print(c())
+if (w := 5) > 3: print(w)
+print([y for x in range(3) if (y := x * 2) > 0])
+fs = [lambda i=i: i for i in range(2)]
+print([f() for f in fs])
+### operators and literals
+print(1 << 3, 16 >> 2, 5 & 3, 5 | 3, 5 ^ 3, ~5, 7 // 2, -7 // 2, 7 % 3, -7 % 3, 2 ** 10, 2 ** -1, 7 / 2, 1e3, 1_000, 0xff, 0b11, 0o7, 1.5e-3)
+x = 1; x <<= 2; print(x); x >>= 1; print(x); x |= 1; print(x); x &= 2; print(x); x ^= 3; print(x); x **= 2; print(x); x //= 2; print(x); x %= 3; print(x)
+print(1 < 2 < 3, 1 == 1.0, 1 is 1, None is None, not None, 1 if 0 else 2, 0 or 'x', 1 and 'y', [] or {}, 'a' 'b', [1, 2] + [3], [0] * 2, (1,) + (2,), [1, 2] == [1, 2], (1, 2) < (1, 3), [1] < [2], 'a' < 'b', [1, [2]] == [1, [2]])
+print(0.1 + 0.2, 1 / 3, 1e100, 1e-7, 100.0, float('inf'), -float('inf'), float('nan'), 2 ** 0.5, 10 / 2, int(2.5), round(0.5), round(1.5), True + True, 3.0 // 2, 3.5 % 2)
+### lists and tuples
+l = [3, 1, 2]
+l.append(4); l.extend([5]); l.insert(0, 9); print(l, l.pop(), l.pop(0), l.index(1), l.count(1))
+l.remove(1); l.reverse(); print(l); l.sort(); print(l); l.sort(key=lambda v: -v); print(l, l.copy()); l.clear(); print(l)
+m = [0, 1, 2, 3, 4]
+m[1:3] = [9]; print(m); m[::2] = [7, 7]; print(m); del m[0]; print(m); del m[1:2]; print(m); m += [1]; print(m); m *= 2; print(m)
+print(m[-1], m[::-1], m[10:], m[:0], (1, 2, 1).count(1), (1, 2).index(2), tuple([1]), () == (), (1,), len((1, 2)), [[0] * 2 for _ in range(2)], [x * y for x in [1, 2] for y in [3] if x], [(a, b) for a in 'x' for b in 'yz'], {x: 1 for x in 'a'})
+### collections
+from collections import Counter, defaultdict, deque, namedtuple, OrderedDict
+c = Counter('hello')
+print(c, c['l'], c['z'], c.most_common(1), c.most_common(), sorted(c), sum(c.values()), list(c.elements()))
+c.update('ll'); print(c['l']); c.subtract('l'); print(c['l'], c + Counter('z'), Counter(a=1) - Counter(a=2), Counter([1, 1]), Counter({'x': 2}), Counter())
+d = defaultdict(list)
+d['a'].append(1); d['b']; print(d, d['a'], len(d), dict(d), 'zz' in d)
+i = defaultdict(int); i['x'] += 1; print(i, defaultdict(lambda: 3)['y'])
+q = deque([1, 2, 3], maxlen=3); q.append(4); print(q, q[0], len(q), q.popleft()); q.appendleft(0); print(q, q.pop(), list(q), deque('ab'), q.maxlen)
+r = deque(range(5)); r.rotate(2); print(r); r.rotate(-1); print(r); r.extend([9]); r.extendleft([8, 7]); print(r, r.count(9), 9 in r)
+P = namedtuple('P', ['x', 'y'])
+Q = namedtuple('Q', 'a b', defaults=[5])
+p = P(1, y=2)
+print(p, p.x, p[1], p._asdict(), p._replace(x=9), P._fields, tuple(p), Q(1), len(p), p == (1, 2), type(p).__name__)
+a, b = p; print(a, b)
+o = OrderedDict(); o['a'] = 1; o['b'] = 2; o.move_to_end('a'); print(list(o), o.popitem(last=False), list(o.items()))
+### itertools
+from itertools import chain, product, permutations, combinations, combinations_with_replacement, count, repeat, cycle, islice, zip_longest, accumulate, groupby, starmap, takewhile, dropwhile, filterfalse, compress, pairwise, tee
+print(list(chain([1], 'a')), list(chain.from_iterable([[1], [2]])), list(product('ab', [1])), list(product([0, 1], repeat=2)), list(permutations([1, 2, 3], 2)), list(permutations('ab')), list(combinations('abc', 2)), list(combinations_with_replacement('ab', 2)))
+print(list(islice(count(5), 2)), list(islice(count(1, 2), 1, 3)), list(repeat('x', 2)), list(islice(cycle('ab'), 3)), list(islice(range(10), 2, 8, 3)), list(zip_longest('ab', [1], fillvalue=0)), list(accumulate([1, 2, 3])), list(accumulate([1, 2, 3], lambda a, b: a * b)), list(accumulate([1], initial=9)))
+print([(k, list(g)) for k, g in groupby('aabbc')], [(k, list(g)) for k, g in groupby([1, 2, 3, 4], key=lambda v: v > 2)], list(starmap(pow, [(2, 3)])), list(takewhile(lambda v: v < 2, [1, 2, 1])), list(dropwhile(lambda v: v < 2, [1, 2, 1])), list(filterfalse(lambda v: v > 1, [1, 2])), list(compress('abc', [1, 0, 1])), list(pairwise('abc')))
+a, b = tee([1, 2]); print(list(a), list(b))
+### functools operator
+from functools import reduce, partial, lru_cache, cache, cmp_to_key, total_ordering
+import operator
+print(reduce(lambda a, b: a + b, [1, 2, 3]), reduce(operator.mul, [2, 3], 10), partial(pow, 2)(3), partial(int, base=2)('11'), sorted([3, 1], key=cmp_to_key(lambda a, b: b - a)))
+@lru_cache(maxsize=None)
+def fib(n): return n if n < 2 else fib(n - 1) + fib(n - 2)
+print(fib(30))
+@cache
+def sq(n):
+    print('computed', n)
+    return n * n
+print(sq(2), sq(2))
+@total_ordering
+class T:
+    def __init__(self, v): self.v = v
+    def __eq__(self, o): return self.v == o.v
+    def __lt__(self, o): return self.v < o.v
+print(T(1) <= T(2), T(1) > T(2), T(1) >= T(1))
+print(operator.add(1, 2), operator.itemgetter(1)([1, 2]), operator.itemgetter(0, 1)('ab'), operator.attrgetter('real')(1), sorted([(1, 'b'), (0, 'c')], key=operator.itemgetter(1)), operator.neg(1), operator.lt(1, 2), operator.contains([1], 1), operator.methodcaller('upper')('a'))
+### re
+import re
+print(re.findall(r'\d+', 'a1 b22'), re.findall(r'(\w)=(\d)', 'a=1 b=2'), re.findall(r'(\d)x', '1x'), re.sub(r'\s+', ' ', 'a   b'), re.sub(r'(\w+) (\w+)', r'\2 \1', 'a b'), re.sub('a', 'b', 'aaa', count=2), re.sub(r'\d', lambda m: str(int(m.group()) + 1), 'a1'), re.split(r'[,;]', 'a,b;c'), re.split(r'(,)', 'a,b'), re.split(',', 'a,b,c', maxsplit=1), re.subn('a', 'b', 'aa'))
+m = re.match(r'(?P<y>\d{4})-(\d\d)', '2024-05x')
+print(m.group(), m.group(0), m.group(1), m.group('y'), m.groups(), m.groupdict(), m.span(), m.start(), m.end(), m[2], m.group(1, 2))
+print(re.match('b', 'ab'), re.search('b', 'ab').start(), re.fullmatch('a+', 'aaa').group(), re.fullmatch('a', 'ab'), re.compile('A', re.I).search('xa').group(), re.search('a.b', 'a\nb', re.S).group() == 'a\nb', re.findall('^a', 'a\na', re.M), re.escape('a.b'))
+p = re.compile(r'\b\w')
+print(p.findall('hi yo'), p.sub('X', 'hi'), p.pattern, [x.group() for x in p.finditer('a b')], bool(p.match('a')))
+### json
+import json
+s = json.dumps({'a': [1, 2.5, None, True, 'x"y'], 'b': {'c': (1, 2)}})
+print(s, json.loads(s), json.dumps([1], indent=2), json.dumps({'b': 1, 'a': {'x': []}}, indent=2, sort_keys=True), json.dumps({'a': 1}, separators=(',', ':')), json.dumps('é'), json.dumps(1.0), json.loads('[1, 1.5, "a", null, false, {"k": {}}]'))
+try:
+    json.loads('{bad')
+except json.JSONDecodeError as e:
+    print(type(e).__name__)
+try:
+    json.dumps({1, 2})
+except TypeError as e:
+    print(e)
+print(json.dumps({1: 'a', None: 'b', True: 'c'}), json.dumps({1, 2} and [1], default=str))
+### statistics math
+import statistics as st, math
+print(st.mean([1, 2, 3]), st.mean([1, 2]), st.median([1, 3, 2]), st.median([1, 2]), st.mode('aab'), st.multimode('aabb'), st.pstdev([1, 2, 3]), st.pvariance([1, 2, 3]), st.stdev([1, 2, 3]), st.variance([1, 2, 3]), st.median_low([1, 2]), st.median_high([1, 2]), st.fmean([1, 2]))
+try:
+    st.mean([])
+except st.StatisticsError as e:
+    print(type(e).__name__, e)
+print(math.floor(1.5), math.ceil(1.5), math.trunc(-1.5), math.sqrt(4), math.pi, math.e, math.inf, math.isnan(math.nan), math.isinf(math.inf), math.isfinite(1), math.gcd(12, 18), math.lcm(4, 6), math.factorial(5), math.comb(5, 2), math.perm(5, 2), math.prod([2, 3]), math.fsum([0.1] * 10), math.hypot(3, 4), math.log(math.e), math.log(8, 2), math.log2(8), math.log10(100), math.log1p(0), math.exp(0), math.expm1(0), math.pow(2, 3), math.fabs(-1), math.fmod(7, 3), math.copysign(1, -2), math.degrees(math.pi), math.radians(180), math.isclose(0.1 + 0.2, 0.3), math.isqrt(10), math.modf(1.5), math.frexp(8), math.ldexp(1, 3), math.dist([0, 0], [3, 4]))
+print(round(math.sin(1), 10), round(math.cos(1), 10), round(math.tan(1), 10), round(math.asin(1), 10), round(math.acos(0), 10), round(math.atan(1), 10), round(math.atan2(1, 1), 10), round(math.sinh(1), 10), round(math.cosh(1), 10), round(math.tanh(1), 10), round(math.asinh(1), 10), round(math.acosh(2), 10), round(math.atanh(0.5), 10), round(math.erf(1), 10), round(math.erfc(1), 10), round(math.gamma(4.5), 8), round(math.lgamma(4.5), 8))
+### dataclasses
+from dataclasses import dataclass, field, asdict, astuple, replace, fields, is_dataclass
+from typing import List, Optional
+@dataclass
+class P:
+    x: int
+    y: int = 2
+    tags: List[str] = field(default_factory=list)
+    z: Optional[int] = None
+    def norm(self): return self.x + self.y
+p = P(1)
+print(p, p.y, p.norm(), P(1, 3) == P(1, 3), P(1) == P(2), asdict(p), astuple(p), replace(p, x=5), is_dataclass(p), [f.name for f in fields(P)])
+p.tags.append('a'); print(P(1).tags, p.tags)
+@dataclass(order=True)
+class V:
+    a: int
+    b: int = 0
+print(V(1) < V(2), sorted([V(2), V(1)]), V(1, 1) >= V(1, 0))
+@dataclass
+class W(P):
+    w: int = 9
+    def __post_init__(self): self.w += 1
+print(W(1), W(1).w)
+try:
+    P()
+except TypeError as e:
+    print(e)
+### copy heapq bisect string os sys
+import copy, heapq, bisect, string, os, sys
+a = [[1], {'k': [2]}]
+b = copy.copy(a); c = copy.deepcopy(a)
+a[0].append(9); print(b, c, b[0] is a[0], c[0] is a[0])
+class C:
+    def __init__(self): self.v = [1]
+x = C(); y = copy.deepcopy(x); y.v.append(2); z = copy.copy(x); print(x.v, y.v, z.v is x.v)
+h = [3, 1, 2]; heapq.heapify(h); heapq.heappush(h, 0); print(h, heapq.heappop(h), h, heapq.nlargest(2, [1, 3, 2]), heapq.nsmallest(1, [2, 1]), heapq.heappushpop(h, 9), heapq.heapreplace(h, 0), h, heapq.nlargest(1, ['a', 'bb'], key=len))
+l = [1, 3, 5]; print(bisect.bisect(l, 3), bisect.bisect_left(l, 3), bisect.bisect_right(l, 4)); bisect.insort(l, 4); print(l)
+print(string.ascii_lowercase[:3], string.digits, string.ascii_uppercase[-1], string.punctuation[:3], len(string.ascii_letters))
+print(os.path.join('a', 'b', 'c.txt'), os.path.join('a/', 'b'), os.path.join('a', '/b'), os.path.basename('a/b.txt'), os.path.dirname('a/b.txt'), os.path.splitext('a/b.tar.gz'), os.path.split('a/b'), os.sep)
+print(sys.maxsize > 0, type(sys.argv).__name__, sys.version_info[0], sys.version_info.major)
+sys.stdout.write('w\n')
+print('no newline', end='|'); print('x', 'y', sep='-'); print(); print(1, 2, sep='')
+### raising uncaught
+def f():
+    raise KeyError('nope')
+f()
+### raising type error
+len(1)
+### raising arg count
+def f(a): pass
+f()
+### raising arg unexpected
+def f(a): pass
+f(1, b=2)
+### raising multiple values
+def f(a): pass
+f(1, a=2)
+### raising name error
+print(undefined_name)
+### raising attr
+class A: pass
+A().x
+### raising stop
+next(iter([]))
+### raising assert
+assert 1 == 2, 'msg'
+### raising exit is quiet
+import sys
+print('before')
+sys.exit(3)
+print('after')
+### language odds and ends
+class Node:
+    def __init__(self, v, nxt=None):
+        self.v, self.nxt = v, nxt
+    def __iter__(self):
+        n = self
+        while n:
+            yield n.v
+            n = n.nxt
+print(list(Node(1, Node(2))), sum(Node(1, Node(2))), 2 in Node(1, Node(2)), max(Node(1, Node(2))), sorted(Node(2, Node(1))), tuple(Node(1)), set(Node(1)), dict(zip(Node(1), Node(2))))
+class Seq:
+    def __getitem__(self, i):
+        if i > 2: raise IndexError
+        return i * 2
+    def __len__(self): return 3
+print(list(Seq()), len(Seq()), [x for x in Seq()], 4 in Seq(), list(reversed(Seq())))
+class It:
+    def __init__(self): self.i = 0
+    def __iter__(self): return self
+    def __next__(self):
+        self.i += 1
+        if self.i > 2: raise StopIteration
+        return self.i
+print(list(It()), [a for a in It()], next(It()), sum(It()))
+for a, b in zip(It(), It()): print(a, b)
+def kw_only(*, a=1): return a
+print(kw_only(a=2), kw_only())
+print(print.__name__, len.__name__, kw_only.__name__, (lambda: 0).__name__, int.__name__, A.__name__ if False else 'x')
+print(isinstance([], list), isinstance((), tuple), isinstance({}, dict), isinstance('', str), isinstance(1.0, float), isinstance(None, type(None)), isinstance(set(), set), isinstance(range(1), range), isinstance(print, object), isinstance(int, type), type(int).__name__)
+print(str(None), str(True), str(1.0), str([1, 'a']), str((1,)), str({'a': 1}), str({1}), repr('it\'s'), repr('a"b'), repr('a\nb'), repr('\\'), str(b'' if False else 'x'))
+print(int('  3 '), int(-3.9), float(3), float(' 2.5 '), bool(''), bool('0'), bool([]), bool([0]), bool(None), list((1,)), list({'a': 1}), tuple({'a': 1}), set([1]), dict([(1, 2)]))
+print([1, 2, 3][1:], [1, 2, 3][:-1], [1, 2, 3][::2], [1, 2, 3][-2:], 'abc'[-1], (1, 2, 3)[1:], list(range(10))[2:8:2], list(range(10, 0, -3)), range(10)[-1], len(range(0, 10, 3)), list(range(3))[::-1])
+print(any([]), all([]), any([0, 1]), all([0, 1]), sum([]), sum([0.5, 1]), sum(range(4)), min(1, 2, 3), max('a', 'b'), max([1, 2], key=lambda v: -v), min([[1, 2], [0, 9]]), max({'a': 1, 'b': 0}), abs(-1.5), abs(True), round(-0.5), round(2.675, 2), round(1e20), round(5), hex(-1), bin(0), oct(-8), chr(8364), ord('€'))
+x = [1, 2, 3]
+y = x
+y.append(4)
+print(x is y, x == y, x is not [1], id(x) == id(y), x.__len__(), 'abc'.__len__(), (1).__add__(2), [1].__contains__(1), 'a'.__add__('b'), {'a': 1}.__getitem__('a'))
+a = b = 1
+a += 1
+print(a, b)
+t = 1, 2
+u, v = t
+u, v = v, u
+print(t, u, v, (1), (1,), ())
+if not []: print('empty')
+if 0 < 1 and not 1 > 2 or False: print('logic')
+print('yes' if [] else 'no', None or 0 or 'z', 1 and 2 and 3, not not 1)
+while True:
+    break
+for _ in []: pass
+def noreturn(): pass
+print(noreturn(), (lambda x, y=2: x + y)(1), (lambda *a: a)(1, 2), (lambda **k: k)(a=1), [f(2) for f in [lambda v: v + 1, abs]])
+def rec(n): return 1 if n <= 1 else n * rec(n - 1)
+print(rec(10), rec(20))
+print(sorted({'b': 1, 'a': 2}), sorted({'b': 1, 'a': 2}.items(), key=lambda kv: kv[1]), sorted([1, 2], key=None), sorted('aB', key=str.lower), sorted([3, 1, 2])[::-1], sorted((2, 1)), sorted({2, 1}), list(map(int, '12')), list(map(str.upper, 'ab')), [*map(abs, [-1])], list(zip()), list(zip([1])), dict(a=1, **{'b': 2}))
+print(f'{1:>{3}}', f'{"a" + "b"}', f"{'q'}", f'{1 + 1 = }', f'{3.0}', f'{1e10}', f'{1/3:.3}', f'{100:e}', f'{1.5:g}', f'{1000000.0:g}', f'{-1:+}', f'{1:+}', f'{1: }', f'{255:#x}', f'{5:#b}', f'{8:#o}', f'{255:X}', f'{65:c}', f'{"x":*^5}', f'{1.5:08.3f}', f'{12345.678:,.2f}', f'{1234:_}', f'{True:d}', f'{None}')
+print('%s %s' % (1, [2]), '%s' % 'x', '%d%%' % 5, '%.3f' % 1.5, '%5s|%-5s|' % ('a', 'b'), '%c' % 65, '%o' % 8, '%X' % 255, '%g' % 0.5, '%i' % 3, '%+d' % 1, '% d' % 1, '%r' % [1], '%s' % None, '%s' % (1,))
+print('a,b'.split(','), ' a  b '.split(), 'abc'.split('x'), 'a b c'.split(' ', 1), 'aXbXc'.split('X', -1), ''.split(), ''.split(','), 'a\n\nb'.split('\n'), 'x'.join('abc'), ''.join(['a']), ', '.join(map(str, [1, 2])), 'abcabc'.replace('a', ''), 'aaa'.replace('a', 'b', 1), 'abc'.find('z'), 'hello world'.title(), 'HeLLo'.swapcase(), 'abc'.isalpha(), ''.isalpha(), '1.5'.isdigit(), 'abc'.startswith('b', 1), 'abc'.endswith('b', 0, 2), 'abc'.encode().decode() if False else 'abc')
+### numpy ufuncs
+import numpy as np
+a = np.array([1.5, -2.5, 0.0, 4.0])
+i = np.array([1, 2, 3, 4])
+print(np.absolute(a), np.fabs(a), np.cbrt(i), np.expm1(np.array([0.0, 1.0])), np.log1p(np.array([0.0, 1.0])), np.exp2(i), np.deg2rad(np.array([180.0])), np.rad2deg(np.array([np.pi])), np.radians(90.0), np.degrees(np.pi))
+print(np.sinc(np.array([0.0, 0.5])), np.rint(a), np.fix(a), np.trunc(a), np.floor(a), np.ceil(a), np.signbit(a), np.negative(a), np.positive(i), np.reciprocal(np.array([2.0, 4.0])), np.conj(a), np.real(a), np.imag(i), np.angle(a), np.isneginf(np.array([-np.inf, 1])), np.isposinf(np.array([np.inf, 1])), np.isreal(i), np.iscomplex(i))
+print(np.hypot(3.0, 4.0), np.arctan2(1.0, 1.0), np.atan2(1.0, 2.0), np.float_power(2, 3), np.copysign(3.0, -1.0), np.fmod(-7, 3), np.mod(-7, 3), np.remainder(7, 3), np.fmax(np.array([1, np.nan]), np.array([np.nan, 2])), np.fmin(np.array([1, np.nan]), 0), np.gcd(12, 18), np.lcm(4, 6), np.heaviside(np.array([-1.0, 0.0, 1.0]), 0.5), np.logaddexp(0.0, 0.0), np.logaddexp2(1.0, 1.0), np.ldexp(1.0, 3))
+print(np.logical_xor(np.array([True, False]), True), np.left_shift(1, 3), np.right_shift(16, 2), np.bitwise_and(5, 3), np.bitwise_or(5, 3), np.bitwise_xor(5, 3), np.invert(np.array([1, 2])), np.equal(i, 2), np.not_equal(i, 2), np.less(i, 2), np.less_equal(i, 2), np.greater(i, 2), np.greater_equal(i, 2), np.floor_divide(i, 2), np.true_divide(i, 2), i << 1, i >> 1)
+print(*np.divmod(7, 2), np.divmod(i, 2), np.modf(np.array([1.5, -2.5])), np.frexp(np.array([8.0, 3.0]))[0], np.frexp(np.array([8.0, 3.0]))[1].tolist(), np.isclose(np.array([1.0, 2.0]), np.array([1.0 + 1e-9, 2.1])), np.isclose(np.nan, np.nan, equal_nan=True), np.nan_to_num(np.array([np.nan, 1.0])), np.nan_to_num(np.array([np.inf]), posinf=9.0), np.amax(i), np.amin(i), np.acos(1.0), np.asin(0.0), np.atan(0.0), np.acosh(1.0), np.asinh(0.0), np.atanh(0.0), np.pow(2, 3), np.array_equiv(np.array([1, 1]), np.array([[1, 1], [1, 1]])))
+### numpy create
+import numpy as np
+print(np.geomspace(1, 1000, 4), np.logspace(0, 2, 3), np.logspace(0, 2, 3, base=2.0), np.tri(3), np.tri(2, 3, 1), np.tril(np.arange(1, 10).reshape(3, 3)), np.triu(np.arange(1, 10).reshape(3, 3), 1), np.tril(np.arange(1, 10).reshape(3, 3), -1))
+print(np.tril_indices(3), np.triu_indices(2), np.tril_indices_from(np.zeros((2, 2))), np.diag_indices(2), np.vander(np.array([1, 2, 3])), np.vander(np.array([1, 2]), 3, increasing=True))
+print(np.diag(np.array([1, 2])), np.diag(np.array([1, 2]), 1), np.diag(np.arange(9).reshape(3, 3)), np.diag(np.arange(9).reshape(3, 3), -1), np.diagflat([1, 2]), np.diagonal(np.arange(9).reshape(3, 3), 1), np.indices((2, 2)), np.fromfunction(lambda i, j: i + j, (2, 2)), np.fromfunction(lambda i, j: i * j, (2, 2), dtype=int), np.fromiter(range(3), dtype=int), np.fromiter((x * x for x in range(3)), float), np.fromstring('1 2 3', dtype=int, sep=' '), np.fromstring('1,2', sep=','))
+print(np.round(np.hamming(4), 6), np.round(np.hanning(4), 6), np.round(np.blackman(4), 6), np.bartlett(3), np.round(np.kaiser(3, 1.0), 6), np.round(np.i0(1.0), 6))
+print(np.mgrid[0:2, 0:3], np.mgrid[0:1:3j], np.ogrid[0:2, 0:2], np.r_[1:3, 5, [7, 8]], np.r_[0:1:3j], np.c_[[1, 2], [3, 4]], np.s_[1:3], np.s_[1, ::2], np.index_exp[1:3], np.arange(5)[np.s_[1:3]])
+print(np.empty((1, 2)).shape, np.asanyarray([1]), np.atleast_1d(1), np.atleast_2d([1, 2]), np.atleast_3d([1, 2]).shape, np.atleast_1d(1, [2]))
+### numpy shapes
+import numpy as np
+a = np.arange(12).reshape(3, 4)
+print(np.split(np.arange(6), 3), np.split(np.arange(6), [1, 4]), np.array_split(np.arange(5), 2), np.hsplit(a, 2), np.vsplit(a, 3)[0], np.dsplit(np.arange(8).reshape(2, 2, 2), 2)[1], np.split(a, 2, axis=1)[0])
+print(np.column_stack(([1, 2], [3, 4])), np.dstack(([1, 2], [3, 4])), np.dstack((a[:1], a[:1])).shape, np.block([[np.eye(2), np.zeros((2, 1))], [np.zeros((1, 2)), np.ones((1, 1))]]), np.block([1, 2]), np.row_stack if False else 0, np.concat([[1], [2]]))
+print(np.append([1, 2], [3]), np.append(a, [[1, 2, 3, 4]], axis=0).shape, np.insert(np.array([1, 2, 3]), 1, 9), np.insert(np.array([1, 2, 3]), [0, 2], [7, 8]), np.insert(np.arange(4).reshape(2, 2), 1, 9, axis=1), np.delete(np.arange(5), 1), np.delete(np.arange(5), [0, 2]), np.delete(np.arange(5), slice(1, 3)), np.delete(a, 0, axis=0).shape, np.delete(a, 1, axis=1)[0], np.resize(np.array([1, 2]), (2, 3)))
+print(np.roll(np.arange(5), 2), np.roll(np.arange(5), -1), np.roll(a, 1, axis=0)[0], np.roll(a, 1, axis=1)[0], np.roll(a, (1, 1), axis=(0, 1))[0], np.moveaxis(np.zeros((2, 3, 4)), 0, -1).shape, np.moveaxis(np.zeros((2, 3, 4)), [0, 1], [-1, -2]).shape, np.rollaxis(np.zeros((2, 3, 4)), 2).shape, np.rollaxis(np.zeros((2, 3, 4)), 2, 1).shape)
+print(np.rot90(np.arange(4).reshape(2, 2)), np.rot90(np.arange(4).reshape(2, 2), 2), np.rot90(np.arange(4).reshape(2, 2), -1), np.rot90(np.arange(6).reshape(2, 3), k=3), np.fliplr(np.arange(4).reshape(2, 2)), np.flipud(np.arange(4).reshape(2, 2)), np.broadcast_to(np.array([1, 2]), (2, 2)), np.broadcast_shapes((1, 2), (3, 1)), [x.shape for x in np.broadcast_arrays(np.zeros(2), np.zeros((3, 1)))], np.unstack(np.arange(4).reshape(2, 2)), np.matrix_transpose(np.zeros((2, 3))).shape, np.trim_zeros(np.array([0, 1, 0, 2, 0])), np.trim_zeros(np.array([0, 1, 0]), 'f'))
+print(np.take(np.array([1, 2, 3]), [0, 2]), np.take(a, [0, 2], axis=1)[0], np.take(a, 5), np.take(np.array([1, 2]), 5, mode='wrap'), np.take(np.array([1, 2]), 5, mode='clip'), np.take_along_axis(np.array([[3, 1], [2, 4]]), np.array([[1], [0]]), axis=1), np.compress([True, False, True], np.array([1, 2, 3])), np.compress([False, True], a, axis=1)[0], np.extract(np.array([1, 0]), np.array([5, 6])), np.choose(np.array([0, 1]), [np.array([1, 2]), np.array([3, 4])]), np.select([np.arange(3) < 1, np.arange(3) > 1], [np.arange(3), np.arange(3) * 10], default=-1), np.piecewise(np.array([-1.0, 1.0]), [np.array([True, False]), np.array([False, True])], [lambda v: v * 2, 7]), np.piecewise(np.array([1.0, 2.0]), [np.array([True, False])], [0, lambda v: v + 1]))
+b = np.zeros(4, dtype=int)
+np.put(b, [0, 2], [5, 6]); print(b); np.putmask(b, b == 0, 7); print(b); np.place(b, b == 7, [8, 9]); print(b); np.copyto(b, 1, where=b == 8); print(b)
+c = np.zeros((2, 2), dtype=int); np.fill_diagonal(c, 5); print(c); np.put_along_axis(c, np.array([[1], [0]]), 9, axis=1); print(c)
+print(np.argwhere(np.array([[0, 1], [1, 0]])), np.flatnonzero(np.array([0, 1, 2])), *np.unravel_index(5, (2, 3)), np.unravel_index([0, 5], (2, 3)), np.ravel_multi_index(([0, 1], [1, 2]), (2, 3)), np.ravel_multi_index((1, 2), (2, 3)), np.ix_([0, 1], [1]), a[np.ix_([0, 1], [1, 2])], [(i, int(v)) for i, v in np.ndenumerate(np.array([[1], [2]]))], list(np.ndindex(2, 1)), list(np.ndindex((1, 2))))
+### numpy search stats
+import numpy as np
+print(np.searchsorted([1, 3, 5], 3), np.searchsorted([1, 3, 5], 3, side='right'), np.searchsorted([1, 3, 5], [0, 6]), np.digitize([0.5, 1.5], [1, 2]), np.digitize(1, [1, 2], right=True), np.digitize([1, 3], [4, 2, 0]), np.lexsort(([1, 2, 1], [3, 3, 1])), np.union1d([1, 2], [2, 3]), np.intersect1d([1, 2, 3], [2, 3, 4]), np.intersect1d([1, 2], [2], return_indices=True), np.setdiff1d([1, 2, 3], [2]), np.setxor1d([1, 2], [2, 3]), np.in1d([1, 2], [2]), np.isin([1, 2], [2]))
+print(np.unique_values(np.array([2, 1, 2])), np.unique_counts(np.array([2, 1, 2])), np.unique_inverse(np.array([2, 1, 2])), np.unique_all(np.array([2, 1, 2])), np.unique(np.array([2, 1, 2]), return_counts=True), np.unique(np.array([2, 1, 2]), return_index=True), np.unique(np.array([2, 1, 2]), return_inverse=True), np.unique(np.array([[1, 0], [1, 0], [0, 1]]), axis=0), np.unique(np.array([[1, 2], [3, 4]])), np.unique(np.arange(5)), np.unique([3.5, 1.5, 3.5]), np.unique(np.array([[3, 1], [1, 3], [1, 3]]), axis=0, return_counts=True), np.unique(np.array([[3, 1], [1, 2]]), axis=1))
+a = np.array([[1.0, np.nan], [3.0, 4.0]])
+print(np.ptp(np.array([1, 5])), np.ptp(np.arange(4).reshape(2, 2), axis=0), np.nansum(a), np.nansum(a, axis=0), np.nanmean(a), np.nanmean(a, axis=1), np.nanmax(a), np.nanmin(a), np.nanmin(a, axis=0), np.nanstd(np.array([1.0, np.nan, 3.0])), np.nanvar(np.array([1.0, np.nan, 3.0])), np.nanvar(np.array([1.0, np.nan, 3.0]), ddof=1), np.nanmedian(a), np.nanprod(a), np.nanargmax(a), np.nanargmin(a), np.nanargmax(a, axis=0), np.nanpercentile(np.array([1.0, np.nan, 3.0]), 50), np.nanquantile(np.array([1.0, np.nan, 3.0]), 0.5), np.nancumsum(np.array([1.0, np.nan, 2.0])), np.nancumprod(np.array([2.0, np.nan, 2.0])), np.nansum(a, keepdims=True), np.nanmax(a, axis=0, keepdims=True))
+print(np.cumprod(np.array([1, 2, 3])), np.cumprod(np.arange(1, 5).reshape(2, 2), axis=1), np.ediff1d(np.array([1, 3, 6])), np.gradient(np.array([1.0, 2.0, 4.0, 8.0])), np.gradient(np.array([1.0, 2.0, 4.0]), 2.0), np.gradient(np.array([1.0, 2.0, 4.0]), np.array([0.0, 1.0, 3.0])), np.gradient(np.array([[1.0, 2.0], [3.0, 5.0]])), np.gradient(np.array([[1.0, 2.0], [3.0, 5.0]]), axis=1), np.gradient(np.array([1.0, 2.0, 4.0, 8.0]), edge_order=2))
+print(np.interp(1.5, [1, 2], [10, 20]), np.interp([0, 1, 3], [1, 2], [10, 20]), np.interp(0, [1, 2], [10, 20], left=-1), np.interp(3, [1, 2], [10, 20], right=-2), np.trapezoid([1, 2, 3]), np.trapezoid([1, 2, 3], dx=2), np.trapezoid([1, 2, 3], [0, 1, 3]), np.trapezoid(np.arange(6).reshape(2, 3), axis=1), np.convolve([1, 2, 3], [0, 1, 0.5]), np.convolve([1, 2, 3], [0, 1, 0.5], 'same'), np.convolve([1, 2, 3], [0, 1, 0.5], 'valid'), np.convolve([1, 2, 3], [1, 1], 'same'), np.correlate([1, 2, 3], [0, 1, 0.5]), np.correlate([1, 2, 3], [0, 1], 'full'), np.correlate([1, 2, 3], [1, 1], 'same'))
+x = np.array([[1.0, 2.0, 3.0], [1.0, 3.0, 2.0]])
+print(np.cov(x), np.cov(x, rowvar=False)[0], np.cov([1.0, 2.0, 4.0]), np.cov([1, 2, 4], [1, 3, 2]), np.cov(x, bias=True), np.cov(x, ddof=0), np.corrcoef(x), np.corrcoef([1, 2, 4], [1, 3, 2]), np.corrcoef(np.array([1, 2, 3]), np.array([3, 2, 1])))
+print(np.histogram2d([0.0, 1.0], [0.0, 1.0], bins=2), np.histogram_bin_edges([0, 1, 2], bins=2), np.histogram([1, 2, 2, 3], bins=2), np.histogram([1, 2, 2], bins=[0, 2, 4]), np.bincount([0, 1, 1]), np.percentile([1, 2, 3, 4], 50), np.quantile([1, 2, 3, 4], 0.25), np.median(np.arange(6).reshape(2, 3), axis=1), np.average([1, 2], weights=[1, 3]))
+print(np.sum(np.arange(24).reshape(2, 3, 4), axis=(1, 2)), np.mean(np.arange(24).reshape(2, 3, 4), axis=(0, 2)), np.max(np.arange(6).reshape(2, 3), axis=(0, 1)), np.std(np.array([1.0, 2.0, 4.0]), ddof=1), np.var(np.array([1.0, 2.0, 4.0]), ddof=1), np.sum(np.arange(4).reshape(2, 2), axis=0, keepdims=True), np.sum(np.array([1, 2]), initial=10), np.max(np.array([]), initial=0), np.sum(np.array([1, 2, 3]), where=np.array([True, False, True])), np.min(np.array([1, 2]), initial=0), np.cumsum(np.arange(4).reshape(2, 2), axis=0), np.prod(np.array([2, 3])), np.all(np.array([True, False])), np.any(np.array([[True, False]]), axis=0), np.argmax(np.array([[1, 3], [2, 0]]), axis=1), np.argsort(np.array([3, 1, 2])), np.sort(np.array([[3, 1], [2, 4]]), axis=0), np.sort(np.array([3, 1, 2]))[::-1])
+### numpy products
+import numpy as np
+a = np.arange(4).reshape(2, 2)
+b = np.arange(6).reshape(2, 3)
+print(np.einsum('ij,jk->ik', a, b), np.einsum('ii', a), np.einsum('ij->ji', b), np.einsum('i,i', [1, 2], [3, 4]), np.einsum('i,j->ij', [1, 2], [3, 4]), np.einsum('ij,ij->', a, a), np.einsum('ij', b), np.einsum('ji', b), np.einsum('ij->i', b), np.einsum('i,i->i', [1, 2], [3, 4]), np.einsum('ij,j', a, [1, 2]), np.einsum('ii->i', a))
+print(np.tensordot(a, a), np.tensordot(a, a, axes=1), np.tensordot(a, a, axes=0).shape, np.tensordot(a, b, axes=(1, 0)), np.tensordot(a, b, axes=([1], [0])), np.inner([1, 2], [3, 4]), np.inner(a, a), np.inner(np.arange(6).reshape(2, 3), [1, 2, 3]), np.vdot(a, a), np.vdot([1, 2], [3, 4]), np.kron([1, 2], [1, 10]), np.kron(a, np.eye(2, dtype=int)), np.cross([1, 0, 0], [0, 1, 0]), np.cross([[1, 0, 0]], [[0, 1, 0]]), np.cross([1, 2], [3, 4]), np.cross([1, 2], [3, 4, 5]), np.vecdot([1, 2], [3, 4]), np.outer([1, 2], [3, 4]), np.dot(a, a), np.matmul(a, a), np.trace(a), a @ a)
+f = np.vectorize(lambda x, y=1: x + y)
+print(f(np.array([1, 2])), f(np.array([1, 2]), 3), f(1), np.vectorize(lambda x: x > 1)(np.array([1, 2])), np.vectorize(lambda x: x / 2)([1, 2]), np.vectorize(lambda x: x, otypes=[float])([1, 2]), np.apply_along_axis(np.sum, 0, a), np.apply_along_axis(lambda v: v * 2, 1, a), np.apply_along_axis(lambda v: v[0], 1, a), np.apply_along_axis(sorted, 1, np.array([[2, 1]])), np.apply_over_axes(np.sum, a, [0, 1]))
+print(np.isscalar(1), np.isscalar([1]), np.isscalar('a'), np.iterable([1]), np.iterable(1), np.isrealobj(a), np.iscomplexobj(a), np.array2string(np.array([1.5, 2.5])), np.array2string(np.array([1, 2]), separator=', '), np.array2string(np.array([1.23456]), precision=2), np.array_str(np.array([1, 2])), np.array_repr(np.array([1, 2])), np.binary_repr(5), np.binary_repr(5, width=8), np.binary_repr(-1, width=4), np.base_repr(255, 16), np.base_repr(5), np.packbits(np.array([1, 0, 0, 0, 0, 0, 0, 1], dtype=np.uint8)), np.unpackbits(np.array([3], dtype=np.uint8)))
+print(np.finfo(float).eps, np.finfo(np.float64).max, np.iinfo(np.int32).max, np.iinfo(np.int32).min, np.iinfo('int8').max, np.iinfo(np.uint8).max, np.result_type(1, 2.0), np.result_type(np.array([1]), np.array([1.0])), np.promote_types('int64', 'float64'), np.can_cast('int64', 'float64'), np.can_cast('float64', 'int64'), np.issubdtype(np.float64, np.floating), np.issubdtype(np.int64, np.integer), np.issubdtype(np.int64, np.floating), np.issubdtype(np.array([1]).dtype, np.number), np.dtype('float64'), np.dtype(int), np.euler_gamma, np.True_, np.False_)
+np.set_printoptions(precision=3)
+print(np.array([1.23456789, 2.0]), np.array([0.00001234]), repr(np.array([1 / 3])))
+np.set_printoptions(suppress=True)
+print(np.array([0.00001234, 1000.5]), np.array([1e-10, 1.0]))
+print(np.get_printoptions()['precision'], np.get_printoptions()['suppress'])
+np.set_printoptions(precision=8, suppress=False, threshold=5, edgeitems=1)
+print(np.arange(10), np.zeros((4, 4)))
+np.set_printoptions(threshold=1000, edgeitems=3, linewidth=20)
+print(np.arange(12))
+np.set_printoptions(linewidth=75)
+with np.printoptions(precision=2):
+    print(np.array([1.2345]))
+print(np.array([1.2345]))
+with np.errstate(divide='ignore'):
+    print(np.array([1.0]) / np.array([0.0]))
+print(np.seterr(all='ignore') is not None)
+### numpy methods
+import numpy as np
+a = np.array([3, 1, 2])
+a.sort(); print(a)
+b = np.array([[3, 1], [2, 4]])
+b.sort(axis=0); print(b); b.sort(); print(b)
+c = np.arange(4); c.fill(7); print(c); c = np.arange(4); c.put([0], [9]); print(c)
+d = np.arange(4).reshape(2, 2)
+print(d.conj(), d.conjugate(), d.real, d.imag, d.take([0, 1]), d.take(0, axis=1), d.diagonal(), d.trace(), d.cumprod(), d.cumprod(axis=0), d.compress([0, 1], axis=0), d.itemsize, d.nbytes, d.mT, np.array([1, 3]).searchsorted(2), np.array([0, 1]).choose([np.array([1, 2]), np.array([3, 4])]))
+e = np.arange(4)
+v = e.view(); v[0] = 9; print(e, v.base is e, e.flags['OWNDATA'], v.flags['OWNDATA'], e.flags.writeable, e.flags.c_contiguous)
+f = np.arange(6).reshape(2, 3)
+print([int(x) for x in f.flat], f.flat[3], f.flat[1:3], f.flat[[0, 5]], len(f.flat), np.array(f.flat))
+f.flat[0] = 9; print(f); f.flat[1:3] = 7; print(f)
+h = np.arange(4); h.resize((2, 3)); print(h)
+print(np.arange(3).astype(float), np.arange(3).astype('float64'), np.array([1.5]).astype(int), np.array([0, 1]).astype(bool), np.arange(3).dtype, np.arange(3.0).dtype, np.array([True]).dtype, np.array([1, 2]).tolist(), np.arange(4).reshape(2, 2).tolist(), np.array(5).item(), np.arange(3).item(1), np.array(5).ndim, np.array([[1]]).shape, np.array([1, 2]).size, np.arange(2).T)
+print(np.floor(np.array([1, 2])), np.ceil(np.array([1, 2])), np.trunc(np.array([1, 2])), np.rint(np.array([1, 2])), np.fix(np.array([1, 2])), np.round(np.array([1.5, 2.5])), np.around(1.5), np.round(1.2345, 2), np.round(np.array([1.2345]), 2), np.clip(np.array([1, 5]), 2, 3), np.clip(np.array([1, 5]), None, 3), np.sign(np.array([-1, 0, 2])), np.power(2, np.array([1, 2])), np.sqrt(np.array([4, 9])), np.square(np.array([2])), np.abs(np.array([-1])))
+### numpy linalg
+import numpy as np
+A = np.array([[3.0, 1.0], [1.0, 2.0]])
+print(np.linalg.solve(A, np.array([9.0, 8.0])), np.linalg.solve(A, np.array([[9.0], [8.0]])), np.round(np.linalg.det(A), 6), np.linalg.inv(A), np.linalg.matrix_rank(A), np.linalg.matrix_rank(np.array([[1, 2], [2, 4]])), np.linalg.matrix_rank(np.zeros((2, 2))), np.linalg.matrix_power(A, 2), np.linalg.matrix_power(np.array([[1, 1], [0, 1]]), 3), np.linalg.matrix_power(A, 0), np.round(np.linalg.matrix_power(A, -1), 6), np.linalg.trace(A), np.linalg.cond(np.eye(2)), np.round(np.linalg.cond(A), 6), np.round(np.linalg.cond(A, 1), 6), np.round(np.linalg.cond(A, 'fro'), 6), [round(float(x), 6) for x in np.linalg.slogdet(A)], [round(float(x), 6) for x in np.linalg.slogdet(np.array([[1.0, 2.0], [2.0, 1.0]]))], np.linalg.multi_dot([A, A, A]))
+q, r = np.linalg.qr(np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]))
+print(np.round(q, 6), np.round(r, 6))
+q, r = np.linalg.qr(np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]), mode='complete'); print(q.shape, r.shape, np.round(np.abs(q), 6)[0], np.round(r, 6)[0])
+print(np.round(np.linalg.qr(A).R, 6), np.round(np.linalg.cholesky(A), 6), np.round(np.linalg.cholesky(A, upper=True), 6))
+w, v = np.linalg.eig(np.array([[2.0, 1.0], [1.0, 2.0]]))
+print(np.round(w, 6), np.round(v, 6))
+w, v = np.linalg.eig(np.array([[4.0, 1.0], [2.0, 3.0]]))
+print(np.round(w, 6), np.round(v, 6))
+w, v = np.linalg.eig(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 10.0]]))
+print(np.round(w, 6), np.round(np.abs(v), 6))
+print(np.round(np.linalg.eigvals(np.array([[2.0, 0.0], [0.0, 1.0]])), 6), np.linalg.eigvals(np.array([[0.0, -1.0], [1.0, 0.0]])))
+w, v = np.linalg.eigh(np.array([[2.0, 1.0], [1.0, 2.0]]))
+print(np.round(w, 6), np.round(np.abs(v), 6), np.round(np.linalg.eigvalsh(A), 6))
+M = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+u, s, vt = np.linalg.svd(M, full_matrices=False)
+print(u.shape, np.round(s, 6), vt.shape, np.round(np.abs(u), 6), np.round(np.abs(vt), 6), np.round(u @ np.diag(s) @ vt, 6))
+u, s, vt = np.linalg.svd(M)
+print(u.shape, s.shape, vt.shape, np.round(np.linalg.svd(M, compute_uv=False), 6), np.round(u.T @ u, 6) + 0)
+print(np.round(np.linalg.svdvals(M), 6), np.round(np.linalg.pinv(M), 6), np.round(np.linalg.pinv(np.array([[1.0, 0.0], [0.0, 0.0]])), 6))
+x, res, rank, sv = np.linalg.lstsq(np.array([[1.0, 0.0], [1.0, 1.0], [1.0, 2.0]]), np.array([1.0, 2.0, 2.0]), rcond=None)
+print(np.round(x, 6), np.round(res, 6), rank, np.round(sv, 6))
+x, res, rank, sv = np.linalg.lstsq(np.array([[1.0, 1.0], [1.0, 1.0]]), np.array([1.0, 1.0]), rcond=None)
+print(np.round(x, 6), res, rank)
+print(np.linalg.norm([3, 4]), np.linalg.norm([3, 4], 1), np.linalg.norm([3, 4], np.inf), np.linalg.norm([3, 4], -np.inf), np.linalg.norm([3, 0], 0), np.linalg.norm([3, 4], 3), np.linalg.norm(A), np.linalg.norm(A, 'fro'), np.linalg.norm(A, 1), np.linalg.norm(A, np.inf), np.round(np.linalg.norm(A, 2), 6), np.round(np.linalg.norm(A, 'nuc'), 6), np.linalg.norm(A, axis=0), np.linalg.norm(A, axis=1), np.linalg.norm(A, axis=1, keepdims=True), np.linalg.norm(A, ord=1, axis=0), np.linalg.norm(np.zeros((2, 2, 2)), axis=(1, 2)), np.linalg.vector_norm([3, 4]), np.linalg.matrix_norm(A))
+try:
+    np.linalg.inv(np.array([[1.0, 2.0], [2.0, 4.0]]))
+except np.linalg.LinAlgError as e:
+    print(type(e).__name__, e)
+try:
+    np.linalg.solve(np.array([[1.0, 2.0], [2.0, 4.0]]), np.array([1.0, 2.0]))
+except np.linalg.LinAlgError as e:
+    print('solve', e)
+try:
+    np.linalg.cholesky(np.array([[1.0, 2.0], [2.0, 1.0]]))
+except np.linalg.LinAlgError as e:
+    print('chol', e)
+try:
+    np.linalg.inv(np.zeros((2, 3)))
+except np.linalg.LinAlgError as e:
+    print('shape', e)
+### numpy polynomials
+import numpy as np
+print(np.polyadd([1, 2], [1]), np.polysub([1, 2], [1]), np.polymul([1, 1], [1, -1]), np.polyder([1, 2, 3]), np.polyder([1, 2, 3], 2), np.polyint([3, 2]), np.polyval([1, 2], 3), np.polydiv([1, 0, -1], [1, 1]), np.round(np.roots([1, -3, 2]), 6), np.roots([1, 0, 1]) is not None, np.poly([1, 2]), np.round(np.polyfit([0, 1, 2], [1, 3, 5], 1), 6))
+p = np.poly1d([1, 2, 3])
+print(p(2), p.order, p.c, p.coef, p[0], p[2], len(p), p.deriv(), repr(p.deriv()), repr(p.integ()), repr(p * p), repr(p + 1), repr(p - p), repr(2 * p), repr(p ** 2), np.round(np.poly1d([1, -3, 2]).roots, 6), repr(np.poly1d([1, 2], True)), p(np.array([0, 1])))
+print(p)
+print(np.poly1d([1, -3, 2]))
+print(np.poly1d([2.5, 0]))
+### numpy random is seeded
+import numpy as np
+np.random.seed(1); a = np.random.random(3); np.random.seed(1); b = np.random.rand(3)
+print(a.shape, bool((a >= 0).all() and (a < 1).all()), bool((a == b).all()))
+print(np.random.random_sample((2, 2)).shape, np.random.ranf(2).shape, np.random.sample(2).shape, np.random.standard_normal(3).shape, np.random.exponential(2.0, 3).shape, np.random.poisson(3.0, 2).dtype, np.random.binomial(5, 0.5, 2).dtype, np.random.beta(1, 2, 3).shape, np.random.gamma(2.0, 1.0, 3).shape, np.random.chisquare(2, 3).shape, np.random.laplace(0, 1, 3).shape, np.random.lognormal(0, 1, 3).shape, np.random.logistic(0, 1, 3).shape, np.random.geometric(0.5, 2).dtype, np.random.rayleigh(1, 2).shape, np.random.standard_t(3, 2).shape, np.random.pareto(2, 2).shape, np.random.weibull(2, 2).shape, np.random.triangular(0, 1, 2, 2).shape, np.random.gumbel(0, 1, 2).shape, np.random.multinomial(5, [0.5, 0.5]).shape, np.random.multinomial(5, [0.5, 0.5], size=3).shape, np.random.dirichlet([1, 1]).shape, np.random.dirichlet([1, 1], 3).shape, np.random.multivariate_normal([0, 0], np.eye(2)).shape, np.random.multivariate_normal([0, 0], np.eye(2), 3).shape, np.random.uniform(0, 1, (2, 2)).shape, np.random.normal(0, 1, 2).shape, np.random.randint(0, 5, 3).dtype, np.random.permutation(3).shape, np.random.permutation(np.arange(4).reshape(2, 2)).shape)
+print(sum(np.random.multinomial(5, [0.5, 0.5])), round(float(np.random.dirichlet([1, 1]).sum()), 6), type(np.random.exponential()).__name__ in ('float', 'float64'))
+x = np.arange(5); np.random.shuffle(x); print(sorted(x.tolist()))
+y = np.arange(6).reshape(3, 2); np.random.shuffle(y); print(sorted(y[:, 0].tolist()), bool((y[:, 1] == y[:, 0] + 1).all()))
+z = [1, 2, 3]; np.random.shuffle(z); print(sorted(z))
+print(sorted(np.random.choice(5, 5, replace=False).tolist()), np.random.choice([1, 2, 3], 2).shape, np.random.choice(3, p=[0.0, 1.0, 0.0]), np.random.choice(3, 2, p=[0.0, 1.0, 0.0]), np.random.default_rng(1).choice(np.arange(6).reshape(3, 2), 2).shape, sorted(np.random.choice([5, 6], 2, replace=False).tolist()))
+try:
+    np.random.choice(2, 3, replace=False)
+except ValueError as e:
+    print(e)
+r = np.random.default_rng(42); s = np.random.default_rng(42)
+print(bool((r.random(3) == s.random(3)).all()), type(r).__name__, r.integers(0, 5, 3).shape, r.integers(5, size=2).shape, 0 <= r.integers(3) < 3, 1 <= r.integers(1, 2, endpoint=True) <= 2, r.normal(0, 1, 2).shape, r.standard_normal(2).shape, r.uniform(0, 1, 2).shape, r.choice(5, 2).shape, r.exponential(1, 2).shape, r.poisson(1, 2).shape, r.binomial(5, 0.5, 2).shape, r.permutation(3).shape, r.beta(1, 1, 2).shape, r.gamma(1, 1, 2).shape, r.multivariate_normal([0], [[1]], 2).shape, r.permuted(np.arange(4)).shape, r.random((2, 2)).shape)
+q = np.arange(4); r.shuffle(q); print(sorted(q.tolist()))
+rs = np.random.RandomState(0); t = np.random.RandomState(0)
+print(bool((rs.rand(2) == t.rand(2)).all()), rs.randn(2).shape, rs.randint(0, 5, 2).shape, rs.normal(0, 1, 2).shape, rs.uniform(0, 1, 2).shape, rs.choice(3, 2).shape, rs.permutation(3).shape)
+### files in memory
+import os, json, csv, io
+print(os.path.exists('a.txt'), os.listdir('.'))
+with open('a.txt', 'w') as f:
+    print(f.write('one\ntwo\n'), f.closed)
+print(f.closed, os.path.exists('a.txt'), os.path.isfile('a.txt'), os.path.getsize('a.txt'))
+print(open('a.txt').read(), open('a.txt', 'r').readlines())
+with open('a.txt', 'a') as f:
+    f.write('three')
+with open('a.txt') as f:
+    print(f.readline(), [line.strip() for line in f])
+for line in open('a.txt'):
+    print(line, end='')
+print()
+try:
+    open('nope.txt')
+except FileNotFoundError as e:
+    print(type(e).__name__, e.args[0] if False else 'missing')
+try:
+    f = open('a.txt'); f.close(); f.read()
+except ValueError as e:
+    print(e)
+with open('d.json', 'w') as f:
+    json.dump({'a': [1, 2]}, f)
+with open('d.json') as f:
+    print(json.load(f), f.name)
+with open('t.csv', 'w', newline='') as f:
+    w = csv.writer(f)
+    w.writerow(['a', 'b'])
+    w.writerows([[1, 'x,y'], [2, 'q"r']])
+print(repr(open('t.csv').read()))
+with open('t.csv', newline='') as f:
+    print(list(csv.reader(f)))
+with open('t.csv', newline='') as f:
+    print([dict(r) for r in csv.DictReader(f)])
+with open('u.csv', 'w', newline='') as f:
+    w = csv.DictWriter(f, fieldnames=['x', 'y'])
+    w.writeheader(); w.writerow({'x': 1, 'y': 2})
+print(repr(open('u.csv').read()))
+s = io.StringIO(); s.write('hi\n'); print('there', file=s); print(repr(s.getvalue()))
+s = io.StringIO('a\nb\n'); print(s.readline(), s.read(), list(io.StringIO('p\nq')), s.tell())
+os.remove('a.txt'); print(os.path.exists('a.txt'), sorted(os.listdir('.')))
+os.makedirs('dir/sub'); print(os.path.isdir('dir/sub'), os.path.isdir('zzz'), os.path.dirname('dir/sub/x.txt'))
+### numpy uint8
+import numpy as np
+a = np.array([250, 5], dtype=np.uint8)
+print(a, repr(a), a.dtype, a.dtype.name, a.itemsize, a.nbytes, a + 10, a * 2, a - 10, repr(a + 10), repr(-a), repr(~a), a / 2, repr(a // 2), repr(a % 3), a ** 2, repr(a & 3), repr(a | 1), repr(a ^ 1), a > 100, a == 5, a < 300)
+b = np.array([1.5, 2.5])
+print(repr(a + b), repr(a + 1.5), repr(a + np.array([1, 2])), repr(a + np.array([1, 2], dtype=np.uint8)), repr(np.array([True, False]) + a), a.sum(), a.mean(), a.max(), a.min(), a.prod(), repr(a.astype(int)), repr(a.astype(float)), repr(a.astype(bool)), a.std(), np.sum(a), np.cumsum(a), a.tolist(), a[0], int(a[0]) + 10, a[0:1], repr(a[0:1]))
+print(repr(np.array([1.7, -1.0, 300.5]).astype(np.uint8)), repr(np.array([1.7, 2.2]).astype('uint8')), repr(np.array([1, 2], dtype='uint8')), repr(np.uint8(np.array([256, -1]))), np.uint8(200), np.uint8(3.7), repr(np.zeros(2, dtype=np.uint8)), repr(np.ones((1, 2), np.uint8)), repr(np.full(2, 7, dtype=np.uint8)), repr(np.arange(2).astype(np.uint8)), repr(np.zeros_like(a)), repr(np.ones_like(a)), repr(np.empty((0,), dtype=np.uint8)))
+c = np.zeros((2, 2), dtype=np.uint8)
+c[0, 0] = 200; c[1] = 7
+print(c, repr(c), c.shape, repr(c.reshape(4)), repr(c.T), repr(c.copy()), repr(c.ravel()), repr(c.flatten()), repr(np.concatenate([c, c])), repr(np.vstack([c, c])[0]), repr(np.clip(c, 0, 100)), repr(np.where(c > 0, c, c)), repr(np.maximum(c, 1)), np.stack([c, c]).sum(axis=0).tolist(), repr(np.dot(c, c)), repr(c @ c), repr(np.expand_dims(c, 0)[0]), repr(np.flip(c, 0)), repr(np.transpose(c)), repr(np.unique(c)), repr(np.sort(c.ravel())), repr(np.mean(c, axis=0)), repr(c.max(axis=0)), c.sum(axis=0).tolist())
+c += 100; print(repr(c)); c //= 2; print(repr(c))
+print(repr(np.arange(30).astype(np.uint8)))
+print(repr(np.arange(24).reshape(2, 12).astype(np.uint8)))
+for bad in [lambda: np.array([300], dtype=np.uint8), lambda: a + 300, lambda: a - (-1), lambda: np.uint8(300), lambda: np.uint8(-1)]:
+    try:
+        print(bad())
+    except OverflowError as e:
+        print(type(e).__name__, e)
+print(np.issubdtype(a.dtype, np.integer), np.issubdtype(a.dtype, np.unsignedinteger), np.issubdtype(a.dtype, np.signedinteger), np.iinfo(a.dtype).max, np.can_cast(np.uint8, np.int64), np.can_cast(np.int64, np.uint8), np.result_type(a, np.array([1])), a.dtype == np.uint8, a.dtype == 'uint8', a.dtype == np.int64)
