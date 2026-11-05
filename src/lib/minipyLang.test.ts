@@ -58,7 +58,8 @@ describe('sandbox limits and errors', () => {
   })
 
   it('unknown modules name what the sandbox has', () => {
-    expect(runPython('import sklearn').error).toMatchObject({ type: 'ModuleNotFoundError', message: "No module named 'sklearn' (this sandbox has numpy, math, random)" })
+    expect(runPython('import nosuchthing').error?.type).toBe('ModuleNotFoundError')
+    expect(runPython('import nosuchthing').error?.message).toMatch(/^No module named 'nosuchthing' \(this sandbox has numpy, math, random, /)
   })
 
   it('a loop body records traces for its first iterations only', () => {
