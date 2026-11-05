@@ -610,6 +610,14 @@ class Est extends PyObj {
     this.cls = spec.name
   }
   defaultOf(name: string): Value | null | undefined { return this.spec.params.find(([k]) => k === name)?.[1] }
+  /** ms is bound to this object: the copy makes its own */
+  pickled(copy: <T>(part: T) => T) {
+    const e = new Est(this.spec)
+    e.params = copy(this.params)
+    e.fitted = copy(this.fitted)
+    e.st = copy(this.st)
+    return e
+  }
   repr() {
     const out: string[] = []
     pprintEst(this, 0, 0, out)

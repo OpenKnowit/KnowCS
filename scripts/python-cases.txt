@@ -756,3 +756,2116 @@ except TypeError as e:
 class list:
     pass
 print(isinstance([], list), isinstance(list(), list))
+### argparse basics
+import argparse
+p = argparse.ArgumentParser(prog='train', description='Train a model.')
+p.add_argument('data', help='where the data is')
+p.add_argument('--lr', type=float, default=0.01, help='learning rate')
+p.add_argument('--epochs', '-e', type=int, default=10)
+p.add_argument('--verbose', '-v', action='store_true')
+p.add_argument('--no-shuffle', dest='shuffle', action='store_false')
+p.add_argument('--mode', choices=['train', 'eval'], default='train')
+p.add_argument('--tags', nargs='+', default=[])
+p.add_argument('--size', nargs=2, type=int, metavar=('W', 'H'))
+a = p.parse_args(['d.csv', '--lr', '0.5', '-e', '3', '-v', '--no-shuffle', '--tags', 'x', 'y', '--size', '1', '2'])
+print(a)
+print(a.data, a.lr, a.epochs, a.verbose, a.shuffle, a.mode, a.tags, a.size)
+print(vars(a))
+print(type(a).__name__, 'lr' in a, 'zz' in a)
+print(p.parse_args(['d.csv']))
+print(p.parse_args(['d.csv', '--lr=1e-3', '--epochs=7']))
+print(p.parse_args(['d.csv', '-e5', '-v']))
+a, rest = p.parse_known_args(['d.csv', '--unknown', '1', '--lr', '2'])
+print(a, rest)
+print(p.format_usage())
+print(p.format_help())
+p.print_help()
+p.print_usage()
+print(p)
+print(p.prog, p.description)
+print(p.get_default('lr'))
+p.set_defaults(lr=9.0, other=3)
+print(p.get_default('lr'), p.parse_args(['z']))
+### argparse errors
+import argparse, contextlib, io
+def run(p, argv):
+    err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(err):
+            print(p.parse_args(argv))
+    except SystemExit as e:
+        print('exit', e.code, type(e).__name__, repr(err.getvalue()))
+p = argparse.ArgumentParser(prog='x')
+p.add_argument('pos')
+p.add_argument('--n', type=int)
+p.add_argument('--m', choices=[1, 2], type=int)
+p.add_argument('--req', required=True)
+p.add_argument('--flag', action='store_true')
+p.add_argument('--two', nargs=2)
+run(p, [])
+run(p, ['a'])
+run(p, ['a', '--req', 'r', '--n', 'abc'])
+run(p, ['a', '--req', 'r', '--m', '3'])
+run(p, ['a', '--req', 'r', '--bad'])
+run(p, ['a', 'b', '--req', 'r'])
+run(p, ['a', '--req'])
+run(p, ['a', '--req', 'r', '--flag=1'])
+run(p, ['a', '--req', 'r', '--two', '1'])
+run(p, ['a', '--req', 'r', '--two', '1', '2'])
+run(p, ['a', '--req=r', '--fl'])
+run(p, ['-h'])
+run(p, ['--help'])
+q = argparse.ArgumentParser(prog='q', add_help=False)
+q.add_argument('--alpha'); q.add_argument('--alps')
+run(q, ['--al', '1'])
+run(q, ['--alph', '1'])
+run(q, ['-h'])
+print(q.format_help())
+try:
+    p.add_argument('--n')
+except argparse.ArgumentError as e:
+    print(type(e).__name__, e)
+for f in [lambda: p.add_argument('x', required=True), lambda: p.add_argument('y', dest='z'), lambda: p.add_argument('--a', 'b'), lambda: p.add_argument('--a', action='nope'), lambda: p.add_argument('--a', nargs=0), lambda: p.add_argument('--a', type='int'), lambda: p.add_argument('--a', action='store_true', type=int), lambda: p.add_argument('--a', action='store_true', nargs=1), lambda: p.add_argument('--a', bogus=1), lambda: p.add_argument('--a', action='store_const'), lambda: p.add_argument('--a', const=1), lambda: p.add_argument('--a', nargs='z'), lambda: p.add_argument('--a', metavar=('A', 'B'))]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+def even(s):
+    if int(s) % 2: raise argparse.ArgumentTypeError('%s is odd' % s)
+    return int(s)
+r = argparse.ArgumentParser(prog='r')
+r.add_argument('--e', type=even)
+print(r.parse_args(['--e', '2']))
+run(r, ['--e', '3'])
+run(r, ['--e', 'z'])
+print(r.parse_args([]))
+try:
+    r.error('custom')
+except SystemExit as e:
+    print('code', e.code)
+try:
+    r.exit(5, 'bye\n')
+except SystemExit as e:
+    print('code', e.code)
+try:
+    r.exit()
+except SystemExit as e:
+    print('code', e.code)
+for v in [[1], ['--e', 2], 'ab']:
+    try:
+        print(r.parse_args(v))
+    except (TypeError, SystemExit) as e:
+        print(type(e).__name__, e)
+### argparse actions and nargs
+import argparse
+p = argparse.ArgumentParser(prog='p', usage='%(prog)s [options]', epilog='see docs for %(prog)s')
+p.add_argument('--c', action='count', default=0, help='count it (default %(default)s)')
+p.add_argument('--a', action='append', type=int, help='%(prog)s %(dest)s %(type)s')
+p.add_argument('--k', action='store_const', const=42, help='const %(const)s')
+p.add_argument('--ac', action='append_const', const='z', dest='zs')
+p.add_argument('--ext', action='extend', nargs='+')
+p.add_argument('--opt', nargs='?', const='C', default='D')
+p.add_argument('--star', nargs='*', default=['none'])
+p.add_argument('--bo', action=argparse.BooleanOptionalAction, default=False, help='toggle')
+p.add_argument('--ver', action='version', version='%(prog)s 1.0')
+p.add_argument('--ch', choices=range(3), type=int, help='one of %(choices)s')
+p.add_argument('--path', metavar='FILE', help='a very long help text that goes on and on and on and on and on and on and on, so that it has to wrap over two lines at least')
+p.add_argument('--a-very-long-option-name-indeed', metavar='VALUE', help='short')
+p.add_argument('--hidden', help=argparse.SUPPRESS)
+p.add_argument('rest', nargs='*', default=['r'], help='the rest')
+p.add_argument('maybe', nargs='?', default='m')
+print(p.parse_args([]))
+print(p.parse_args(['--c', '--c', '--a', '1', '--a', '2', '--k', '--ac', '--ac', '--ext', 'a', 'b', '--ext', 'c']))
+print(p.parse_args(['--opt']), p.parse_args(['--opt', 'x']), p.parse_args(['--star']), p.parse_args(['--star', 'a', 'b']))
+print(p.parse_args(['--bo']), p.parse_args(['--no-bo']), p.parse_args(['--ch', '2']))
+print(p.parse_args(['a', 'b', '--hidden', 'h']))
+print(p.parse_args(['--', '-x', '--y']))
+print(p.format_help())
+print(p.format_usage())
+try:
+    p.parse_args(['--ver'])
+except SystemExit as e:
+    print(e.code)
+s = argparse.ArgumentParser(prog='s')
+s.add_argument('a'); s.add_argument('b', nargs='+'); s.add_argument('c')
+print(s.parse_args(['1', '2', '3', '4']))
+print(s.format_usage())
+n = argparse.ArgumentParser(prog='n')
+n.add_argument('x', type=float)
+n.add_argument('-y', type=float)
+print(n.parse_args(['-1.5', '-y', '-2']))
+print(n.parse_args(['-1', '-y=-2']))
+m = argparse.ArgumentParser(prog='m')
+m.add_argument('-a', action='store_true'); m.add_argument('-b', action='store_true'); m.add_argument('-c')
+print(m.parse_args(['-ab', '-cfoo']), m.parse_args(['-abc', 'bar']), m.parse_args(['-c=eq']))
+print(argparse.Namespace(a=1, b='x'), argparse.Namespace(a=1) == argparse.Namespace(a=1), argparse.Namespace(a=1) == argparse.Namespace(a=2), argparse.Namespace())
+ns = argparse.Namespace(q=5)
+print(m.parse_args(['-a'], namespace=ns), ns.q, ns.a)
+print(argparse.Namespace(**{'a-b': 1, 'c': 2}))
+### argparse groups and formatters
+import argparse
+p = argparse.ArgumentParser(prog='g', description='Desc here.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+g = p.add_argument_group('model', 'Model settings')
+g.add_argument('--hidden', type=int, default=128, help='hidden units')
+g.add_argument('--layers', type=int, default=2, help='layers')
+o = p.add_argument_group('other')
+o.add_argument('--seed', type=int, help='seed')
+x = p.add_mutually_exclusive_group()
+x.add_argument('--cpu', action='store_true', help='use cpu')
+x.add_argument('--gpu', action='store_true', help='use gpu')
+y = p.add_mutually_exclusive_group(required=True)
+y.add_argument('--a', action='store_true')
+y.add_argument('--b', action='store_true')
+p.add_argument('name', nargs='?', default='n', help='a name')
+print(p.format_help())
+print(p.parse_args(['--a', '--cpu', '--hidden', '5']))
+import contextlib, io
+for v in [['--a', '--cpu', '--gpu'], ['--cpu'], ['--a', '--b']]:
+    err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(err):
+            p.parse_args(v)
+    except SystemExit as e:
+        print(e.code, err.getvalue())
+r = argparse.ArgumentParser(prog='r', description='Keep\n   this\n\nlayout', epilog='and\n  this', formatter_class=argparse.RawTextHelpFormatter)
+r.add_argument('--x', help='line one\n  line two')
+print(r.format_help())
+d = argparse.ArgumentParser(prog='d', description='Keep\n   this', formatter_class=argparse.RawDescriptionHelpFormatter)
+d.add_argument('--x', help='wrapped\n  together')
+print(d.format_help())
+m = argparse.ArgumentParser(prog='m', formatter_class=argparse.MetavarTypeHelpFormatter)
+m.add_argument('--x', type=int); m.add_argument('y', type=str)
+print(m.format_help())
+l = argparse.ArgumentParser(prog='long_program_name_that_is_quite_long_indeed_and_more_than_that_really_really')
+for i in range(8): l.add_argument('--option-number-%d' % i, type=int, help='h')
+l.add_argument('positional_one'); l.add_argument('positional_two')
+print(l.format_usage())
+print(l.format_help())
+u = argparse.ArgumentParser(prog='short')
+for i in range(12): u.add_argument('--option-number-%d' % i, metavar='VALUE')
+u.add_argument('positional_one'); u.add_argument('positional_two', nargs='+')
+print(u.format_usage())
+print(argparse.ArgumentParser(prog='e', add_help=False).format_usage())
+print(repr(argparse.ArgumentParser(prog='e', add_help=False).format_help()))
+print(repr(argparse.ArgumentParser(prog='e', usage=argparse.SUPPRESS).format_usage()))
+print(repr(argparse.ArgumentParser(prog='e', usage=argparse.SUPPRESS, add_help=False).format_help()))
+print(argparse.ArgumentParser(prog='p', prefix_chars='+/').format_help())
+q = argparse.ArgumentParser(prog='q', prefix_chars='+', allow_abbrev=False, argument_default=argparse.SUPPRESS)
+q.add_argument('+x', type=int); q.add_argument('++long')
+print(q.parse_args(['+x', '1']), q.parse_args([]))
+e = argparse.ArgumentParser(prog='e', exit_on_error=False)
+e.add_argument('--n', type=int)
+try:
+    e.parse_args(['--n', 'x'])
+except argparse.ArgumentError as err:
+    print(type(err).__name__, err, err.argument_name, err.message)
+act = e.add_argument('--z', default=3, help='hh')
+print(act, act.dest, act.default, act.option_strings, act.help, act.nargs, act.type, act.required, act.choices, act.metavar, act.const)
+print(argparse.ArgumentParser(prog='t').add_argument('--t', action='store_true'))
+print(argparse.SUPPRESS, argparse.OPTIONAL, argparse.ZERO_OR_MORE, argparse.ONE_OR_MORE, argparse.REMAINDER, argparse.PARSER)
+print(argparse.ArgumentParser, argparse.Namespace, argparse.ArgumentError, argparse.HelpFormatter)
+### pathlib pure
+from pathlib import Path, PurePath, PurePosixPath, PosixPath
+p = Path('a/b/c.tar.gz')
+print(p, repr(p), str(p), p.name, p.stem, p.suffix, p.suffixes, p.parent, p.parts, p.root, p.anchor, p.drive)
+print(list(p.parents), len(p.parents), p.parents[0], p.parents[1], p.parents[-1], p.parents[0:2], p.parents)
+print(Path('/x/y').parts, Path('/x/y').parents[1], list(Path('/x/y').parents), Path('/x/y').root, Path('/x/y').anchor, Path('/').name, Path('/').parent, Path('/').parts, Path('.').parent, Path('.').name, Path('.').parts, Path('..').parent, Path('a/..').parent)
+print(Path(), Path(''), Path('.'), Path('a', 'b'), Path('a', '/b', 'c'), Path('a//b/./c/'), Path('//x'), Path('///x'), Path(Path('a'), 'b'), Path('a/../b'))
+print(Path('a') / 'b', 'a' / Path('b'), Path('a') / Path('b'), Path('a') / '/b', Path('/a') / 'b' / 'c.txt')
+print(Path('a').joinpath('b', 'c'), Path('a').joinpath(), Path('a').joinpath('/z'))
+print(Path('a/b.txt').with_suffix('.csv'), Path('a/b').with_suffix('.csv'), Path('a/b.tar.gz').with_suffix(''), Path('a/b.txt').with_name('z.py'), Path('a/b.txt').with_stem('q'))
+for f in [lambda: Path('a').with_suffix('csv'), lambda: Path('a').with_suffix('.'), lambda: Path('a').with_suffix('./x'), lambda: Path('').with_suffix('.x'), lambda: Path('').with_name('x'), lambda: Path('a').with_name(''), lambda: Path('a').with_name('x/y'), lambda: Path('a').with_name('/x'), lambda: Path('a').with_name('x/'), lambda: Path('/').with_name('x'), lambda: Path('a/b').relative_to('c'), lambda: Path('/a').relative_to('a'), lambda: Path('a').relative_to(), lambda: Path('a').as_uri(), lambda: Path(1), lambda: Path('a') / 1, lambda: 1 / Path('a'), lambda: Path('a') + 'b', lambda: Path('a') < 'b', lambda: Path('a').match(''), lambda: Path('a').nothing]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, str(e).split(' (or')[0])
+print(Path('a/b/c').relative_to('a'), Path('a/b/c').relative_to('a/b'), Path('a/b').relative_to('a/b'), Path('/a/b').relative_to('/'), Path('/a/b').relative_to('/a'), Path('a').relative_to(''), Path('a/b').relative_to('a', 'b'))
+print(Path('a/b').is_relative_to('a'), Path('a/b').is_relative_to('b'), Path('/a').is_absolute(), Path('a').is_absolute(), Path('/a b').as_uri(), Path('a/b').as_posix())
+print(Path('a/b.py').match('*.py'), Path('a/b.py').match('a/*.py'), Path('a/b.py').match('b/*.py'), Path('/a/b.py').match('/*.py'), Path('/a/b.py').match('/a/*.py'), Path('a/b.PY').match('*.py'), Path('b.py').match('a/*.py'))
+print(Path('a') == Path('a'), Path('a') == 'a', Path('a') != Path('b'), Path('a') < Path('b'), Path('a/b') > Path('a'), Path('a') <= Path('a'), Path('b') >= Path('a'), Path('/a') < Path('a'), sorted([Path('b'), Path('a/c'), Path('a')]))
+print(hash(Path('a')) == hash(Path('a')), {Path('a'): 1}[Path('a')], len({Path('a'), Path('a/.'), Path('b')}), Path('a') in [Path('a')], max(Path('a'), Path('b')))
+print(f'{Path("a/b")}', '%s' % Path('a'), '{}'.format(Path('x/y')), str(Path('x')) + '.txt', f'{Path("a"):>5}' if False else '')
+print(type(p), type(p).__name__, isinstance(p, Path), isinstance(p, PurePath), isinstance(p, PosixPath), isinstance(p, PurePosixPath), isinstance('a', Path))
+q = PurePath('x/y.txt')
+print(q, repr(q), type(q).__name__, isinstance(q, Path), isinstance(q, PurePath), q.suffix, q.parent, q / 'z', q == Path('x/y.txt'), repr(PurePosixPath('/a')), hasattr(q, 'exists'), hasattr(p, 'exists'))
+print(Path('.a').suffix, Path('.a').stem, Path('a.').suffix, Path('a.').stem, Path('a.').suffixes, Path('.a.b').suffixes, Path('..').suffix, Path('a..b').suffixes, Path('...').stem, Path('a b.c d').suffix)
+print(Path('~').expanduser() != Path('~'), Path('a').expanduser())
+import os
+print(os.fspath(Path('a/b')), os.fspath('s'), os.path.join(Path('a'), 'b'), os.path.join('a', Path('b')), os.path.basename(Path('a/b.txt')), os.path.dirname(Path('a/b.txt')), os.path.splitext(Path('a/b.txt')), os.path.split(Path('a/b')), os.path.isabs(Path('/a')), os.path.normpath(Path('a/../b')))
+print(isinstance(p, os.PathLike), isinstance('a', os.PathLike), issubclass(type(p), Path) if False else '')
+class P:
+    def __fspath__(self): return 'cust/om'
+print(os.fspath(P()), Path(P()), os.path.basename(P()), os.path.join(P(), 'x'))
+for f in [lambda: os.fspath(1), lambda: os.fspath(None), lambda: os.path.join(1), lambda: os.path.join('a', 1), lambda: os.path.basename(1), lambda: os.path.exists(None), lambda: os.listdir(1.5), lambda: os.mkdir(None), lambda: os.remove(None), lambda: open(None), lambda: open(1.5)]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+print(os.path.dirname('/a'), os.path.dirname('a'), os.path.dirname('a/'), os.path.dirname('//a'), os.path.split('/a'), os.path.split('a/'), os.path.split(''), os.path.basename('a/'), os.path.splitext('.a'), os.path.splitext('a.b.c'), os.path.splitext('a/.b'), os.path.splitext('a/b.c/d'), os.path.splitext('..a'), os.path.normpath('a//b/../c/.'), os.path.normpath(''), os.path.normpath('/../a'), os.path.normpath('//a'), os.path.normpath('///a'), os.path.normpath('../a/..'), os.path.isabs('a'), os.path.isabs('/a'))
+print(os.path.relpath('a/b', 'a'), os.path.relpath('a', 'a/b'), os.path.relpath('a'), os.path.relpath('a/b', 'c/d'), os.path.commonpath(['a/b', 'a/c']), os.path.commonpath(['/a/b', '/a']), os.path.commonpath(['a', 'b']), os.path.abspath('a') == os.path.join(os.getcwd(), 'a'), os.path.realpath('a') == os.path.join(os.path.realpath('.'), 'a'))
+### pathlib on files
+from pathlib import Path
+import os, json, csv
+d = Path('work')
+print(d.exists(), d.is_dir(), d.is_file())
+print(d.mkdir(), d.exists(), d.is_dir(), d.is_file(), list(d.iterdir()))
+print(os.path.isdir(d), os.path.exists(d), os.listdir(d), os.path.isdir('work'), os.listdir('.'))
+f = d / 'a.txt'
+print(f.write_text('hello\nworld\n'), f.exists(), f.is_file(), f.is_dir(), f.read_text(), f.stat().st_size)
+print(os.path.exists(f), os.path.isfile(f), os.path.getsize(f), open(f).read(), open(str(f)).readline())
+with f.open() as h:
+    print(h.readline(), h.name, h.mode, h.closed)
+print(h.closed)
+with f.open('a') as h:
+    print(h.write('more'), h.mode)
+print(f.read_text())
+with open(f, 'w') as h:
+    json.dump({'a': 1}, h)
+with f.open() as h:
+    print(json.load(h))
+with (d / 'c.csv').open('w', newline='') as h:
+    csv.writer(h).writerow(['x', 'y'])
+print(repr((d / 'c.csv').read_text()), list(csv.reader(open(d / 'c.csv', newline=''))))
+print(repr(open(d / 'c.csv', newline='').read()), repr(open(d / 'c.csv').read()), repr(open(d / 'c.csv', newline='').read()))
+print(sorted(d.iterdir()), sorted(os.listdir(d)))
+(d / 'sub' / 'deep').mkdir(parents=True)
+(d / 'sub' / 'deep').mkdir(parents=True, exist_ok=True)
+(d / 'sub' / 'x.py').touch()
+(d / 'sub' / 'deep' / 'y.py').write_text('')
+(d / '.hidden').write_text('')
+print(sorted(d.glob('*')), sorted(d.glob('*.txt')), sorted(d.glob('**/*.py')), sorted(d.rglob('*.py')), sorted(d.rglob('*')))
+print(sorted(d.glob('sub/*')), sorted(d.glob('sub/*.py')), sorted(d.glob('*/*.py')), sorted(d.glob('**')), sorted(d.glob('a.txt')), sorted(d.glob('nope')), sorted(d.glob('s?b')), sorted(d.glob('[a-c].*')), sorted(d.glob('[!a].*')), sorted(d.glob('sub/deep/*')), sorted(d.rglob('deep')), sorted(Path('.').glob('work/*.txt')), sorted(Path('nope').glob('*')), sorted(f.glob('*')))
+print(type(d.glob('*')).__name__, type(d.iterdir()).__name__, next(d.glob('a.txt')))
+for fn in [lambda: list(d.glob('')), lambda: list(d.glob('/x')), lambda: list(d.glob('a**')), lambda: list(d.rglob('/x')), lambda: d.mkdir(), lambda: (d/'q'/'r').mkdir(), lambda: (f/'r').mkdir(), lambda: f.mkdir(), lambda: f.mkdir(exist_ok=True), lambda: d.read_text(), lambda: Path('nope').read_text(), lambda: Path('nope').unlink(), lambda: Path('nope').rmdir(), lambda: f.rmdir(), lambda: d.rmdir(), lambda: Path('nope').rename('x'), lambda: list(Path('nope').iterdir()), lambda: list(f.iterdir()), lambda: open('nope/x', 'w'), lambda: open(f / 'x', 'w'), lambda: (d / 'no' / 'x').write_text('a'), lambda: f.write_text(1), lambda: Path('nope').stat(), lambda: Path('nope').resolve(strict=True), lambda: f.open('q'), lambda: Path('nope').open(), lambda: f.touch(exist_ok=False), lambda: (d / 'no' / 'x').touch(), lambda: Path('nope').samefile(f), lambda: f.samefile('nope')]:
+    try:
+        print(fn())
+    except Exception as e:
+        print(type(e).__name__, e if not isinstance(e, OSError) or e.errno not in (39, 66) else e.strerror, repr(e.args)[3:], getattr(e, 'filename', 'x'), getattr(e, 'strerror', 'x'))
+print(Path('nope').unlink(missing_ok=True), Path('nope').is_symlink(), f.is_symlink(), f.samefile(str(f)))
+g = f.rename(d / 'b.txt')
+print(g, repr(g), f.exists(), g.exists(), g.read_text())
+print(g.replace(d / 'a.txt'), (d / 'a.txt').exists(), g.exists())
+g = d / 'a.txt'
+print(g.unlink(), g.exists())
+e = d / 'empty'
+e.mkdir(); print(e.rmdir(), e.exists())
+print(Path('work/../work/sub').resolve().relative_to(Path.cwd()), Path('.').resolve() == Path.cwd(), Path.cwd().is_absolute(), Path('x').absolute().relative_to(Path.cwd()), Path('x/../y').absolute().relative_to(Path.cwd()), Path('/q').absolute(), Path('/q/../r').resolve(), Path.cwd() == Path(os.getcwd()), Path.cwd().exists(), Path.cwd().is_dir(), type(Path.cwd()).__name__, Path('x').is_absolute(), Path('x').resolve().is_absolute(), Path('.').resolve().is_dir())
+print(os.makedirs('m/n/o'), os.path.isdir('m'), os.path.isdir('m/n'), os.path.isdir('m/n/o'), os.listdir('m'), os.makedirs('m/n/o', exist_ok=True), os.makedirs(Path('p/q')), Path('p/q').is_dir())
+print(os.mkdir('m/z'), os.rmdir('m/z'), os.path.exists('m/z'), os.path.exists('m/n/'), os.path.isdir('m/n/'))
+for fn in [lambda: os.makedirs('m/n/o'), lambda: os.mkdir('m'), lambda: os.mkdir('z/y'), lambda: os.makedirs('work/sub/x.py/k'), lambda: os.makedirs('work/sub/x.py', exist_ok=True), lambda: os.rmdir('nope'), lambda: os.rmdir('m'), lambda: os.rmdir('work/sub/x.py'), lambda: os.listdir('nope'), lambda: os.listdir('work/sub/x.py'), lambda: os.remove('nope'), lambda: os.rename('nope', 'x'), lambda: os.rename('work/sub/x.py', 'nope/x'), lambda: os.path.getsize('nope'), lambda: os.stat('nope'), lambda: open('m'), lambda: open('m', 'w'), lambda: open('work/sub/x.py/k'), lambda: open('work/sub/x.py/k', 'w'), lambda: open('nope/'), lambda: os.path.isfile('work/sub/x.py/')]:
+    try:
+        print(fn())
+    except Exception as e:
+        print(type(e).__name__, e if not isinstance(e, OSError) or e.errno not in (39, 66) else e.strerror)
+os.rename('m/n', 'm2'); print(os.listdir('m'), sorted(os.listdir('m2')), os.path.isdir('m2/o'), os.path.isdir('m/n'))
+os.replace('work/sub/x.py', 'moved.py'); print(os.path.exists('moved.py'), os.path.exists('work/sub/x.py'))
+os.unlink('moved.py'); print(os.path.exists('moved.py'))
+for r, ds, fs in os.walk('work'):
+    ds.sort(); fs.sort()
+    print(r, ds, fs)
+for r, ds, fs in os.walk(Path('work')):
+    ds[:] = []
+    print(r, sorted(fs))
+print(list(os.walk('nope')), type(os.walk('work')).__name__)
+print(os.path.getsize(d / 'c.csv'))
+(d / 'plain.txt').write_text('héllo')
+print(open(d / 'plain.txt').seek(0, 2) > 0, open(d / 'plain.txt').read(3), os.path.getsize(d / 'plain.txt'))
+fh = open('sample.txt', 'w+'); fh.write('abcdef\nxyz\n'); print(fh.seek(2), fh.read(2), fh.tell(), fh.seek(0, 2), fh.tell(), fh.seek(0), next(fh), fh.readline(), fh.read()); fh.seek(1); print(fh.truncate(), fh.seek(0), fh.read()); fh.close()
+with open('sample.txt', 'w') as fh:
+    fh.write('1\n2\n3\n')
+fh = open('sample.txt')
+print(next(fh), fh.readline())
+for line in fh:
+    print(repr(line)); break
+print(repr(fh.read()), fh.readable(), fh.writable(), fh.seekable(), fh.isatty(), fh.encoding)
+fh = open('sample.txt', 'a')
+print(fh.readable(), fh.writable())
+for fn in [lambda: fh.read(), lambda: open('sample.txt').write('x'), lambda: open('sample.txt', 'r', newline='').write('x'), lambda: open('sample.txt', 'x'), lambda: open('sample.txt', 'q'), lambda: open('sample.txt', 'rw'), lambda: open('sample.txt', '+'), lambda: open('sample.txt', 'rbt'), lambda: open('sample.txt', 'rr'), lambda: open('sample.txt', 'rb', encoding='utf8'), lambda: open('sample.txt', 'rb', newline=''), lambda: open('sample.txt', 'rb', errors='x')]:
+    try:
+        print(fn())
+    except Exception as e:
+        print(type(e).__name__, e, isinstance(e, OSError), isinstance(e, ValueError))
+fh.close()
+x = open('xcl.txt', 'x'); print(x.write('y'), x.mode); x.close(); print(open('xcl.txt').read())
+print(FileExistsError, IsADirectoryError, NotADirectoryError, FileNotFoundError, issubclass(FileExistsError, OSError), issubclass(IsADirectoryError, OSError))
+try:
+    raise FileNotFoundError(2, 'No such', 'f.txt')
+except OSError as e:
+    print(e, e.errno, e.strerror, e.filename, e.args, repr(e))
+try:
+    raise OSError('plain')
+except OSError as e:
+    print(e, e.errno, e.strerror, e.filename, e.args, repr(e))
+try:
+    raise OSError(5, 'two')
+except OSError as e:
+    print(e, e.errno, e.strerror, e.filename, e.args, repr(e))
+try:
+    raise OSError(1, 'x', 'a', None, 'b')
+except OSError as e:
+    print(e, e.errno, e.strerror, e.filename, e.filename2, e.args)
+### enum basics
+from enum import Enum, IntEnum, Flag, IntFlag, auto, unique
+class Mode(Enum):
+    TRAIN = 'train'
+    EVAL = 'eval'
+    TEST = 'test'
+    ALIAS = 'train'
+    def describe(self):
+        return f'{self.name}:{self.value}'
+    @classmethod
+    def default(cls):
+        return cls.EVAL
+    @staticmethod
+    def helper():
+        return 'h'
+    @property
+    def upper(self):
+        return self.value.upper()
+print(Mode.TRAIN, repr(Mode.TRAIN), str(Mode.TRAIN), Mode.TRAIN.value, Mode.TRAIN.name)
+print(Mode('train'), Mode['TRAIN'], Mode.ALIAS, Mode.ALIAS is Mode.TRAIN, Mode['ALIAS'].name, Mode(Mode.EVAL))
+print(list(Mode), len(Mode), [m.name for m in Mode], [m.value for m in Mode])
+print(Mode.TRAIN in Mode, Mode.TRAIN is Mode.TRAIN, Mode.TRAIN == Mode.TRAIN, Mode.TRAIN == Mode.EVAL, Mode.TRAIN != Mode.EVAL, Mode.TRAIN == 'train', Mode.TRAIN is Mode.EVAL)
+print(Mode.TRAIN.describe(), Mode.default(), Mode.helper(), Mode.TRAIN.helper(), Mode.TRAIN.upper)
+print(Mode, type(Mode.TRAIN), type(Mode.TRAIN) is Mode, isinstance(Mode.TRAIN, Mode), isinstance(Mode.TRAIN, Enum), issubclass(Mode, Enum), isinstance('train', Mode), Mode.__name__, Mode.__members__, Mode.TRAIN.__class__)
+print(list(Mode.__members__), list(Mode.__members__.items()), Mode.__members__['ALIAS'], 'ALIAS' in Mode.__members__, len(Mode.__members__), dict(Mode.__members__), type(Mode.__members__).__name__)
+print(Mode._member_names_, list(Mode._member_map_), Mode._value2member_map_['eval'])
+print(f'{Mode.TRAIN}', f'{Mode.TRAIN!r}', f'{Mode.TRAIN!s}', f'{Mode.TRAIN:>12}', '%s' % Mode.TRAIN, '%r' % Mode.TRAIN, '{}'.format(Mode.TRAIN), format(Mode.TRAIN), format(Mode.TRAIN, '>12'), '{:<12}|'.format(Mode.TRAIN))
+print(bool(Mode.TRAIN), bool(Mode), reversed(list(Mode))[0] if False else '', list(reversed(Mode)), sorted(Mode, key=lambda m: m.value), dict(zip(Mode, range(3))), {Mode.TRAIN: 1}[Mode.TRAIN], {Mode.TRAIN, Mode.ALIAS, Mode.EVAL} == {Mode.TRAIN, Mode.EVAL})
+print(hash(Mode.TRAIN) == hash(Mode.ALIAS), callable(Mode), max(Mode, key=lambda m: m.value))
+for f in [lambda: Mode('x'), lambda: Mode['X'], lambda: Mode.X, lambda: Mode(), lambda: Mode.TRAIN.nope, lambda: 'train' in Mode, lambda: 1 in Mode, lambda: Mode.TRAIN < Mode.EVAL, lambda: Mode.TRAIN + 1, lambda: 1 + Mode.TRAIN, lambda: Mode(1), lambda: Mode(None), lambda: Mode[1], lambda: setattr(Mode, 'TRAIN', 1), lambda: setattr(Mode.TRAIN, 'name', 'x'), lambda: setattr(Mode.TRAIN, 'value', 'x'), lambda: int(Mode.TRAIN), lambda: float(Mode.TRAIN), lambda: [1, 2][Mode.TRAIN], lambda: range(Mode.TRAIN), lambda: sorted(Mode), lambda: -Mode.TRAIN]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+Mode.extra = 5
+print(Mode.extra, Mode.TRAIN.extra)
+Mode.TRAIN.note = 'n'
+print(Mode.TRAIN.note, Mode.ALIAS.note)
+class Empty(Enum):
+    pass
+print(list(Empty), len(Empty), Empty, Empty.__members__)
+class Child(Empty):
+    A = 1
+print(Child.A, list(Child), issubclass(Child, Empty), isinstance(Child.A, Empty))
+for src in ["class C(Mode):\n    X = 1", "class B(Enum):\n    A = 1\n    A = 2", "class B(Enum):\n    def A(self): pass\n    A = 1", "class B(Enum):\n    A = 1\n    def A(self): pass", "class B(Enum):\n    _x_ = 1", "class B(Enum, int):\n    A = 1", "class B(Enum):\n    mro = 1"]:
+    try:
+        exec(src)
+        print('ok')
+    except Exception as e:
+        print(type(e).__name__)
+class D(Enum):
+    _order_ = 'A B'
+    _ignore_ = 'tmp'
+    A = 1
+    B = 2
+    tmp = 5
+print(list(D), hasattr(D, 'tmp'), D._order_ if False else '')
+try:
+    class D2(Enum):
+        _order_ = 'B A'
+        A = 1
+        B = 2
+except TypeError as e:
+    print(e)
+class D3(Enum):
+    __order__ = 'A B'
+    A = 1
+    B = 2
+print(list(D3))
+### enum values and init
+from enum import Enum, IntEnum, auto, unique
+class Planet(Enum):
+    EARTH = (5.97e24, 6.37e6)
+    MARS = (6.42e23, 3.39e6)
+    def __init__(self, mass, radius):
+        self.mass = mass
+        self.radius = radius
+    @property
+    def g(self):
+        return 6.67e-11 * self.mass / self.radius ** 2
+print(Planet.EARTH, Planet.EARTH.value, Planet.EARTH.mass, round(Planet.MARS.g, 2), Planet((5.97e24, 6.37e6)), repr(Planet.MARS), vars(Planet.MARS)['mass'])
+class Auto(Enum):
+    A = auto()
+    B = auto()
+    C = 10
+    D = auto()
+    E = 'x'
+    F = auto()
+    G = auto()
+print(list(Auto), [m.value for m in Auto])
+class Lower(Enum):
+    def _generate_next_value_(name, start, count, last_values):
+        return name.lower() + str(count)
+    A = auto()
+    B = auto()
+print(list(Lower))
+class Sub(Lower):
+    C = auto()
+print(list(Sub))
+class ListV(Enum):
+    A = [1, 2]
+    B = {'k': 1}
+    C = None
+    D = 1.5
+    E = True
+    F = 1
+print(ListV([1, 2]), ListV({'k': 1}), ListV(None), ListV(1.5), ListV(True), ListV(1), ListV.E is ListV.F, repr(ListV.A), list(ListV))
+class Miss(Enum):
+    A = 1
+    @classmethod
+    def _missing_(cls, value):
+        if value == 'one':
+            return cls.A
+        if value == 'bad':
+            return 5
+        if value == 'raise':
+            raise KeyError('boom')
+        return None
+print(Miss('one'))
+for v in ['bad', 'raise', 'none']:
+    try:
+        print(Miss(v))
+    except Exception as e:
+        print(type(e).__name__, e)
+try:
+    @unique
+    class U(Enum):
+        A = 1
+        B = 1
+        C = 2
+        D = 2
+except ValueError as e:
+    print(e)
+@unique
+class V(Enum):
+    A = 1
+print(V.A, V)
+class S(str, Enum):
+    A = 'a'
+    B = 'bee'
+print(S.A, repr(S.A), str(S.A), S.A == 'a', 'a' == S.A, S.A != 'a', isinstance(S.A, str), isinstance(S.A, S), S('a'), S.A.value, S.A.name, S.A.upper(), S.B.startswith('b'), len(S.B), S.B[0], S.A + 'x', 'x' + S.A, S.A * 2, 2 * S.A, f'{S.A}', f'{S.A:>3}', '%s' % S.A, '{}'.format(S.A), hash(S.A) == hash('a'), {'a': 1}[S.A], {S.A: 1}['a'], 'e' in S.B, list(S.B), S.A < S.B, S.A < 'b', sorted([S.B, S.A]), list(S))
+import json
+print(json.dumps(S.A), json.dumps({'k': S.B}), issubclass(S, str), issubclass(S, Enum), S.__members__)
+try:
+    print(json.dumps(Auto.A))
+except TypeError as e:
+    print(e)
+class F(float, Enum):
+    HALF = 0.5
+    ONE = 1
+print(F.HALF, repr(F.ONE), F.HALF + 1, F.ONE * 2, F.HALF == 0.5, F.HALF < 1, float(F.HALF), int(F.ONE), isinstance(F.HALF, float), F.ONE.value, type(F.ONE.value).__name__, f'{F.HALF:.3f}', f'{F.HALF}', round(F.HALF), abs(F.HALF), -F.HALF, F(1))
+class I(int, Enum):
+    A = 1
+    B = '2'
+    C = (11, 2)
+print(I.A, I.B, repr(I.B), I.C, I.C.value, I.A + I.B, I.B * 3, I(2), int(I.C), isinstance(I.A, int), list(I))
+class M:
+    def hello(self): return 'hi ' + self.name
+class WithMix(M, Enum):
+    A = 1
+print(WithMix.A.hello(), repr(WithMix.A), list(WithMix))
+class Over(Enum):
+    A = 1
+    def __str__(self): return 'custom-' + self.name
+    def __repr__(self): return 'R'
+    def __eq__(self, o): return True
+    def __hash__(self): return 7
+    def __bool__(self): return False
+    def __len__(self): return 3
+    def __call__(self): return 'called'
+    def __contains__(self, x): return x == 1
+    def __lt__(self, o): return True
+    def __add__(self, o): return 'sum'
+print(Over.A, repr(Over.A), Over.A == 2, hash(Over.A), bool(Over.A), len(Over.A), Over.A(), 1 in Over.A, Over.A < 1, Over.A + 1, f'{Over.A}', '%s' % Over.A, [Over.A])
+class OverI(IntEnum):
+    A = 1
+    def __str__(self): return 'custom'
+print(OverI.A, f'{OverI.A}', f'{OverI.A:>8}', repr(OverI.A), format(OverI.A))
+Color = Enum('Color', 'RED GREEN')
+print(list(Color), Color.RED.value, Color, Color.__name__)
+print(list(Enum('C2', ['A', 'B'])), list(Enum('C3', 'A, B', start=5)), list(Enum('C4', [('A', 1), ('B', 'z')])), list(Enum('C5', {'A': 7})), list(IntEnum('C6', 'A B')), list(Enum('C7', 'A', type=int)), list(Enum('C8', ('X',))), IntEnum('C9', 'P').P + 1)
+import copy
+print(copy.copy(Auto.A) is Auto.A, copy.deepcopy(Auto.A) is Auto.A, copy.deepcopy([Auto.A])[0] is Auto.A)
+def f(m=Auto.A): return m
+print(f(), f.__defaults__)
+print(Auto.A.__class__.__name__, type(Auto.A).__name__, Auto.__doc__, V.__doc__, Auto.A.__doc__, Enum.__name__, Auto.__module__, Enum.__module__, Enum, IntEnum, auto().__class__.__name__)
+class Doc(Enum):
+    "my doc"
+    A = 1
+print(Doc.__doc__)
+match_it = {Mode: 1 for Mode in [1]}
+### intenum and flag
+from enum import Enum, IntEnum, Flag, IntFlag, auto
+import math
+class L(IntEnum):
+    LOW = 1
+    MID = 5
+    HIGH = 10
+print(L.LOW, repr(L.LOW), str(L.LOW), L.LOW.value, L.LOW.name, f'{L.LOW}', f'{L.MID:>4}', f'{L.MID:.2f}', '%d' % L.MID, '%s' % L.MID, '%5.1f' % L.MID, '{}'.format(L.LOW), '{:03d}'.format(L.MID), format(L.MID, 'x'), format(L.LOW))
+print(L.LOW + 1, 1 + L.LOW, L.HIGH - L.LOW, L.MID * 2, L.HIGH / 2, 2 / L.LOW, L.HIGH // 3, L.HIGH % 3, 3 % L.MID, L.MID ** 2, 2 ** L.MID, -L.MID, +L.MID, ~L.MID, abs(L.MID), L.MID & 4, L.MID | 2, L.MID ^ 1, L.MID << 1, L.MID >> 1, 1 << L.LOW, divmod(L.HIGH, 3), pow(L.MID, 2), round(L.MID), round(L.MID, 1), float(L.MID), int(L.MID), bool(L.MID))
+print(type(L.LOW + 1).__name__, type(-L.MID).__name__, type(+L.MID).__name__, type(int(L.MID)).__name__, type(abs(L.MID)).__name__, repr(+L.MID), repr(abs(L.MID)), repr(int(L.MID)), repr(L.MID * 1))
+print(L.LOW < L.HIGH, L.LOW < 3, 3 < L.LOW, L.LOW == 1, 1 == L.LOW, L.LOW != 1, L.LOW >= 1, L.HIGH > 9.5, 1.0 == L.LOW, L.LOW == L.LOW, sorted([L.HIGH, L.LOW, L.MID]), max(L), min(L), sum(L), sum([L.LOW, L.MID]), isinstance(L.LOW, int), isinstance(L.LOW, L), isinstance(L.LOW, IntEnum), isinstance(L.LOW, Enum), issubclass(L, int), issubclass(L, IntEnum), L(5), L['MID'], list(L), len(L), L.LOW in L)
+print([10, 20, 30, 40, 50, 60][L.MID], list(range(L.MID)), 'abcdefgh'[L.LOW], (1, 2)[L.LOW], 'ab' * L.LOW, [0] * L.MID, {1: 'a'}[L.LOW], {L.LOW: 'a'}[1], hash(L.LOW) == hash(1), L.LOW in [1, 2], 5 in [L.MID], L.MID in {5}, math.sqrt(L.MID) > 2, math.floor(L.MID), bin(L.MID), hex(L.HIGH), oct(L.HIGH), chr(L.HIGH + 55), L.MID.real, L.MID.numerator, L.MID.bit_length())
+xs = [0] * 12; xs[L.MID] = 9; print(xs, xs[L.LOW:L.MID + 1], list(range(L.LOW, L.MID, L.LOW)))
+import json
+print(json.dumps(L.LOW), json.dumps([L.MID]), json.dumps({'a': L.HIGH}))
+import numpy as np
+a = np.arange(12)
+print(a[L.MID], a[L.LOW:L.MID], np.zeros(L.LOW).shape, np.array([1, 2])[L.LOW])
+for f in [lambda: L(3), lambda: L['x'], lambda: L.LOW + 'a', lambda: 'a' + L.LOW, lambda: L.LOW < 'a', lambda: L.LOW / 0, lambda: 'x' in L, lambda: 1 in L]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+class P(Flag):
+    R = auto()
+    W = auto()
+    X = auto()
+    RW = R | W
+    NONE = 0
+print(list(P), [m.value for m in P], repr(P.R), str(P.R), P.R | P.W, repr(P.R | P.W), P.RW, P.R | P.X, repr(P.R | P.X), str(P.R | P.X), P.R & P.W, repr(P.R & P.W), P.RW & P.R, P.R ^ P.W, P.RW ^ P.R, ~P.R, repr(~P.R), ~P.RW, ~P.NONE, repr(~P.NONE))
+print(P.R in P.RW, P.X in P.RW, P.RW in P.R, bool(P.R), bool(P.NONE), bool(P.R & P.W), P(1), P(3), P(5), repr(P(5)), P(0), P['R'], (P.R | P.X).value, (P.R | P.X).name, P.R.name, P.NONE.name, (P.R | P.X) is (P.R | P.X), P.R | P.R, len(P), isinstance(P.R | P.W, P), isinstance(P.R, Flag), isinstance(P.R, Enum), f'{P.R}', f'{P.R | P.X}', f'{P.R:>5}')
+for f in [lambda: P(8), lambda: P(-1), lambda: P(-2), lambda: P('a'), lambda: P.R | 1, lambda: 1 | P.R, lambda: P.R & 1, lambda: P.R < P.W, lambda: 1 in P.R, lambda: P.R + 1, lambda: int(P.R)]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+class Q(Flag):
+    A = 1
+    B = 2
+    C = 4
+print(~Q.A, ~(Q.A | Q.B), ~Q(7), repr(Q(0)), str(Q(0)), Q(0).name, Q(0).value, Q.A | Q.B | Q.C, repr(Q(7)), Q(7).name, list(Q))
+class G(Flag):
+    A = auto()
+    B = 8
+    C = auto()
+print(list(G), [m.value for m in G])
+class Bad(Flag):
+    A = 'x'
+print(Bad.A)
+try:
+    class Bad2(Flag):
+        A = 'x'
+        B = auto()
+except TypeError as e:
+    print(e)
+class IF(IntFlag):
+    R = 4
+    W = 2
+    X = 1
+print(IF.R, repr(IF.R), IF.R | IF.W, repr(IF.R | IF.W), IF.R & IF.W, repr(IF.R & IF.W), IF.R | 1, repr(IF.R | 1), 1 | IF.R, IF.R | 8, repr(IF.R | 8), str(IF.R | 8), IF.R & 4, IF.R ^ IF.W, ~IF.R, repr(~IF.R), IF(7), repr(IF(7)), IF(0), repr(IF(0)), IF(8), repr(IF(8)), IF(-1), repr(IF(-1)), int(IF.R), IF.R + 1, IF.R * 2, IF.R == 4, 4 == IF.R, IF.R > 1, isinstance(IF.R, int), isinstance(IF.R, IF), isinstance(IF.R, IntFlag), isinstance(IF.R, Flag), bool(IF.R), bool(IF(0)), IF.R in (IF.R | IF.W), IF.X in (IF.R | IF.W), f'{IF.R}', f'{IF.R | IF.W}', '%d' % IF.R, list(IF), len(IF), (IF.R | IF.W).value, (IF.R | IF.W).name, IF.R.name, sorted(IF), {4: 'r'}[IF.R], [0, 1, 2, 3, 4][IF.R], list(range(IF.W)), IF.R | IF.R, IF.R << 1, IF.R >> 1, 2 ** IF.W, hash(IF.R) == hash(4))
+for f in [lambda: IF('a'), lambda: IF.R | 'a', lambda: 'a' | IF.R, lambda: 'a' in IF.R, lambda: 4 in IF.R, lambda: 4 in IF, lambda: IF(1.5)]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+class FA(IntFlag):
+    A = auto()
+    B = auto()
+    C = auto()
+print(list(FA), FA.A | FA.C, FA(0), FA.A.value, FA.C.value)
+print(P.__members__, IF.__members__, P, IF, Flag, IntFlag, IntEnum.__name__)
+### pickle
+import pickle, io, os
+from pathlib import Path
+from collections import OrderedDict, defaultdict, Counter, deque, namedtuple
+import numpy as np
+a = {'x': [1, 2, {'y': (3, 4)}], 's': {1, 2}, 'n': None, 'f': 1.5, 't': True, 'str': 'text'}
+b = pickle.loads(pickle.dumps(a))
+print(b, b == a, b is a, b['x'] is a['x'], b['x'][2] is a['x'][2], type(b).__name__)
+c = pickle.loads(pickle.dumps(a))
+c['x'].append(9); print(a['x'], c['x'])
+blob = pickle.dumps(a)
+d1 = pickle.loads(blob); d2 = pickle.loads(blob); d1['x'].append(1); print(len(d2['x']), d1 is d2, d1['x'] is d2['x'])
+a['x'].append('later'); print(pickle.loads(blob)['x'])
+shared = [1]; pair = [shared, shared]; q = pickle.loads(pickle.dumps(pair)); print(q[0] is q[1], q[0] is shared)
+loop = []; loop.append(loop); r = pickle.loads(pickle.dumps(loop)); print(r[0] is r, r[0] is loop)
+class C:
+    kind = 'k'
+    def __init__(self, v): self.v = v; self.items = [v]
+    def twice(self): return self.v * 2
+    def __eq__(self, o): return self.v == o.v
+    def __repr__(self): return f'C({self.v})'
+    __hash__ = None
+o = C(3); p = pickle.loads(pickle.dumps(o)); print(p, p == o, p is o, p.twice(), p.items is o.items, p.kind, type(p) is C, isinstance(p, C))
+class St:
+    def __init__(self): self.a = 1; self.b = 2
+    def __getstate__(self): return {'a': self.a}
+    def __setstate__(self, st): self.a = st['a'] * 10; self.c = 'set'
+s = pickle.loads(pickle.dumps(St())); print(vars(s))
+class G:
+    def __init__(self): self.a = 1; self.b = 2
+    def __getstate__(self): return {'only': self.b}
+print(vars(pickle.loads(pickle.dumps(G()))))
+class Vs:
+    def __init__(self): self.a = 1
+    def __setstate__(self, st): self.got = st
+print(vars(pickle.loads(pickle.dumps(Vs()))))
+class Red:
+    def __reduce__(self): return (int, (3,))
+with open('f.pkl', 'wb') as f:
+    print(pickle.dump({'k': [1, 2]}, f), f.mode, f.name, f.closed, f.writable(), f.readable())
+print(f.closed, os.path.exists('f.pkl'), os.path.isfile('f.pkl'))
+with open('f.pkl', 'rb') as f:
+    print(pickle.load(f), f.mode, f.readable(), f.writable())
+print(pickle.load(open('f.pkl', 'rb')))
+pickle.dump([1, 2, 3], open('g.pkl', 'wb'))
+print(pickle.load(open('g.pkl', 'rb')))
+with open('m.pkl', 'wb') as f:
+    pickle.dump('first', f); pickle.dump('second', f, protocol=2); pickle.dump('third', f, pickle.HIGHEST_PROTOCOL)
+with open('m.pkl', 'rb') as f:
+    print(pickle.load(f), pickle.load(f), pickle.load(f))
+    try:
+        pickle.load(f)
+    except EOFError as e:
+        print(type(e).__name__, e)
+with open('m.pkl', 'ab') as f:
+    pickle.dump('fourth', f)
+with open('m.pkl', 'rb') as f:
+    print([pickle.load(f) for _ in range(4)])
+with open('n.pkl', 'wb') as f:
+    f.write(pickle.dumps({'via': 'write'}))
+with open('n.pkl', 'rb') as f:
+    print(pickle.loads(f.read()))
+print(pickle.loads(open('n.pkl', 'rb').read()))
+Path('pp.pkl').write_bytes(pickle.dumps([7]))
+print(pickle.loads(Path('pp.pkl').read_bytes()), Path('pp.pkl').exists())
+with Path('qq.pkl').open('wb') as f:
+    pickle.dump(8, f)
+with Path('qq.pkl').open('rb') as f:
+    print(pickle.load(f))
+buf = io.BytesIO(); pickle.dump({'io': 1}, buf); print(buf.seek(0), pickle.load(buf), buf.closed); buf.seek(0); print(pickle.load(buf))
+buf2 = io.BytesIO(); buf2.write(pickle.dumps(5)); print(pickle.loads(buf2.getvalue()))
+print(pickle.load(io.BytesIO(pickle.dumps('fresh'))))
+e = open('empty.pkl', 'wb'); e.close()
+try:
+    pickle.load(open('empty.pkl', 'rb'))
+except EOFError as err:
+    print(err)
+for f in [lambda: pickle.loads('abc'), lambda: pickle.loads(1), lambda: pickle.load(open('nope.pkl', 'rb')), lambda: pickle.dump(1, 'notfile'), lambda: pickle.load('notfile'), lambda: pickle.dump(1, open('t.pkl', 'w')), lambda: pickle.dump(1, open('f.pkl', 'rb')), lambda: pickle.load(open('g.pkl', 'wb')), lambda: pickle.dumps(open('f.pkl')), lambda: pickle.dumps(open('f.pkl', 'rb')), lambda: pickle.loads(pickle.dumps(io.StringIO('sio'))).read(), lambda: pickle.dumps(os), lambda: pickle.dumps(i for i in [1]), lambda: open('x.pkl', 'rb', encoding='utf8')]:
+    try:
+        print(f())
+    except Exception as err:
+        print(type(err).__name__, err)
+lam = lambda x: x
+for v in [lam, [lam]]:
+    try:
+        print(pickle.dumps(v))
+    except pickle.PicklingError as err:
+        print(type(err).__name__, isinstance(err, pickle.PickleError))
+def outer():
+    def inner(): pass
+    return inner
+try:
+    pickle.dumps(outer())
+except AttributeError as err:
+    print(type(err).__name__)
+def top(x): return x + 1
+print(pickle.loads(pickle.dumps(top)) is top, pickle.loads(pickle.dumps(top))(1), pickle.loads(pickle.dumps(len)) is len, pickle.loads(pickle.dumps(C)) is C, pickle.loads(pickle.dumps(int)) is int)
+print(pickle.loads(pickle.dumps(o.twice))(), pickle.HIGHEST_PROTOCOL, pickle.DEFAULT_PROTOCOL, issubclass(pickle.PicklingError, pickle.PickleError), issubclass(pickle.UnpicklingError, pickle.PickleError))
+od = OrderedDict([('a', 1)]); dd = defaultdict(list, {'k': [1]}); cc = Counter('aab'); dq = deque([1, [2]], maxlen=3); NT = namedtuple('NT', 'x y')
+print(dict(pickle.loads(pickle.dumps(od))), type(pickle.loads(pickle.dumps(od))).__name__, pickle.loads(pickle.dumps(dd)), pickle.loads(pickle.dumps(cc)), pickle.loads(pickle.dumps(dq)), type(pickle.loads(pickle.dumps(dd))).__name__)
+x = pickle.loads(pickle.dumps(dq)); x[1].append(3); print(dq, x)
+y = pickle.loads(pickle.dumps(dd)); y['new'].append(1); print(dd, y)
+arr = np.arange(4); arr2 = pickle.loads(pickle.dumps(arr)); arr2[0] = 9; print(arr, arr2, arr2.dtype, type(arr2).__name__)
+print(pickle.loads(pickle.dumps(Path('a/b'))), pickle.loads(pickle.dumps(range(3))), pickle.loads(pickle.dumps(slice(1, 2))), pickle.loads(pickle.dumps(frozenset([1]))), pickle.loads(pickle.dumps((1, [2]))), pickle.loads(pickle.dumps(...)), pickle.loads(pickle.dumps(None)))
+from enum import Enum
+class Co(Enum):
+    R = 1
+print(pickle.loads(pickle.dumps(Co.R)) is Co.R, pickle.loads(pickle.dumps([Co.R]))[0] is Co.R)
+from fractions import Fraction
+print(pickle.loads(pickle.dumps(Fraction(1, 3))))
+print(pickle.dumps(1) == pickle.dumps(1), pickle.dumps([1]) == pickle.dumps([2]), pickle.dumps(1) != pickle.dumps(2), bool(pickle.dumps(1)))
+print(io.BytesIO().getvalue() == io.BytesIO().getvalue(), open('empty.pkl', 'rb').read(), repr(open('empty.pkl', 'rb').read()), bool(open('empty.pkl', 'rb').read()), len(open('empty.pkl', 'rb').read()), open('empty.pkl', 'rb').name, open('g.pkl', 'wb'), repr(open('empty.pkl', 'rb')), open('empty.pkl', 'r+b').mode, open('empty.pkl', 'w+b').mode, open('empty.pkl', 'ab').mode, open('empty.pkl', 'r+b'), open('empty.pkl', 'a+b').mode)
+print(open('h.pkl', 'xb').mode, open('i.pkl', 'x+b').mode)
+print(type(pickle.dumps(1)).__name__, type(open('empty.pkl', 'rb')).__name__, type(open('h.pkl', 'wb')).__name__, type(open('h.pkl', 'r+b')).__name__, type(io.BytesIO()).__name__)
+for cl in [lambda: open('zz.pkl', 'wb').read(), lambda: open('empty.pkl', 'rb').write(pickle.dumps(1)), lambda: open('closed.pkl', 'wb').close() or open('closed.pkl', 'rb').close() or None]:
+    try:
+        print(cl())
+    except Exception as err:
+        print(type(err).__name__, err)
+ff = open('empty.pkl', 'rb'); ff.close()
+try:
+    pickle.load(ff)
+except ValueError as err:
+    print(err)
+try:
+    ff.read()
+except ValueError as err:
+    print(err)
+print(open('n.pkl', 'rb').tell())
+import shutil
+shutil.copy('n.pkl', 'copied.pkl'); print(pickle.load(open('copied.pkl', 'rb')))
+os.rename('copied.pkl', 'renamed.pkl'); print(pickle.load(open('renamed.pkl', 'rb')))
+Path('renamed.pkl').rename('again.pkl'); print(pickle.load(Path('again.pkl').open('rb')))
+try:
+    open('n.pkl').read()
+except UnicodeDecodeError as err:
+    print(type(err).__name__, err, isinstance(err, ValueError), isinstance(err, UnicodeError))
+try:
+    Path('n.pkl').read_text()
+except UnicodeDecodeError as err:
+    print(type(err).__name__)
+### contextlib
+import contextlib, io, sys, os
+from contextlib import contextmanager, redirect_stdout, redirect_stderr, suppress, nullcontext, closing
+log = []
+@contextmanager
+def ctx(name, value=None):
+    log.append('enter ' + name)
+    try:
+        yield value
+    finally:
+        log.append('exit ' + name)
+with ctx('a', 5) as v:
+    print(v, log)
+print(log)
+with ctx('b'):
+    pass
+with ctx('x') as x, ctx('y', 2) as y:
+    print(x, y)
+print(log[-4:])
+log.clear()
+try:
+    with ctx('e'):
+        raise ValueError('boom')
+except ValueError as e:
+    print('caught', e, log)
+def fn():
+    with ctx('r'):
+        return 'returned'
+print(fn(), log[-1])
+for i in range(3):
+    with ctx('loop'):
+        if i == 1:
+            break
+print(i, log[-1])
+for i in range(2):
+    with ctx('cont'):
+        continue
+print(log[-1])
+@contextmanager
+def swallow():
+    try:
+        yield 1
+    except ValueError as e:
+        print('swallowed', e, type(e).__name__, e.args)
+print_after = []
+with swallow():
+    raise ValueError('v')
+print('after swallow')
+with swallow():
+    print('fine')
+try:
+    with swallow():
+        raise KeyError('k')
+except KeyError as e:
+    print('passed', repr(e))
+@contextmanager
+def replace():
+    try:
+        yield
+    except ValueError as e:
+        raise RuntimeError('wrapped') from e
+try:
+    with replace():
+        raise ValueError('inner')
+except RuntimeError as e:
+    print(type(e).__name__, e, type(e.__cause__).__name__, e.__cause__)
+@contextmanager
+def reraise():
+    try:
+        yield
+    except ValueError:
+        print('saw it')
+        raise
+try:
+    with reraise():
+        raise ValueError('again')
+except ValueError as e:
+    print(e)
+@contextmanager
+def noyield():
+    if False:
+        yield
+@contextmanager
+def twoyields():
+    yield 1
+    yield 2
+@contextmanager
+def yieldafter():
+    try:
+        yield 1
+    except ValueError:
+        pass
+    yield 2
+@contextmanager
+def notgen():
+    return 5
+for mgr in [noyield, twoyields, yieldafter, notgen]:
+    try:
+        with mgr():
+            raise ValueError('z') if mgr is yieldafter else None
+    except Exception as e:
+        print(mgr.__name__, type(e).__name__, e)
+@contextmanager
+def plain():
+    yield
+cm = plain()
+with cm:
+    pass
+try:
+    with cm:
+        pass
+except AttributeError as e:
+    print(e)
+class K:
+    @contextmanager
+    def m(self, a):
+        yield (self, a)
+    @staticmethod
+    @contextmanager
+    def s():
+        yield 's'
+with K().m(3) as t:
+    print(t[1], type(t[0]).__name__)
+with K.s() as t:
+    print(t)
+@contextmanager
+def nested():
+    with ctx('inner') as v:
+        yield v
+with nested():
+    pass
+print(log[-1])
+def gen_with():
+    with ctx('g'):
+        yield 1
+        yield 2
+print(list(gen_with()), log[-1])
+print(contextmanager(lambda: None).__name__, plain.__name__, plain.__wrapped__.__name__)
+out = io.StringIO()
+with redirect_stdout(out) as target:
+    print('captured')
+    print('more', end='')
+    sys.stdout.write('!')
+    print('to f', file=out)
+    print(target is out, sys.stdout is out)
+print('real', repr(out.getvalue()), sys.stdout is sys.__stdout__)
+inner = io.StringIO()
+with redirect_stdout(out):
+    with redirect_stdout(inner):
+        print('in')
+    print('mid')
+print(repr(inner.getvalue()), repr(out.getvalue()))
+try:
+    with redirect_stdout(inner):
+        raise ValueError('leaving')
+except ValueError:
+    print('restored')
+real = sys.stdout
+with redirect_stdout(inner):
+    real.write('direct\n')
+    print('x', file=sys.__stdout__)
+    print('y', file=real)
+print(repr(inner.getvalue()))
+with redirect_stdout(None):
+    print('nowhere')
+print(type(redirect_stdout(out)).__name__)
+class W:
+    def __init__(self): self.parts = []
+    def write(self, s): self.parts.append(s); return len(s)
+w = W()
+with redirect_stdout(w):
+    print('a', 'b')
+print(w.parts)
+save = sys.stdout
+sys.stdout = out2 = io.StringIO()
+print('assigned')
+sys.stdout = save
+print(repr(out2.getvalue()))
+with open(os.devnull, 'w') as dn, redirect_stdout(dn):
+    print('gone')
+with open('o.txt', 'w') as fh, redirect_stdout(fh):
+    print('to file')
+print(open('o.txt').read(), end='')
+err = io.StringIO()
+with redirect_stderr(err):
+    print('e1', file=sys.stderr)
+    sys.stderr.write('e2\n')
+print(repr(err.getvalue()))
+print('dropped', file=sys.stderr)
+with suppress(ValueError):
+    raise ValueError('x')
+print('ok1')
+with suppress(ValueError, KeyError):
+    {}['a']
+print('ok2')
+with suppress():
+    pass
+try:
+    with suppress(ValueError):
+        raise TypeError('t')
+except TypeError as e:
+    print('through', e)
+with suppress(Exception):
+    1 / 0
+with suppress(OSError):
+    open('nope.txt')
+with suppress(FileNotFoundError):
+    os.remove('nope.txt')
+with suppress(LookupError):
+    [][1]
+def fs():
+    with suppress(ValueError):
+        return 'r1'
+    return 'r2'
+print(fs())
+def fs2():
+    with suppress(ValueError):
+        raise ValueError
+    return 'r2'
+print(fs2())
+with nullcontext() as n:
+    print(n)
+with nullcontext(5) as n:
+    print(n)
+with nullcontext(enter_result='k') as n:
+    print(n)
+try:
+    with nullcontext():
+        raise ValueError('nc')
+except ValueError as e:
+    print(e)
+class Cl:
+    def close(self): print('closed')
+with closing(Cl()) as c:
+    print(type(c).__name__)
+class Sub(contextlib.suppress):
+    pass
+with Sub(ValueError):
+    raise ValueError
+print('sub ok')
+g = (x for x in [1])
+def g2():
+    try:
+        yield 1
+    except ValueError as e:
+        print('in gen', e)
+        yield 'after'
+    yield 'end'
+it = g2()
+print(next(it), it.throw(ValueError('t')), next(it))
+try:
+    it.throw(KeyError('k'))
+except KeyError as e:
+    print(repr(e))
+it = g2(); next(it)
+print(it.throw(ValueError), next(it))
+it = g2(); next(it)
+print(it.throw(ValueError, ValueError('both')))
+it = g2()
+try:
+    it.throw(TypeError('before start'))
+except TypeError as e:
+    print(e)
+print(list(it))
+try:
+    next(it)
+except StopIteration:
+    print('stop')
+try:
+    g2().throw(1)
+except TypeError as e:
+    print(e)
+def g3():
+    try:
+        yield 1
+    finally:
+        print('cleanup')
+it = g3(); next(it)
+try:
+    it.throw(ValueError('x'))
+except ValueError as e:
+    print(e)
+def g4():
+    try:
+        yield 1
+    except ValueError:
+        return 'val'
+it = g4(); next(it)
+try:
+    it.throw(ValueError('x'))
+except StopIteration as e:
+    print('stop', e.value)
+### textwrap
+import textwrap
+from textwrap import dedent, indent, fill, wrap, shorten, TextWrapper
+s = 'The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump!'
+print(wrap(s, 30)); print(wrap(s)); print(fill(s, 40)); print(fill(s, width=25, initial_indent='* ', subsequent_indent='  '))
+print(wrap('', 10), wrap('   ', 10), wrap('a', 1), wrap('abcdef', 2), wrap('abc def', 3), fill('', 10), wrap('  leading space', 10), wrap('trailing   ', 10), wrap('a  b', 10), wrap('a\nb\tc', 10), wrap('a\tb', 10, expand_tabs=False), wrap('a\tb', 10, tabsize=2), wrap('a\nb', 10, replace_whitespace=False), wrap('  a  b  ', 10, drop_whitespace=False))
+print(wrap('well-known hyphen-ated words go-here', 10), wrap('well-known', 6), wrap('well-known', 6, break_on_hyphens=False), wrap('supercalifragilistic', 5), wrap('supercalifragilistic', 5, break_long_words=False), wrap('a supercalifragilistic b', 8, break_long_words=False), wrap('--flag -- x---y a--b', 6), wrap('e-mail 3-5 x-1 a-b-c', 4), wrap('foo-bar-baz', 7))
+print(wrap(s, 30, max_lines=2), wrap(s, 30, max_lines=1), wrap(s, 30, max_lines=2, placeholder='...'), wrap('short', 30, max_lines=1), wrap('one two three', 8, max_lines=2), wrap('one two three four', 8, max_lines=2, placeholder=' *'), wrap('aaaaaaaaaa bbbbbbbbbbb', 10, max_lines=1, placeholder='..'), wrap('a b c d e f', 3, max_lines=2, placeholder='.'))
+print(wrap('Hello there.  How are you?', 40, fix_sentence_endings=True), wrap('Hello there. How are you? Fine.', 40, fix_sentence_endings=True), wrap('Dr. Who said "yes." Then left', 40, fix_sentence_endings=True))
+print(wrap('héllo wörld ñandú 日本語 テスト', 8), wrap('α-β γ-δ', 3), wrap('x' * 5 + ' ' + 'y' * 5, 5), wrap('a b', 1), wrap('ab cd', 1))
+print(shorten('Hello  world!', 12), shorten('Hello  world!', 11), shorten('Hello world', 5), shorten('Hello', 5), shorten('  a   b  ', 10), shorten('one two three', 10, placeholder='...'), shorten(s, 40), shorten('Hello world', width=8, placeholder='!'), shorten('', 5))
+print(repr(dedent('    a\n      b\n    c\n')), repr(dedent('  a\n\n  b')), repr(dedent('  a\n   \n  b')), repr(dedent('\ta\n\tb')), repr(dedent(' \ta\n \tb')), repr(dedent('  a\n\tb')), repr(dedent('a\n  b')), repr(dedent('')), repr(dedent('   ')), repr(dedent('\n  x\n')), repr(dedent('    a\n  b\n      c')), repr(dedent('  \t a\n  \t  b')), repr(dedent('  a\r\n  b')))
+print(repr(indent('a\nb\n', '  ')), repr(indent('a\n\nb', '> ')), repr(indent('a\n  \nb', '> ')), repr(indent('', '> ')), repr(indent('a\n\nb', '> ', lambda l: True)), repr(indent('a\nb', '> ', lambda l: l.startswith('b'))), repr(indent('a\r\nb\rc', '-')), repr(indent('x', prefix='p ')), repr(indent('a\n', 'p', predicate=None)))
+w = TextWrapper(width=20, initial_indent='> ')
+print(w.wrap(s)[:2], w.fill('short text'), w.width, w.initial_indent, w.subsequent_indent, w.max_lines, w.placeholder, w.break_long_words, w.tabsize)
+w.width = 10; print(w.wrap('abc def ghi'))
+w2 = TextWrapper(15, '', '  ', True, True, False, True, True, True, 8, max_lines=2, placeholder='~'); print(w2.wrap(s))
+print(type(w).__name__, isinstance(w, TextWrapper))
+for f in [lambda: wrap('a', 0), lambda: wrap('a', -1), lambda: fill('a', 0), lambda: wrap('abc', 3, max_lines=1, placeholder='....'), lambda: wrap(None), lambda: wrap(1), lambda: wrap('a', foo=1), lambda: fill('a', foo=1), lambda: TextWrapper(foo=1), lambda: shorten('a'), lambda: shorten('a', 3, placeholder='....'), lambda: shorten('a', 3, max_lines=2), lambda: wrap('a', 'x'), lambda: TextWrapper(width=0).wrap('a'), lambda: wrap('', 0), lambda: dedent(1), lambda: indent(1, 'x')]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+print(textwrap.wrap(text='k', width=5), textwrap.fill(text='k', width=5), textwrap.shorten(text='k l', width=5))
+### types
+import types
+from types import SimpleNamespace, FunctionType, ModuleType, MethodType, LambdaType, BuiltinFunctionType, GeneratorType, MappingProxyType, NoneType
+n = SimpleNamespace(a=1, b='x')
+print(n, repr(n), str(n), n.a, n.b, vars(n), n.__dict__, type(n).__name__, type(n) is SimpleNamespace, isinstance(n, SimpleNamespace))
+n.c = [1]; del n.a; print(n, hasattr(n, 'a'), getattr(n, 'c'), getattr(n, 'zz', 5))
+print(SimpleNamespace(), SimpleNamespace(a=1) == SimpleNamespace(a=1), SimpleNamespace(a=1) == SimpleNamespace(a=2), SimpleNamespace(a=1) != SimpleNamespace(a=1), SimpleNamespace(a=1) == 1, SimpleNamespace(a=1, b=2) == SimpleNamespace(b=2, a=1))
+print(f'{n}', '%s' % n, [n], {'k': n}, SimpleNamespace(x=SimpleNamespace(y=1)), SimpleNamespace(s='q', n=None, f=1.5))
+class Cfg(SimpleNamespace):
+    def double(self): return self.v * 2
+c = Cfg(v=2); print(c, c.double(), isinstance(c, SimpleNamespace), Cfg(v=2) == SimpleNamespace(v=2))
+print(hasattr(n, 'zz'))
+for f in [lambda: SimpleNamespace(1), lambda: SimpleNamespace({}), lambda: {n: 1}]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+import copy, json
+m = copy.copy(n); m.c.append(2); print(n.c, copy.deepcopy(n).c is n.c, m == n)
+def fun(): pass
+class K:
+    def meth(self): return self
+    @staticmethod
+    def st(): pass
+    @classmethod
+    def cl(cls): pass
+print(isinstance(fun, FunctionType), isinstance(lambda: 0, FunctionType), isinstance(lambda: 0, LambdaType), isinstance(len, FunctionType), isinstance(len, BuiltinFunctionType), isinstance(K().meth, MethodType), isinstance(K.meth, FunctionType), isinstance(K.st, FunctionType), isinstance(K.cl, MethodType), isinstance(K, FunctionType), isinstance(1, FunctionType), isinstance(types, ModuleType), isinstance(fun, ModuleType), isinstance((i for i in []), GeneratorType), isinstance(None, NoneType), isinstance(1, NoneType))
+print(type(fun) is FunctionType, type(fun) == FunctionType, type(types) is ModuleType, type(K().meth) is MethodType, type(len) is BuiltinFunctionType, type(None) is NoneType, FunctionType, ModuleType, MethodType, BuiltinFunctionType, GeneratorType, NoneType, MappingProxyType, type(n), SimpleNamespace, FunctionType.__name__, SimpleNamespace.__name__)
+mod = ModuleType('mymod', 'a doc'); mod.x = 5; print(mod.x, mod.__name__, mod.__doc__, type(mod).__name__, ModuleType('z').__doc__, ModuleType('z'))
+class T:
+    v = 7
+def bound_fn(self, a): return self.v + a
+b = MethodType(bound_fn, T()); print(b(1), b.__self__.v if hasattr(b, '__self__') else 'x', callable(b), b.__func__ is bound_fn if hasattr(b, '__func__') else 'x', b.__name__)
+t = T(); t.m = MethodType(bound_fn, t); print(t.m(2))
+for f in [lambda: ModuleType(1), lambda: ModuleType(), lambda: MethodType(bound_fn, None), lambda: MethodType(1, t), lambda: MappingProxyType(1), lambda: MappingProxyType([1])]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+d = {'a': 1}; p = MappingProxyType(d)
+print(p, repr(p), p['a'], len(p), list(p), 'a' in p, p.get('a'), p.get('z', 9), list(p.items()), list(p.keys()), list(p.values()), p.copy(), type(p).__name__, dict(p), p == d, p == {'b': 1}, bool(p), bool(MappingProxyType({})))
+d['b'] = 2; print(p, len(p), [k for k in p], MappingProxyType(p))
+for f in [lambda: p['z'], lambda: p.pop('a'), lambda: hash(p)]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__)
+try:
+    p['x'] = 1
+except TypeError as e:
+    print(e)
+try:
+    del p['a']
+except TypeError as e:
+    print(e)
+### glob
+import glob, os
+from pathlib import Path
+for n in ['a.txt', 'b.txt', 'c.py', '.hid', 'sub/d.txt', 'sub/e.py', 'sub/.hid2', 'sub/deep/f.txt', 'sub/deep/g.py', '.hd/h.txt', 'x[1].txt']:
+    Path(n).parent.mkdir(parents=True, exist_ok=True)
+    Path(n).write_text(n)
+for pat in ['*', '*.txt', '*.py', 'sub/*', 'sub/*.txt', '*/*.txt', '*/*/*', '**', '**/*.txt', 'sub/**', 'nope*', 'a.txt', 'nope.txt', 'sub', 'sub/', '*/', '.*', '.*/*', 'a.tx?', '[ab].txt', '[!a].txt', 'sub/deep/*.py', './*.py', './sub/*', '../*' if False else '*', '', 'x[[]1].txt', '.', '..', 'sub/../a.txt', 'sub/./*.py', 's*/d*/*', 's*/*.py', 'sub//*.py', '*.txt/', 'a.txt/']:
+    print(repr(pat), sorted(glob.glob(pat)), sorted(glob.glob(pat, recursive=True)))
+print(sorted(glob.glob('*.txt', root_dir='sub')), sorted(glob.glob('**/*.py', root_dir='sub', recursive=True)), sorted(glob.glob('*', root_dir=Path('sub'))), sorted(glob.glob('sub/**/*.py', recursive=True)), sorted(glob.glob('**/deep/*', recursive=True)), sorted(glob.glob('**/', recursive=True)), sorted(glob.glob('sub/**/', recursive=True)))
+it = glob.iglob('*.py'); print(type(it).__name__, next(it), list(it), sorted(glob.iglob('sub/*.py')), sorted(glob.iglob('**/*.py', recursive=True)))
+print(glob.escape('a[b]*c?.txt'), glob.has_magic('a*'), glob.has_magic('a'), glob.glob(glob.escape('x[1].txt')))
+print(sorted(glob.glob(os.path.join('sub', '*.py'))), type(glob.glob('*')).__name__)
+for f in [lambda: glob.glob(1), lambda: glob.glob(None)]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+import fnmatch
+print(fnmatch.fnmatch('a.txt', '*.txt'), fnmatch.fnmatchcase('A.TXT', '*.txt'), fnmatch.filter(['a.py', 'b.txt', 'c.py'], '*.py'), fnmatch.fnmatch('a', '?'), fnmatch.fnmatch('ab', '?'), fnmatch.fnmatch('a', '[abc]'), fnmatch.fnmatch('d', '[!abc]'), fnmatch.fnmatch('[', '['), fnmatch.fnmatch('a/b', '*'), fnmatch.fnmatch('a+b', 'a+b'), fnmatch.fnmatch('a.b', 'a?b'), fnmatch.fnmatch('', '*'), fnmatch.fnmatch('x]', '[]x]]'), fnmatch.fnmatch('b', '[a-c]'))
+### shutil
+import shutil, os
+from pathlib import Path
+Path('a.txt').write_text('A'); Path('d').mkdir(); Path('d/in.txt').write_text('I'); Path('d/sub').mkdir(); Path('d/sub/x.py').write_text('X')
+print(shutil.copyfile('a.txt', 'b.txt'), open('b.txt').read(), shutil.copy('a.txt', 'c.txt'), shutil.copy2('a.txt', 'c2.txt'), shutil.copy('a.txt', 'd'), open('d/a.txt').read(), shutil.copy('a.txt', 'd/'), shutil.copy2('a.txt', 'd/z.txt'), repr(shutil.copy(Path('a.txt'), Path('p.txt'))), repr(shutil.copyfile(Path('a.txt'), Path('q.txt'))), repr(shutil.copy(Path('a.txt'), Path('d'))), repr(shutil.copy('a.txt', Path('p2.txt'))))
+print(shutil.copytree('d', 'e'), sorted(os.listdir('e')), os.path.isdir('e/sub'), open('e/sub/x.py').read(), repr(shutil.copytree(Path('d'), Path('f'))), shutil.copytree('d', 'e', dirs_exist_ok=True))
+print(shutil.copytree('d', 'ig', ignore=shutil.ignore_patterns('*.py', 'a*')), sorted(os.listdir('ig')), os.listdir('ig/sub'))
+print(shutil.copytree('d', 'ig2', ignore=lambda d, names: [n for n in names if n == 'sub']), sorted(os.listdir('ig2')))
+print(shutil.move('b.txt', 'b2.txt'), os.path.exists('b.txt'), shutil.move('b2.txt', 'e'), os.path.exists('e/b2.txt'), repr(shutil.move(Path('c.txt'), Path('c3.txt'))), repr(shutil.move(Path('c3.txt'), Path('e'))), shutil.move('f', 'f2'), os.path.isdir('f2/sub'), os.path.exists('f'), shutil.move('f2', 'e'), os.path.isdir('e/f2/sub'), shutil.move('c2.txt', 'p.txt'), open('p.txt').read())
+print(shutil.rmtree('e'), os.path.exists('e'), shutil.rmtree(Path('ig')), shutil.rmtree('nope', ignore_errors=True), shutil.rmtree('a.txt', ignore_errors=True), os.path.exists('a.txt'), shutil.which('python3nope'), shutil.which('nope'))
+for f in [lambda: shutil.copyfile('nope', 'x'), lambda: shutil.copy('nope', 'x'), lambda: shutil.copyfile('d', 'x'), lambda: shutil.copyfile('a.txt', 'd'), lambda: shutil.copyfile('a.txt', 'a.txt'), lambda: shutil.copy('a.txt', 'a.txt'), lambda: shutil.copy('a.txt', 'no/x'), lambda: shutil.copyfile('a.txt', 'no/x'), lambda: shutil.copytree('nope', 'x'), lambda: shutil.copytree('d', 'ig2'), lambda: shutil.copytree('a.txt', 'x'), lambda: shutil.move('nope', 'x'), lambda: shutil.move('a.txt', 'nodir/x'), lambda: shutil.move('d', 'd/inside'), lambda: shutil.rmtree('nope'), lambda: shutil.rmtree('a.txt'), lambda: shutil.copy(1.5, 'x'), lambda: shutil.move('a.txt', 'a.txt')]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e, isinstance(e, OSError), isinstance(e, shutil.Error))
+Path('m1').mkdir(); Path('m2').mkdir(); Path('m1/f').write_text('1'); Path('m2/f').write_text('2')
+try:
+    shutil.move('m1/f', 'm2')
+except shutil.Error as e:
+    print(type(e).__name__, e)
+print(issubclass(shutil.SameFileError, shutil.Error), issubclass(shutil.Error, OSError), shutil.Error, shutil.SameFileError)
+print(shutil.get_terminal_size().columns > 0, type(shutil.get_terminal_size()).__name__)
+### tempfile
+import tempfile, os, shutil, pickle
+from pathlib import Path
+print(isinstance(tempfile.gettempdir(), str), os.path.isdir(tempfile.gettempdir()), os.path.isabs(tempfile.gettempdir()), tempfile.gettempprefix())
+d = tempfile.mkdtemp(); print(os.path.isdir(d), os.path.isabs(d), os.listdir(d), os.path.basename(d).startswith('tmp'), os.path.dirname(d) == tempfile.gettempdir()); os.rmdir(d)
+d = tempfile.mkdtemp(prefix='pre_', suffix='.suf'); b = os.path.basename(d); print(b.startswith('pre_'), b.endswith('.suf'), len(b) == len('pre_') + 8 + len('.suf')); os.rmdir(d)
+Path('here').mkdir(); d = tempfile.mkdtemp(dir='here'); print(os.path.isdir(d), os.path.relpath(d).startswith('here/'), os.path.isabs(d)); os.rmdir(d)
+d2 = tempfile.mkdtemp(dir=Path('here')); print(os.path.isdir(d2))
+print(tempfile.mkdtemp() != tempfile.mkdtemp())
+fd, path = tempfile.mkstemp(); print(type(fd).__name__, os.path.exists(path), os.path.isabs(path), open(path).read() == '', os.path.basename(path).startswith('tmp')); os.close(fd); os.remove(path)
+fd, path = tempfile.mkstemp(suffix='.txt', prefix='q', dir='here', text=True); print(path.endswith('.txt'), os.path.basename(path).startswith('q'), os.path.isfile(path))
+with os.fdopen(fd, 'w') as f:
+    f.write('via fd')
+print(open(path).read()); os.remove(path)
+for fn in [lambda: os.close(9999), lambda: os.fdopen(9999), lambda: tempfile.mkdtemp(dir='nope/x'), lambda: tempfile.mkstemp(dir='nope/x'), lambda: tempfile.NamedTemporaryFile(dir='nope/x'), lambda: tempfile.TemporaryDirectory(dir='nope/x')]:
+    try:
+        print(fn())
+    except Exception as e:
+        print(type(e).__name__, str(e).split(':')[0])
+with tempfile.TemporaryDirectory() as t:
+    print(type(t).__name__, os.path.isdir(t), os.listdir(t), os.path.isabs(t))
+    Path(t, 'x.txt').write_text('1'); os.mkdir(os.path.join(t, 's')); Path(t, 's', 'y').write_text('2')
+    print(sorted(os.listdir(t)))
+print(os.path.exists(t))
+td = tempfile.TemporaryDirectory(prefix='zz', suffix='yy')
+print(type(td).__name__, os.path.isdir(td.name), os.path.basename(td.name).startswith('zz'), td.name.endswith('yy'), repr(td).startswith('<TemporaryDirectory '), td.cleanup(), os.path.exists(td.name))
+try:
+    with tempfile.TemporaryDirectory() as t:
+        raise ValueError('x')
+except ValueError:
+    print(os.path.exists(t))
+with tempfile.NamedTemporaryFile('w', suffix='.csv', delete=False) as f:
+    print(f.write('a,b\n'), f.name.endswith('.csv'), os.path.exists(f.name), f.closed, f.mode)
+    name = f.name
+print(f.closed, os.path.exists(name), open(name).read()); os.remove(name)
+with tempfile.NamedTemporaryFile('w+') as f:
+    f.write('hello'); f.seek(0); print(f.read(), os.path.exists(f.name)); name = f.name
+print(os.path.exists(name))
+f = tempfile.NamedTemporaryFile(mode='w'); name = f.name; print(os.path.exists(name), f.close(), os.path.exists(name), f.closed)
+f = tempfile.NamedTemporaryFile('w', delete=False); print(f.close(), os.path.exists(f.name)); os.remove(f.name)
+f = tempfile.NamedTemporaryFile('w+', prefix='ab', suffix='cd', dir='here', newline='', encoding='utf-8'); print(os.path.basename(f.name).startswith('ab'), f.name.endswith('cd'), os.path.relpath(f.name).startswith('here/')); f.close()
+with tempfile.NamedTemporaryFile() as f:
+    pickle.dump({'x': 1}, f); f.seek(0); print(pickle.load(f), f.mode, type(f.name).__name__, os.path.exists(f.name))
+with tempfile.NamedTemporaryFile('wb') as f:
+    pickle.dump(1, f); f.flush(); print(pickle.load(open(f.name, 'rb')))
+with tempfile.TemporaryFile('w+') as f:
+    f.write('tf'); f.seek(0); print(f.read())
+print(sorted(os.listdir('here')) == [os.path.basename(d2)])
+print(shutil.rmtree('here'), os.path.exists('here'), os.path.exists(tempfile.gettempdir()))
+### inspect
+import inspect
+from inspect import signature, Parameter
+def f(a, b=2, *c, d=3, **e): pass
+def g(x, /, y, *, z=1): pass
+def h(): pass
+def n(p: int, q: str = 'a', *r: float, s: 'Foo' = None, **t: list) -> bool: pass
+sig = signature(f)
+print(sig, repr(sig), str(sig), type(sig).__name__, signature(g), signature(h), signature(n), signature(lambda x, y=1: 0))
+print(list(sig.parameters), len(sig.parameters), 'a' in sig.parameters, sig.parameters['b'], repr(sig.parameters['b']), sig.return_annotation is inspect.Signature.empty, sig.empty, type(sig.parameters).__name__)
+for name, p in sig.parameters.items():
+    print(name, p.name, p.default, p.kind, repr(p.kind), p.annotation, str(p), p.default is Parameter.empty, p.annotation is p.empty, p.kind == Parameter.VAR_KEYWORD, p.kind.name, p.kind.description, int(p.kind))
+print([p.kind.name for p in signature(g).parameters.values()], [p.kind == Parameter.KEYWORD_ONLY for p in signature(g).parameters.values()], Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD, Parameter.VAR_POSITIONAL, Parameter.KEYWORD_ONLY, Parameter.VAR_KEYWORD, repr(Parameter.VAR_KEYWORD), Parameter.empty, Parameter.POSITIONAL_ONLY < Parameter.VAR_KEYWORD)
+print(signature(n).return_annotation, signature(n).parameters['p'].annotation, signature(n).parameters['q'].annotation, signature(n).parameters['s'].annotation, n.__annotations__, f.__annotations__, signature(n).parameters['q'], signature(n).parameters['r'], signature(n).parameters['t'])
+class A:
+    "doc A"
+    def __init__(self, a, b=1): self.a = a
+    def m(self, x, y=2): "doc m"; return x
+    @staticmethod
+    def st(p, q=1): pass
+    @classmethod
+    def cl(cls, r): pass
+    @property
+    def pr(self): return 1
+    def __call__(self, c): pass
+    attr = 5
+class B(A):
+    def n(self): pass
+class E:
+    pass
+class Cc:
+    def __call__(self, c): pass
+print(signature(A), signature(A.m), signature(A(1).m), signature(A.st), signature(A(1).st), signature(A.cl), signature(A(1)), signature(B), signature(E), signature(Cc()), signature(Cc))
+for fn in [lambda: signature(1), lambda: signature('a'), lambda: signature(None), lambda: signature(print), lambda: signature(int) if False else signature(1.5), lambda: sig.parameters['nope']]:
+    try:
+        print(fn())
+    except Exception as e:
+        print(type(e).__name__, e)
+for fn in [lambda: signature(E()), lambda: inspect.getmembers(), lambda: inspect.isfunction(), lambda: signature()]:
+    try:
+        print(fn())
+    except Exception as e:
+        print(type(e).__name__)
+import functools
+def deco(fn):
+    @functools.wraps(fn)
+    def wrapper(*a, **k): return fn(*a, **k)
+    return wrapper
+@deco
+def wrapped(u, v=2): "wrapped doc"
+print(signature(wrapped), wrapped.__name__, wrapped.__doc__, wrapped.__wrapped__.__name__, signature(wrapped, follow_wrapped=False), inspect.isfunction(wrapped), inspect.getdoc(wrapped))
+import os, numpy as np
+def gen(): yield 1
+print(inspect.isfunction(f), inspect.isfunction(lambda: 0), inspect.isfunction(len), inspect.isfunction(A), inspect.isfunction(A.m), inspect.isfunction(A(1).m), inspect.isfunction(A.st), inspect.isfunction(A.cl), inspect.isfunction(1))
+print(inspect.isclass(A), inspect.isclass(A(1)), inspect.isclass(int), inspect.isclass(f), inspect.isclass(ValueError), inspect.isclass(1), inspect.isclass(Parameter), inspect.isclass(np.ndarray))
+print(inspect.ismethod(A(1).m), inspect.ismethod(A.m), inspect.ismethod(A.cl), inspect.ismethod(A.st), inspect.ismethod(f), inspect.ismethod([].append), inspect.ismethod(1))
+print(inspect.ismodule(os), inspect.ismodule(inspect), inspect.ismodule(np), inspect.ismodule(f), inspect.ismodule(1), inspect.isbuiltin(len), inspect.isbuiltin(f), inspect.isroutine(f), inspect.isroutine(len), inspect.isroutine(A(1).m), inspect.isroutine(1), inspect.isgeneratorfunction(gen), inspect.isgeneratorfunction(f), inspect.isgenerator(gen()), inspect.isgenerator(gen))
+print([n_ for n_, _ in inspect.getmembers(A) if not n_.startswith('__')], [n_ for n_, _ in inspect.getmembers(A, inspect.isfunction)], [n_ for n_, _ in inspect.getmembers(B, inspect.isfunction)], [n_ for n_, v in inspect.getmembers(A(1), inspect.ismethod)], [n_ for n_, _ in inspect.getmembers(A(1)) if not n_.startswith('_')], [(n_, v) for n_, v in inspect.getmembers(A(1)) if n_ == 'a'], inspect.getmembers(A, lambda v: v == 5), inspect.getmembers(A(1), predicate=lambda v: v == 1))
+import types as _t
+mod = _t.ModuleType('mm'); mod.one = 1; mod.fn = f
+print([n_ for n_, _ in inspect.getmembers(mod) if not n_.startswith('__')], [n_ for n_, _ in inspect.getmembers(mod, inspect.isfunction)], inspect.getmembers(1, lambda v: False))
+def docced():
+    """Summary line.
+
+        Indented body.
+      Less.
+
+    """
+print(repr(inspect.getdoc(docced)), inspect.getdoc(A), inspect.getdoc(A(1)), inspect.getdoc(A.m), inspect.getdoc(A(1).m), inspect.getdoc(h), inspect.getdoc(B), inspect.getdoc(E), inspect.getdoc(E()), repr(inspect.cleandoc('  a\n    b\n  c\n')), repr(inspect.cleandoc('\n\n x\n\ty\n\n')), docced.__doc__ == inspect.getdoc(docced))
+print(callable(signature), type(Parameter).__name__, signature(f) == signature(f) if False else '')
+### fractions
+from fractions import Fraction
+import math
+a = Fraction(1, 3); b = Fraction(3, 4)
+print(a, repr(a), str(a), a.numerator, a.denominator, Fraction(6, 8), Fraction(-3, 4), Fraction(3, -4), Fraction(-3, -4), Fraction(0, 5), Fraction(), Fraction(5), repr(Fraction(5)), str(Fraction(5)), Fraction(Fraction(1, 2)), Fraction(True), Fraction(Fraction(1, 2), Fraction(3, 4)), Fraction(1, True))
+print(a + b, a - b, a * b, a / b, a // b, a % b, b // a, b % a, -a, +a, abs(Fraction(-1, 3)), a ** 2, a ** -2, a ** 0, Fraction(-2, 3) ** -3, Fraction(4, 9) ** Fraction(1, 2), a ** 0.5, 2 ** a, 2 ** Fraction(2), 2.0 ** Fraction(1, 2), a ** Fraction(2), divmod(b, a), divmod(Fraction(-7, 2), 2))
+print(a + 1, 1 + a, a - 1, 1 - a, a * 2, 2 * a, a / 2, 2 / a, a // 2, 7 // a, a % 2, 7 % a, a + 0.5, 0.5 + a, a * 1.5, a / 0.5, 0.5 / a, a - 0.5, 0.5 - a, a // 0.25, a % 0.25, True + a, a + True)
+print(type(a + 1).__name__, type(a + 0.5).__name__, type(a // 2).__name__, type(a % 2).__name__, type(a ** 2).__name__, type(a ** 0.5).__name__, type(2 ** a).__name__, type(2 ** Fraction(2)).__name__, type(a * Fraction(3)).__name__, repr(a * Fraction(3)))
+print(a < b, a > b, a <= a, a >= b, a == a, a != b, a < 1, 1 > a, a < 0.5, 0.5 > a, Fraction(1, 2) == 0.5, 0.5 == Fraction(1, 2), Fraction(2) == 2, 2 == Fraction(2), Fraction(1, 3) == 1 / 3, a == 'x', a != 'x', Fraction(1, 2) < float('inf'), Fraction(1, 2) > float('-inf'), Fraction(1, 2) == float('nan'), Fraction(1, 2) < float('nan'), sorted([b, a, Fraction(1)]), max(a, b), min(a, 0.2), sum([a, b]), sum([a, a, a]))
+print(float(a), float(Fraction(1, 2)), int(Fraction(7, 2)), int(Fraction(-7, 2)), bool(a), bool(Fraction(0)), round(Fraction(7, 2)), round(Fraction(5, 2)), round(Fraction(-7, 2)), round(Fraction(22, 7), 2), round(Fraction(22, 7), 0), round(Fraction(2255, 1), -1), math.floor(Fraction(7, 2)), math.ceil(Fraction(7, 2)), math.trunc(Fraction(-7, 2)), math.floor(Fraction(-7, 2)), math.ceil(Fraction(-7, 2)), type(round(a)).__name__, type(round(a, 1)).__name__, type(round(a, 0)).__name__, math.sqrt(Fraction(1, 4)), math.isclose(Fraction(1, 2), 0.5), a.real, a.imag, a.conjugate())
+print(Fraction(0.5), Fraction(0.1), Fraction(1.5), Fraction(-0.25), Fraction(0.0), Fraction(1e-3), Fraction(3.0), Fraction.from_float(0.5), Fraction.from_float(3), Fraction(0.1).limit_denominator(), Fraction(0.1).limit_denominator(5), Fraction(math.pi).limit_denominator(100), Fraction(math.pi).limit_denominator(1000), Fraction(355, 113).limit_denominator(10), Fraction(1, 3).limit_denominator(2), Fraction(3, 10).limit_denominator(1), Fraction(1, 2).limit_denominator(1), Fraction(-3, 7).limit_denominator(3), a.as_integer_ratio(), Fraction(0.1).numerator, Fraction(0.1).denominator, float(Fraction(0.1)), Fraction(1e300).denominator, float(Fraction(1, 2 ** 100)), float(Fraction(2 ** 100, 3)), float(Fraction(2 ** 70, 2 ** 69)))
+print(Fraction('3/4'), Fraction('0.5'), Fraction('-1.25'), Fraction('1e-2'), Fraction('1.5e2'), Fraction(' 3/4 '), Fraction('+7'), Fraction('7'), Fraction('.5'), Fraction('-3/6'), Fraction('3.'), Fraction('0'), Fraction('1E2'))
+for f in [lambda: Fraction('x'), lambda: Fraction('1/0'), lambda: Fraction(1, 0), lambda: Fraction(''), lambda: Fraction('1 / 2'), lambda: Fraction('1/2/3'), lambda: Fraction('1/-2'), lambda: Fraction('1_0/3'), lambda: Fraction('/2'), lambda: Fraction(None), lambda: Fraction(1.5, 2), lambda: Fraction(1, 2.5), lambda: Fraction('1', 2), lambda: Fraction([1]), lambda: Fraction(float('nan')), lambda: Fraction(float('inf')), lambda: Fraction.from_float('a'), lambda: a / 0, lambda: a // 0, lambda: a % 0, lambda: 1 / Fraction(0), lambda: Fraction(0) ** -1, lambda: a + 'x', lambda: 'x' + a, lambda: a < 'x', lambda: a.limit_denominator(0), lambda: f'{a:>5}', lambda: format(a, '.2f'), lambda: a.nope, lambda: ~a, lambda: a & 1, lambda: [1][Fraction(0)], lambda: range(Fraction(1))]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, str(e).split(' (or')[0])
+print(f'{a}', '%s' % a, '{}'.format(a), format(a), [a], {a: 1}, (a,), '%d' % Fraction(7, 2), '%.3f' % a, hash(a) == hash(Fraction(1, 3)), hash(Fraction(1, 2)) == hash(0.5), hash(Fraction(2)) == hash(2), {Fraction(1, 2): 'x'}[0.5], {0.5: 'y'}[Fraction(1, 2)], {2: 'z'}[Fraction(2)], {Fraction(1, 3): 'w'}[Fraction(2, 6)], len({Fraction(1, 2), 0.5, Fraction(2, 4)}), Fraction(1, 3) in [a], a in {a}, isinstance(a, Fraction), isinstance(1, Fraction), type(a), type(a) is Fraction, Fraction, Fraction.__name__, type(a).__name__)
+import copy, pickle
+print(copy.copy(a) == a, copy.deepcopy(a) == a, json_ok if False else '', pickle.loads(pickle.dumps(a)) == a)
+print(Fraction(1, 3) + Fraction(2, 3), Fraction(2 ** 60, 3) * 3, Fraction(1, 2 ** 60) + 1, Fraction(2 ** 100, 2 ** 99), str(Fraction(2 ** 80, 7)), repr(Fraction(1, 2 ** 80)))
+### uuid secrets platform getpass
+import uuid, secrets, platform, getpass, re, sys
+u = uuid.uuid4()
+print(isinstance(u, uuid.UUID), type(u).__name__, bool(re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}', str(u))), len(str(u)), len(u.hex), u.version, u == u, u != uuid.uuid4(), repr(u) == f"UUID('{u}')", f'{u}' == str(u), u.hex == str(u).replace('-', ''), uuid.UUID(str(u)) == u, uuid.UUID(u.hex) == u, hash(u) == hash(uuid.UUID(str(u))), {u: 1}[uuid.UUID(str(u))], type(uuid.uuid4().hex).__name__, u.variant)
+v = uuid.UUID('12345678-1234-5678-1234-567812345678')
+print(v, repr(v), v.hex, v.version, uuid.UUID('12345678123456781234567812345678'), uuid.UUID('{12345678-1234-5678-1234-567812345678}'), uuid.UUID('urn:uuid:12345678-1234-5678-1234-567812345678'), v < uuid.UUID('22345678-1234-5678-1234-567812345678'), sorted([uuid.UUID(int_) for int_ in ['2' * 32, '1' * 32]]), uuid.UUID('ABCDEF78-1234-5678-1234-567812345678'), uuid.UUID)
+for f in [lambda: uuid.UUID('x'), lambda: uuid.UUID(), lambda: uuid.UUID('g' * 32), lambda: v < 1, lambda: v == 'x']:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+print(len(secrets.token_hex(8)), len(secrets.token_hex()), len(secrets.token_hex(0)), type(secrets.token_hex()).__name__, bool(re.fullmatch('[0-9a-f]+', secrets.token_hex(4))), bool(re.fullmatch('[A-Za-z0-9_-]+', secrets.token_urlsafe(8))), len(secrets.token_urlsafe(16)), 0 <= secrets.randbelow(10) < 10, secrets.randbelow(1), secrets.choice([5]), secrets.choice('a'), secrets.choice([1, 2]) in [1, 2], secrets.choice((7,)), secrets.choice(range(3)) in range(3), 0 <= secrets.randbits(4) < 16, secrets.randbits(0), secrets.compare_digest('a', 'a'), secrets.compare_digest('a', 'b'))
+for f in [lambda: secrets.randbelow(0), lambda: secrets.randbelow(-1), lambda: secrets.randbelow(1.5), lambda: secrets.choice([]), lambda: secrets.randbits(-1), lambda: secrets.compare_digest('a', 1), lambda: secrets.token_hex('x')]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+print(all(isinstance(x, str) for x in [platform.python_version(), platform.system(), platform.machine(), platform.python_implementation(), platform.platform(), platform.node(), platform.release(), platform.version(), platform.processor()]), platform.python_implementation(), platform.python_version().count('.'), type(platform.python_version_tuple()).__name__, len(platform.python_version_tuple()), platform.python_version() == '.'.join(map(str, sys.version_info[:3])), platform.python_version_tuple()[0], type(platform.architecture()).__name__, platform.architecture()[0])
+print(isinstance(getpass.getuser(), str), len(getpass.getuser()) > 0)
+### a training script
+"""Train a small model.
+
+Second paragraph of the docstring.
+"""
+import argparse, os, sys, json, pickle, tempfile, shutil, glob, textwrap, types, inspect, uuid
+from dataclasses import dataclass, field, asdict
+from enum import Enum, auto
+from pathlib import Path
+from contextlib import contextmanager
+from typing import Optional, List, Dict, Tuple, Callable, Union
+import numpy as np
+
+class Stage(Enum):
+    TRAIN = auto()
+    VAL = auto()
+    def __str__(self):
+        return self.name.lower()
+
+class Opt(str, Enum):
+    SGD = 'sgd'
+    ADAM = 'adam'
+
+@dataclass
+class Config:
+    lr: float = 0.1
+    stage: Stage = Stage.TRAIN
+    opt: Opt = Opt.SGD
+    tags: list = field(default_factory=list)
+    out: Path = Path('runs')
+
+def get_parser():
+    p = argparse.ArgumentParser(prog='train.py', description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument('--lr', type=float, default=0.1, help='learning rate (default: %(default)s)')
+    p.add_argument('--opt', type=Opt, choices=list(Opt), default=Opt.SGD)
+    p.add_argument('--stage', type=lambda s: Stage[s.upper()], default=Stage.TRAIN, help='stage: %(default)s')
+    p.add_argument('--out', type=Path, default=Path('runs'), help='out %(default)s %(type)s')
+    p.add_argument('--tags', nargs='*', default=[])
+    p.add_argument('files', nargs='*', type=Path)
+    return p
+p = get_parser()
+print(p.format_help())
+args = p.parse_args(['--lr', '0.5', '--opt', 'adam', '--stage', 'val', '--out', 'a/b', '--tags', 'x', 'y', '--', 'p.txt', 'q.txt'])
+print(args)
+print(args.opt, repr(args.opt), args.stage, repr(args.stage), args.out.name, args.files[0].suffix, isinstance(args.out, Path), f'{args.opt}', f'{args.stage}', args.opt == 'adam', args.opt.value)
+cfg = Config(**{k: getattr(args, k) for k in ['lr', 'stage', 'opt', 'tags', 'out']})
+print(cfg)
+print(asdict(cfg)['opt'], asdict(cfg)['stage'])
+vars(args)['extra'] = 1
+args.__dict__.update(other=2)
+print(args.extra, args.other, sorted(vars(args)), len(vars(args)), 'extra' in vars(args), json.dumps({k: str(v) for k, v in vars(args).items() if k in ('lr', 'other')}))
+del vars(args)['extra']
+print(hasattr(args, 'extra'))
+class Obj:
+    def __init__(self, **kw): self.__dict__.update(kw)
+o = Obj(a=1, b=2); print(o.a, vars(o), o.__dict__ == {'a': 1, 'b': 2}, dict(vars(o)), list(o.__dict__.items()), sorted(o.__dict__))
+o.__dict__['c'] = 3; print(o.c)
+sys.argv = ['train.py', '--lr', '2']
+print(get_parser().parse_args().lr)
+sys.argv.append('--tags'); sys.argv.append('z')
+print(get_parser().parse_args().tags)
+sys.argv = ['train.py']
+print(get_parser().parse_args().lr)
+run = Path('runs') / 'exp1'
+run.mkdir(parents=True, exist_ok=True)
+(run / 'config.json').write_text(json.dumps(asdict(Config(stage=Stage.VAL, out=Path('o'))), default=str, indent=1, sort_keys=True))
+print((run / 'config.json').read_text())
+with (run / 'model.pkl').open('wb') as f:
+    pickle.dump({'w': np.arange(3), 'cfg': cfg, 'stage': Stage.VAL, 'opt': Opt.ADAM, 'path': run}, f)
+with open(run / 'model.pkl', 'rb') as f:
+    state = pickle.load(f)
+print(state['w'], state['cfg'], state['stage'] is Stage.VAL, state['opt'] is Opt.ADAM, state['path'], type(state['cfg']).__name__, state['cfg'] == cfg, state['cfg'] is cfg)
+print(sorted(p.name for p in run.iterdir()), sorted(str(p) for p in Path('runs').rglob('*.json')), sorted(glob.glob('runs/*/*.pkl')), [p.suffix for p in sorted(run.glob('*'))], [p.stem for p in sorted(run.glob('*'))])
+for root, dirs, files in os.walk('runs'):
+    print(root, sorted(dirs), sorted(files))
+@contextmanager
+def working_dir(path):
+    made = Path(path); made.mkdir(exist_ok=True)
+    yield made
+    shutil.rmtree(made)
+with working_dir('tmp_work') as w:
+    (w / 'f.txt').write_text('x'); print(sorted(os.listdir(w)), w.exists())
+print(w.exists())
+with tempfile.TemporaryDirectory() as t:
+    target = Path(t) / 'copy'
+    shutil.copytree('runs', target)
+    print(sorted(str(p.relative_to(target)) for p in target.rglob('*')))
+print(textwrap.dedent("""\
+    usage:
+      run it
+    """), end='')
+print(textwrap.indent(textwrap.fill('a b c d e f g h i j k l m n o p', 10), '| '))
+ns = types.SimpleNamespace(**vars(cfg)) if False else types.SimpleNamespace(lr=cfg.lr)
+print(ns, inspect.signature(Config), inspect.signature(get_parser), inspect.isclass(Config), Stage.__name__, list(Stage), str(Stage.TRAIN), f'{Stage.TRAIN}', '%s' % Stage.TRAIN, repr(Stage.VAL))
+def fit(x: np.ndarray, y: Optional[List[int]] = None, *, n: Dict[str, int] = {}, cb: Callable[[int], str] = print, t: Tuple[int, ...] = (), u: Union[int, str] = 1, p: Path = Path('a'), s: Stage = Stage.TRAIN, q: 'Config' = None, m: list = [1]) -> Optional[float]:
+    return None
+print(inspect.signature(fit))
+print(inspect.signature(fit).parameters['y'].annotation, inspect.signature(fit).return_annotation, fit.__annotations__['n'], inspect.signature(fit).parameters['p'], inspect.signature(fit).parameters['s'], inspect.signature(fit).parameters['q'])
+print(__name__, __doc__.splitlines()[0], __doc__.count('\n'))
+### more enum and argparse corners
+import argparse, enum, contextlib, io
+from enum import Enum, IntEnum
+class Color(Enum):
+    RED = 1
+    GREEN = 2
+    @classmethod
+    def parse(cls, s):
+        try:
+            return cls[s.upper()]
+        except KeyError:
+            raise argparse.ArgumentTypeError(f'bad color {s}')
+    def __str__(self):
+        return self.name
+p = argparse.ArgumentParser(prog='x')
+p.add_argument('--c', type=Color.parse, choices=list(Color), default=Color.RED, help='%(choices)s / %(default)s')
+p.add_argument('--d', type=Color, default=Color.GREEN)
+p.add_argument('--n', type=int, choices=range(1, 4), default='2', metavar='N')
+p.add_argument('--s', type=str.upper, default='low')
+p.add_argument('--f', type=float, nargs='?', const=1.5)
+p.add_argument('-o', '--output', dest='out', metavar='PATH', required=False)
+p.add_argument('--rem', nargs=argparse.REMAINDER)
+print(p.format_help())
+print(p.parse_args([]))
+print(p.parse_args(['--c', 'green', '--n', '3', '--s', 'abc', '--f', '--output', 'z', '--rem', 'a', '--b', '-c']))
+for argv in (['--c', 'blue'], ['--d', '9'], ['--n', '7'], ['--n', 'q'], ['--f', 'q'], ['--f=']):
+    e = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(e):
+            print(p.parse_args(argv))
+    except SystemExit as x:
+        print(x.code, e.getvalue().splitlines()[-1])
+q = argparse.ArgumentParser(prog='q')
+q.add_argument('a', nargs='?'); q.add_argument('b', nargs='*'); q.add_argument('--x', action='store_true')
+print(q.parse_args([]), q.parse_args(['1']), q.parse_args(['1', '2', '3']), q.parse_args(['--x', '1']), q.parse_args(['1', '--x', '2']) if False else '')
+r = argparse.ArgumentParser(prog='r')
+r.add_argument('--a-b', '--ab', dest=None, type=int); r.add_argument('-c-d'); r.add_argument('-e')
+print(r.parse_args(['--a-b', '1', '-c-d', '2', '-e', '3']), r.format_usage())
+print(r.parse_known_args(['--zz', '-e', '1', 'pos', '--', 'x']))
+print(argparse.ArgumentParser(prog='h').parse_args(['--']) if False else '')
+t = argparse.ArgumentParser(prog='t', description='A ' * 60, epilog='B ' * 60)
+t.add_argument('--x', help='C ' * 60)
+print(t.format_help())
+print(t.format_help() == t.format_help())
+g = t.add_argument_group('G', 'D ' * 50)
+g.add_argument('y', help='y h')
+print(t.format_help())
+u = argparse.ArgumentParser(prog='u')
+u.add_argument('--c', choices=['aaa', 'bbb', 'ccc'], help='pick')
+u.add_argument('pos', choices=['x', 'y'], help='pos')
+u.add_argument('--e', help='')
+u.add_argument('--m', metavar='', help='empty metavar')
+u.add_argument('--t', metavar=('A', 'B'), nargs=2)
+u.add_argument('--st', nargs='*', metavar=('A', 'B'))
+u.add_argument('--pl', nargs='+', metavar='P')
+u.add_argument('--op', nargs='?', metavar='O')
+u.add_argument('--three', nargs=3)
+print(u.format_help())
+print(u.parse_args(['x', '--three', '1', '2', '3']))
+v = argparse.ArgumentParser(prog='v')
+v.add_argument('--version', action='version', version='v9')
+v.add_argument('-V', action='version', version='%(prog)s 2', help='vv')
+o = io.StringIO()
+try:
+    with contextlib.redirect_stdout(o):
+        v.parse_args(['-V'])
+except SystemExit as x:
+    print(x.code, repr(o.getvalue()))
+print(v.format_help())
+b = argparse.ArgumentParser(prog='b')
+b.add_argument('--on', action=argparse.BooleanOptionalAction)
+b.add_argument('--off', action=argparse.BooleanOptionalAction, default=True, help='off it')
+b.add_argument('-z', '--zed', action=argparse.BooleanOptionalAction, default=argparse.SUPPRESS)
+print(b.parse_args([]), b.parse_args(['--on', '--no-off', '--no-zed']), b.format_usage(), b.format_help())
+c = argparse.ArgumentParser(prog='c')
+c.add_argument('--v', action='count')
+c.add_argument('--l', action='append', default=['d'])
+c.add_argument('--e', action='extend', nargs='*', default=['d'], type=int)
+print(c.parse_args([]), c.parse_args(['--v', '--v', '--l', 'x', '--e', '1', '2', '--e']), c.get_default('l'), c.parse_args([]).l)
+d = c.parse_args(['--l', 'y']); print(d.l, c.get_default('l'))
+class Holder:
+    pass
+hh = Holder()
+print(c.parse_args(['--v'], namespace=hh) is hh, hh.v, sorted(vars(hh)))
+print(argparse.Namespace(a=1) != argparse.Namespace(a=1), argparse.Namespace(a=1) == 1, argparse.Namespace(b=2, a=1), 'a' in argparse.Namespace(a=1), vars(argparse.Namespace(z=1)), type(argparse.Namespace()).__name__, isinstance(argparse.Namespace(), argparse.Namespace), argparse.Namespace.__name__)
+class MyNs(argparse.Namespace):
+    def twice(self): return self.a * 2
+print(MyNs(a=2), MyNs(a=2).twice(), c.parse_args([], namespace=MyNs(a=1)))
+try:
+    {argparse.Namespace(): 1}
+except TypeError as e:
+    print(e)
+for f in [lambda: argparse.ArgumentParser(foo=1), lambda: argparse.ArgumentParser(conflict_handler='nope'), lambda: argparse.ArgumentParser(prog='a').add_argument(), lambda: argparse.ArgumentParser(prog='a').add_argument(1), lambda: argparse.ArgumentParser(prog='a').add_argument(''), lambda: argparse.ArgumentParser(prog='a').add_argument('--'), lambda: argparse.ArgumentParser(prog='a').add_argument('-', dest='x')]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+for f in [lambda: argparse.ArgumentParser(parents=[argparse.ArgumentParser(add_help=False)]), lambda: argparse.ArgumentParser(fromfile_prefix_chars='@'), lambda: argparse.ArgumentParser(conflict_handler='resolve'), lambda: argparse.ArgumentParser().add_subparsers()]:
+    pass
+### empty paths and unknown keywords
+import os, glob, shutil, tempfile, pickle, secrets, inspect
+from pathlib import Path
+from fractions import Fraction
+print(os.path.exists(''), os.path.isdir(''), os.path.isfile(''), glob.glob(''), Path('').exists(), Path('').is_dir(), str(Path('')))
+for f in [lambda: open(''), lambda: open('', 'w'), lambda: os.listdir(''), lambda: os.mkdir(''), lambda: os.makedirs(''), lambda: os.makedirs('', exist_ok=True), lambda: os.remove(''), lambda: os.rmdir(''), lambda: os.rename('', 'x'), lambda: os.path.getsize(''), lambda: os.stat(''), lambda: os.makedirs(os.path.dirname('file.txt')), lambda: shutil.copy('', 'x'), lambda: shutil.rmtree('')]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+print(list(os.walk('')), Path('.').resolve() == Path.cwd())
+for f in [lambda: glob.glob('*', include_hidden=True), lambda: glob.iglob('*', bogus=1), lambda: shutil.copy('a', 'b', nope=1), lambda: shutil.copyfile('a', 'b', nope=1), lambda: shutil.move('a', 'b', nope=1), lambda: shutil.rmtree('a', nope=1), lambda: shutil.copytree('a', 'b', nope=1), lambda: tempfile.mkdtemp(nope=1), lambda: tempfile.mkstemp(nope=1), lambda: tempfile.NamedTemporaryFile(nope=1), lambda: tempfile.TemporaryFile(delete=True), lambda: pickle.dumps(1, nope=1), lambda: pickle.loads(pickle.dumps(1), nope=1), lambda: pickle.dump(1, None, nope=1), lambda: pickle.load(None, nope=1), lambda: os.listdir('.', nope=1), lambda: os.walk('.', nope=1), lambda: os.makedirs('z', nope=1), lambda: os.mkdir('z', nope=1), lambda: os.remove('z', nope=1), lambda: os.rename('a', 'b', nope=1), lambda: os.stat('.', nope=1), lambda: inspect.signature(len, nope=1), lambda: inspect.getmembers(1, nope=1), lambda: secrets.token_hex(nope=1), lambda: secrets.choice([1], nope=1), lambda: Fraction(1, nope=1), lambda: pickle.dumps(1, 9), lambda: pickle.dumps(1, protocol=6), lambda: open('f', 'w', newline='x'), lambda: open('f', 'w', -1, 'utf8', None, 'zz')]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__)
+print(pickle.loads(pickle.dumps(1, 0)), pickle.loads(pickle.dumps(1, protocol=2, fix_imports=True)), pickle.loads(pickle.dumps(1, -1)), pickle.loads(pickle.dumps(1), encoding='bytes', errors='strict', fix_imports=False))
+with open('nl.txt', 'w', newline='\r\n') as f:
+    f.write('a\nb\n'); f.writelines(['c\n']); print('d', file=f)
+print(repr(open('nl.txt', newline='').read()), repr(open('nl.txt').read()), os.path.getsize('nl.txt'))
+with open('nl2.txt', 'w', -1, 'utf-8', None, '\r\n') as f:
+    f.write('x\n')
+print(repr(open('nl2.txt', 'r', -1, None, None, '').read()))
+Path('nl3.txt').write_text('y\nz\n', newline='\r\n'); print(repr(Path('nl3.txt').open(newline='').read()), repr(Path('nl3.txt').open('r', -1, None, None, '').read()), repr(Path('nl3.txt').read_text()))
+Path('nl4.txt').write_text('p\n', 'utf-8', None, '\r\n'); print(repr(open('nl4.txt', newline='').read()))
+Path('nl5.txt').write_text('p\r\nq\rr\n'); print(repr(Path('nl5.txt').read_text()), [l for l in open('nl5.txt')], [l for l in open('nl5.txt', newline='\n')], [l for l in open('nl5.txt', newline='\r\n')], repr(Path('nl5.txt').read_text(encoding='utf-8', errors='strict')))
+with open('nl5.txt', 'a') as f:
+    f.write('s\n')
+print(repr(open('nl5.txt', newline='').read()))
+tempfile.tempdir = 'mytmp'; os.mkdir('mytmp')
+print(tempfile.gettempdir(), tempfile.mkdtemp().startswith('mytmp/'), os.path.relpath(tempfile.NamedTemporaryFile('w', delete=False).name).startswith('mytmp/'), tempfile.TemporaryDirectory().name.startswith('mytmp/'))
+tempfile.tempdir = None
+### files again
+import os, io, json, csv, sys
+from pathlib import Path
+class Holder:
+    pass
+print(repr(open('.', 'r')) if False else '')
+print(sys.stdout.isatty(), sys.stdout.encoding, sys.stdout.name, sys.stderr.name, sys.stdout.closed, sys.stdout.writelines(['l1\n', 'l2\n']), sys.stdout.flush(), sys.stderr.flush())
+print(print('p', file=sys.stdout), print('q', file=None), sys.stdout.write('r\n'))
+print(repr(sys.stdout.write('')), repr(sys.stderr.write('dropped')), sys.stderr.isatty())
+f = io.StringIO('x\ny\n')
+print(next(f), list(f), f.readable(), f.writable(), f.seekable(), f.isatty(), f.encoding, f.closed, f.tell(), f.seek(1), f.read(), f.seek(0), f.seek(0, 2), f.write('z'), f.getvalue(), f.truncate(2), f.getvalue(), f.close(), f.closed)
+for fn in [lambda: f.read(), lambda: next(f), lambda: f.getvalue(), lambda: f.write('a'), lambda: next(io.StringIO(''))]:
+    try:
+        print(fn())
+    except Exception as e:
+        print(type(e).__name__, e)
+print(hasattr(io.StringIO('x'), 'name'), hasattr(open('n.txt', 'w'), 'getvalue'), hasattr(open('n.txt'), 'name'), isinstance(open('n.txt'), io.TextIOWrapper), isinstance(open('n.txt'), io.IOBase), isinstance(io.StringIO(), io.TextIOBase), isinstance(io.BytesIO(), io.BufferedIOBase), isinstance(open('n.txt', 'rb'), io.BufferedReader), isinstance(open('n.txt', 'wb'), io.BufferedWriter), isinstance(io.BytesIO(), io.BytesIO), isinstance(io.StringIO(), io.BytesIO))
+g = open('n2.txt', 'w'); g.write('1\n2\n3\n4\n'); g.close()
+g = open('n2.txt')
+for i, line in enumerate(g):
+    break
+print(i, repr(line), repr(g.read()))
+g = open('n2.txt')
+for a, b in zip(g, 'xy'):
+    pass
+print(a, b, repr(g.read()))
+def inner():
+    try:
+        yield 1
+    except ValueError as e:
+        print('inner got', e)
+        yield 2
+    finally:
+        print('inner done')
+def outer():
+    r = yield from inner()
+    yield 3
+it = outer(); print(next(it), it.throw(ValueError('v')), next(it), list(it))
+from contextlib import contextmanager
+@contextmanager
+def wrap_inner():
+    yield from inner()
+try:
+    with wrap_inner() as v:
+        print(v)
+        raise KeyError('k')
+except KeyError as e:
+    print('kept', e)
+a1 = []; a2 = a1; print(a1 is a2, a1 is [], {} is {}, set() is set(), (lambda: 0) is (lambda: 0))
+class K1: pass
+class K2: pass
+K3 = K1
+print(K1 is K1, K1 is K2, K1 is K3, K1() is K1(), type(K1()) is K1, print is print, len is len, None is None, 1 is 1 if False else '', 'a' is 'a' if False else '')
+try:
+    import sys
+    sys.stdout.write(1)
+except TypeError as e:
+    print(e)
+from pathlib import Path as PP, PurePath as UU, PosixPath as XX, PurePosixPath as ZZ
+print(issubclass(type(PP('a')), PP), issubclass(PP, UU), issubclass(UU, PP), issubclass(XX, UU), issubclass(XX, ZZ), issubclass(ZZ, UU), issubclass(ZZ, PP), issubclass(PP, ZZ), issubclass(XX, XX), issubclass(int, UU), type(PP('a'))('b'), type(UU('a'))('b'))
+import fnmatch
+print(fnmatch.fnmatch('b', '[z-a]'), fnmatch.fnmatch('^', '[^a]'), fnmatch.fnmatch('b', '[^a]'), fnmatch.fnmatch('a', '[^a]'), fnmatch.fnmatch('\\', '[\\]'), fnmatch.fnmatch('-', '[a-]'), fnmatch.fnmatch('b', '[!a-]'), fnmatch.fnmatch('.', '.'), fnmatch.fnmatch('x', '.'), fnmatch.fnmatch('(', '('), fnmatch.fnmatch('a/b.c', 'a/*.c'))
+from enum import Flag, IntFlag, IntEnum
+class BF(Flag):
+    A = 1
+class BI(IntFlag):
+    A = 2 ** 40
+    B = 2 ** 41
+print(BI.A | BI.B, (BI.A | BI.B).value, ~BI.A, (~BI.A).value, repr(BI(2 ** 42)), BI.A & BI.B, BI.A in (BI.A | BI.B))
+try:
+    print(BF(1.5))
+except TypeError as e:
+    print(type(e).__name__)
+print(type(io.StringIO()).__name__, isinstance(io.StringIO(), io.StringIO), io.UnsupportedOperation, issubclass(io.UnsupportedOperation, OSError), issubclass(io.UnsupportedOperation, ValueError))
+try:
+    open('n.txt').write('x')
+except io.UnsupportedOperation as e:
+    print(type(e).__name__, e)
+print(bool(Path('.')), bool(Path('')), bool(Path('a')), Path('a').__fspath__(), str(Path('a').parent.parent), os.path.join(Path('a'), Path('b'), 'c'), os.path.join('/x', Path('/y')), Path('a').parent == Path('.'), Path('/').parent == Path('/'), Path('a/b').parents[0] == Path('a'), list(Path('.').parents), list(Path('/').parents), Path('a').parents[0], len(Path('/a/b/c').parents), Path('/a/b/c').parents[-1], Path('/a/b/c').parents[-2], Path('/a/b/c').parents[-3], Path('/a/b/c').parents[2], Path('/a/b/c').parents[0:2], Path('/a/b/c').parents[::-1], Path('a/b/c').parents[-3], Path('a/b/c').parents[1:])
+for fn in [lambda: Path('a').parents[1], lambda: Path('a').parents[-2], lambda: Path('a').parents['x'], lambda: f'{Path("a"):>5}', lambda: Path('a').write_text(), lambda: Path('a').with_suffix(), lambda: Path('a').joinpath(1), lambda: Path('a').glob(), lambda: Path('a').rename(), lambda: Path('nodir/a').touch(), lambda: Path('a').read_bytes(), lambda: Path('n.txt').read_bytes() if False else 1 / 0]:
+    try:
+        print(fn())
+    except Exception as e:
+        print(type(e).__name__)
+Path('w.txt').write_text('')
+print(Path('w.txt').stat().st_size, Path('.').stat().st_size >= 0, Path('w.txt').lstat().st_size, os.stat('w.txt').st_size, type(os.stat('w.txt')).__name__, Path('w.txt').touch(), Path('w.txt').is_mount(), Path('w.txt').is_socket(), Path('w.txt').is_fifo(), Path('w.txt').is_block_device(), Path('w.txt').is_char_device(), Path('w.txt').chmod(0o644), Path('w.txt').samefile('./w.txt'), Path('.').samefile(Path.cwd()), Path('w.txt').read_text(encoding='utf-8'), Path('w.txt').open().close())
+print(sorted(os.listdir()), os.listdir(None) == os.listdir('.'), os.listdir(path='.') == os.listdir('.'))
+print(Path('w.txt') in {Path('w.txt')}, {Path('a'): 1}.get(Path('a')), {'a': 1}.get(Path('a')), Path('a') == 'a', 'a' == Path('a'), Path('a') != 'a', sorted({Path('b'), Path('a')}), [str(x) for x in sorted([Path('z/a'), Path('a/z')])], str(max(Path('x'), Path('y'))))
+d = {}
+d[Path('k')] = 1; d[Path('./k')] = 2; print(d, len(d))
+import copy
+print(copy.copy(Path('a')), copy.deepcopy(Path('a')), copy.deepcopy([Path('a')]), copy.deepcopy({'p': Path('a')}))
+print(json.dumps(str(Path('a/b'))), json.dumps({'p': Path('a').name}))
+try:
+    json.dumps(Path('a'))
+except TypeError as e:
+    print(e)
+print(json.dumps(Path('a'), default=str))
+with open('r.csv', 'w', newline='') as f:
+    w = csv.DictWriter(f, fieldnames=['a', 'p']); w.writeheader(); w.writerow({'a': 1, 'p': Path('x/y')})
+print(open('r.csv').read(), end='')
+print(list(csv.DictReader(Path('r.csv').open(newline=''))) == [{'a': '1', 'p': 'x/y'}], Path('r.csv').read_text().splitlines(), [l.strip() for l in Path('r.csv').open()])
+### enum mixins reach the rest of the language
+from enum import Enum, IntEnum
+import json, os, pickle, copy, math
+import numpy as np
+class S(str, Enum):
+    A = 'a'
+    PATHY = 'zz.txt'
+class L(IntEnum):
+    ONE = 1
+    TWO = 2
+class F(float, Enum):
+    H = 0.5
+print(','.join([S.A, 'x']), 'x'.join([S.A, S.A]), 'abc'.startswith(S.A), 'cab'.endswith(S.A), 'cab'.find(S.A), 'a-a'.replace(S.A, 'b'), 'a,b'.split(',') , S.A in 'abc', S.A in ['a'], 'a' in [S.A], S.A not in 'xyz', 'bab'.count(S.A), 'x=%s' % S.A, 'x={}'.format(S.A), f'{S.A}', str(S.A), repr(S.A))
+print(json.dumps({S.A: 1, L.ONE: 2}), json.dumps({'k': [S.A, L.TWO]}), json.dumps(F.H))
+class P(Enum):
+    Q = 1
+try:
+    json.dumps({P.Q: 1})
+except TypeError as e:
+    print(e)
+with open(S.PATHY, 'w') as f:
+    print(f.write('t'))
+print(os.path.exists(S.PATHY), os.path.basename(S.PATHY), os.path.join('d', S.PATHY), open(S.PATHY).read())
+print(round(F.H), round(F.H, 1), round(L.TWO), round(L.TWO, 1), round(L.TWO, -1), type(round(F.H, 1)).__name__, type(round(L.TWO, 1)).__name__, math.floor(F.H), math.ceil(F.H), int(F.H), float(L.TWO))
+a = np.arange(3)
+print(a * L.TWO, L.TWO * a, a + L.ONE, a[L.ONE], a[:L.TWO], np.array([L.ONE, L.TWO]), np.array(L.TWO), np.zeros((L.TWO, L.ONE)).shape, np.array([L.ONE]).dtype, a * F.H, F.H * a, np.array([F.H]), np.sum([L.ONE, L.TWO]), a == L.ONE, np.ones(L.TWO) + L.TWO)
+print(pickle.loads(pickle.dumps(L.ONE)) is L.ONE, copy.deepcopy({'k': S.A})['k'] is S.A, copy.copy(L.TWO) is L.TWO, pickle.loads(pickle.dumps(ValueError('boom'))).args, str(pickle.loads(pickle.dumps(ValueError('boom')))), repr(pickle.loads(pickle.dumps(KeyError('k')))), pickle.loads(pickle.dumps(OSError(2, 'No', 'f'))).filename, str(pickle.loads(pickle.dumps(FileNotFoundError(2, 'No', 'f')))))
+try:
+    print('%d %s' % (L.ONE, L.ONE), '%5.2f' % L.TWO, '%x' % L.TWO, '%i' % L.TWO, '%s' % (F.H,), '%f' % F.H, '%d' % F.H)
+except TypeError as e:
+    print(e)
+for f in [lambda: '100%' % (), lambda: '%' % (), lambda: 'a %' % {}, lambda: '%d%%' % 5, lambda: '%%' % (), lambda: '%(a)s %%' % {'a': 1}]:
+    try:
+        print(f())
+    except Exception as e:
+        print(type(e).__name__, e)
+import argparse
+p = argparse.ArgumentParser(prog='x')
+p.add_argument('--a', help='100%% sure, 50%')
+try:
+    print(p.format_help())
+except ValueError as e:
+    print(type(e).__name__, e)
+print(argparse.ArgumentParser(prog='y', usage='use %(prog)s 100%%').format_usage())
+os.environ['MY_VAR'] = 'v'
+print(os.getenv('MY_VAR'), os.getenv('NOPE_VAR'), os.getenv('NOPE_VAR', 'd'), os.getenv('NOPE_VAR', default='k'), os.environ.get('MY_VAR'), os.environ['MY_VAR'], 'MY_VAR' in os.environ)
+try:
+    argparse.ArgumentParser(prog='z').exit(3, 'told\n')
+except SystemExit as e:
+    print(e.code)
+### docs argparse
+import argparse, sys, io, contextlib
+parser = argparse.ArgumentParser(prog='PROG', description='Process some integers.')
+parser.add_argument('integers', metavar='N', type=int, nargs='+', help='an integer for the accumulator')
+parser.add_argument('--sum', dest='accumulate', action='store_const', const=sum, default=max, help='sum the integers (default: find the max)')
+print(parser.parse_args(['--sum', '7', '-1', '42']))
+args = parser.parse_args(['1', '2', '3', '4']); print(args.accumulate(args.integers))
+args = parser.parse_args(['1', '2', '3', '4', '--sum']); print(args.accumulate(args.integers))
+parser.print_help()
+p = argparse.ArgumentParser(prog='myprogram'); p.print_help(); p = argparse.ArgumentParser(prog='myprogram'); p.add_argument('--foo', help='foo of the %(prog)s program'); p.print_help()
+p = argparse.ArgumentParser(prog='PROG', usage='%(prog)s [options]'); p.add_argument('--foo', nargs='?', help='foo help'); p.add_argument('bar', nargs='+', help='bar help'); p.print_help()
+p = argparse.ArgumentParser(description='A foo that bars', epilog="And that's how you'd foo a bar", prog='argparse.py'); p.print_help()
+p = argparse.ArgumentParser(prog='PROG', add_help=False); p.add_argument('--foo', help='foo help'); p.print_help()
+p = argparse.ArgumentParser(prog='PROG', prefix_chars='-+'); p.add_argument('+f'); p.add_argument('++bar'); print(p.parse_args('+f X ++bar Y'.split()))
+p = argparse.ArgumentParser(prog='PROG', allow_abbrev=False); p.add_argument('--foobar', action='store_true'); p.add_argument('--foonley', action='store_false')
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args(['--foon'])
+except SystemExit as x:
+    print(x.code, e.getvalue())
+p = argparse.ArgumentParser(); p.add_argument('--foo', action='store_const', const=42); print(p.parse_args(['--foo']))
+p = argparse.ArgumentParser(); p.add_argument('--foo', action='store_true'); p.add_argument('--bar', action='store_false'); p.add_argument('--baz', action='store_false'); print(p.parse_args('--foo --bar'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--foo', action='append'); print(p.parse_args('--foo 1 --foo 2'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--str', dest='types', action='append_const', const=str); p.add_argument('--int', dest='types', action='append_const', const=int); print(p.parse_args('--str --int'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--verbose', '-v', action='count', default=0); print(p.parse_args(['-vvv']))
+p = argparse.ArgumentParser(); p.add_argument("--foo", action="extend", nargs="+", type=str); print(p.parse_args(["--foo", "f1", "--foo", "f2", "f3", "f4"]))
+p = argparse.ArgumentParser(); p.add_argument('--foo', action=argparse.BooleanOptionalAction); print(p.parse_args(['--no-foo']))
+p = argparse.ArgumentParser(); p.add_argument('--foo', nargs=2); p.add_argument('bar', nargs=1); print(p.parse_args('c --foo a b'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--foo', nargs='?', const='c', default='d'); p.add_argument('bar', nargs='?', default='d'); print(p.parse_args(['XX', '--foo', 'YY']), p.parse_args(['XX', '--foo']), p.parse_args([]))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('foo', nargs='+')
+print(p.parse_args(['a', 'b']))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('--foo'); p.add_argument('command'); p.add_argument('args', nargs=argparse.REMAINDER); print(p.parse_args('--foo B cmd --arg1 XX ZZ'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--foo', default=42); print(p.parse_args(['--foo', '2']), p.parse_args([]))
+ns = argparse.Namespace(); ns2 = argparse.Namespace(foo=101); print(p.parse_args([], namespace=ns2))
+p = argparse.ArgumentParser(); p.add_argument('--length', default='10', type=int); p.add_argument('--width', default=10.5, type=int); print(p.parse_args([]))
+p = argparse.ArgumentParser(); p.add_argument('foo', nargs='?', default=42); print(p.parse_args(['a']), p.parse_args([]))
+p = argparse.ArgumentParser(); p.add_argument('--foo', default=argparse.SUPPRESS); print(p.parse_args([]), p.parse_args(['--foo', '1']))
+p = argparse.ArgumentParser(); p.add_argument('count', type=int); p.add_argument('distance', type=float); p.add_argument('street', type=ascii); print(p.parse_args(['2', '3.5', 'x']))
+import math
+def perfect_square(string):
+    value = int(string)
+    sqrt = math.sqrt(value)
+    if sqrt != int(sqrt):
+        msg = "%r is not a perfect square" % string
+        raise argparse.ArgumentTypeError(msg)
+    return value
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('foo', type=perfect_square); print(p.parse_args(['9']))
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args(['7'])
+except SystemExit:
+    print(e.getvalue())
+p = argparse.ArgumentParser(prog='game.py'); p.add_argument('move', choices=['rock', 'paper', 'scissors']); print(p.parse_args(['rock']))
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args(['fire'])
+except SystemExit:
+    print(e.getvalue())
+p = argparse.ArgumentParser(prog='doors.py'); p.add_argument('door', type=int, choices=range(1, 4)); print(p.parse_args(['3']))
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args(['4'])
+except SystemExit:
+    print(e.getvalue())
+p = argparse.ArgumentParser(prog='frobble'); p.add_argument('--foo', action='store_true', help='foo the bars before frobbling'); p.add_argument('bar', nargs='+', help='one of the bars to be frobbled'); print(p.parse_args(['-h']) if False else p.format_help())
+p = argparse.ArgumentParser(prog='frobble'); p.add_argument('bar', nargs='?', type=int, default=42, help='the bar to %(prog)s (default: %(default)s)'); p.print_help()
+p = argparse.ArgumentParser(prog='frobble'); p.add_argument('--foo', help=argparse.SUPPRESS); p.print_help()
+p = argparse.ArgumentParser(prog='m'); p.add_argument('--foo'); p.add_argument('bar'); print(p.parse_args('X --foo Y'.split())); p.print_help()
+p = argparse.ArgumentParser(prog='m'); p.add_argument('--foo', metavar='YYY'); p.add_argument('bar', metavar='XXX'); print(p.parse_args('X --foo Y'.split())); p.print_help()
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-x', nargs=2); p.add_argument('--foo', nargs=2, metavar=('bar', 'baz')); p.print_help()
+p = argparse.ArgumentParser(); p.add_argument('bar'); print(p.parse_args(['XXX']))
+p = argparse.ArgumentParser(); p.add_argument('-f', '--foo-bar', '--foo'); p.add_argument('-x', '-y'); print(p.parse_args('-f 1 -x 2'.split()), p.parse_args('--foo 1 -y 2'.split()))
+p = argparse.ArgumentParser(); p.add_argument('--foo', dest='bar'); print(p.parse_args('--foo XXX'.split()))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-x'); p.add_argument('--foo'); print(p.parse_args(['-x', 'X']), p.parse_args(['--foo', 'FOO']), p.parse_args(['--foo=FOO']), p.parse_args(['-xX']))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-x', action='store_true'); p.add_argument('-y', action='store_true'); p.add_argument('-z'); print(p.parse_args(['-xyzZ']))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('--foo', type=int); p.add_argument('bar', nargs='?')
+for argv in (['--foo', 'spam'], ['--bar'], ['badger', 'spam'], ['--foo']):
+    try:
+        with contextlib.redirect_stderr(io.StringIO()) as e:
+            p.parse_args(argv)
+    except SystemExit:
+        print(e.getvalue().splitlines()[-1])
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-x'); p.add_argument('foo', nargs='?'); print(p.parse_args(['-x', '-1']) if False else '', p.parse_args(['-5' , '-x', 'a']) if False else '')
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-1', dest='one'); p.add_argument('foo', nargs='?'); print(p.parse_args(['-1', 'X']))
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args(['-2'])
+except SystemExit:
+    print(e.getvalue().splitlines()[-1])
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('--foo', nargs='?'); p.add_argument('bar', nargs='?'); print(p.parse_args(['--', '-f']))
+p = argparse.ArgumentParser(prog='PROG'); p.add_argument('-bacon'); p.add_argument('-badger'); print(p.parse_args('-bac MMM'.split()), p.parse_args('-bad WOOD'.split()))
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args('-ba BA'.split())
+except SystemExit:
+    print(e.getvalue().splitlines()[-1])
+class C:
+    pass
+c = C(); p = argparse.ArgumentParser(); p.add_argument('--foo'); p.parse_args(args=['--foo', 'BAR'], namespace=c); print(c.foo)
+p = argparse.ArgumentParser(prog='PROG', add_help=False); g = p.add_argument_group('group'); g.add_argument('--foo', help='foo help'); g.add_argument('bar', help='bar help'); p.print_help()
+p = argparse.ArgumentParser(prog='PROG', add_help=False); g1 = p.add_argument_group('group1', 'group1 description'); g1.add_argument('foo', help='foo help'); g2 = p.add_argument_group('group2', 'group2 description'); g2.add_argument('--bar', help='bar help'); p.print_help()
+p = argparse.ArgumentParser(prog='PROG'); g = p.add_mutually_exclusive_group(); g.add_argument('--foo', action='store_true'); g.add_argument('--bar', action='store_false'); print(p.parse_args(['--foo']), p.parse_args(['--bar']), p.parse_args([])); print(p.format_usage())
+p = argparse.ArgumentParser(prog='PROG'); g = p.add_mutually_exclusive_group(required=True); g.add_argument('--foo', action='store_true'); g.add_argument('--bar', action='store_false'); print(p.format_usage())
+try:
+    with contextlib.redirect_stderr(io.StringIO()) as e:
+        p.parse_args([])
+except SystemExit:
+    print(e.getvalue().splitlines()[-1])
+p = argparse.ArgumentParser(); p.add_argument('foo', type=int); p.set_defaults(bar=42, baz='badger'); print(p.parse_args(['736']))
+p = argparse.ArgumentParser(); p.add_argument('--foo', default='bar'); p.set_defaults(foo='spam'); print(p.parse_args([]), p.get_default('foo'))
+p = argparse.ArgumentParser(); p.add_argument('--foo', action='store_true'); p.add_argument('bar'); print(p.parse_known_args(['--foo', '--badger', 'BAR', 'spam']))
+### docs enum
+from enum import Enum, IntEnum, Flag, IntFlag, auto, unique
+class Color(Enum):
+    RED = 1
+    GREEN = 2
+    BLUE = 3
+print(Color.RED, repr(Color.RED), type(Color.RED), isinstance(Color.GREEN, Color), Color.RED.name)
+for c in Color: print(c)
+apples = {}; apples[Color.RED] = 'red delicious'; apples[Color.GREEN] = 'granny smith'; print(apples == {Color.RED: 'red delicious', Color.GREEN: 'granny smith'})
+print(Color(1), Color(3), Color['RED'], Color['GREEN'])
+member = Color.RED; print(member.name, member.value)
+try:
+    Color.RED = 'x'
+except AttributeError as e:
+    print(e)
+try:
+    class Bad(Enum):
+        SQUARE = 2
+        SQUARE = 3
+except TypeError as e:
+    print(e)
+class Shape(Enum):
+    SQUARE = 2
+    DIAMOND = 1
+    CIRCLE = 3
+    ALIAS_FOR_SQUARE = 2
+print(Shape.SQUARE, Shape.ALIAS_FOR_SQUARE, Shape(2), list(Shape))
+for name, member in Shape.__members__.items(): print(name, member)
+print([name for name, member in Shape.__members__.items() if member.name != name])
+try:
+    Color.RED < Color.BLUE
+except TypeError as e:
+    print(e)
+print(Color.RED is Color.RED, Color.RED is Color.BLUE, Color.RED is not Color.BLUE, Color.BLUE == Color.RED, Color.BLUE != Color.RED, Color.BLUE == Color.BLUE, Color.BLUE == 2)
+class Mood(Enum):
+    FUNKY = 1
+    HAPPY = 3
+    def describe(self):
+        return self.name, self.value
+    def __str__(self):
+        return 'my custom str! {0}'.format(self.value)
+    @classmethod
+    def favorite_mood(cls):
+        return cls.HAPPY
+print(Mood.favorite_mood(), Mood.HAPPY.describe(), str(Mood.FUNKY))
+class Foo(Enum):
+    def some_behavior(self):
+        pass
+class Bar(Foo):
+    HAPPY = 1
+    SAD = 2
+print(list(Bar))
+try:
+    class More(Color):
+        PINK = 17
+except TypeError as e:
+    print(e)
+Animal = Enum('Animal', 'ANT BEE CAT DOG')
+print(Animal, Animal.ANT, Animal.ANT.value, list(Animal))
+class Numbers(IntEnum):
+    ONE = 1
+    TWO = 2
+    THREE = 3
+print(Numbers.THREE, Numbers.ONE + Numbers.TWO, Numbers.ONE < Numbers.THREE, ['a', 'b', 'c'][Numbers.ONE], [i for i in range(Numbers.THREE)], Numbers.ONE == 1, sum(Numbers), int(Numbers.TWO), float(Numbers.TWO))
+class Shape2(IntEnum):
+    CIRCLE = 1
+    SQUARE = 2
+class Request(IntEnum):
+    POST = 1
+    GET = 2
+print(Shape2 == 1, Shape2.CIRCLE == 1, Shape2.CIRCLE == Request.POST)
+class Perm(IntFlag):
+    R = 4
+    W = 2
+    X = 1
+print(Perm.R | Perm.W, Perm.R + Perm.W, Perm.R in (Perm.R | Perm.W), Perm.X in (Perm.R | Perm.W))
+class Perm2(IntFlag):
+    R = 4
+    W = 2
+    X = 1
+    RWX = 7
+print(Perm2.RWX, ~Perm2.RWX, Perm2(7), Perm2.R & Perm2.X, bool(Perm2.R & Perm2.X), Perm2.X | 4, Perm2.X | 8)
+class Col(Flag):
+    RED = auto()
+    BLUE = auto()
+    GREEN = auto()
+print(Col.RED & Col.GREEN, bool(Col.RED & Col.GREEN), Col.RED | Col.GREEN, Col.BLUE.value, list(Col))
+class Col2(Flag):
+    RED = auto()
+    BLUE = auto()
+    GREEN = auto()
+    WHITE = RED | BLUE | GREEN
+print(Col2.WHITE, Col2.WHITE.value, ~Col2.RED, Col2.RED | Col2.BLUE | Col2.GREEN)
+class Col3(Flag):
+    BLACK = 0
+    RED = auto()
+    BLUE = auto()
+    GREEN = auto()
+print(Col3.BLACK, bool(Col3.BLACK), Col3.RED & Col3.BLUE, Col3.RED.value)
+class Pet(str, Enum):
+    CAT = 'c'
+print(Pet.CAT, f'{Pet.CAT}', format(Pet.CAT), '{}'.format(Pet.CAT), str(Pet.CAT), Pet.CAT.value, Pet.CAT == 'c')
+class AutoName(Enum):
+    def _generate_next_value_(name, start, count, last_values):
+        return name
+class Ordinal(AutoName):
+    NORTH = auto()
+    SOUTH = auto()
+print(list(Ordinal))
+class NoValue(Enum):
+    def __repr__(self):
+        return '<%s.%s>' % (self.__class__.__name__, self.name)
+class Co2(NoValue):
+    RED = 'stop'
+    GREEN = 'go'
+print(Co2.GREEN, repr(Co2.GREEN), Co2.GREEN.value)
+class OrderedEnum(Enum):
+    def __ge__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value >= other.value
+        return NotImplemented
+    def __gt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value > other.value
+        return NotImplemented
+    def __le__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value <= other.value
+        return NotImplemented
+    def __lt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value < other.value
+        return NotImplemented
+class Grade(OrderedEnum):
+    A = 5
+    B = 4
+    C = 3
+print(Grade.C < Grade.A, sorted(Grade), max(Grade), min(Grade), Grade.A >= Grade.B)
+class DuplicateFreeEnum(Enum):
+    def __init__(self, *args):
+        cls = self.__class__
+        if any(self.value == e.value for e in cls):
+            a = self.name
+            e = cls(self.value).name
+            raise ValueError("aliases not allowed in DuplicateFreeEnum:  %r --> %r" % (a, e))
+try:
+    class Color4(DuplicateFreeEnum):
+        RED = 1
+        GREEN = 2
+        BLUE = 3
+        GRENE = 2
+except ValueError as e:
+    print(e)
+class Weekday(Enum):
+    MON = 1
+    TUE = 2
+    @classmethod
+    def from_str(cls, s):
+        return cls[s.upper()]
+    def next(self):
+        members = list(self.__class__)
+        return members[(members.index(self) + 1) % len(members)]
+print(Weekday.from_str('tue'), Weekday.TUE.next(), Weekday.MON.next(), list(Weekday).index(Weekday.TUE), Weekday.MON in list(Weekday), [m for m in Weekday if m.value > 1], {m.name: m.value for m in Weekday}, {m: m.value for m in Weekday}[Weekday.MON], tuple(Weekday), set(Weekday) == {Weekday.MON, Weekday.TUE}, next(iter(Weekday)), dict(Weekday.__members__)['MON'])
+print(getattr(Weekday, 'MON'), getattr(Weekday, 'NOPE', None), hasattr(Weekday, 'MON'), hasattr(Weekday, 'NOPE'), hasattr(Weekday.MON, 'name'), vars(Weekday.MON)['_name_'], Weekday.MON._name_, Weekday.MON._value_, Weekday._member_type_, Numbers._member_type_, Pet._member_type_)
+class Const(Enum):
+    PI = 3.14
+    E = 2.71
+    @property
+    def rounded(self): return round(self.value)
+    x = lambda self: 1
+    def __add__(self, o): return self.value + o
+    def __radd__(self, o): return o + self.value
+print(Const.PI.rounded, list(Const), Const.PI.x(), Const.PI + 1, 1 + Const.PI, sum([Const.PI, Const.E], 0))
+class Nest(Enum):
+    A = 1
+    class Inner:
+        pass
+print(Nest.A, Nest.Inner.name, Nest.Inner.value.__name__, len(Nest))
+### docs pathlib textwrap fractions contextlib inspect
+from pathlib import Path, PurePath, PurePosixPath
+print(PurePath('setup.py'), PurePath('foo', 'some/path', 'bar'), PurePath(Path('foo'), Path('bar')), PurePath(), PurePath('/etc', '/usr', 'lib64'), PurePath('foo//bar'), PurePath('foo/./bar'), PurePath('foo/../bar'))
+print(PurePosixPath('foo') == PurePosixPath('FOO'), PurePosixPath('foo') in {PurePosixPath('foo')}, PurePosixPath('/etc') / 'init.d' / 'apache2', '/usr' / PurePosixPath('bin'), PurePosixPath('/etc').joinpath('passwd'), PurePosixPath('/etc').joinpath(PurePosixPath('passwd')), PurePosixPath('/etc').joinpath('init.d', 'apache2'))
+p = PurePath('/usr/bin/python3'); print(p.parts, p.drive, p.root, PurePosixPath('etc').root, PurePosixPath('//etc').root, PurePosixPath('///etc').root, PurePosixPath('////etc').root, p.anchor)
+p = PurePosixPath('/a/b/c/d'); print(p.parents[0], p.parents[1], p.parents[2], PurePosixPath('/a/b/c').parent, PurePosixPath('/').parent, PurePosixPath('.').parent, PurePosixPath('foo/..').parent, PurePosixPath('my/library/setup.py').name, PurePosixPath('my/library.tar.gz').suffix, PurePosixPath('my/library.tar.gz').suffixes, PurePosixPath('my/library').suffixes, PurePosixPath('my/library.tar.gz').stem, PurePosixPath('my/library').stem, PurePosixPath('/etc/passwd').as_posix(), PurePosixPath('/etc/passwd').as_uri(), PurePosixPath('/a/b').is_absolute(), PurePosixPath('a/b').is_absolute())
+print(PurePosixPath('/etc/passwd').is_relative_to('/etc'), PurePosixPath('/etc/passwd').is_relative_to('/usr'), PurePosixPath('/etc/passwd').relative_to('/'), PurePosixPath('/etc/passwd').relative_to('/etc'), PurePosixPath('a/b.py').match('*.py'), PurePosixPath('/a/b/c.py').match('b/*.py'), PurePosixPath('/a/b/c.py').match('a/*.py'), PurePosixPath('/a.py').match('/*.py'), PurePosixPath('a/b.py').match('/*.py'))
+print(PurePosixPath('/Downloads/pathlib.tar.gz').with_name('setup.py'), PurePosixPath('/Downloads/draft.txt').with_stem('final'), PurePosixPath('/Downloads/pathlib.tar.gz').with_suffix('.bz2'), PurePosixPath('README').with_suffix('.txt'), PurePosixPath('README.txt').with_suffix(''))
+try:
+    PurePosixPath('/').with_name('setup.py')
+except ValueError as e:
+    print(e)
+try:
+    PurePosixPath('/etc/passwd').relative_to('/usr')
+except ValueError as e:
+    print(e)
+Path('docs').mkdir(); Path('docs/index.rst').write_text('x'); Path('setup.py').write_text('print(1)\n'); Path('test_a.py').write_text(''); Path('build/lib').mkdir(parents=True); Path('build/lib/m.py').write_text('')
+pp = Path('.')
+print(sorted(x for x in pp.iterdir() if x.is_dir()), sorted(pp.glob('**/*.py')), sorted(pp.glob('*.py')), sorted(pp.glob('*/*.py')), sorted(pp.rglob('*.py')), sorted(pp.glob('**/*')), sorted(pp.glob('build/**')), sorted(pp.glob('*/')), sorted(Path('docs').glob('../*.py')), sorted(pp.glob('./setup.py')))
+q = Path('docs') / 'index.rst'
+print(q, q.resolve() == Path.cwd() / 'docs' / 'index.rst', q.exists(), q.is_dir(), Path('..').resolve() == Path.cwd().parent, Path('docs/../setup.py').resolve() == Path.cwd() / 'setup.py', Path('docs/nope/../x').resolve() == Path.cwd() / 'docs/x')
+with q.open() as f:
+    print(f.readline())
+pp2 = Path('my_text_file'); print(pp2.write_text('Text file contents'), pp2.read_text(), pp2.stat().st_size, pp2.rename('new_name'), Path('new_name').read_text(), pp2.exists(), Path('new_name').replace('final_name'))
+print(Path('setup.py').read_text().splitlines(), [l for l in Path('setup.py').read_text().split('\n') if l], str(Path('a') / 'b') == 'a/b', len(Path('setup.py').read_text()))
+import textwrap
+sample_text = '''
+    The textwrap module can be used to format text for output in
+    situations where pretty-printing is desired.  It offers
+    programmatic functionality similar to the paragraph wrapping
+    or filling features found in many text editors.
+    '''
+print(textwrap.fill(sample_text, width=50))
+dedented_text = textwrap.dedent(sample_text)
+print(dedented_text)
+for width in [45, 60]:
+    print('{} Columns:\n'.format(width)); print(textwrap.fill(dedented_text, width=width)); print()
+dedented_text = textwrap.dedent(sample_text).strip()
+print(textwrap.fill(dedented_text, width=60))
+wrapped = textwrap.fill(dedented_text, width=50)
+wrapped += '\n\nSecond paragraph after a blank line.'
+final = textwrap.indent(wrapped, '> ')
+print('Quoted block:\n'); print(final)
+def should_indent(line):
+    print('Indent {!r}?'.format(line))
+    return len(line.strip()) % 2 == 0
+print('\nQuoted block:\n'); print(textwrap.indent(wrapped, 'EVEN ', predicate=should_indent))
+print(textwrap.fill(dedented_text, initial_indent='', subsequent_indent=' ' * 4, width=50))
+original = textwrap.fill(dedented_text, width=50); print(original)
+shortened = textwrap.shorten(original, 100); print(textwrap.fill(shortened, width=50))
+print(textwrap.shorten("Hello  world!", width=12), textwrap.shorten("Hello  world!", width=11), textwrap.shorten("Hello world", width=10, placeholder="..."))
+from fractions import Fraction
+print(Fraction(16, -10), Fraction(123), Fraction(), Fraction('3/7'), Fraction(' -3/7 '), Fraction('1.414213 \t\n'), Fraction('-.125'), Fraction('7e-6'), Fraction(2.25), Fraction(1.1))
+from math import pi, cos
+print(Fraction(cos(pi / 3)), Fraction(cos(pi / 3)).limit_denominator(), Fraction('3.1415926535897932').limit_denominator(1000), Fraction(1.1).limit_denominator(), Fraction.from_float(0.3), Fraction(3, 7).as_integer_ratio())
+import contextlib
+from contextlib import contextmanager
+@contextmanager
+def tag(name):
+    print("<%s>" % name)
+    yield
+    print("</%s>" % name)
+with tag("h1"):
+    print("foo")
+@contextmanager
+def managed_resource(*args, **kwds):
+    resource = {'args': args, 'kw': kwds, 'open': True}
+    try:
+        yield resource
+    finally:
+        resource['open'] = False
+with managed_resource(1, timeout=3600) as resource:
+    print(resource)
+print(resource)
+import io, os
+f = io.StringIO()
+with contextlib.redirect_stdout(f):
+    help(print) if False else print('via help')
+s = f.getvalue(); print(repr(s))
+with contextlib.suppress(FileNotFoundError):
+    os.remove('somefile.tmp')
+def myfunction(arg, ignore_exceptions=False):
+    if ignore_exceptions:
+        cm = contextlib.suppress(Exception)
+    else:
+        cm = contextlib.nullcontext()
+    with cm:
+        return arg / 0
+print(myfunction(1, ignore_exceptions=True))
+try:
+    myfunction(1)
+except ZeroDivisionError as e:
+    print(e)
+def process_file(file_or_path):
+    if isinstance(file_or_path, str):
+        cm = open(file_or_path)
+    else:
+        cm = contextlib.nullcontext(file_or_path)
+    with cm as file:
+        return file.read()
+Path('pf.txt').write_text('pf'); print(process_file('pf.txt'), process_file(io.StringIO('sio')))
+from inspect import signature, Parameter, getmembers, isfunction, ismethod, isclass, getdoc
+def foo(a, *, b:int, **kwargs):
+    pass
+sig = signature(foo)
+print(sig, sig.parameters['b'], sig.parameters['b'].annotation, str(sig.parameters['a']), sig.parameters['kwargs'].kind)
+def bar(a, b, c=10, *args, **kw): pass
+for p_ in signature(bar).parameters.values():
+    if p_.kind == p_.POSITIONAL_OR_KEYWORD and p_.default is p_.empty:
+        print('Parameter:', p_)
+for p_ in signature(bar).parameters.values():
+    print(p_.name, p_.kind.description)
+print(Parameter.empty is signature(bar).parameters['a'].default, signature(bar).parameters['c'].default, signature(bar).return_annotation is signature(bar).empty, len(signature(bar).parameters), [k for k in signature(bar).parameters], list(signature(bar).parameters.values())[0], tuple(signature(bar).parameters)[1])
+class Cl:
+    '''Doc.'''
+    def __init__(self, x): self.x = x
+    def go(self): pass
+    @property
+    def p(self): return self.x
+print([n for n, v in getmembers(Cl, isfunction)], [n for n, v in getmembers(Cl(1), ismethod)], isclass(Cl), getdoc(Cl), getdoc(Cl.go), [n for n, v in getmembers(Cl(1)) if not n.startswith('_')])
