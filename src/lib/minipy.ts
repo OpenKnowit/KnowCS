@@ -2599,7 +2599,7 @@ class Interp implements Host {
     if (op === 'is' || op === 'is not') {
       const same =
         l.k === r.k &&
-        (l.k === 'array' ? l.a === (r as { a: NDArray }).a : l.k === 'none' || l.k === 'ellipsis' || repr(l) === repr(r))
+        (l.k === 'array' ? l.a === (r as { a: NDArray }).a : l.k === 'obj' ? l.o === (r as { o: PyObj }).o : l.k === 'none' || l.k === 'ellipsis' || repr(l) === repr(r))
       return bool(op === 'is' ? same : !same)
     }
     if (op === 'in' || op === 'not in') {
