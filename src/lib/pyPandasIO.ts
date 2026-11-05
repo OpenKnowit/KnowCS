@@ -25,7 +25,8 @@ const methodOf = (h: Host, v: Value, name: string): Value | undefined => {
 
 /** the text behind a path or anything with a read method; undefined if the path holds no file */
 export const textFrom = (h: Host, src: Value): string | undefined => {
-  if (src.k === 'str') return (h.state.get('files') as Map<string, string> | undefined)?.get(sandboxPath(src.v))
+  const path = src.k === 'str' ? src.v : src.k === 'obj' ? src.o.fspath?.() : undefined
+  if (path !== undefined) return (h.state.get('files') as Map<string, string> | undefined)?.get(sandboxPath(path))
   const read = methodOf(h, src, 'read')
   if (!read) throw h.err('ValueError', `Invalid file path or buffer object type: <class '${src.k === 'obj' ? src.o.cls : src.k}'>`)
   return h.str(h.call(read, []))
@@ -273,11 +274,12 @@ const csvFloatFormat = (h: Host, v: Value | undefined): ((x: number) => string) 
 const deliver = (h: Host, target: Value | undefined, text: string, mode = 'w'): Value => {
   if (!given(target)) return py.str(text)
   const t = target!
-  if (t.k === 'str') {
+  const path = t.k === 'str' ? t.v : t.k === 'obj' ? t.o.fspath?.() : undefined
+  if (path !== undefined) {
     let files = h.state.get('files') as Map<string, string> | undefined
     if (!files) h.state.set('files', (files = new Map()))
-    const key = sandboxPath(t.v)
-    if (mode === 'x' && files.has(key)) throw h.err('FileExistsError', `[Errno 17] File exists: '${t.v}'`)
+    const key = sandboxPath(path)
+    if (mode === 'x' && files.has(key)) throw h.err('FileExistsError', `[Errno 17] File exists: '${path}'`)
     files.set(key, mode === 'a' ? (files.get(key) ?? '') + text : text)
     return py.NONE
   }

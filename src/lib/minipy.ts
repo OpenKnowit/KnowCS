@@ -159,7 +159,7 @@ export const tokenize = (src: string, offset = 0, firstLine = 1): Tok[] => {
 interface Span { s: number; e: number; line: number }
 
 /** kind: undefined = positional or keyword; 'star' = *args; 'kwstar' = **kwargs; 'kwonly' = after a bare * or *args */
-export interface Param { name: string; def: Node | null; kind?: 'star' | 'kwstar' | 'kwonly' }
+export interface Param { name: string; def: Node | null; kind?: 'star' | 'kwstar' | 'kwonly'; note?: Node; posOnly?: boolean }
 export interface CompFor { target: Node; iter: Node; conds: Node[] }
 export type FPart = string | { x: Node; conv: 'r' | 's' | 'a' | null; spec: string; specX?: Node }
 
@@ -202,7 +202,7 @@ export type Stmt =
   | { k: 'if'; branches: { cond: Node | null; body: Stmt[] }[]; line: number }
   | { k: 'for'; target: Node; iter: Node; body: Stmt[]; orelse: Stmt[] | null; line: number }
   | { k: 'while'; cond: Node; body: Stmt[]; orelse: Stmt[] | null; line: number }
-  | { k: 'def'; name: string; params: Param[]; body: Stmt[]; isGen: boolean; decorators: Node[]; line: number }
+  | { k: 'def'; name: string; params: Param[]; returns: Node | null; body: Stmt[]; isGen: boolean; decorators: Node[]; line: number }
   | { k: 'return'; x: Node | null; line: number }
   | { k: 'class'; name: string; bases: Node[]; body: Stmt[]; decorators: Node[]; line: number }
   | { k: 'with'; items: { x: Node; as: Node | null }[]; body: Stmt[]; line: number }
@@ -349,13 +349,14 @@ class Parser {
         this.expectOp('(')
         const params = this.params(')')
         this.expectOp(')')
-        if (this.isOp('->')) { this.next(); this.test() }
+        let returns: Node | null = null
+        if (this.isOp('->')) { this.next(); returns = this.test() }
         const outer = this.sawYield
         this.sawYield = false
         const body = this.block()
         const isGen = this.sawYield
         this.sawYield = outer
-        return [{ k: 'def', name, params, body, isGen, decorators: [], line: tk.line }]
+        return [{ k: 'def', name, params, returns, body, isGen, decorators: [], line: tk.line }]
       }
       case 'class': {
         this.next()
@@ -434,36 +435,34 @@ class Parser {
   params(close: string): Param[] {
     const params: Param[] = []
     let afterStar = false
-    const annotation = () => {
-      if (this.isOp(':') && close === ')') {
-        this.next()
-        this.test()
-      }
+    const annotation = (): { note?: Node } => {
+      if (!this.isOp(':') || close !== ')') return {}
+      this.next()
+      return { note: this.test() }
     }
     while (!this.isOp(close)) {
       if (this.isOp('/')) {
-        // def f(a, /, b): positional-only markers change nothing a learner would notice
+        // def f(a, /, b): positional-only markers change nothing a learner would notice, but inspect.signature prints them
         this.next()
+        for (const p of params) p.posOnly = true
       } else if (this.isOp('**')) {
         this.next()
         const name = this.expectName()
-        annotation()
-        params.push({ name, def: null, kind: 'kwstar' })
+        params.push({ name, def: null, kind: 'kwstar', ...annotation() })
       } else if (this.isOp('*')) {
         this.next()
         afterStar = true
         if (!this.isOp(',')) {
           const name = this.expectName()
-          annotation()
-          params.push({ name, def: null, kind: 'star' })
+          params.push({ name, def: null, kind: 'star', ...annotation() })
         }
       } else {
         const name = this.expectName()
-        annotation()
+        const noted = annotation()
         let def: Node | null = null
         if (this.isOp('=')) { this.next(); def = this.test() }
         else if (!afterStar && params.some((p) => p.def)) throw syntaxError('non-default argument follows default argument', this.cur.line)
-        params.push(afterStar ? { name, def, kind: 'kwonly' } : { name, def })
+        params.push(afterStar ? { name, def, kind: 'kwonly', ...noted } : { name, def, ...noted })
       }
       if (!this.isOp(close)) this.expectOp(',')
     }
@@ -1096,6 +1095,8 @@ export interface FuncValue {
   doc?: string
   /** attributes set on the function: f.calls = 0 */
   attrs?: Map<string, Value>
+  /** the annotations, 'return' last, as f.__annotations__ has them */
+  notes?: Map<string, Value>
 }
 
 /**
@@ -1110,8 +1111,31 @@ export interface HostClass {
   repr?(inst: InstValue): string | undefined
 }
 
-/** builtin: part of Python (ValueError …), so it prints without __main__ */
-export interface ClassValue { k: 'class'; name: string; bases: Value[]; ns: Map<string, Value>; host: HostClass | null; builtin?: boolean }
+/**
+ * What a library metaclass (enum's) adds to the classes it makes: how the class itself behaves when called, indexed
+ * or iterated. A subclass inherits it. Every hook is optional; a missing one gives the class its usual behaviour.
+ */
+export interface ClassMeta {
+  /** __prepare__: the namespace the class body runs in */
+  prepare?(name: string, bases: Value[], h: Host): Map<string, Value>
+  /** the end of __new__: the class body has run */
+  created?(cls: ClassValue, h: Host): void
+  call?(cls: ClassValue, args: Value[], kw: Kw, h: Host): Value
+  getItem?(cls: ClassValue, idx: Value, h: Host): Value
+  iter?(cls: ClassValue, h: Host): Value[]
+  len?(cls: ClassValue, h: Host): number
+  contains?(cls: ClassValue, v: Value, h: Host): boolean
+  /** after the class's own attributes; may raise the class's own AttributeError */
+  getAttr?(cls: ClassValue, name: string, h: Host): Value | undefined
+  /** true = handled */
+  setAttr?(cls: ClassValue, name: string, v: Value, h: Host): boolean
+  repr?(cls: ClassValue): string
+  /** the built-in value an instance also is (class Level(int, Enum)): it finds the same dict entry */
+  scalar?(inst: InstValue): Value | undefined
+}
+
+/** builtin: part of Python (ValueError …), so it prints without __main__; module: the library module it prints with */
+export interface ClassValue { k: 'class'; name: string; bases: Value[]; ns: Map<string, Value>; host: HostClass | null; builtin?: boolean; module?: string; meta?: ClassMeta }
 export interface InstValue { k: 'inst'; cls: ClassValue; attrs: Map<string, Value>; state: Record<string, unknown> }
 
 export type Value =
@@ -1129,7 +1153,7 @@ export type Value =
   | { k: 'dict'; d: PyDict; flavor?: 'Counter' | 'defaultdict' | 'OrderedDict'; factory?: Value }
   | { k: 'set'; s: PyDict; frozen?: boolean }
   /** an iterator: next() gives undefined when it is exhausted */
-  | { k: 'iter'; name: string; next: () => Value | undefined; send?: (v: Value) => Value | undefined; close?: () => void; result?: Value }
+  | { k: 'iter'; name: string; next: () => Value | undefined; send?: (v: Value) => Value | undefined; throw?: (e: unknown) => Value | undefined; close?: () => void; result?: Value }
   /** @staticmethod, @classmethod, @property */
   | { k: 'descr'; kind: 'static' | 'class' | 'prop'; f: Value; setter?: Value }
   | { k: 'range'; start: number; stop: number; step: number }
@@ -1192,7 +1216,7 @@ export class PyDict {
         if (!v.frozen) throw new PyError('TypeError', "unhashable type: 'set'")
         return `f(${v.s.keys().map(PyDict.hash).sort().join(',')})`
       case 'inst': return instHash?.(v) ?? `i${objId(v)}`
-      case 'obj': return `o${objId(v.o)}`
+      case 'obj': return v.o.hashKey?.() ?? `o${objId(v.o)}`
       default: return `${v.k}:${repr(v)}`
     }
   }
@@ -1215,6 +1239,27 @@ export class PyDict {
   }
 }
 
+/** obj.__dict__, vars(obj): the object's own attributes, so writing to it writes to them */
+class AttrDict extends PyDict {
+  attrs: Map<string, Value>
+  constructor(attrs: Map<string, Value>) {
+    super()
+    this.attrs = attrs
+  }
+  name(k: Value): string {
+    if (k.k !== 'str') throw new PyError('TypeError', 'attribute name must be string')
+    return k.v
+  }
+  get(k: Value) { return k.k === 'str' ? this.attrs.get(k.v) : undefined }
+  set(k: Value, v: Value) { this.attrs.set(this.name(k), v) }
+  has(k: Value) { return k.k === 'str' && this.attrs.has(k.v) }
+  delete(k: Value) { return k.k === 'str' && this.attrs.delete(k.v) }
+  keys(): Value[] { return [...this.attrs.keys()].map((n) => ({ k: 'str', v: n })) }
+  values(): Value[] { return [...this.attrs.values()] }
+  items(): [Value, Value][] { return [...this.attrs].map(([n, v]) => [{ k: 'str', v: n }, v]) }
+  get size() { return this.attrs.size }
+}
+
 const OBJ_IDS = new WeakMap<object, number>()
 let nextObjId = 1
 export const objId = (o: object): number => {
@@ -1234,6 +1279,12 @@ export abstract class PyObj {
   str?(): string
   /** format(x, spec) — f'{x:.3f}'; spec may be empty; undefined = the usual rules */
   format?(spec: string): string | undefined
+  /** __hash__: objects with the same key are one dict entry; PyDict.hash of an equal built-in value, if there is one */
+  hashKey?(): string
+  /** __fspath__: the path this stands for */
+  fspath?(): string
+  /** type(x), when it is a value the program can also reach another way */
+  typeValue?(): Value
   /** __index__: the integer this is when used as a list index or in range() */
   asIndex?(h: Host): number
   /** __float__ / __int__: the number this is, when it has its own rule for not being one */
@@ -1249,6 +1300,8 @@ export abstract class PyObj {
   unary?(op: '-' | '+' | '~', h: Host): Value
   call?(args: Value[], kw: Kw, h: Host): Value
   iter?(h: Host): Value[]
+  /** an iterator's next item, read as it is asked for; undefined at the end */
+  nextItem?(h: Host): Value | undefined
   /** del x[i] */
   delItem?(idx: Value, h: Host): void
   len?(h: Host): number
@@ -1256,6 +1309,8 @@ export abstract class PyObj {
   truthy?(h: Host): boolean
   enter?(h: Host): Value
   exit?(h: Host): void
+  /** pickle's copy of this object, when copying its fields is not enough; copy deep-copies a part of it */
+  pickled?(copy: <T>(part: T) => T): PyObj
   /** np.asarray(x) — lets NumPy functions and plotting take this object */
   toArray?(): NDArray
   /** np.name(…, this, …) handled by the object itself (a Series keeps its index); undefined = treat it as an array */
@@ -1377,6 +1432,8 @@ export interface Host {
   /** groups: for kind 'group', the input cells behind each result cell ([operand, flat index]) */
   traceCall(api: string, kind: ApiKind, operands: Operand[], result: GridSnapshot | null, resultText: string, axis?: number | null, groups?: [number, number][][]): void
   print(s: string): void
+  /** what print() writes to while sys.stdout is replaced; null = the run's output */
+  stdoutFile: Value | null
   readonly rng: SandboxRandom
   /** per-run state a library keeps between calls (pyplot's current figure …) */
   readonly state: Map<string, unknown>
@@ -1474,7 +1531,9 @@ const scalarDType = (v: Value): DType => (v.k === 'bool' ? 'bool' : v.k === 'int
 
 const reprStr = (s: string) => {
   const q = s.includes("'") && !s.includes('"') ? '"' : "'"
-  const body = s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/\t/g, '\\t')
+  const body = s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/\r/g, '\\r')
+    // eslint-disable-next-line no-control-regex -- what Python's repr spells in hex
+    .replace(/[\x00-\x1f\x7f]/g, (c) => `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}`)
   return q + (q === "'" ? body.replace(/'/g, "\\'") : body) + q
 }
 
@@ -1491,26 +1550,39 @@ export const makeSet = (items: Value[], frozen = false): Value => {
   return frozen ? { k: 'set', s, frozen } : { k: 'set', s }
 }
 
+const inRepr = new Set<Value>()
+/** a list that holds itself prints as [[...]] */
+const guardedRepr = (v: Value, dots: string, make: () => string): string => {
+  if (inRepr.has(v)) return dots
+  inRepr.add(v)
+  try {
+    return make()
+  } finally {
+    inRepr.delete(v)
+  }
+}
+
 /** a user class's __repr__, while a program runs (a list of objects prints through this too) */
 let instRepr: ((v: InstValue) => string | undefined) | null = null
 
 export const repr = (v: Value): string => {
   switch (v.k) {
-    case 'int': return String(v.v)
+    // above 2**53 an integer here is a double: its exact digits, not the shortest that read back
+    case 'int': return Number.isSafeInteger(v.v) || !Number.isFinite(v.v) ? String(v.v) : String(BigInt(v.v))
     case 'float': return formatScalar(v.v, v.f32 ? 'float32' : 'float64')
     case 'bool': return v.v ? 'True' : 'False'
     case 'none': return 'None'
     case 'str': return reprStr(v.v)
-    case 'list': return v.view ? `${v.view}([${v.items.map(repr).join(', ')}])` : `[${v.items.map(repr).join(', ')}]`
+    case 'list': return guardedRepr(v, '[...]', () => (v.view ? `${v.view}([${v.items.map(repr).join(', ')}])` : `[${v.items.map(repr).join(', ')}]`))
     case 'tuple':
       if (v.names) return `${v.tname}(${v.items.map((x, i) => `${v.names![i]}=${repr(x)}`).join(', ')})`
       return v.items.length === 1 ? `(${repr(v.items[0])},)` : `(${v.items.map(repr).join(', ')})`
-    case 'dict': {
+    case 'dict': return guardedRepr(v, '{...}', () => {
       const entries = v.flavor === 'Counter' ? [...v.d.items()].sort((a, b) => numOf(b[1]) - numOf(a[1])) : v.d.items()
       const body = entries.length || !v.flavor ? `{${entries.map(([k, x]) => `${repr(k)}: ${repr(x)}`).join(', ')}}` : ''
       if (v.flavor === 'defaultdict') return `defaultdict(${v.factory ? repr(v.factory) : 'None'}, ${body || '{}'})`
       return v.flavor ? `${v.flavor}(${body})` : body
-    }
+    })
     case 'set': {
       const items = setItems(v).map(repr).join(', ')
       if (v.frozen) return items ? `frozenset({${items}})` : 'frozenset()'
@@ -1530,8 +1602,8 @@ export const repr = (v: Value): string => {
     case 'carray': return complexRepr(v.re, v.im)
     case 'func': return `<function ${v.owner ? `${v.owner.name}.` : ''}${v.name}>`
     case 'bound': return `<bound method ${v.f.owner ? `${v.f.owner.name}.` : ''}${v.f.name} of ${repr(v.self)}>`
-    case 'class': return v.builtin ? `<class '${v.name}'>` : `<class '__main__.${v.name}'>`
-    case 'inst': return instRepr?.(v) ?? v.cls.host?.repr?.(v) ?? `<__main__.${v.cls.name} object>`
+    case 'class': return v.meta?.repr?.(v) ?? (v.builtin ? `<class '${v.module ? `${v.module}.` : ''}${v.name}'>` : `<class '__main__.${v.name}'>`)
+    case 'inst': return instRepr?.(v) ?? v.cls.host?.repr?.(v) ?? `<${v.cls.module ?? '__main__'}.${v.cls.name} object>`
     case 'super': return `<super: <class '${v.after.name}'>, <${v.self.cls.name} object>>`
     case 'obj': return v.o.repr()
   }
@@ -1622,7 +1694,7 @@ const REFLECTED: Record<string, string> = {
   '&': '__rand__', '|': '__ror__', '^': '__rxor__', '<<': '__rlshift__', '>>': '__rrshift__',
   '==': '__eq__', '!=': '__ne__', '<': '__gt__', '>': '__lt__', '<=': '__ge__', '>=': '__le__',
 }
-const NOT_IMPLEMENTED: Value = { k: 'type', name: 'NotImplementedType', call: () => NONE }
+export const NOT_IMPLEMENTED: Value = { k: 'type', name: 'NotImplementedType', call: () => NONE }
 
 /** the builtin exception tree: [name, bases] */
 const EXCEPTIONS: [string, string[]][] = [
@@ -1630,17 +1702,22 @@ const EXCEPTIONS: [string, string[]][] = [
   ['ArithmeticError', ['Exception']], ['ZeroDivisionError', ['ArithmeticError']], ['OverflowError', ['ArithmeticError']], ['FloatingPointError', ['ArithmeticError']],
   ['AssertionError', ['Exception']], ['AttributeError', ['Exception']], ['EOFError', ['Exception']], ['ImportError', ['Exception']], ['ModuleNotFoundError', ['ImportError']],
   ['LookupError', ['Exception']], ['IndexError', ['LookupError']], ['KeyError', ['LookupError']], ['MemoryError', ['Exception']], ['NameError', ['Exception']], ['UnboundLocalError', ['NameError']],
-  ['OSError', ['Exception']], ['FileNotFoundError', ['OSError']], ['PermissionError', ['OSError']], ['TimeoutError', ['OSError']],
+  ['OSError', ['Exception']], ['FileNotFoundError', ['OSError']], ['FileExistsError', ['OSError']], ['IsADirectoryError', ['OSError']], ['NotADirectoryError', ['OSError']], ['PermissionError', ['OSError']], ['TimeoutError', ['OSError']],
   ['RuntimeError', ['Exception']], ['NotImplementedError', ['RuntimeError']], ['RecursionError', ['RuntimeError']], ['StopIteration', ['Exception']],
-  ['SyntaxError', ['Exception']], ['IndentationError', ['SyntaxError']], ['TypeError', ['Exception']], ['ValueError', ['Exception']], ['UnicodeError', ['ValueError']],
+  ['SyntaxError', ['Exception']], ['IndentationError', ['SyntaxError']], ['TypeError', ['Exception']], ['ValueError', ['Exception']], ['UnicodeError', ['ValueError']], ['UnicodeDecodeError', ['UnicodeError']],
   ['_LinAlgError', ['RuntimeError']], ['Warning', ['Exception']], ['UserWarning', ['Warning']], ['DeprecationWarning', ['Warning']], ['RuntimeWarning', ['Warning']], ['FutureWarning', ['Warning']],
   ['LinAlgError', ['ValueError']], ['AxisError', ['ValueError', 'IndexError']], ['UFuncTypeError', ['TypeError']],
   ['MergeError', ['ValueError']], ['ParserError', ['ValueError']], ['EmptyDataError', ['ValueError']], ['DataError', ['ValueError']], ['IntCastingNaNError', ['ValueError']], ['UndefinedVariableError', ['NameError']], ['OptionError', ['AttributeError', 'KeyError']], ['IndexingError', ['Exception']], ['SpecificationError', ['Exception']],
 ]
+const isOSError = (c: ClassValue): boolean => c.name === 'OSError' || c.bases.some((b) => b.k === 'class' && isOSError(b))
 /** every exception keeps its constructor arguments in .args */
 const EXC_HOST: HostClass = {
   init(inst, args) {
-    inst.attrs.set('args', { k: 'tuple', items: args })
+    // OSError(errno, strerror, filename, winerror, filename2) keeps the file names out of .args
+    const named = args.length >= 3 && args.length <= 5 && isOSError(inst.cls)
+    if (named) inst.attrs.set('filename', args[2])
+    if (named && args[4]) inst.attrs.set('filename2', args[4])
+    inst.attrs.set('args', { k: 'tuple', items: named ? args.slice(0, 2) : args })
   },
   repr(inst) {
     const a = inst.attrs.get('args')
@@ -1648,6 +1725,10 @@ const EXC_HOST: HostClass = {
     return `${inst.cls.name}(${items.map(repr).join(', ')})`
   },
   getAttr(inst, name) {
+    if ((name === 'errno' || name === 'strerror' || name === 'filename' || name === 'filename2') && isOSError(inst.cls)) {
+      const a = inst.attrs.get('args')
+      return (name.startsWith('filename') || a?.k !== 'tuple' || a.items.length !== 2 ? undefined : a.items[name === 'errno' ? 0 : 1]) ?? NONE
+    }
     // StopIteration.value and SystemExit.code are the first argument
     if (name !== 'value' && name !== 'code') return undefined
     if ((name === 'value') !== inst.cls.name.endsWith('StopIteration') && (name === 'code') !== inst.cls.name.endsWith('SystemExit')) return undefined
@@ -1686,6 +1767,9 @@ const pad = (s: string, width: number, fill: string, align: string): string => {
 /** library objects (tensors, Series …) and ranges as plain arrays / lists */
 const asArrayLike = (x: Value): Value => {
   if (x.k === 'obj' && x.o.toArray) return arr(x.o.toArray())
+  // np.array([Level.LOW]): a member of class Level(int, Enum) is that int
+  const same = x.k === 'inst' ? x.cls.meta?.scalar?.(x) : undefined
+  if (same && isNum(same)) return same
   if (x.k === 'range') {
     const n = rangeLen(x)
     checkSize([n])
@@ -1907,6 +1991,7 @@ class Interp implements Host {
   excClasses = new Map<string, ClassValue>()
   /** the exceptions being handled, innermost last: what a bare raise re-raises */
   handling: PyError[] = []
+  stdoutFile: Value | null = null
 
   constructor(src: string, opts: RunOptions = {}) {
     this.src = src
@@ -1989,7 +2074,8 @@ class Interp implements Host {
   }
 
   print(s: string) {
-    this.stdout.push(s)
+    if (!this.stdoutFile) this.stdout.push(s)
+    else if (this.stdoutFile.k !== 'none') this.call(this.getAttr(this.stdoutFile, 'write'), [str_(s)])
   }
 
   num(v: Value, what = 'a number'): number {
@@ -1999,6 +2085,10 @@ class Interp implements Host {
     if (v.k === 'obj' && v.o.toArray) {
       const a = v.o.toArray()
       if (a.size === 1) return a.values()[0]
+    }
+    if (v.k === 'inst') {
+      const f = this.classAttr(v.cls, '__float__') ?? this.classAttr(v.cls, '__index__')
+      if (f) return this.num(this.call(f, [v]), what)
     }
     throw this.err('TypeError', `expected ${what}, got '${typeName(v)}'`)
   }
@@ -2047,6 +2137,10 @@ class Interp implements Host {
         const a = v.attrs.get('args')
         const items = a?.k === 'tuple' ? a.items : []
         if (!items.length) return ''
+        if (items.length === 2 && isOSError(v.cls)) {
+          const [file, file2] = [v.attrs.get('filename'), v.attrs.get('filename2')]
+          return `[Errno ${this.str(items[0])}] ${this.str(items[1])}${file ? `: ${repr(file)}` : ''}${file2 ? ` -> ${repr(file2)}` : ''}`
+        }
         if (items.length > 1) return repr(a!)
         return this.isSubclass(v.cls, this.excClass('KeyError')) ? repr(items[0]) : this.str(items[0])
       }
@@ -2169,6 +2263,7 @@ class Interp implements Host {
 
   iterOf(v: Value): () => Value | undefined {
     if (v.k === 'iter') return v.next
+    if (v.k === 'obj' && v.o.nextItem) return () => (v as { o: PyObj }).o.nextItem!(this)
     if (v.k === 'inst') {
       const it = this.classAttr(v.cls, '__iter__')
       if (it) {
@@ -2208,13 +2303,13 @@ class Interp implements Host {
   makeGenerator(f: FuncValue, frame: Frame): Value {
     const g = this.genBlock(f.body!)
     let done = false
-    const resume = (send: Value): Value | undefined => {
+    const resume = (step: () => IteratorResult<Value, void>): Value | undefined => {
       if (done) return undefined
       const saved = this.frame
       this.frame = frame
       this.depth++
       try {
-        const r = g.next(send)
+        const r = step()
         if (r.done) done = true
         return r.done ? undefined : r.value
       } catch (e) {
@@ -2230,7 +2325,11 @@ class Interp implements Host {
       }
     }
     const self: Value & { k: 'iter' } = {
-      k: 'iter', name: 'generator', next: () => resume(NONE), send: resume,
+      k: 'iter', name: 'generator', next: () => resume(() => g.next(NONE)), send: (v) => resume(() => g.next(v)),
+      throw: (e) => {
+        if (done) throw e
+        return resume(() => g.throw(e))
+      },
       close: () => {
         if (done) return
         done = true
@@ -2261,7 +2360,16 @@ class Interp implements Host {
         if (st.from) {
           const src = this.eval(st.x!)
           const next = this.iterOf(src)
-          for (let v = next(); v !== undefined; v = next()) yield v
+          for (let v = next(); v !== undefined;) {
+            try {
+              yield v
+              v = next()
+            } catch (e) {
+              // gen.throw() goes on to the generator being delegated to
+              if (src.k !== 'iter' || !src.throw) throw e
+              v = src.throw(e)
+            }
+          }
           this.line = st.line
           // x = yield from g: x is what g returned
           for (const t of st.targets) this.assign(t, src.k === 'iter' ? src.result ?? NONE : NONE)
@@ -2440,6 +2548,8 @@ class Interp implements Host {
       if (op === '==' || op === '!=') return bool((op === '==') === (l.k === 'obj' && r.k === 'obj' && l.o === r.o))
       // 'text' % obj: the object was asked first, and declined
       if (l.k === 'str' && op === '%') return str_(this.percentFormat(l.v, r))
+      if (['<', '>', '<=', '>='].includes(op)) throw this.err('TypeError', `'${op}' not supported between instances of '${typeName(l)}' and '${typeName(r)}'`)
+      if (op === '+' && (l.k === 'list' || l.k === 'tuple' || l.k === 'str')) throw this.err('TypeError', `can only concatenate ${l.k} (not "${typeName(r)}") to ${l.k}`)
       throw this.err('TypeError', `unsupported operand type(s) for ${op}: '${typeName(l)}' and '${typeName(r)}'`)
     }
     if (l.k === 'inst' || r.k === 'inst') {
@@ -2459,6 +2569,7 @@ class Interp implements Host {
       // 'text' % obj: the object was asked first, and declined
       if (l.k === 'str' && op === '%') return str_(this.percentFormat(l.v, r))
       if (['<', '>', '<=', '>='].includes(op)) throw this.err('TypeError', `'${op}' not supported between instances of '${typeName(l)}' and '${typeName(r)}'`)
+      if (op === '+' && (l.k === 'list' || l.k === 'tuple' || l.k === 'str')) throw this.err('TypeError', `can only concatenate ${l.k} (not "${typeName(r)}") to ${l.k}`)
       throw this.err('TypeError', `unsupported operand type(s) for ${op}: '${typeName(l)}' and '${typeName(r)}'`)
     }
     if (l.k === 'dict' && r.k === 'dict' && l.flavor === 'Counter' && r.flavor === 'Counter' && ['+', '-', '&', '|'].includes(op)) {
@@ -2586,7 +2697,7 @@ class Interp implements Host {
       }
       if (type === 'c') return (v.k === 'str' ? v.v : String.fromCharCode(this.toInt(v))).padStart(Number(w))
       if (!'diuoxXeEfFgG'.includes(type)) throw this.err('ValueError', `unsupported format character '${type}'`)
-      if (!isNum(v) && !(v.k === 'array' && v.a.size === 1) && !(v.k === 'obj' && v.o.asNumber)) throw this.err('TypeError', `%${type} format: a real number is required, not ${typeName(v)}`)
+      if (!isNum(v) && !(v.k === 'array' && v.a.size === 1) && !(v.k === 'obj' && v.o.asNumber) && !(v.k === 'inst' && (this.classAttr(v.cls, '__float__') || this.classAttr(v.cls, '__index__')))) throw this.err('TypeError', `%${type} format: a real number is required, not ${typeName(v)}`)
       const x = this.num(v)
       const integer = 'diuoxX'.includes(type)
       const num: Value = integer ? int(Math.trunc(x)) : float(x)
@@ -2594,6 +2705,7 @@ class Interp implements Host {
       const spec = `${left ? '<' : ''}${sign}${flags.includes('0') && !left ? '0' : ''}${w}${prec !== undefined && !integer ? `.${prec}` : ''}${type === 'i' || type === 'u' ? 'd' : type}`
       return formatSpec(num, spec)
     })
+    if (fmt.replace(/%(?:\((\w+)\))?([-+ 0#]*)(\*|\d+)?(?:\.(\d+))?([a-zA-Z%])/g, '').includes('%')) throw this.err('ValueError', 'incomplete format')
     if (at < list.length && args.k === 'tuple') throw this.err('TypeError', 'not all arguments converted during string formatting')
     if (at === 0 && args.k !== 'tuple' && args.k !== 'dict' && !/%(?!%)/.test(fmt)) throw this.err('TypeError', 'not all arguments converted during string formatting')
     return out
@@ -2637,7 +2749,7 @@ class Interp implements Host {
     if (op === 'is' || op === 'is not') {
       const same =
         l.k === r.k &&
-        (l.k === 'array' ? l.a === (r as { a: NDArray }).a : l.k === 'obj' ? l.o === (r as { o: PyObj }).o : l.k === 'none' || l.k === 'ellipsis' || repr(l) === repr(r))
+        (l.k === 'array' ? l.a === (r as { a: NDArray }).a : l.k === 'obj' ? l.o === (r as { o: PyObj }).o : l.k === 'list' || l.k === 'dict' || l.k === 'set' || l.k === 'inst' || l.k === 'class' || l.k === 'func' ? l === r : l.k === 'none' || l.k === 'ellipsis' || repr(l) === repr(r))
       return bool(op === 'is' ? same : !same)
     }
     if (op === 'in' || op === 'not in') {
@@ -2645,6 +2757,7 @@ class Interp implements Host {
       if (r.k === 'list' || r.k === 'tuple') found = r.items.some((x) => x === l || this.truthy(this.binop('==', x, l)))
       else if (r.k === 'dict') found = r.d.has(l)
       else if (r.k === 'set') found = r.s.has(l)
+      else if (r.k === 'class' && r.meta?.contains) found = r.meta.contains(r, l, this)
       else if (r.k === 'inst') {
         const c = this.classAttr(r.cls, '__contains__')
         found = c ? this.truthy(this.call(c, [r, l])) : this.iterate(r).some((x) => this.equal(x, l))
@@ -2653,7 +2766,7 @@ class Interp implements Host {
         const x = isNum(l) ? numOf(l) : NaN
         found = Number.isInteger(x) && (r.step > 0 ? x >= r.start && x < r.stop : x <= r.start && x > r.stop) && (x - r.start) % r.step === 0
       } else if (r.k === 'obj' && r.o.contains) found = r.o.contains(l, this)
-      else if (r.k === 'str' && l.k === 'str') found = r.v.includes(l.v)
+      else if (r.k === 'str' && this.plainStr(l) !== null) found = r.v.includes(this.plainStr(l)!)
       else if (r.k === 'array') found = toArray(this.binop('==', r, l)).values().some((x) => x !== 0)
       else throw this.err('TypeError', `argument of type '${typeName(r)}' is not iterable`)
       return bool(op === 'in' ? found : !found)
@@ -2683,6 +2796,9 @@ class Interp implements Host {
         case 'obj':
           if (it.o.asIndex) return { kind: 'int', value: it.o.asIndex(this) }
           throw this.err('IndexError', 'only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices')
+        case 'inst':
+          if (this.classAttr(it.cls, '__index__')) return { kind: 'int', value: this.toInt(it) }
+          throw this.err('IndexError', 'only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices')
         default:
           throw this.err('IndexError', 'only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices')
       }
@@ -2692,6 +2808,7 @@ class Interp implements Host {
   sliceInt(x: Value): number {
     if (x.k === 'int' || x.k === 'bool') return numOf(x)
     if (x.k === 'obj' && x.o.asIndex) return x.o.asIndex(this)
+    if (x.k === 'inst' && this.classAttr(x.cls, '__index__')) return this.toInt(x)
     if (x.k === 'array' && x.a.ndim === 0 && !isFloatD(x.a.dtype)) return x.a.values()[0]
     throw this.err('TypeError', 'slice indices must be integers or None or have an __index__ method')
   }
@@ -2776,6 +2893,7 @@ class Interp implements Host {
       const f = this.classAttr(obj.cls, '__getitem__')
       if (f) return this.call(f, [obj, idx])
     }
+    if (obj.k === 'class' && obj.meta?.getItem) return obj.meta.getItem(obj, idx, this)
     if (obj.k === 'range') {
       const n = rangeLen(obj)
       const items = Array.from({ length: Math.min(n, this.maxSize) }, (_, i) => int(obj.start + i * obj.step))
@@ -2827,10 +2945,11 @@ class Interp implements Host {
       return
     }
     if (obj.k === 'list') {
-      if (idx.k !== 'int') throw this.err('TypeError', 'list indices must be integers or slices, not ' + typeName(idx))
+      const i = idx.k === 'inst' && this.classAttr(idx.cls, '__index__') ? this.toInt(idx) : idx.k === 'int' ? idx.v : null
+      if (i === null) throw this.err('TypeError', 'list indices must be integers or slices, not ' + typeName(idx))
       const n = obj.items.length
-      if (idx.v < -n || idx.v >= n) throw this.err('IndexError', 'list assignment index out of range')
-      obj.items[idx.v < 0 ? idx.v + n : idx.v] = val
+      if (i < -n || i >= n) throw this.err('IndexError', 'list assignment index out of range')
+      obj.items[i < 0 ? i + n : i] = val
       return
     }
     if (obj.k !== 'array') throw this.err('TypeError', `'${typeName(obj)}' object does not support item assignment`)
@@ -3063,6 +3182,8 @@ class Interp implements Host {
           const v = this.eval(p.x)
           const spec = p.specX ? this.str(this.eval(p.specX)) : p.spec
           const shown = p.conv === 'r' || p.conv === 'a' ? str_(repr(v)) : p.conv === 's' ? str_(this.str(v)) : v
+          const own = this.instFormat(shown, spec)
+          if (own !== undefined) return own
           if (spec) return formatSpec(shown, spec)
           if (shown !== v) return (shown as { v: string }).v
           // a library object or a NumPy scalar has a say in its own format, even with no spec
@@ -3186,6 +3307,12 @@ class Interp implements Host {
     }
   }
 
+  /** f'{x:spec}' for an instance of a class with __format__ */
+  instFormat(v: Value, spec: string): string | undefined {
+    const f = v.k === 'inst' ? this.classAttr(v.cls, '__format__') : undefined
+    return f ? this.str(this.call(f, [v, str_(spec)])) : undefined
+  }
+
   /** the elements of a display or call, spreading any *x */
   evalItems(nodes: Node[]): Value[] {
     const out: Value[] = []
@@ -3245,6 +3372,7 @@ class Interp implements Host {
       return Array.from({ length: n }, (_, i) => int(v.start + i * v.step))
     }
     if (v.k === 'obj' && v.o.iter) return v.o.iter(this)
+    if (v.k === 'class' && v.meta?.iter) return v.meta.iter(v, this)
     if (v.k === 'array') {
       if (v.a.ndim === 0) throw this.err('TypeError', 'iteration over a 0-d array')
       return Array.from({ length: v.a.shape[0] }, (_, i) => {
@@ -3292,7 +3420,7 @@ class Interp implements Host {
       case 'func': return this.callFunc(f, args, kw)
       case 'bound': return this.callFunc(f.f, [f.self, ...args], kw)
       case 'descr': if (f.kind === 'static') return this.call(f.f, args, kw); break
-      case 'class': return this.instantiate(f, args, kw)
+      case 'class': return f.meta?.call ? f.meta.call(f, args, kw, this) : this.instantiate(f, args, kw)
       case 'inst': {
         const c = this.classAttr(f.cls, '__call__')
         if (c) return this.call(c, [f, ...args], kw)
@@ -3397,7 +3525,10 @@ class Interp implements Host {
         return
       }
       case 'class':
-        obj.ns.set(name, v)
+        if (!obj.meta?.setAttr?.(obj, name, v, this)) obj.ns.set(name, v)
+        return
+      case 'module':
+        obj.attrs[name] = v
         return
       case 'obj':
         if (obj.o.setAttr?.(name, v, this)) return
@@ -3473,6 +3604,8 @@ class Interp implements Host {
 
   /** run a program: the value of a final expression statement is the cell's output */
   run(stmts: Stmt[]): Value | null {
+    const first = stmts[0]
+    if (first?.k === 'expr' && first.x.k === 'str') this.builtins.__doc__ = str_(first.x.v)
     let out: Value | null = null
     stmts.forEach((st, i) => {
       out = null
@@ -3654,7 +3787,7 @@ class Interp implements Host {
         const doc = st.body[0]?.k === 'expr' && st.body[0].x.k === 'str' ? st.body[0].x.v : undefined
         let f: Value = {
           k: 'func', name: st.name, params: st.params, defaults: st.params.map((p) => (p.def ? this.eval(p.def) : null)),
-          body: st.body, expr: null, closure: this.closureFrame(), owner: null, isGen: st.isGen, doc,
+          body: st.body, expr: null, closure: this.closureFrame(), owner: null, isGen: st.isGen, doc, notes: this.annotations(st.params, st.returns),
         }
         for (const d of decorators.reverse()) {
           this.line = st.line
@@ -3665,11 +3798,13 @@ class Interp implements Host {
       }
       case 'class': {
         const bases = st.bases.map((b) => this.eval(b))
+        const meta = bases.flatMap((b) => (b.k === 'class' && b.meta ? [b.meta] : []))[0]
         for (const b of bases) {
           if (b.k !== 'class' && b.k !== 'type') throw this.err('TypeError', `bases must be classes, not '${typeName(b)}'`)
-          if (b.k === 'type' && !b.host && b.name !== 'object') throw this.err('TypeError', `cannot subclass '${b.name}' in this sandbox`)
+          // a metaclass can mix a built-in type in: class Level(int, Enum)
+          if (b.k === 'type' && !b.host && b.name !== 'object' && !meta) throw this.err('TypeError', `cannot subclass '${b.name}' in this sandbox`)
         }
-        const cls: ClassValue = { k: 'class', name: st.name, bases, ns: new Map(), host: this.hostOf(bases) }
+        const cls: ClassValue = { k: 'class', name: st.name, bases, ns: meta?.prepare?.(st.name, bases, this) ?? new Map(), host: this.hostOf(bases), ...(meta ? { meta } : {}) }
         if (st.body[0]?.k === 'expr' && st.body[0].x.k === 'str') cls.ns.set('__doc__', str_(st.body[0].x.v))
         const saved = this.frame
         this.frame = { vars: cls.ns, parent: saved, isClass: true }
@@ -3682,6 +3817,7 @@ class Interp implements Host {
           if (v.k === 'func') v.owner = cls
           else if (v.k === 'descr' && v.f.k === 'func') v.f.owner = cls
         }
+        meta?.created?.(cls, this)
         let c: Value = cls
         for (const d of st.decorators.map((x) => this.eval(x)).reverse()) c = this.call(d, [c])
         this.bind(st.name, c)
@@ -3710,6 +3846,26 @@ class Interp implements Host {
         enter(0)
         return
       }
+    }
+  }
+
+  /** def f(x: int) -> str: a note the sandbox cannot evaluate (list[int]) keeps its source text */
+  annotations(params: Param[], returns: Node | null): Map<string, Value> | undefined {
+    const named: [string, Node][] = params.flatMap((p): [string, Node][] => (p.note ? [[p.name, p.note]] : []))
+    if (returns) named.push(['return', returns])
+    if (!named.length) return undefined
+    this.quiet++
+    try {
+      return new Map(named.map(([name, n]): [string, Value] => {
+        try {
+          return [name, this.eval(n)]
+        } catch (e) {
+          if (!(e instanceof PyError)) throw e
+          return [name, { k: 'type', name: this.text(n), call: () => NONE }]
+        }
+      }))
+    } finally {
+      this.quiet--
     }
   }
 
@@ -4108,7 +4264,7 @@ class Interp implements Host {
         const h = obj.cls.host?.getAttr?.(obj, name, this)
         if (h) return h
         if (name === '__class__') return obj.cls
-        if (name === '__dict__') return { k: 'dict', d: PyDict.from([...obj.attrs].map(([n, v]) => [str_(n), v])) }
+        if (name === '__dict__') return { k: 'dict', d: new AttrDict(obj.attrs) }
         if (name === '__doc__') return NONE
         if (name === '__cause__' || name === '__traceback__') return NONE
         if (name === 'with_traceback' && this.isException(obj)) return fn(() => obj)
@@ -4118,7 +4274,7 @@ class Interp implements Host {
       }
       case 'class': {
         if (name === '__name__' || name === '__qualname__') return str_(obj.name)
-        if (name === '__module__') return str_(obj.builtin ? 'builtins' : '__main__')
+        if (name === '__module__') return str_(obj.module ?? (obj.builtin ? 'builtins' : '__main__'))
         if (name === '__bases__') return tuple(obj.bases)
         if (name === '__doc__') return this.classAttr(obj, '__doc__') ?? NONE
         if (name === '__dict__') return { k: 'dict', d: PyDict.from([...obj.ns].map(([n, v]) => [str_(n), v])) }
@@ -4138,6 +4294,8 @@ class Interp implements Host {
           return c
         }
         if (c) return c
+        const m = obj.meta?.getAttr?.(obj, name, this)
+        if (m) return m
         throw this.err('AttributeError', `type object '${obj.name}' has no attribute '${name}'`)
       }
       case 'descr':
@@ -4158,6 +4316,20 @@ class Interp implements Host {
           return r as Value
         })
         if (name === 'close' && obj.close) return fn(() => { obj.close!(); return NONE })
+        if (name === 'throw' && obj.throw) return fn((args) => {
+          const x = args[1] && args[1].k !== 'none' ? args[1] : args[0]
+          const inst = x.k === 'class' ? this.instantiate(x, args[1]?.k === 'none' || !args[1] ? [] : [args[1]], {}) : x
+          if (!this.isException(inst)) throw this.err('TypeError', `exceptions must be classes or instances deriving from BaseException, not ${typeName(inst)}`)
+          let thrown: unknown
+          try {
+            this.throwExc(inst)
+          } catch (e) {
+            thrown = e
+          }
+          const r = obj.throw!(thrown)
+          if (r === undefined) this.raise(this.excClass('StopIteration'), obj.result ? [obj.result] : [])
+          return r as Value
+        })
         break
       case 'super': {
         const c = this.classAttr(obj.self.cls, name, obj.after)
@@ -4175,6 +4347,7 @@ class Interp implements Host {
         if (name === '__name__' || name === '__qualname__') return str_(obj.name)
         if (name === '__doc__') return obj.doc === undefined ? NONE : str_(obj.doc)
         if (name === '__module__') return str_('__main__')
+        if (name === '__annotations__') return { k: 'dict', d: PyDict.from([...(obj.notes ?? [])].map(([n, v]) => [str_(n), v])) }
         if (name === '__defaults__') {
           const ds = obj.defaults.filter((d): d is Value => !!d)
           return ds.length ? tuple(ds) : NONE
@@ -4187,6 +4360,10 @@ class Interp implements Host {
         if (name === '__name__' || name === '__qualname__') return str_(obj.name)
         break
       }
+      case 'bound':
+        if (name === '__self__') return obj.self
+        if (name === '__func__') return obj.f
+        return this.getAttr(obj.f, name)
       case 'type': {
         const own = obj.attrs?.get(name)
         if (own) return own
@@ -4503,11 +4680,18 @@ class Interp implements Host {
     return null
   }
 
+  /** a str, or a member of class Mode(str, Enum) */
+  plainStr(v: Value | undefined): string | null {
+    const s = v?.k === 'inst' ? v.cls.meta?.scalar?.(v) : v
+    return s?.k === 'str' ? s.v : null
+  }
+
   strMethod(sv: string, name: string): Fn | null {
     const S = (x: string): Value => str_(x)
     const arg = (v: Value | undefined, what: string) => {
-      if (!v || v.k !== 'str') throw this.err('TypeError', `${what} must be str, not ${v ? typeName(v) : 'nothing'}`)
-      return v.v
+      const s = this.plainStr(v)
+      if (s === null) throw this.err('TypeError', `${what} must be str, not ${v ? typeName(v) : 'nothing'}`)
+      return s
     }
     switch (name) {
       case 'upper': return () => S(sv.toUpperCase())
@@ -4544,8 +4728,9 @@ class Interp implements Host {
         return tuple([S(sv.slice(0, at)), S(sep), S(sv.slice(at + sep.length))])
       }
       case 'join': return (a) => S(this.iterate(a[0]).map((x, i) => {
-        if (x.k !== 'str') throw this.err('TypeError', `sequence item ${i}: expected str instance, ${typeName(x)} found`)
-        return x.v
+        const s = this.plainStr(x)
+        if (s === null) throw this.err('TypeError', `sequence item ${i}: expected str instance, ${typeName(x)} found`)
+        return s
       }).join(sv))
       case 'replace': return (a) => {
         const from = arg(a[0], 'replace() argument 1')
@@ -4624,6 +4809,8 @@ class Interp implements Host {
             const own = v.o.format?.(spec ?? '')
             if (own !== undefined) return own
           }
+          const own = conv ? undefined : this.instFormat(v, spec ?? '')
+          if (own !== undefined) return own
           return spec ? formatSpec(v, spec) : conv === 'r' ? repr(v) : this.str(v)
         }))
       }
@@ -5214,10 +5401,11 @@ class Interp implements Host {
     }
     excs.IOError = excs.OSError
     excs.EnvironmentError = excs.OSError
-    const lazy = (v: Value) => v.k === 'iter' || v.k === 'inst'
+    const lazy = (v: Value) => v.k === 'iter' || v.k === 'inst' || (v.k === 'obj' && !!v.o.nextItem)
     const iterFrom = (name: string, next: () => Value | undefined): Value => ({ k: 'iter', name, next })
     const kindOf = (v: Value): Value => {
       if (v.k === 'inst') return v.cls
+      if (v.k === 'obj' && v.o.typeValue) return v.o.typeValue()
       const name = typeName(v)
       const known = this.builtins?.[name]
       return known && (known.k === 'type' || known.k === 'class') ? known : { k: 'type', name, call: () => NONE }
@@ -5255,8 +5443,12 @@ class Interp implements Host {
         }
         if (x.k === 'array' && x.a.size !== 1) throw this.err('TypeError', 'only length-1 arrays can be converted to Python scalars')
         if (x.k === 'obj') return fromScalar(castValue(this.num(x, 'a number'), d), d)
+        if (x.k === 'inst') {
+          const f = this.classAttr(x.cls, d === 'float64' ? '__float__' : '__int__') ?? this.classAttr(x.cls, '__index__')
+          if (f) return fromScalar(castValue(numOf(this.call(f, [x])), d), d)
+        }
         const v = x.k === 'array' ? x.a.values()[0] : numOf(x)
-        if (Number.isNaN(v) && !isNum(x) && x.k !== 'array') throw this.err('TypeError', `${name}() argument must be a string or a real number, not '${typeName(x)}'`)
+        if (Number.isNaN(v) && !isNum(x) && x.k !== 'array') throw this.err('TypeError', `${name}() argument must be a string${name === 'int' ? ', a bytes-like object' : ''} or a real number, not '${typeName(x)}'`)
         return fromScalar(castValue(v, d), d)
       },
     })
@@ -5264,9 +5456,16 @@ class Interp implements Host {
       print: fn('print', (args, kw) => {
         const sep = kw.sep && kw.sep.k === 'str' ? kw.sep.v : ' '
         const end = kw.end && kw.end.k === 'str' ? kw.end.v : '\n'
-        const text = args.map((a) => this.str(a)).join(sep) + end
-        if (kw.file && kw.file.k !== 'none') this.call(this.getAttr(kw.file, 'write'), [str_(text)])
-        else this.stdout.push(text)
+        const shown = args.map((a) => this.str(a))
+        if (kw.file && kw.file.k !== 'none' || this.stdoutFile) {
+          // a file sees each piece as its own write, as Python does it
+          const write = (s: string) => (kw.file && kw.file.k !== 'none' ? this.call(this.getAttr(kw.file, 'write'), [str_(s)]) : this.print(s))
+          shown.forEach((s, i) => {
+            if (i) write(sep)
+            write(s)
+          })
+          write(end)
+        } else this.print(shown.join(sep) + end)
         return NONE
       }),
       len: fn('len', (args) => {
@@ -5285,6 +5484,7 @@ class Interp implements Host {
           const f = this.classAttr(v.cls, '__len__')
           if (f) return this.call(f, [v])
         }
+        if (v.k === 'class' && v.meta?.len) return int(v.meta.len(v, this))
         throw this.err('TypeError', `object of type '${typeName(v)}' has no len()`)
       }),
       range: { k: 'type', name: 'range', call: (args) => {
@@ -5307,6 +5507,7 @@ class Interp implements Host {
         const x = args[0]
         let r: Value | undefined
         if (x.k === 'iter') r = x.next()
+        else if (x.k === 'obj' && x.o.nextItem) r = x.o.nextItem(this)
         else if (x.k === 'inst' && this.classAttr(x.cls, '__next__')) {
           try {
             r = this.call(this.classAttr(x.cls, '__next__')!, [x])
@@ -5378,11 +5579,11 @@ class Interp implements Host {
           const f = this.classAttr(x.cls, '__hash__')
           if (f) return this.call(f, [x])
         }
-        if (isNum(x)) {
-          const n = numOf(x)
-          if (Number.isInteger(n)) return int(n === -1 ? -2 : n)
-        }
-        return int([...PyDict.hash(x)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7))
+        const key = PyDict.hash(x)
+        // a library number that equals an integer hashes like it
+        const n = isNum(x) ? numOf(x) : x.k === 'obj' && key.startsWith('n') ? Number(key.slice(1)) : NaN
+        if (Number.isInteger(n)) return int(n === -1 ? -2 : n)
+        return int([...key].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7))
       }),
       hex: fn('hex', (args) => { const n = this.toInt(args[0]); return str_(`${n < 0 ? '-' : ''}0x${Math.abs(n).toString(16)}`) }),
       bin: fn('bin', (args) => { const n = this.toInt(args[0]); return str_(`${n < 0 ? '-' : ''}0b${Math.abs(n).toString(2)}`) }),
@@ -5393,6 +5594,8 @@ class Interp implements Host {
       property: ty('property', (args, kw) => ({ k: 'descr', kind: 'prop', f: args[0] ?? kw.fget, setter: args[1] ?? kw.fset })),
       NotImplemented: NOT_IMPLEMENTED,
       __name__: str_('__main__'),
+      __file__: str_('/sandbox/main.py'),
+      __doc__: NONE,
       input: fn('input', () => { throw this.err('EOFError', 'this sandbox has no keyboard input: set the value in the code instead') }),
       open: fn('open', (args, kw) => this.call((this.module('_sandbox_files') as { attrs: Record<string, Value> }).attrs.open, args, kw)),
       help: fn('help', (args) => {
@@ -5419,12 +5622,17 @@ class Interp implements Host {
       type: ty('type', (args) => kindOf(args[0])),
       str: { k: 'type', name: 'str', call: (args) => str_(args.length ? this.str(args[0]) : '') },
       repr: fn('repr', (args) => str_(repr(args[0]))),
-      format: fn('format', (args) => str_(args[1]?.k === 'str' && args[1].v ? formatSpec(args[0], args[1].v) : this.str(args[0]))),
+      format: fn('format', (args) => {
+        const spec = args[1]?.k === 'str' ? args[1].v : ''
+        return str_(this.instFormat(args[0], spec) ?? (spec ? formatSpec(args[0], spec) : this.str(args[0])))
+      }),
       chr: fn('chr', (args) => str_(String.fromCharCode(this.toInt(args[0])))),
       ord: fn('ord', (args) => int((args[0] as { v: string }).v.charCodeAt(0))),
       dict: { k: 'type', name: 'dict', call: (args, kw) => {
         const d = new PyDict()
+        const keys = args[0]?.k === 'obj' || args[0]?.k === 'inst' ? this.getAttrOr(args[0], 'keys') : undefined
         if (args[0]?.k === 'dict') for (const [k, v] of args[0].d.items()) d.set(k, v)
+        else if (keys) for (const k of this.iterate(this.call(keys, []))) d.set(k, this.call(this.getAttr(args[0], '__getitem__'), [k]))
         else if (args[0]) for (const p of this.iterate(args[0])) {
           const kv = this.iterate(p)
           if (kv.length !== 2) throw this.err('ValueError', 'dictionary update sequence element has wrong length')
@@ -5517,6 +5725,8 @@ class Interp implements Host {
           const r = (x.k === 'obj' ? this.getAttrOr(x, '__round__') : undefined) ?? this.getAttr(x, 'round')
           return this.call(r, nd === null ? [] : [int(nd)])
         }
+        const own = x.k === 'inst' ? this.classAttr(x.cls, '__round__') : undefined
+        if (own) return this.call(own, nd === null ? [x] : [x, int(nd)])
         const v = this.num(x)
         if (nd === null) return int(roundHalfEven(v))
         if (x.k === 'float') return float(roundExact(v, nd))
@@ -5640,7 +5850,11 @@ class Interp implements Host {
       const name = t.name
       if (v.k === 'array' && (name === 'numpy.ndarray' || name === 'numpy.matrix')) return name === 'numpy.ndarray' || !!v.a.matrix
       if (v.k === 'obj') return v.o.cls === name || !!v.o.isa?.(name)
-      if (v.k === 'inst') return v.cls.host !== null && t.host === v.cls.host
+      if (v.k === 'inst') {
+        // class Level(int, Enum): a built-in type among its bases
+        const among = (c: ClassValue): boolean => c.bases.some((b) => b === t || (b.k === 'class' && among(b)))
+        return among(v.cls) || (v.cls.host !== null && t.host === v.cls.host)
+      }
       const map: Record<string, Value['k'][]> = { int: ['int', 'bool'], float: ['float'], bool: ['bool'], str: ['str'], list: ['list'], tuple: ['tuple'], dict: ['dict'], set: ['set'], frozenset: ['set'], range: ['range'], 'numpy.ndarray': ['array'] }
       if (v.k === 'set') return (name === 'frozenset') === !!v.frozen && (name === 'set' || name === 'frozenset')
       // NoneType, type, Counter, a namedtuple …: whatever the value says it is
@@ -5833,6 +6047,8 @@ export const runPython = (src: string, opts: RunOptions = {}): RunResult => {
     return f ? str(it.call(f, [v])) : undefined
   }
   instHash = (v) => {
+    const same = v.cls.meta?.scalar?.(v)
+    if (same) return PyDict.hash(same)
     const f = it.classAttr(v.cls, '__hash__')
     if (f) return `h${it.num(it.call(f, [v]))}`
     // defining __eq__ without __hash__ makes a class unhashable
@@ -5851,8 +6067,11 @@ export const runPython = (src: string, opts: RunOptions = {}): RunResult => {
       outDisplay = v.k === 'obj' ? v.o.display?.() ?? null : null
     }
   } catch (e) {
-    if (e instanceof PyError && e.pyType === 'SystemExit') error = null
-    else if (e instanceof PyError) error = { type: e.pyType, message: e.message, line: e.line ?? it.line }
+    // sys.exit() is quiet; argparse gives up with a message for a terminal, and a page has no other place to show it
+    if (e instanceof PyError && e.pyType === 'SystemExit') {
+      const said = (e.exc as InstValue | undefined)?.state.said
+      error = typeof said === 'string' ? { type: 'SystemExit', message: said, line: e.line ?? it.line } : null
+    } else if (e instanceof PyError) error = { type: e.pyType, message: e.message, line: e.line ?? it.line }
     else if (e instanceof BreakSig || e instanceof ContinueSig) error = { type: 'SyntaxError', message: `'${e instanceof BreakSig ? 'break' : 'continue'}' outside loop`, line: it.line }
     else if (e instanceof RangeError) error = { type: 'RecursionError', message: 'expression too deeply nested', line: it.line }
     else error = { type: 'InternalError', message: e instanceof Error ? e.message : String(e), line: it.line }
