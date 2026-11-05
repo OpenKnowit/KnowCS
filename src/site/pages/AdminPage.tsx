@@ -199,7 +199,7 @@ export default function AdminPage() {
     })
 
   return (
-    <main className={state === 'in' ? 'px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8' : 'flex min-h-[calc(100dvh-72px)] flex-col justify-center px-4 pb-[72px]'}>
+    <main className={state === 'in' ? 'px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8' : 'flex min-h-[calc(100dvh-154px)] flex-col justify-center px-4 pb-[74px] sm:min-h-[calc(100dvh-106px)] sm:pb-[26px]'}>
       {/* signed out: title and sign-in in the middle of the screen; signed in: title left, actions right */}
       <div className={state === 'in' ? 'flex flex-wrap items-center justify-between gap-3' : 'flex justify-center'}>
         <h1 className="text-[clamp(22px,2.4vw,28px)] font-extrabold tracking-tight text-slate-900">{t('site.admin.title')}</h1>
