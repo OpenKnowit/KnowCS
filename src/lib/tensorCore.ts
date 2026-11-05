@@ -11,20 +11,38 @@ import { NDArray, PyError, broadcastShapes, cStrides, checkSize, getIndex, prod,
 import type { DType, IndexItem } from './ndarray'
 import type { SandboxRandom } from './ndops'
 
-export type TDType = 'float32' | 'float64' | 'int64' | 'int32' | 'uint8' | 'bool'
+export type TDType = 'float16' | 'float32' | 'float64' | 'int64' | 'int32' | 'int16' | 'int8' | 'uint8' | 'bool'
 
-export const isFloatT = (d: TDType) => d === 'float32' || d === 'float64'
+export const isFloatT = (d: TDType) => d === 'float32' || d === 'float64' || d === 'float16'
 // .numpy() hands out this array, so it carries the type NumPy would report
-const storageOf = (d: TDType): DType => (d === 'float32' || d === 'float64' || d === 'bool' || d === 'uint8' ? d : 'int64')
+const storageOf = (d: TDType): DType => (d === 'float32' || d === 'float64' || d === 'bool' || d === 'uint8' ? d : d === 'float16' ? 'float32' : 'int64')
 const err = (type: string, msg: string) => new PyError(type, msg)
+
+/** torch.set_default_dtype: what a Python float and an integer's true division become (reset for each run) */
+export const DEFAULTS = { float: 'float32' as TDType }
+
+/** round to IEEE half precision */
+const f16round = (v: number): number => {
+  if (!Number.isFinite(v) || v === 0) return v
+  const a = Math.abs(v)
+  if (a >= 65520) return Math.sign(v) * Infinity
+  const ulp = 2 ** Math.max(Math.floor(Math.log2(a)) - 10, -24)
+  const q = a / ulp
+  const r = Math.floor(q)
+  const up = q - r > 0.5 || (q - r === 0.5 && r % 2 === 1)
+  return Math.sign(v) * (up ? r + 1 : r) * ulp
+}
 
 /** round to the dtype: float32 storage keeps float32 precision, as torch.tensor(0.1).item() shows */
 export const castT = (v: number, d: TDType): number => {
   switch (d) {
     case 'float32': return Math.fround(v)
     case 'float64': return v
+    case 'float16': return f16round(v)
     case 'bool': return v ? 1 : 0
     case 'uint8': return ((Math.trunc(v) % 256) + 256) % 256
+    case 'int8': return ((Math.trunc(v) + 128) % 256 + 256) % 256 - 128
+    case 'int16': return ((Math.trunc(v) + 32768) % 65536 + 65536) % 65536 - 32768
     case 'int32': return Math.trunc(v) | 0
     default: return Number.isFinite(v) ? Math.trunc(v) : 0
   }
@@ -37,6 +55,10 @@ export interface GradNode {
   /** output gradient (C-order, output shape) → one gradient per input (input shape) */
   backward: (g: number[]) => (number[] | null)[]
   freed: boolean
+  /** each input's version when this node was recorded: an in-place op later on must not change what this node meant */
+  versions?: number[]
+  /** the same step on tensors, itself recorded: what create_graph=True runs. Absent where the sandbox has no such rule */
+  dual?: (g: TT) => (TT | null)[]
 }
 
 let nextId = 1
@@ -50,6 +72,14 @@ export class TT {
   retain = false
   /** nn.Parameter */
   isParam = false
+  /** bumped by every in-place write; past[v] stands in for version v in the graphs recorded before that write */
+  version = 0
+  past: TT[] | null = null
+  /** register_hook: called with this tensor's gradient during backward; a returned value replaces it */
+  hooks: ((g: TT) => TT | null)[] | null = null
+  /** the tensor whose memory this one views, and that tensor's version when the view was last in step with it */
+  base: TT | null = null
+  baseVersion = 0
   readonly id = nextId++
   constructor(a: NDArray, dtype: TDType) {
     this.a = a
@@ -75,28 +105,94 @@ export class TT {
 export class Engine {
   grad = true
   rng: SandboxRandom
-  constructor(rng: SandboxRandom) { this.rng = rng }
+  constructor(rng: SandboxRandom) {
+    this.rng = rng
+    // one engine per run: what a previous run set does not carry over, for torch or for keras
+    DEFAULTS.float = 'float32'
+  }
 }
 
 const needsGrad = (E: Engine, ...xs: (TT | null)[]) => E.grad && xs.some((x) => x?.requiresGrad)
 
+/** which version of this input the node meant (a node recorded before an in-place write means the old value) */
+export const inputOf = (n: GradNode, i: number): TT | null => {
+  const x = n.inputs[i]
+  if (!x) return null
+  const v = n.versions?.[i] ?? x.version
+  return v === x.version ? x : x.past?.[v] ?? x
+}
+
+/** the flat positions of a view's elements inside its base */
+const positionsIn = (base: TT, view: TT): number[] => {
+  const flatOf = new Map(base.a.addresses().map((x, i) => [x, i]))
+  return view.a.addresses().map((x) => flatOf.get(x)!)
+}
+
+const viewNode = (E: Engine, x: TT, base: TT): void => {
+  const pos = positionsIn(base, x)
+  x.fn = { name: 'AsStridedBackward0', inputs: [base], versions: [base.version], freed: false, backward: (g) => {
+    const ga = new Array<number>(base.size).fill(0)
+    pos.forEach((p, i) => (ga[p] += g[i]))
+    return [ga]
+  } }
+  x.requiresGrad = true
+  void E
+}
+
+/** a view whose base was written in place since: its history now comes from the base, as PyTorch regenerates grad_fn */
+export const refreshView = (E: Engine, x: TT): void => {
+  const b = x.base
+  if (!b || x.baseVersion === b.version) return
+  x.baseVersion = b.version
+  if (E.grad && b.requiresGrad) viewNode(E, x, b)
+}
+
 /** attach a grad_fn when any input requires grad */
-const record = (E: Engine, out: TT, name: string, inputs: (TT | null)[], backward: GradNode['backward']): TT => {
+export const record = (E: Engine, out: TT, name: string, inputs: (TT | null)[], backward: GradNode['backward'], dual?: GradNode['dual']): TT => {
+  for (const x of inputs) if (x?.base) refreshView(E, x)
   if (needsGrad(E, ...inputs)) {
     out.requiresGrad = true
-    out.fn = { name, inputs, backward, freed: false }
+    out.fn = { name, inputs, backward, freed: false, versions: inputs.map((x) => x?.version ?? 0), dual }
   }
+  return out
+}
+
+export const renamed = (t: TT, name: string): TT => {
+  if (t.fn) t.fn.name = name
+  return t
+}
+
+/** undo broadcasting on a gradient: summed over the axes that were expanded */
+const sumTo = (E: Engine, g: TT, shape: number[]): TT => {
+  if (g.shape.join() === shape.join()) return g
+  const lead = g.ndim - shape.length
+  const axes = g.shape.map((_, k) => k).filter((k) => k < lead || (shape[k - lead] === 1 && g.shape[k] !== 1))
+  return reshapeT(E, axes.length ? reduceSum(E, g, axes, true, false) : g, shape, false)
+}
+
+/** the transpose of a copy: each output cell's gradient goes back to the cell it came from */
+const accumulateBack = (E: Engine, g: TT, src: ArrayLike<number>, shape: number[]): TT => {
+  const gv = g.values()
+  const out = new Array<number>(prod(shape)).fill(0)
+  for (let i = 0; i < src.length; i++) if (src[i] >= 0) out[src[i]] += gv[i]
+  return record(E, TT.of(out, shape, g.dtype), 'IndexAddBackward0', [g], (gg) => [Array.from({ length: src.length }, (_, i) => (src[i] >= 0 ? gg[src[i]] : 0))], (gg) => [takeT(E, gg, src, g.shape, 'IndexBackward0')])
+}
+
+const isView = (out: TT, a: TT): TT => {
+  out.base = a.base ?? a
+  out.baseVersion = out.base.version
   return out
 }
 
 // ---------------------------------------------------------------- dtype promotion
 
-const RANK: Record<TDType, number> = { bool: 0, uint8: 1, int32: 2, int64: 3, float32: 4, float64: 5 }
+const RANK: Record<TDType, number> = { bool: 0, uint8: 1, int8: 1, int16: 2, int32: 3, int64: 4, float16: 5, float32: 6, float64: 7 }
 
 /** result dtype of a ⊕ b; weak = a Python scalar (it never widens a tensor of its own kind) */
 export const promote = (a: TDType, b: TDType, aWeak = false, bWeak = false): TDType => {
-  if (aWeak && !bWeak) return isFloatT(a) && !isFloatT(b) ? 'float32' : b === 'bool' && a !== 'bool' ? (isFloatT(a) ? 'float32' : 'int64') : b
+  if (aWeak && !bWeak) return isFloatT(a) && !isFloatT(b) ? DEFAULTS.float : b === 'bool' && a !== 'bool' ? (isFloatT(a) ? DEFAULTS.float : 'int64') : b
   if (bWeak && !aWeak) return promote(b, a, true, false)
+  if ((a === 'uint8' && b === 'int8') || (a === 'int8' && b === 'uint8')) return 'int16'
   return RANK[a] >= RANK[b] ? a : b
 }
 
@@ -169,7 +265,7 @@ const applyBin = (op: BinOpT, x: number, y: number): number => {
 export function binary(E: Engine, op: BinOpT, a: TT, b: TT, aWeak = false, bWeak = false): TT {
   const shape = shapeOfBcast(a.shape, b.shape)
   let dtype = promote(a.dtype, b.dtype, aWeak, bWeak)
-  if (op === '/' && !isFloatT(dtype)) dtype = 'float32'
+  if (op === '/' && !isFloatT(dtype)) dtype = DEFAULTS.float
   if ((op === '//' || op === '%') && (a.dtype === 'bool' || b.dtype === 'bool')) throw err('RuntimeError', 'not supported for bool tensors')
   const ia = bcastIndex(a.shape, shape)
   const ib = bcastIndex(b.shape, shape)
@@ -202,6 +298,24 @@ export function binary(E: Engine, op: BinOpT, a: TT, b: TT, aWeak = false, bWeak
       }
     }
     return [a.requiresGrad ? unbroadcast(ga, ia, a.size) : null, b.requiresGrad ? unbroadcast(gb, ib, b.size) : null]
+  }, (g) => {
+    const back = (x: TT, v: () => TT) => (x.requiresGrad ? sumTo(E, v(), x.shape) : null)
+    const mul = (p: TT, q: TT) => binary(E, '*', p, q)
+    switch (op) {
+      case '+': return [back(a, () => g), back(b, () => g)]
+      case '-': return [back(a, () => g), back(b, () => unary(E, 'neg', g))]
+      case '*': return [back(a, () => mul(g, b)), back(b, () => mul(g, a))]
+      case '/': return [back(a, () => binary(E, '/', g, b)), back(b, () => unary(E, 'neg', binary(E, '/', mul(g, a), mul(b, b))))]
+      case '**': return [
+        back(a, () => mul(g, mul(b, binary(E, '**', a, binary(E, '-', b, TT.scalar(1, b.dtype), false, true), false, bWeak)))),
+        back(b, () => mul(g, mul(res, TT.of(av.map((x) => (x > 0 ? Math.log(x) : 0)), a.shape, dtype)))),
+      ]
+      case 'maximum': case 'minimum': {
+        const firstWins = TT.of(Array.from({ length: n }, (_, i) => ((op === 'maximum' ? av[ia[i]] >= bv[ib[i]] : av[ia[i]] <= bv[ib[i]]) ? 1 : 0)), shape, dtype)
+        return [back(a, () => mul(g, firstWins)), back(b, () => mul(g, binary(E, '-', TT.scalar(1, dtype), firstWins, true, false)))]
+      }
+      default: return [null, null]
+    }
   })
 }
 
@@ -250,7 +364,7 @@ export function unary(E: Engine, op: UnOpT, a: TT): TT {
     }
   }
   const keepsInt = op === 'neg' || op === 'abs' || op === 'relu' || op === 'square'
-  const dtype = keepsInt || isFloatT(a.dtype) ? (a.dtype === 'bool' ? 'int64' : a.dtype) : 'float32'
+  const dtype = keepsInt || isFloatT(a.dtype) ? (a.dtype === 'bool' ? 'int64' : a.dtype) : DEFAULTS.float
   const out = TT.of(av.map(f), a.shape, dtype)
   const ov = out.values()
   return record(E, out, UN_NAME[op], [a], (g) => [g.map((gi, i) => {
@@ -268,7 +382,23 @@ export function unary(E: Engine, op: UnOpT, a: TT): TT {
       case 'sin': return gi * Math.cos(x)
       case 'cos': return -gi * Math.sin(x)
     }
-  })])
+  })], (g) => {
+    const mul = (p: TT, q: TT) => binary(E, '*', p, q)
+    const num = (v: number) => TT.scalar(v, dtype)
+    switch (op) {
+      case 'neg': return [unary(E, 'neg', g)]
+      case 'exp': return [mul(g, out)]
+      case 'log': return [binary(E, '/', g, a)]
+      case 'sqrt': return [binary(E, '/', g, mul(num(2), out))]
+      case 'abs': return [mul(g, TT.of(av.map(Math.sign), a.shape, dtype))]
+      case 'relu': return [mul(g, TT.of(av.map((x) => (x > 0 ? 1 : 0)), a.shape, dtype))]
+      case 'sigmoid': return [mul(g, mul(out, binary(E, '-', num(1), out)))]
+      case 'tanh': return [mul(g, binary(E, '-', num(1), mul(out, out)))]
+      case 'square': return [mul(g, mul(num(2), a))]
+      case 'sin': return [mul(g, unary(E, 'cos', a))]
+      case 'cos': return [unary(E, 'neg', mul(g, unary(E, 'sin', a)))]
+    }
+  })
 }
 
 export function clamp(E: Engine, a: TT, lo: number | null, hi: number | null): TT {
@@ -282,6 +412,21 @@ export function clamp(E: Engine, a: TT, lo: number | null, hi: number | null): T
 const dims2 = (s: number[]) => `${s.join('x')}`
 
 export function matmul(E: Engine, a: TT, b: TT, name = 'MmBackward0'): TT {
+  const res = matmulKernel(E, a, b, name)
+  if (res.fn) res.fn.dual = (g) => {
+    const a2 = a.ndim === 1 ? reshapeT(E, a, [1, a.size], false) : a
+    const b2 = b.ndim === 1 ? reshapeT(E, b, [b.size, 1], false) : b
+    const gShape = [...shapeOfBcast(a2.shape.slice(0, -2), b2.shape.slice(0, -2)), a2.shape[a2.ndim - 2], b2.shape[b2.ndim - 1]]
+    const g2 = reshapeT(E, g, gShape, false)
+    return [
+      a.requiresGrad ? reshapeT(E, sumTo(E, matmul(E, g2, transposeT(E, b2, -2, -1)), a2.shape), a.shape, false) : null,
+      b.requiresGrad ? reshapeT(E, sumTo(E, matmul(E, transposeT(E, a2, -2, -1), g2), b2.shape), b.shape, false) : null,
+    ]
+  }
+  return res
+}
+
+function matmulKernel(E: Engine, a: TT, b: TT, name: string): TT {
   if (a.ndim === 0 || b.ndim === 0) throw err('RuntimeError', `both arguments to matmul need to be at least 1D, but they are ${a.ndim}D and ${b.ndim}D`)
   const dtype = promote(a.dtype, b.dtype)
   const av = a.values()
@@ -297,6 +442,7 @@ export function matmul(E: Engine, a: TT, b: TT, name = 'MmBackward0'): TT {
   const [n, k] = as.slice(-2)
   const [k2, m] = bs.slice(-2)
   if (k !== k2) {
+    if (a.ndim === 2 && b.ndim === 1) throw err('RuntimeError', `size mismatch, got input (${a.shape[0]}), mat (${a.shape[0]}x${a.shape[1]}), vec (${b.shape[0]})`)
     throw err('RuntimeError', a.ndim <= 2 && b.ndim <= 2 ? `mat1 and mat2 shapes cannot be multiplied (${dims2(as)} and ${dims2(bs)})` : `Expected size for first two dimensions of batch2 tensor to be: [${bs.slice(0, -2).join(', ')}, ${k}] but got: [${bs.slice(0, -2).join(', ')}, ${k2}].`)
   }
   const batch = shapeOfBcast(as.slice(0, -2), bs.slice(0, -2))
@@ -372,7 +518,7 @@ const reduceMap = (shape: number[], dims: number[]): { outShapeKeep: number[]; m
 
 export function reduceSum(E: Engine, a: TT, dims: number[] | null, keepdim: boolean, mean: boolean): TT {
   const ds = dims === null ? a.shape.map((_, i) => i) : [...new Set(dims.map((d) => normDim(d, a.ndim)))]
-  if (mean && !isFloatT(a.dtype)) throw err('RuntimeError', `mean(): could not infer output dtype. Input dtype must be either a floating point or complex dtype. Got: ${a.dtype === 'int64' ? 'Long' : a.dtype}`)
+  if (mean && !isFloatT(a.dtype)) throw err('RuntimeError', `mean(): could not infer output dtype. Input dtype must be either a floating point or complex dtype. Got: ${typeLabel(a.dtype)}`)
   const { outShapeKeep, map, outSize } = reduceMap(a.shape, ds)
   const av = a.values()
   const out = new Array<number>(outSize).fill(0)
@@ -382,7 +528,11 @@ export function reduceSum(E: Engine, a: TT, dims: number[] | null, keepdim: bool
   const shape = keepdim ? outShapeKeep : a.shape.filter((_, d) => !ds.includes(d))
   const dtype = mean ? a.dtype : a.dtype === 'bool' || a.dtype === 'int32' || a.dtype === 'uint8' ? 'int64' : a.dtype
   const res = TT.of(out, shape, dtype)
-  return record(E, res, mean ? 'MeanBackward' + (dims === null ? '0' : '1') : 'SumBackward' + (dims === null ? '0' : '1'), [a], (g) => [Array.from({ length: av.length }, (_, i) => g[map[i]] / (mean ? count : 1))])
+  const dualSum = (g: TT): (TT | null)[] => {
+    const spread = expandT(E, reshapeT(E, g, outShapeKeep, false), a.shape)
+    return [mean ? binary(E, '/', spread, TT.scalar(count, a.dtype), false, true) : spread]
+  }
+  return record(E, res, mean ? 'MeanBackward' + (dims === null ? '0' : '1') : 'SumBackward' + (dims === null ? '0' : '1'), [a], (g) => [Array.from({ length: av.length }, (_, i) => g[map[i]] / (mean ? count : 1))], dualSum)
 }
 
 /** max / min along a dim: values and indices (torch.return_types.max) */
@@ -437,6 +587,7 @@ export function argmax(a: TT, dim: number | null, keepdim: boolean, min = false)
 
 /** var / std with Bessel's correction by default (torch's unbiased=True), built from differentiable ops */
 export function variance(E: Engine, a: TT, dims: number[] | null, keepdim: boolean, correction: number, sqrt: boolean): TT {
+  if (!isFloatT(a.dtype)) throw err('RuntimeError', 'std and var only support floating point and complex dtypes')
   const mu = reduceSum(E, a, dims, true, true)
   const d = binary(E, '-', a, mu)
   const sq = unary(E, 'square', d)
@@ -467,20 +618,23 @@ export function reshapeT(E: Engine, a: TT, target: number[], mustView: boolean):
   else if (mustView) throw err('RuntimeError', "view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.")
   else arr = NDArray.create(a.values(), shape, a.a.dtype)
   const out = new TT(arr, a.dtype)
-  return record(E, out, mustView ? 'ViewBackward0' : 'ReshapeAliasBackward0', [a], (g) => [g])
+  const view = a.a.isCContiguous()
+  if (view) isView(out, a)
+  return record(E, out, view ? 'ViewBackward0' : 'ReshapeAliasBackward0', [a], (g) => [g], (g) => [reshapeT(E, g, a.shape, false)])
 }
 
 export function permuteT(E: Engine, a: TT, perm: number[], name = 'PermuteBackward0'): TT {
   const p = perm.map((d) => normDim(d, a.ndim))
+  if (p.length === a.ndim && new Set(p).size !== p.length) throw err('RuntimeError', 'permute(): duplicate dims are not allowed.')
   if (new Set(p).size !== p.length || p.length !== a.ndim) throw err('RuntimeError', `permute(sparse_coo): number of dimensions in the tensor input does not match the length of the desired ordering of dimensions i.e. input.dim() = ${a.ndim} is not equal to len(dims) = ${p.length}`)
-  const out = new TT(ndTranspose(a.a, p), a.dtype)
+  const out = isView(new TT(ndTranspose(a.a, p), a.dtype), a)
   // where each output element comes from, to send gradients back
   const ids = new TT(ndTranspose(NDArray.create(Array.from({ length: a.size }, (_, i) => i), a.shape, 'int64'), p), 'int64').values()
   return record(E, out, name, [a], (g) => {
     const ga = new Array<number>(a.size)
     ids.forEach((src, i) => (ga[src] = g[i]))
     return [ga]
-  })
+  }, (g) => [accumulateBack(E, g, ids, a.shape)])
 }
 
 export function transposeT(E: Engine, a: TT, d0: number, d1: number): TT {
@@ -503,7 +657,7 @@ export function unsqueezeT(E: Engine, a: TT, dim: number): TT {
 export function squeezeT(E: Engine, a: TT, dim: number | null): TT {
   const shape = dim === null ? a.shape.filter((s) => s !== 1) : a.shape.filter((s, i) => !(i === normDim(dim, a.ndim) && s === 1))
   const out = reshapeT(E, a, shape, false)
-  if (out.fn) out.fn.name = 'SqueezeBackward0'
+  if (out.fn) out.fn.name = dim === null ? 'SqueezeBackward0' : 'SqueezeBackward1'
   return out
 }
 
@@ -518,15 +672,23 @@ export function flattenT(E: Engine, a: TT, start: number, end: number): TT {
 }
 
 export function catT(E: Engine, ts: TT[], dim: number, stack = false): TT {
-  if (!ts.length) throw err('RuntimeError', `torch.${stack ? 'stack' : 'cat'}(): expected a non-empty list of Tensors`)
+  if (!ts.length) {
+    if (stack) throw err('RuntimeError', 'stack expects a non-empty TensorList')
+    throw err('ValueError', 'torch.cat(): expected a non-empty list of Tensors')
+  }
+  if (stack) {
+    const bad = ts.findIndex((t) => t.shape.join() !== ts[0].shape.join())
+    if (bad >= 0) throw err('RuntimeError', `stack expects each tensor to be equal size, but got [${ts[0].shape.join(', ')}] at entry 0 and [${ts[bad].shape.join(', ')}] at entry ${bad}`)
+  }
   const parts = stack ? ts.map((t) => unsqueezeT({ grad: false } as Engine, t, dim)) : ts
   const nd = parts[0].ndim
+  if (!stack && !nd) throw err('RuntimeError', 'zero-dimensional tensor (at position 0) cannot be concatenated')
   const d = normDim(dim, nd)
-  for (const t of parts) {
-    if (t.ndim !== nd || t.shape.some((s, i) => i !== d && s !== parts[0].shape[i])) {
-      throw err('RuntimeError', stack ? `stack expects each tensor to be equal size, but got [${ts[0].shape.join(', ')}] at entry 0 and [${t.shape.join(', ')}] at entry ${parts.indexOf(t)}` : `Sizes of tensors must match except in dimension ${d}. Expected size ${parts[0].shape.find((_, i) => i !== d)} but got size ${t.shape.find((_, i) => i !== d)} for tensor number ${parts.indexOf(t)} in the list.`)
-    }
-  }
+  parts.forEach((t, k) => {
+    if (t.ndim !== nd) throw err('RuntimeError', `Tensors must have same number of dimensions: got ${nd} and ${t.ndim}`)
+    const at = t.shape.findIndex((s, i) => i !== d && s !== parts[0].shape[i])
+    if (at >= 0) throw err('RuntimeError', `Sizes of tensors must match except in dimension ${d}. Expected size ${parts[0].shape[at]} but got size ${t.shape[at]} for tensor number ${k} in the list.`)
+  })
   const shape = [...parts[0].shape]
   shape[d] = parts.reduce((s, t) => s + t.shape[d], 0)
   const outer = prod(shape.slice(0, d))
@@ -556,14 +718,18 @@ export function indexT(E: Engine, a: TT, items: IndexItem[]): TT {
   const { plan, value } = getIndex(a.a, items)
   const arr = typeof value === 'number' ? (plan.view ? a.a.view([], [], plan.addresses[0]) : NDArray.create([value], [], a.a.dtype)) : value
   const out = new TT(arr, a.dtype)
+  if (plan.view) isView(out, a)
   if (!needsGrad(E, a)) return out
   const flatOf = new Map(a.a.addresses().map((x, i) => [x, i]))
   const src = plan.addresses.map((x) => flatOf.get(x)!)
-  return record(E, out, plan.advanced ? 'IndexBackward0' : plan.scalar ? 'SelectBackward0' : 'SliceBackward0', [a], (g) => {
+  // the grad_fn is the last step PyTorch takes: an int selects, a real slice slices, None unsqueezes, a bare : does nothing
+  const last = [...items].reverse().find((it) => it.kind !== 'ellipsis' && !(it.kind === 'slice' && it.start === null && it.stop === null && it.step === null))
+  const name = plan.advanced ? 'IndexBackward0' : !last ? 'AliasBackward0' : last.kind === 'int' ? 'SelectBackward0' : last.kind === 'newaxis' ? 'UnsqueezeBackward0' : 'SliceBackward0'
+  return record(E, out, name, [a], (g) => {
     const ga = new Array<number>(a.size).fill(0)
     src.forEach((s, i) => (ga[s] += g[i]))
     return [ga]
-  })
+  }, (g) => [accumulateBack(E, g, src, a.shape)])
 }
 
 export function detach(a: TT): TT {
@@ -571,13 +737,13 @@ export function detach(a: TT): TT {
 }
 
 export function cloneT(E: Engine, a: TT): TT {
-  return record(E, TT.of(a.values(), a.shape, a.dtype), 'CloneBackward0', [a], (g) => [g])
+  return record(E, TT.of(a.values(), a.shape, a.dtype), 'CloneBackward0', [a], (g) => [g], (g) => [g])
 }
 
 export function toDtype(E: Engine, a: TT, dtype: TDType): TT {
   if (dtype === a.dtype) return a
   const out = TT.of(a.values(), a.shape, dtype)
-  return isFloatT(dtype) ? record(E, out, 'ToCopyBackward0', [a], (g) => [g]) : out
+  return isFloatT(dtype) ? record(E, out, 'ToCopyBackward0', [a], (g) => [g], (g) => [toDtype(E, g, a.dtype)]) : out
 }
 
 /** write values into a tensor's storage (in-place ops, x[idx] = v, optimiser steps) */
@@ -588,6 +754,20 @@ export function writeInto(a: TT, values: number[], addresses = a.a.addresses()) 
 // ---------------------------------------------------------------- neural-network kernels
 
 export function linear(E: Engine, x: TT, w: TT, b: TT | null): TT {
+  const res = linearKernel(E, x, w, b)
+  if (res.fn) res.fn.dual = (g) => {
+    const x2 = x.ndim === 1 ? reshapeT(E, x, [1, x.size], false) : x
+    const g2 = reshapeT(E, g, x.ndim === 1 ? [1, g.size] : g.shape, false)
+    return [
+      x.requiresGrad ? reshapeT(E, matmul(E, g2, w), x.shape, false) : null,
+      w.requiresGrad ? sumTo(E, matmul(E, transposeT(E, g2, -2, -1), x2), w.shape) : null,
+      b && b.requiresGrad ? sumTo(E, g2, b.shape) : null,
+    ]
+  }
+  return res
+}
+
+function linearKernel(E: Engine, x: TT, w: TT, b: TT | null): TT {
   const inF = w.shape[1]
   const outF = w.shape[0]
   const xin = x.shape[x.ndim - 1]
@@ -801,7 +981,7 @@ export function softmax(E: Engine, x: TT, dim: number, log: boolean): TT {
     const sum = idx.reduce((s, i) => s + Math.exp(xv[i] - m), 0)
     for (const i of idx) out[i] = log ? xv[i] - m - Math.log(sum) : Math.exp(xv[i] - m) / sum
   }
-  const dtype = isFloatT(x.dtype) ? x.dtype : 'float32'
+  const dtype = isFloatT(x.dtype) ? x.dtype : DEFAULTS.float
   const res = TT.of(out, x.shape, dtype)
   const ov = res.values()
   return record(E, res, log ? 'LogSoftmaxBackward0' : 'SoftmaxBackward0', [x], (g) => {
@@ -825,7 +1005,7 @@ const reduceLoss = (E: Engine, per: TT, reduction: Reduction): TT => (reduction 
 
 /** negative log-likelihood of class indices, input = log-probabilities (N, C) or (C) */
 export function nllLoss(E: Engine, logp: TT, target: TT, reduction: Reduction = 'mean'): TT {
-  if (isFloatT(target.dtype)) throw err('RuntimeError', `expected scalar type Long but found ${target.dtype === 'float32' ? 'Float' : 'Double'}`)
+  if (target.dtype !== 'int64' && target.dtype !== 'uint8') throw err('RuntimeError', `expected target dtype to be Long or Byte, but got ${typeLabel(target.dtype)}`)
   const lp = logp.ndim === 1 ? reshapeT({ grad: false } as Engine, logp, [1, logp.shape[0]], false) : logp
   const [N, C] = lp.shape
   const tv = target.values()
@@ -875,7 +1055,7 @@ export function mseLoss(E: Engine, a: TT, b: TT, reduction: Reduction = 'mean', 
 }
 
 export function bce(E: Engine, p: TT, y: TT, logits: boolean, reduction: Reduction = 'mean'): TT {
-  if (p.shape.join() !== y.shape.join()) throw err('ValueError', `Using a ${sizeMsg(p, y)} is deprecated. Please ensure they have the same size.`)
+  if (p.shape.join() !== y.shape.join()) throw err('ValueError', logits ? `Target size (torch.Size([${y.shape.join(', ')}])) must be the same as input size (torch.Size([${p.shape.join(', ')}]))` : `Using a ${sizeMsg(p, y)} is deprecated. Please ensure they have the same size.`)
   const pv = p.values()
   const yv = y.values()
   if (!logits && pv.some((v) => v < 0 || v > 1)) throw err('RuntimeError', 'all elements of input should be between 0 and 1')
@@ -891,6 +1071,63 @@ export function bce(E: Engine, p: TT, y: TT, logits: boolean, reduction: Reducti
 
 // ---------------------------------------------------------------- backward
 
+const FN_LABEL: Record<string, string> = { AddBackward0: 'Add', SubBackward0: 'Sub', MulBackward0: 'Mul', DivBackward0: 'Div', PowBackward0: 'Pow', PowBackward1: 'Pow' }
+
+/** nodes whose gradient needs an input's value: PyTorch refuses if that value has been overwritten since */
+const checkSaved = (n: GradNode): void => {
+  const both = /^(Mul|Div|Pow)Backward/.test(n.name)
+  const one = /^(Log|Sin|Cos|Abs|Atan|Asin|Acos|Tan)\d*Backward/.test(n.name)
+  if (!both && !one) return
+  n.inputs.forEach((x, i) => {
+    if (!x || !n.versions || x.version === n.versions[i]) return
+    // a product keeps an operand only if the other one needs its gradient
+    const other = n.inputs[1 - i]
+    if (both && !(other?.requiresGrad)) return
+    const made = inputOf(n, i)?.fn?.name
+    const was = x.fn?.name ?? made
+    const output = was ? `, which is output 0 of ${FN_LABEL[was] ?? was.replace(/Backward\d*$/, '')},` : ''
+    throw err('RuntimeError', `one of the variables needed for gradient computation has been modified by an inplace operation: [torch.${typeLabel(x.dtype)}Tensor [${x.shape.join(', ')}]]${output} is at version ${x.version}; expected version ${n.versions[i]} instead. Hint: enable anomaly detection to find the operation that failed to compute its gradient, with torch.autograd.set_detect_anomaly(True, check_nan=False).`)
+  })
+}
+
+/**
+ * An in-place op has computed res from a stand-in for t's old value: write it back. Graphs recorded earlier keep meaning
+ * the old value (past), and writing through a view rewrites the base's history too (PyTorch's CopySlices).
+ */
+export function commitInplace(E: Engine, t: TT, old: TT, res: TT, reshape: boolean): void {
+  if (reshape) t.a = res.a
+  else writeInto(t, res.values())
+  if (res.fn) {
+    (t.past ??= [])[t.version] = old
+    t.fn = res.fn
+    t.requiresGrad = true
+  }
+  t.version++
+  const b = t.base
+  if (!b || reshape) return
+  if (!res.fn) {
+    b.version++
+    t.baseVersion = b.version
+    return
+  }
+  // b's elements under the view now come from res, the others from b's old self
+  const pos = positionsIn(b, t)
+  const baseOld = new TT(b.a, b.dtype)
+  baseOld.fn = b.fn
+  baseOld.requiresGrad = b.requiresGrad
+  ;(b.past ??= [])[b.version] = baseOld
+  b.fn = { name: 'CopySlices', inputs: [baseOld, res], versions: [0, 0], freed: false, backward: (g) => {
+    const gv = pos.map((p) => g[p])
+    const ga = [...g]
+    pos.forEach((p) => (ga[p] = 0))
+    return [ga, gv]
+  } }
+  b.requiresGrad = true
+  b.version++
+  t.baseVersion = b.version
+  viewNode(E, t, b)
+}
+
 export function backward(E: Engine, root: TT, gradOut: number[] | null, retainGraph: boolean): TT[] {
   if (!root.requiresGrad) throw err('RuntimeError', 'element 0 of tensors does not require grad and does not have a grad_fn')
   if (!gradOut && root.size !== 1) throw err('RuntimeError', 'grad can be implicitly created only for scalar outputs')
@@ -900,7 +1137,11 @@ export function backward(E: Engine, root: TT, gradOut: number[] | null, retainGr
   const visit = (t: TT) => {
     if (seen.has(t)) return
     seen.add(t)
-    for (const x of t.fn?.inputs ?? []) if (x && x.requiresGrad) visit(x)
+    const n = t.fn
+    if (n) n.inputs.forEach((_, i) => {
+      const x = inputOf(n, i)
+      if (x && x.requiresGrad) visit(x)
+    })
     order.push(t)
   }
   visit(root)
@@ -914,11 +1155,15 @@ export function backward(E: Engine, root: TT, gradOut: number[] | null, retainGr
   try {
     for (let k = order.length - 1; k >= 0; k--) {
       const t = order[k]
-      const g = grads.get(t)
+      let g = grads.get(t)
       if (!g) continue
+      for (const hook of t.hooks ?? []) g = hook(TT.of(g, t.shape, t.dtype))?.values() ?? g
       if (t.fn) {
+        checkSaved(t.fn)
         const gs = t.fn.backward(g)
-        t.fn.inputs.forEach((x, i) => {
+        const n = t.fn
+        n.inputs.forEach((_, i) => {
+          const x = inputOf(n, i)
           const gi = gs[i]
           if (!x || !x.requiresGrad || !gi) return
           const prev = grads.get(x)
@@ -939,9 +1184,55 @@ export function backward(E: Engine, root: TT, gradOut: number[] | null, retainGr
   return touched
 }
 
+/** backward with create_graph=True: gradients are tensors with a history of their own. Every step's gradient is kept */
+export function backwardGraph(E: Engine, root: TT, gradOut: TT | null): Map<TT, TT> {
+  if (!root.requiresGrad) throw err('RuntimeError', 'element 0 of tensors does not require grad and does not have a grad_fn')
+  if (!gradOut && root.size !== 1) throw err('RuntimeError', 'grad can be implicitly created only for scalar outputs')
+  const order: TT[] = []
+  const seen = new Set<TT>()
+  const visit = (t: TT) => {
+    if (seen.has(t)) return
+    seen.add(t)
+    const n = t.fn
+    if (n) n.inputs.forEach((_, i) => {
+      const x = inputOf(n, i)
+      if (x && x.requiresGrad) visit(x)
+    })
+    order.push(t)
+  }
+  visit(root)
+  const grads = new Map<TT, TT>([[root, gradOut ?? TT.of(new Array<number>(root.size).fill(1), root.shape, root.dtype)]])
+  const wasGrad = E.grad
+  E.grad = true
+  try {
+    for (let k = order.length - 1; k >= 0; k--) {
+      const t = order[k]
+      let g = grads.get(t)
+      if (!g) continue
+      for (const hook of t.hooks ?? []) g = hook(g) ?? g
+      grads.set(t, g)
+      const n = t.fn
+      if (!n) continue
+      if (n.freed) throw err('RuntimeError', 'Trying to backward through the graph a second time (or directly access saved tensors after they have already been freed). Saved intermediate values of the graph are freed when you call .backward() or autograd.grad(). Specify retain_graph=True if you need to backward through the graph a second time or if you need to access saved tensors after calling backward.')
+      if (!n.dual) throw err('NotImplementedError', `create_graph=True: the gradient through ${n.name} cannot be differentiated again in this sandbox`)
+      const gs = n.dual(g)
+      n.inputs.forEach((_, i) => {
+        const x = inputOf(n, i)
+        const gi = gs[i]
+        if (!x || !x.requiresGrad || !gi) return
+        const prev = grads.get(x)
+        grads.set(x, prev ? binary(E, '+', prev, gi) : gi)
+      })
+    }
+  } finally {
+    E.grad = wasGrad
+  }
+  return grads
+}
+
 // ---------------------------------------------------------------- the wider torch API (sort, gather, BatchNorm …)
 
-export const typeLabel = (d: TDType) => ({ float32: 'Float', float64: 'Double', int64: 'Long', int32: 'Int', uint8: 'Byte', bool: 'Bool' })[d]
+export const typeLabel = (d: TDType) => ({ float16: 'Half', float32: 'Float', float64: 'Double', int64: 'Long', int32: 'Int', int16: 'Short', int8: 'Char', uint8: 'Byte', bool: 'Bool' })[d]
 
 const flatIds = (shape: number[]) => NDArray.create(Array.from({ length: prod(shape) }, (_, i) => i), shape, 'int64')
 
@@ -950,14 +1241,14 @@ export const viewSource = (a: TT, f: (x: NDArray) => NDArray): number[] => f(fla
 
 /** a view: f rewrites shape, strides and offset without copying, so the result shares a's memory */
 export function viewT(E: Engine, a: TT, f: (x: NDArray) => NDArray, name: string): TT {
-  const out = new TT(f(a.a), a.dtype)
+  const out = isView(new TT(f(a.a), a.dtype), a)
   if (!needsGrad(E, a)) return out
   const src = viewSource(a, f)
   return record(E, out, name, [a], (g) => {
     const ga = new Array<number>(a.size).fill(0)
     src.forEach((s, i) => (ga[s] += g[i]))
     return [ga]
-  })
+  }, (g) => [accumulateBack(E, g, src, a.shape)])
 }
 
 export const narrowT = (E: Engine, a: TT, d: number, start: number, len: number, name = 'NarrowBackward0'): TT =>
@@ -980,7 +1271,7 @@ export function takeT(E: Engine, a: TT, src: ArrayLike<number>, shape: number[],
     const ga = new Array<number>(av.length).fill(0)
     for (let i = 0; i < n; i++) if (src[i] >= 0) ga[src[i]] += g[i]
     return [ga]
-  })
+  }, (g) => [accumulateBack(E, g, src, a.shape)])
 }
 
 /** output (i, j, …) comes from input (maps[0][i], maps[1][j], …); -1 on any axis = no input element */
@@ -999,7 +1290,7 @@ export const crossSrc = (inShape: number[], maps: number[][]): Int32Array => {
 /** an elementwise function and its derivative (null = piecewise constant, gradient 0) */
 export function mapT(E: Engine, a: TT, f: (x: number) => number, df: ((x: number) => number) | null, name: string, keepInt = false): TT {
   const av = a.values()
-  const dtype = isFloatT(a.dtype) || keepInt ? a.dtype : 'float32'
+  const dtype = isFloatT(a.dtype) || keepInt ? a.dtype : DEFAULTS.float
   return record(E, TT.of(av.map(f), a.shape, dtype), name, [a], (g) => [df ? g.map((gi, i) => gi * df(av[i])) : g.map(() => 0)])
 }
 
@@ -1038,6 +1329,17 @@ export function sharedValueT(E: Engine, a: TT, at: number, name: string): TT {
   const av = a.values()
   const map = new Int32Array(av.length)
   return record(E, TT.of([av[at]], [], a.dtype), name, [a], (g) => [evenShare(av, map, [av[at]], g)])
+}
+
+export const itemSize = (d: TDType): number => ({ float16: 2, float32: 4, float64: 8, int64: 8, int32: 4, int16: 2, int8: 1, uint8: 1, bool: 1 })[d]
+
+/** an op with no derivative formula: the graph records it, and only backward() complains */
+export function noGradient(E: Engine, out: TT, inputs: TT[], op: string, shown = 'NotImplemented'): TT {
+  return record(E, out, shown, inputs, () => {
+    // real torch has no derivative at all for a NotImplemented node; for the others it is this sandbox that lacks one
+    if (shown === 'NotImplemented') throw err('RuntimeError', `derivative for aten::${op} is not implemented`)
+    throw err('NotImplementedError', `the gradient through ${op} is not available in this sandbox`)
+  })
 }
 
 export function whereT(E: Engine, cond: TT, a: TT, b: TT, dtype: TDType, name = 'WhereBackward0'): TT {
@@ -1226,7 +1528,7 @@ const indexedFlat = (shape: number[], d: number, index: TT): Int32Array => {
 }
 
 const checkIndex = (a: TT, d: number, index: TT, fname: string) => {
-  if (index.dtype !== 'int64') throw err('RuntimeError', `${fname}(): Expected dtype int64 for index`)
+  if (index.dtype !== 'int64' && index.dtype !== 'int32') throw err('RuntimeError', `${fname}(): Expected dtype ${fname === 'gather' ? 'int32/int64' : 'int64'} for index`)
   if (index.ndim !== a.ndim) throw err('RuntimeError', 'Index tensor must have the same number of dimensions as input tensor')
   index.values().forEach((v) => {
     if (v < 0 || v >= (a.shape[d] ?? 1)) throw err('RuntimeError', `index ${v} is out of bounds for dimension ${d} with size ${a.shape[d] ?? 1}`)
@@ -1277,10 +1579,8 @@ export function scatterT(E: Engine, a: TT, dim: number, index: TT, src: TT | num
   })
   return record(E, TT.of(out, a.shape, a.dtype), add ? 'ScatterAddBackward0' : srcT ? 'ScatterBackward0' : 'ScatterBackward1', [a, srcT], (g) => {
     const gs = srcT ? new Array<number>(srcT.size).fill(0) : null
-    if (gs) {
-      if (add) pos.forEach((p, f) => (gs[from[f]] += g[p]))
-      else last.forEach((s, p) => { if (s >= 0) gs[s] += g[p] })
-    }
+    // as PyTorch: grad.gather(dim, index), even for a source cell a later one overwrote
+    if (gs) pos.forEach((p, f) => (gs[from[f]] += g[p]))
     return [add ? g : g.map((x, p) => (last[p] >= 0 ? 0 : x)), gs]
   })
 }
@@ -1356,7 +1656,7 @@ const squareBatches = (a: TT, fname: string) => {
   return { n, nb: prod(a.shape.slice(0, -2)) }
 }
 
-const rounder = (d: TDType): ((x: number) => number) => (d === 'float32' ? Math.fround : (x) => x)
+const rounder = (d: TDType): ((x: number) => number) => (d === 'float64' ? (x) => x : (x) => castT(x, d))
 
 /** LU with partial pivoting, column by column and scaling by the pivot's reciprocal, as LAPACK's getrf does */
 const luFactor = (m: number[], n: number, R: (x: number) => number) => {
@@ -1535,7 +1835,7 @@ export function batchNormT(E: Engine, x: TT, w: TT | null, b: TT | null, stats: 
   for (let f = 0; f < n; f++) {
     const c = chan(f)
     const z = (xv[f] - mu[c]) / s[c]
-    out[f] = wv && bv ? z * wv[c] + bv[c] : z
+    out[f] = (wv ? z * wv[c] : z) + (bv ? bv[c] : 0)
   }
   const res = record(E, TT.of(out, x.shape, x.dtype), 'NativeBatchNormBackward0', [x, w, b], (g) => {
     const gSum = new Array<number>(Ch).fill(0)
@@ -1557,62 +1857,16 @@ export function batchNormT(E: Engine, x: TT, w: TT | null, b: TT | null, stats: 
   return { out: res, mean: mu, vari: sigma2 }
 }
 
-/** weight: (in, out, KH, KW). Each input cell spreads over a kernel-sized patch of the output */
+/** the older entry point for a 2-D transposed convolution, as keras's Conv2DTranspose calls it */
 export function convTranspose2d(E: Engine, x0: TT, w: TT, b: TT | null, stride: [number, number], padding: [number, number], outputPadding: [number, number]): TT {
-  const unbatched = x0.ndim === 3
   if (x0.ndim !== 3 && x0.ndim !== 4) throw err('RuntimeError', `Expected 3D (unbatched) or 4D (batched) input to conv_transpose2d, but got input of size: [${x0.shape.join(', ')}]`)
-  const [N, Ch, H, W] = unbatched ? [1, ...x0.shape] : x0.shape
-  const [Cw, O, KH, KW] = w.shape
-  if (Ch !== Cw) throw err('RuntimeError', `Given transposed=1, weight of size [${w.shape.join(', ')}], expected input[${x0.shape.join(', ')}] to have ${Cw} channels, but got ${Ch} channels instead`)
-  const [sh, sw] = stride
-  const [ph, pw] = padding
-  const Ho = (H - 1) * sh - 2 * ph + KH + outputPadding[0]
-  const Wo = (W - 1) * sw - 2 * pw + KW + outputPadding[1]
-  if (Ho < 1 || Wo < 1) throw err('RuntimeError', `Output size of conv_transpose2d is too small: (${Ho}, ${Wo})`)
-  const xv = x0.values()
-  const wv = w.values()
-  const bv = b ? b.values() : null
-  /** visit each (input cell, weight, output cell) */
-  const each = (f: (xi: number, wi: number, oi: number) => void) => {
-    for (let n = 0; n < N; n++) {
-      for (let c = 0; c < Ch; c++) {
-        for (let o = 0; o < O; o++) {
-          for (let i = 0; i < H; i++) {
-            for (let j = 0; j < W; j++) {
-              const xi = (n * Ch + c) * H * W + i * W + j
-              for (let u = 0; u < KH; u++) {
-                const yy = i * sh + u - ph
-                if (yy < 0 || yy >= Ho) continue
-                for (let v = 0; v < KW; v++) {
-                  const xx = j * sw + v - pw
-                  if (xx >= 0 && xx < Wo) f(xi, ((c * O + o) * KH + u) * KW + v, (n * O + o) * Ho * Wo + yy * Wo + xx)
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  const out = new Array<number>(N * O * Ho * Wo).fill(0)
-  each((xi, wi, oi) => (out[oi] += xv[xi] * wv[wi]))
-  if (bv) for (let i = 0; i < out.length; i++) out[i] += bv[Math.floor(i / (Ho * Wo)) % O]
-  const shape = unbatched ? [O, Ho, Wo] : [N, O, Ho, Wo]
-  return record(E, TT.of(out, shape, promote(x0.dtype, w.dtype)), 'ConvolutionBackward0', [x0, w, b], (g) => {
-    const gx = new Array<number>(xv.length).fill(0)
-    const gw = new Array<number>(wv.length).fill(0)
-    each((xi, wi, oi) => {
-      gx[xi] += g[oi] * wv[wi]
-      gw[wi] += g[oi] * xv[xi]
-    })
-    const gb = bv ? new Array<number>(O).fill(0) : null
-    if (gb) g.forEach((x, i) => (gb[Math.floor(i / (Ho * Wo)) % O] += x))
-    return [gx, gw, gb]
-  })
+  const Ch = x0.shape[x0.ndim - 3]
+  if (Ch !== w.shape[0]) throw err('RuntimeError', `Given transposed=1, weight of size [${w.shape.join(', ')}], expected input[${x0.shape.join(', ')}] to have ${w.shape[0]} channels, but got ${Ch} channels instead`)
+  return convNd(E, x0, w, b, stride, padding, [1, 1], outputPadding, true)
 }
 
 /** adaptive pooling: output cell i of n covers input ⌊i·H/n⌋ … ⌈(i+1)·H/n⌉ */
-export function adaptivePool2d(E: Engine, x0: TT, [Ho, Wo]: [number, number], kind: 'max' | 'avg'): TT {
+export function adaptivePool2d(E: Engine, x0: TT, [Ho, Wo]: [number, number], kind: 'max' | 'avg'): { out: TT; indices: TT } {
   if (x0.ndim !== 3 && x0.ndim !== 4) throw err('RuntimeError', `adaptive_${kind}_pool2d(): Expected 3D or 4D tensor, but got: [${x0.shape.join(', ')}]`)
   const [N, Ch, H, W] = x0.ndim === 3 ? [1, ...x0.shape] : x0.shape
   const xv = x0.values()
@@ -1638,10 +1892,163 @@ export function adaptivePool2d(E: Engine, x0: TT, [Ho, Wo]: [number, number], ki
     }
   }
   const shape = x0.ndim === 3 ? [Ch, Ho, Wo] : [N, Ch, Ho, Wo]
-  return record(E, TT.of(out, shape, x0.dtype), kind === 'avg' ? 'AdaptiveAvgPool2DBackward0' : 'AdaptiveMaxPool2DBackward0', [x0], (g) => {
+  const res = record(E, TT.of(out, shape, x0.dtype), kind === 'avg' ? 'AdaptiveAvgPool2DBackward0' : 'AdaptiveMaxPool2DBackward0', [x0], (g) => {
     const gx = new Array<number>(xv.length).fill(0)
     cells.forEach((cell, o) => cell.forEach((f) => (gx[f] += g[o] / cell.length)))
     return [gx]
+  })
+  return { out: res, indices: TT.of(cells.map((c) => (kind === 'max' ? c[0] % (H * W) : 0)), shape, 'int64') }
+}
+
+/** every combination of one offset per axis, as flat offsets */
+const crossOffsets = (lists: number[][], strides: number[]): number[] => {
+  let out = [0]
+  lists.forEach((l, a) => {
+    const next: number[] = []
+    for (const base of out) for (const v of l) next.push(base + v * strides[a])
+    out = next
+  })
+  return out
+}
+
+const poolOutSize = (n: number, k: number, s: number, p: number, d: number, ceil: boolean): number => {
+  const out = Math.floor((n + 2 * p - d * (k - 1) - 1 + (ceil ? s - 1 : 0)) / s) + 1
+  return ceil && (out - 1) * s >= n + p ? out - 1 : out
+}
+
+export interface PoolOpts { k: number[]; s: number[]; p: number[]; d: number[]; ceil: boolean; countPad: boolean; divisor: number | null }
+
+/** max or average pooling over the last k.length dimensions, with every option torch's pools have */
+export function poolNd(E: Engine, x: TT, kind: 'max' | 'avg', { k, s, p, d, ceil, countPad, divisor }: PoolOpts): { out: TT; indices: TT } {
+  const n = k.length
+  const spatial = x.shape.slice(-n)
+  const lead = x.shape.slice(0, -n)
+  const outS = spatial.map((sz, a) => poolOutSize(sz, k[a], s[a], p[a], d[a], ceil))
+  if (outS.some((o) => o < 1)) throw err('RuntimeError', `Given input size: (${lead.slice(-1).concat(spatial).join('x')}). Calculated output size: (${lead.slice(-1).concat(outS).join('x')}). Output size is too small`)
+  const st = cStrides(spatial)
+  const groups = prod(lead)
+  const area = prod(spatial)
+  // per axis and output position: the input positions in the window, and how wide the window is once padding is counted
+  const windows = outS.map((o, a) => Array.from({ length: o }, (_, i) => {
+    const start = i * s[a] - p[a]
+    const inside: number[] = []
+    for (let u = 0; u < k[a]; u++) {
+      const at = start + u * d[a]
+      if (at >= 0 && at < spatial[a]) inside.push(at)
+    }
+    return { inside, span: Math.min(start + k[a], spatial[a] + p[a]) - start }
+  }))
+  const cells: { offs: number[]; div: number }[] = []
+  const walk = (a: number, picked: number[][], span: number) => {
+    if (a === n) {
+      const offs = crossOffsets(picked, st)
+      cells.push({ offs, div: divisor ?? (countPad ? span : offs.length) })
+      return
+    }
+    for (const w of windows[a]) walk(a + 1, [...picked, w.inside], span * w.span)
+  }
+  walk(0, [], 1)
+  const xv = x.values()
+  const out = new Array<number>(groups * cells.length)
+  const arg = new Array<number>(out.length)
+  for (let g = 0; g < groups; g++) {
+    cells.forEach(({ offs, div }, c) => {
+      const o = g * cells.length + c
+      if (kind === 'max') {
+        let best = -Infinity
+        let at = offs[0] ?? 0
+        for (const f of offs) {
+          const v = xv[g * area + f]
+          if (v > best) {
+            best = v
+            at = f
+          }
+        }
+        out[o] = best
+        arg[o] = at
+      } else {
+        let sum = 0
+        for (const f of offs) sum += xv[g * area + f]
+        out[o] = sum / div
+        arg[o] = 0
+      }
+    })
+  }
+  const shape = [...lead, ...outS]
+  const name = kind === 'max' ? `MaxPool${n}DWithIndicesBackward0` : `AvgPool${n}DBackward0`
+  const res = record(E, TT.of(out, shape, x.dtype), name, [x], (g) => {
+    const gx = new Array<number>(xv.length).fill(0)
+    for (let gr = 0; gr < groups; gr++) {
+      cells.forEach(({ offs, div }, c) => {
+        const o = gr * cells.length + c
+        if (kind === 'max') gx[gr * area + arg[o]] += g[o]
+        else for (const f of offs) gx[gr * area + f] += g[o] / div
+      })
+    }
+    return [gx]
+  })
+  return { out: res, indices: TT.of(arg, shape, 'int64') }
+}
+
+/** convolution or transposed convolution over any number of spatial dims; weight (out, in, *k), or (in, out, *k) when transposed */
+export function convNd(E: Engine, x0: TT, w: TT, b: TT | null, s: number[], p: number[], d: number[], outPad: number[], transposed: boolean): TT {
+  const n = s.length
+  const unbatched = x0.ndim === n + 1
+  const [N, Ch] = unbatched ? [1, x0.shape[0]] : x0.shape
+  const S = x0.shape.slice(-n)
+  const K = w.shape.slice(2)
+  const O = transposed ? w.shape[1] : w.shape[0]
+  const So = S.map((sz, a) => (transposed ? (sz - 1) * s[a] - 2 * p[a] + d[a] * (K[a] - 1) + outPad[a] + 1 : Math.floor((sz + 2 * p[a] - d[a] * (K[a] - 1) - 1) / s[a]) + 1))
+  const [stS, stO, stK] = [cStrides(S), cStrides(So), cStrides(K)]
+  const area = prod(S)
+  const areaO = prod(So)
+  const areaK = prod(K)
+  // the (kernel, input, output) positions that meet, by axis, then all their combinations
+  const triples: number[] = []
+  const walk = (a: number, kf: number, inf: number, of: number) => {
+    if (a === n) {
+      triples.push(kf, inf, of)
+      return
+    }
+    for (let u = 0; u < K[a]; u++) {
+      const reach = transposed ? S[a] : So[a]
+      for (let i = 0; i < reach; i++) {
+        const far = i * s[a] + u * d[a] - p[a]
+        const [ii, oo] = transposed ? [i, far] : [far, i]
+        if (ii >= 0 && ii < S[a] && oo >= 0 && oo < So[a]) walk(a + 1, kf + u * stK[a], inf + ii * stS[a], of + oo * stO[a])
+      }
+    }
+  }
+  walk(0, 0, 0, 0)
+  const xv = x0.values()
+  const wv = w.values()
+  const bv = b ? b.values() : null
+  const each = (f: (xi: number, wi: number, oi: number) => void) => {
+    for (let nn = 0; nn < N; nn++) {
+      for (let c = 0; c < Ch; c++) {
+        for (let o = 0; o < O; o++) {
+          const wb = ((transposed ? c * O + o : o * Ch + c)) * areaK
+          const xb = (nn * Ch + c) * area
+          const ob = (nn * O + o) * areaO
+          for (let t = 0; t < triples.length; t += 3) f(xb + triples[t + 1], wb + triples[t], ob + triples[t + 2])
+        }
+      }
+    }
+  }
+  const out = new Array<number>(N * O * areaO).fill(0)
+  each((xi, wi, oi) => (out[oi] += xv[xi] * wv[wi]))
+  if (bv) for (let i = 0; i < out.length; i++) out[i] += bv[Math.floor(i / areaO) % O]
+  const shape = unbatched ? [O, ...So] : [N, O, ...So]
+  return record(E, TT.of(out, shape, promote(x0.dtype, w.dtype)), 'ConvolutionBackward0', [x0, w, b], (g) => {
+    const gx = new Array<number>(xv.length).fill(0)
+    const gw = new Array<number>(wv.length).fill(0)
+    each((xi, wi, oi) => {
+      gx[xi] += g[oi] * wv[wi]
+      gw[wi] += g[oi] * xv[xi]
+    })
+    const gb = bv ? new Array<number>(O).fill(0) : null
+    if (gb) g.forEach((x, i) => (gb[Math.floor(i / areaO) % O] += x))
+    return [gx, gw, gb]
   })
 }
 
@@ -1654,7 +2061,7 @@ export function padT(E: Engine, a: TT, pad: number[], mode: PadMode, value: numb
     const d = a.ndim - 1 - k
     const [l, r] = [pad[2 * k], pad[2 * k + 1]]
     const n = a.shape[d]
-    if (mode === 'reflect' && (l >= n || r >= n)) throw err('RuntimeError', `Argument #${2 * k + 2}: Padding size should be less than the corresponding input dimension, but got: padding (${l}, ${r}) at dimension ${d} of input [${a.shape.join(', ')}]`)
+    if (mode === 'reflect' && (l >= n || r >= n)) throw err('RuntimeError', `Argument #${a.ndim}: Padding size should be less than the corresponding input dimension, but got: padding (${l}, ${r}) at dimension ${d} of input [${a.shape.join(', ')}]`)
     if (mode === 'circular' && (l > n || r > n)) throw err('RuntimeError', 'Padding value causes wrapping around more than once.')
     if (n + l + r < 0) throw err('RuntimeError', `The input size ${n}, plus negative padding ${l} and ${r}, resulted in a negative output size, which is invalid. Check dimension ${d} of your input.`)
     maps[d] = Array.from({ length: n + l + r }, (_, o) => {
@@ -1671,23 +2078,126 @@ export function padT(E: Engine, a: TT, pad: number[], mode: PadMode, value: numb
   return takeT(E, a, crossSrc(a.shape, maps), maps.map((m) => m.length), 'PadBackward0', value)
 }
 
-/** one axis of a linear resize: out[i] = (1 − t) · a[i0] + t · a[i1] */
-export function linearAxis(E: Engine, a: TT, d: number, i0: number[], i1: number[], t: number[]): TT {
+/** one axis of a resize: output position i is the weighted sum of input positions idx[i] (linear: 2 of them, bicubic: 4) */
+export function weightedAxis(E: Engine, a: TT, d: number, idx: number[][], wt: number[][]): TT {
   const full = a.shape.map((n) => Array.from({ length: n }, (_, i) => i))
-  const shape = a.shape.map((n, k) => (k === d ? i0.length : n))
-  const s0 = crossSrc(a.shape, full.map((m, k) => (k === d ? i0 : m)))
-  const s1 = crossSrc(a.shape, full.map((m, k) => (k === d ? i1 : m)))
+  const shape = a.shape.map((n, k) => (k === d ? idx.length : n))
+  const terms = idx[0]?.length ?? 0
+  const srcs = Array.from({ length: terms }, (_, t) => crossSrc(a.shape, full.map((m, k) => (k === d ? idx.map((l) => l[t]) : m))))
   const st = cStrides(shape)[d]
   const av = a.values()
-  const weight = (o: number) => t[Math.floor(o / st) % i0.length]
-  return record(E, TT.of(Array.from(s0, (s, o) => (1 - weight(o)) * av[s] + weight(o) * av[s1[o]]), shape, a.dtype), 'UpsampleBackward0', [a], (g) => {
+  const n = prod(shape)
+  const cell = (o: number) => Math.floor(o / st) % idx.length
+  const out = new Array<number>(n)
+  for (let o = 0; o < n; o++) {
+    let s = 0
+    const w = wt[cell(o)]
+    for (let t = 0; t < terms; t++) s += w[t] * av[srcs[t][o]]
+    out[o] = s
+  }
+  return record(E, TT.of(out, shape, a.dtype), 'UpsampleBackward0', [a], (g) => {
     const ga = new Array<number>(av.length).fill(0)
     g.forEach((x, o) => {
-      ga[s0[o]] += (1 - weight(o)) * x
-      ga[s1[o]] += weight(o) * x
+      const w = wt[cell(o)]
+      for (let t = 0; t < terms; t++) ga[srcs[t][o]] += w[t] * x
     })
     return [ga]
   })
+}
+
+/** one axis of a linear resize: out[i] = (1 − t) · a[i0] + t · a[i1] */
+export function linearAxis(E: Engine, a: TT, d: number, i0: number[], i1: number[], t: number[]): TT {
+  return weightedAxis(E, a, d, i0.map((i, k) => [i, i1[k]]), t.map((w) => [1 - w, w]))
+}
+
+/** adaptive pooling over the last three dimensions of (C, D, H, W) or (N, C, D, H, W) */
+export function adaptivePool3d(E: Engine, x: TT, out: number[], kind: 'max' | 'avg'): { out: TT; indices: TT } {
+  const inSizes = x.shape.slice(-3)
+  const lead = x.shape.slice(0, -3)
+  const plane = prod(inSizes)
+  const st = cStrides(inSizes)
+  const ranges = out.map((o, k) => Array.from({ length: o }, (_, i) => [Math.floor((i * inSizes[k]) / o), Math.ceil(((i + 1) * inSizes[k]) / o)]))
+  const xv = x.values()
+  const outShape = [...lead, ...out]
+  const n = prod(lead)
+  const vals: number[] = []
+  const idx: number[] = []
+  const cells: number[][] = []
+  for (let b = 0; b < n; b++) for (const [d0, d1] of ranges[0]) for (const [h0, h1] of ranges[1]) for (const [w0, w1] of ranges[2]) {
+    const cell: number[] = []
+    for (let d = d0; d < d1; d++) for (let r = h0; r < h1; r++) for (let c = w0; c < w1; c++) cell.push(b * plane + d * st[0] + r * st[1] + c)
+    if (kind === 'avg') vals.push(cell.reduce((s, f) => s + xv[f], 0) / cell.length)
+    else {
+      const best = cell.reduce((p, q) => (xv[q] > xv[p] ? q : p), cell[0])
+      vals.push(xv[best])
+      idx.push(best - b * plane)
+      cell.length = 0
+      cell.push(best)
+    }
+    cells.push(cell)
+  }
+  const res = record(E, TT.of(vals, outShape, x.dtype), kind === 'avg' ? 'AdaptiveAvgPool3DBackward0' : 'AdaptiveMaxPool3DBackward0', [x], (g) => {
+    const gx = new Array<number>(xv.length).fill(0)
+    cells.forEach((cell, o) => cell.forEach((f) => (gx[f] += g[o] / cell.length)))
+    return [gx]
+  })
+  return { out: res, indices: TT.of(kind === 'max' ? idx : new Array<number>(vals.length).fill(0), outShape, 'int64') }
+}
+
+/** F.grid_sample on (N, C, H, W): each output cell is up to four input cells, weighted by where the grid points */
+export function gridSampleT(E: Engine, x: TT, grid: TT, mode: 'bilinear' | 'nearest', padding: 'zeros' | 'border' | 'reflection', corners: boolean): TT {
+  const [N, Ch, H, W] = x.shape
+  const [, Ho, Wo] = grid.shape
+  const gv = grid.values()
+  const xv = x.values()
+  const place = (v: number, n: number) => (corners ? ((v + 1) / 2) * (n - 1) : ((v + 1) * n - 1) / 2)
+  const reflect = (v: number, n: number) => {
+    const [lo, hi] = corners ? [0, n - 1] : [-0.5, n - 0.5]
+    const span = hi - lo
+    if (span === 0) return 0
+    const off = ((v - lo) % (2 * span) + 2 * span) % (2 * span)
+    return off > span ? hi - (off - span) : lo + off
+  }
+  const fix = (v: number, n: number) => (padding === 'border' ? Math.min(n - 1, Math.max(0, v)) : padding === 'reflection' ? Math.min(n - 1, Math.max(0, reflect(v, n))) : v)
+  // for each output cell of one channel: [input position in one (H, W) plane, or -1, its weight]
+  const terms: [number, number][][] = []
+  for (let n = 0; n < N; n++) for (let i = 0; i < Ho * Wo; i++) {
+    const at = (n * Ho * Wo + i) * 2
+    const px = fix(place(gv[at], W), W)
+    const py = fix(place(gv[at + 1], H), H)
+    const cell = (r: number, c: number, w: number): [number, number] => (r >= 0 && r < H && c >= 0 && c < W ? [r * W + c, w] : [-1, 0])
+    if (mode === 'nearest') terms.push([cell(Math.round(py), Math.round(px), 1)])
+    else {
+      const [x0, y0] = [Math.floor(px), Math.floor(py)]
+      const [fx, fy] = [px - x0, py - y0]
+      terms.push([cell(y0, x0, (1 - fx) * (1 - fy)), cell(y0, x0 + 1, fx * (1 - fy)), cell(y0 + 1, x0, (1 - fx) * fy), cell(y0 + 1, x0 + 1, fx * fy)])
+    }
+  }
+  const out = new Array<number>(N * Ch * Ho * Wo)
+  const srcAt = (o: number): [number, number] => [Math.floor(o / (Ch * Ho * Wo)), Math.floor(o / (Ho * Wo)) % Ch]
+  for (let o = 0; o < out.length; o++) {
+    const [n, c] = srcAt(o)
+    const base = (n * Ch + c) * H * W
+    let s = 0
+    for (const [p, w] of terms[n * Ho * Wo + (o % (Ho * Wo))]) if (p >= 0) s += w * xv[base + p]
+    out[o] = s
+  }
+  return record(E, TT.of(out, [N, Ch, Ho, Wo], x.dtype), 'GridSampler2DBackward0', [x], (g) => {
+    const gx = new Array<number>(xv.length).fill(0)
+    g.forEach((v, o) => {
+      const [n, c] = srcAt(o)
+      const base = (n * Ch + c) * H * W
+      for (const [p, w] of terms[n * Ho * Wo + (o % (Ho * Wo))]) if (p >= 0) gx[base + p] += w * v
+    })
+    return [gx]
+  })
+}
+
+export function movedimT(E: Engine, a: TT, from: number, to: number): TT {
+  const [f, t] = [normDim(from, a.ndim), normDim(to, a.ndim)]
+  const order = a.shape.map((_, i) => i).filter((i) => i !== f)
+  order.splice(t, 0, f)
+  return permuteT(E, a, order, 'MovedimBackward0')
 }
 
 /** whole channels are zeroed: one draw per (N, C), the rest of the shape shares it */
@@ -1700,8 +2210,8 @@ export function dropoutChannels(E: Engine, x: TT, p: number, training: boolean):
   return record(E, TT.of(x.values().map((v, i) => v * keep[Math.floor(i / per)]), x.shape, x.dtype), 'MulBackward0', [x], (g) => [g.map((gi, i) => gi * keep[Math.floor(i / per)])])
 }
 
-export function embeddingT(E: Engine, w: TT, idx: TT, paddingIdx: number | null): TT {
-  if (isFloatT(idx.dtype) || idx.dtype === 'bool') throw err('RuntimeError', `Expected tensor for argument #1 'indices' to have one of the following scalar types: Long, Int; but got torch.${typeLabel(idx.dtype)}Tensor instead (while checking arguments for embedding)`)
+export function embeddingT(E: Engine, w: TT, idx: TT, paddingIdx: number | null, scaleFreq = false): TT {
+  if (idx.dtype !== 'int64' && idx.dtype !== 'int32') throw err('RuntimeError', `Expected tensor for argument #1 'indices' to have one of the following scalar types: Long, Int; but got torch.${typeLabel(idx.dtype)}Tensor instead (while checking arguments for embedding)`)
   const [rows, D] = w.shape
   const iv = idx.values()
   if (iv.some((i) => i < 0 || i >= rows)) throw err('IndexError', 'index out of range in self')
@@ -1711,6 +2221,12 @@ export function embeddingT(E: Engine, w: TT, idx: TT, paddingIdx: number | null)
   return record(E, TT.raw(out, [...idx.shape, D], w.dtype), 'EmbeddingBackward0', [w], (g) => {
     const gw = new Array<number>(wv.length).fill(0)
     iv.forEach((i, n) => { if (i !== paddingIdx) for (let j = 0; j < D; j++) gw[i * D + j] += g[n * D + j] })
+    if (scaleFreq) {
+      // scale_grad_by_freq: each row's gradient divided by how often the batch used it
+      const count = new Map<number, number>()
+      for (const i of iv) count.set(i, (count.get(i) ?? 0) + 1)
+      count.forEach((c, i) => { for (let j = 0; j < D; j++) gw[i * D + j] /= c })
+    }
     return [gw]
   })
 }
@@ -1768,74 +2284,174 @@ export const erfc = (x: number): number => {
   return Math.exp(-x * x) / (Math.sqrt(Math.PI) * f)
 }
 
-// ---------------------------------------------------------------- printing (torch._tensor_str)
+// ---------------------------------------------------------------- printing (a port of torch/_tensor_str.py)
 
-// loops, not Math.max(...xs): a 224 × 224 image has more elements than the call stack takes arguments
-const maxOf = (xs: number[]) => xs.reduce((m, x) => (x > m ? x : m), -Infinity)
-const minOf = (xs: number[]) => xs.reduce((m, x) => (x < m ? x : m), Infinity)
+export const PRINT_OPTS = { precision: 4, threshold: 1000, edgeitems: 3, linewidth: 80, sciMode: null as boolean | null }
 
-const fmtE = (v: number) => v.toExponential(4).replace(/e([+-])(\d)$/, 'e$10$2')
-
-/** element strings, padded to one width, as PyTorch prints them */
-export function formatElements(values: number[], dtype: TDType): string[] {
-  if (dtype === 'bool') return values.map((v) => (v ? 'True' : 'False').padStart(values.length > 0 && values.some((x) => !x) ? 5 : 4))
-  if (!isFloatT(dtype)) {
-    const s = values.map((v) => String(v))
-    const w = maxOf(s.map((x) => x.length))
-    return s.map((x) => x.padStart(w))
-  }
-  const finite = values.filter((v) => Number.isFinite(v))
-  const nz = finite.filter((v) => v !== 0).map(Math.abs)
-  let fmt: (v: number) => string
-  if (!nz.length) fmt = (v) => (Number.isFinite(v) ? `${v === 0 ? 0 : v}.` : String(v))
-  else {
-    const max = maxOf(nz)
-    const min = minOf(nz)
-    const allInt = finite.every((v) => Number.isInteger(v))
-    if (allInt) fmt = max / min > 1000 || max > 1e8 ? fmtE : (v) => `${v.toFixed(0)}.`
-    else if (max / min > 1000 || max > 1e8 || min < 1e-4) fmt = fmtE
-    else fmt = (v) => v.toFixed(4)
-  }
-  const s = values.map((v) => (Number.isNaN(v) ? 'nan' : v === Infinity ? 'inf' : v === -Infinity ? '-inf' : fmt(v)))
-  const w = maxOf(s.map((x) => x.length))
-  return s.map((x) => x.padStart(w))
+export const setPrintProfile = (profile: 'default' | 'short' | 'full') => {
+  PRINT_OPTS.precision = profile === 'short' ? 2 : 4
+  PRINT_OPTS.threshold = profile === 'full' ? Infinity : 1000
+  PRINT_OPTS.edgeitems = profile === 'short' ? 2 : 3
+  PRINT_OPTS.linewidth = 80
 }
 
-const SUMMARY_AT = 1000
-const EDGE = 3
-const LINE = 80
+/** toFixed / toExponential round an exact tie up; Python's format rounds it to even (f'{0.03125:.4f}' is 0.0312) */
+const evenTie = (x: number, digits: number, render: (x: number, d: number) => string, cut: (s: string, d: number) => string): string => {
+  const out = render(x, digits)
+  if (digits + 40 > 100) return out
+  const long = render(x, digits + 40)
+  const mant = long.split('e')[0]
+  if (!/50{39}$/.test(mant)) return out
+  const down = cut(long, digits)
+  return Number(down.split('e')[0].slice(-1)) % 2 === 0 ? down : out
+}
 
-export function tensorBody(shape: number[], values: number[], dtype: TDType, indent: number): string {
-  if (!shape.length) return formatElements(values, dtype)[0].trim()
-  if (values.length === 0) return '[]'
-  const summarize = values.length > SUMMARY_AT
-  const strs = formatElements(values, dtype)
-  const st = cStrides(shape)
-  const rec = (d: number, base: number, ind: number): string => {
-    const n = shape[d]
-    const idx = summarize && n > 2 * EDGE ? [...Array.from({ length: EDGE }, (_, i) => i), -1, ...Array.from({ length: EDGE }, (_, i) => n - EDGE + i)] : Array.from({ length: n }, (_, i) => i)
-    if (d === shape.length - 1) {
-      const items = idx.map((i) => (i < 0 ? '...' : strs[base + i]))
-      const width = (strs[0]?.length ?? 1) + 2
-      const per = Math.max(1, Math.floor((LINE - ind) / width))
-      const lines: string[] = []
-      for (let i = 0; i < items.length; i += per) lines.push(items.slice(i, i + per).join(', '))
-      return `[${lines.join(`,\n${' '.repeat(ind + 1)}`)}]`
+/** Python's f'{x:.{p}f}' */
+export const pyFixed = (x: number, p: number): string => {
+  if (Number.isNaN(x)) return 'nan'
+  if (!Number.isFinite(x)) return x > 0 ? 'inf' : '-inf'
+  const body = evenTie(Math.abs(x), p, (v, d) => v.toFixed(d), (s, d) => (d ? s.slice(0, s.indexOf('.') + d + 1) : s.slice(0, s.indexOf('.'))))
+  return (x < 0 || Object.is(x, -0) ? '-' : '') + body
+}
+
+/** Python's f'{x:.{p}e}' */
+export const pyExp = (x: number, p: number): string => {
+  if (Number.isNaN(x)) return 'nan'
+  if (!Number.isFinite(x)) return x > 0 ? 'inf' : '-inf'
+  const body = evenTie(Math.abs(x), p, (v, d) => v.toExponential(d), (s, d) => {
+    const [m, e] = s.split('e')
+    return `${m.slice(0, d ? m.indexOf('.') + d + 1 : 1)}e${e}`
+  })
+  return (x < 0 || Object.is(x, -0) ? '-' : '') + body.replace(/e([+-])(\d)$/, 'e$10$2')
+}
+
+/** _Formatter: one width and one notation for all the values shown */
+const makeFormatter = (values: number[], dtype: TDType) => {
+  const floating = isFloatT(dtype)
+  let intMode = true
+  let sciMode = false
+  let maxWidth = 1
+  const plain = (v: number) => (dtype === 'bool' ? (v ? 'True' : 'False') : String(v))
+  if (!floating) {
+    for (const v of values) maxWidth = Math.max(maxWidth, plain(v).length)
+  } else {
+    const nz = values.filter((v) => Number.isFinite(v) && v !== 0)
+    if (nz.length) {
+      let min = Infinity
+      let max = 0
+      for (const v of nz) {
+        const a = Math.abs(v)
+        if (a < min) min = a
+        if (a > max) max = a
+        if (v !== Math.ceil(v)) intMode = false
+      }
+      sciMode = PRINT_OPTS.sciMode ?? (max / min > 1000 || max > 1e8 || min < 1e-4)
+      for (const v of nz) {
+        if (sciMode) maxWidth = Math.max(maxWidth, pyExp(v, PRINT_OPTS.precision).length)
+        else if (intMode) maxWidth = Math.max(maxWidth, pyFixed(v, 0).length + 1)
+        else maxWidth = Math.max(maxWidth, pyFixed(v, PRINT_OPTS.precision).length)
+      }
     }
-    const parts = idx.map((i) => (i < 0 ? '...' : rec(d + 1, base + i * st[d], ind + 1)))
-    return `[${parts.join(`,${'\n'.repeat(shape.length - d - 1)}${' '.repeat(ind + 1)}`)}]`
+  }
+  const format = (v: number): string => {
+    let ret: string
+    if (!floating) ret = plain(v)
+    else if (sciMode) ret = pyExp(v, PRINT_OPTS.precision)
+    else if (intMode) ret = pyFixed(v, 0) + (Number.isFinite(v) ? '.' : '')
+    else ret = pyFixed(v, PRINT_OPTS.precision)
+    return ret.padStart(maxWidth)
+  }
+  return { format, width: maxWidth }
+}
+
+/** get_summarized_data: the flat positions the formatter gets to see */
+const summarized = (shape: number[], base: number, stride: number[], out: number[]) => {
+  const edge = PRINT_OPTS.edgeitems
+  if (!shape.length) {
+    out.push(base)
+    return
+  }
+  const n = shape[0]
+  if (shape.length === 1) {
+    // self[-0:] is all of it, so edgeitems=0 leaves the whole vector here
+    if (edge && n > 2 * edge) for (const i of [...Array(edge).keys(), ...Array.from({ length: edge }, (_, k) => n - edge + k)]) out.push(base + i)
+    else for (let i = 0; i < n; i++) out.push(base + i)
+    return
+  }
+  if (!edge) return
+  const rows = n > 2 * edge ? [...Array(edge).keys(), ...Array.from({ length: edge }, (_, k) => n - edge + k)] : [...Array(n).keys()]
+  for (const i of rows) summarized(shape.slice(1), base + i * stride[0], stride.slice(1), out)
+}
+
+/** _tensor_str */
+export function tensorBody(shape: number[], values: number[], dtype: TDType, indent: number): string {
+  if (values.length === 0) return '[]'
+  const summarize = values.length > PRINT_OPTS.threshold
+  const edge = PRINT_OPTS.edgeitems
+  const st = cStrides(shape)
+  let seen = values
+  if (summarize) {
+    const at: number[] = []
+    summarized(shape, 0, st, at)
+    seen = at.map((f) => values[f])
+  }
+  const fmt = makeFormatter(seen, dtype)
+  const vector = (d: number, base: number, ind: number): string => {
+    const n = shape[d]
+    const perLine = Math.max(1, Math.floor((PRINT_OPTS.linewidth - ind) / (fmt.width + 2)))
+    let data: string[]
+    if (summarize && !edge) data = ['...']
+    else if (summarize && n > 2 * edge) data = [...Array.from({ length: edge }, (_, i) => fmt.format(values[base + i])), ' ...', ...Array.from({ length: edge }, (_, i) => fmt.format(values[base + n - edge + i]))]
+    else data = Array.from({ length: n }, (_, i) => fmt.format(values[base + i]))
+    const lines: string[] = []
+    for (let i = 0; i < data.length; i += perLine) lines.push(data.slice(i, i + perLine).join(', '))
+    return `[${lines.join(`,\n${' '.repeat(ind + 1)}`)}]`
+  }
+  const rec = (d: number, base: number, ind: number): string => {
+    const left = shape.length - d
+    if (left === 0) return fmt.format(values[base])
+    if (left === 1) return vector(d, base, ind)
+    const n = shape[d]
+    const sub = (i: number) => rec(d + 1, base + i * st[d], ind + 1)
+    const slices = summarize && n > 2 * edge
+      ? [...Array.from({ length: edge }, (_, i) => sub(i)), '...', ...Array.from({ length: edge }, (_, i) => sub(n - edge + i))]
+      : Array.from({ length: n }, (_, i) => sub(i))
+    return `[${slices.join(`,${'\n'.repeat(left - 1)}${' '.repeat(ind + 1)}`)}]`
   }
   return rec(0, 0, indent)
 }
 
-const DEFAULT_DTYPES: TDType[] = ['float32', 'int64', 'bool']
+const sizeTuple = (shape: number[]) => `(${shape.join(', ')}${shape.length === 1 ? ',' : ''})`
 
+/** _str_intern and _add_suffixes */
 export function formatTensor(t: TT, opts: { prefix?: string; forceDtype?: boolean } = {}): string {
   const prefix = opts.prefix ?? 'tensor('
-  let s = prefix + tensorBody(t.shape, t.values(), t.dtype, prefix.length)
-  if (t.size === 0 && t.dtype !== 'float32') s += `, dtype=torch.${t.dtype}`
-  else if (!DEFAULT_DTYPES.includes(t.dtype) || opts.forceDtype) s += `, dtype=torch.${t.dtype}`
-  if (t.fn) s += `, grad_fn=<${t.fn.name}>`
-  else if (t.requiresGrad) s += ', requires_grad=True'
-  return s + ')'
+  const indent = prefix.length
+  const suffixes: string[] = []
+  const hasDefault = t.dtype === DEFAULTS.float || t.dtype === 'int64' || t.dtype === 'bool'
+  let body: string
+  if (t.size === 0) {
+    if (t.ndim !== 1) suffixes.push(`size=${sizeTuple(t.shape)}`)
+    if (t.dtype !== DEFAULTS.float) suffixes.push(`dtype=torch.${t.dtype}`)
+    body = '[]'
+  } else {
+    if (!PRINT_OPTS.edgeitems) suffixes.push(`size=${sizeTuple(t.shape)}`)
+    if (!hasDefault || opts.forceDtype) suffixes.push(`dtype=torch.${t.dtype}`)
+    body = tensorBody(t.shape, t.values(), t.dtype, indent)
+  }
+  if (t.fn) suffixes.push(`grad_fn=<${t.fn.name}>`)
+  else if (t.requiresGrad) suffixes.push('requires_grad=True')
+  const text = prefix + body
+  let out = text
+  let last = text.length - text.lastIndexOf('\n') + 1
+  for (const suffix of suffixes) {
+    if (last + suffix.length + 2 > PRINT_OPTS.linewidth) {
+      out += `,\n${' '.repeat(indent)}${suffix}`
+      last = indent + suffix.length
+    } else {
+      out += `, ${suffix}`
+      last += suffix.length + 2
+    }
+  }
+  return `${out})`
 }

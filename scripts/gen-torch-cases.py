@@ -19,6 +19,12 @@ import torch
 
 here = pathlib.Path(__file__).parent
 HEAD = 'import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n'
+# fill(m): fixed weights instead of random ones, for the programs that call it
+FILL = '''def fill(m):
+    for k, p in enumerate(m.parameters()):
+        with torch.no_grad():
+            p.copy_((((torch.arange(p.numel()) * 37 + k) % 19 - 9).float() / 20).view(p.shape))
+'''
 DEFAULTS = dict(precision=4, threshold=1000, edgeitems=3, linewidth=80, sci_mode=None, profile='default')
 
 
@@ -44,10 +50,11 @@ def with_repr(src):
         lines = [p.strip() for p in src.split('; ')]
     try:
         compile(lines[-1], '<last>', 'eval')
-        lines[-1] = f'print(repr({lines[-1]}))'
+        lines[-1] = f'print(repr(({lines[-1]})))'
     except SyntaxError:
         pass
-    return HEAD + '\n'.join(lines) + '\n'
+    head = HEAD + ('import numpy as np\n' if 'np.' in src else '') + (FILL if 'fill(' in src else '')
+    return head + '\n'.join(lines) + '\n'
 
 
 warnings.simplefilter('ignore')
@@ -67,6 +74,7 @@ with tempfile.TemporaryDirectory() as tmp:
         real_main = sys.modules['__main__']
         sys.modules['__main__'] = module
         torch.set_printoptions(profile='default', sci_mode=None)
+        torch.set_default_dtype(torch.float32)
         torch.manual_seed(0)
         try:
             with contextlib.redirect_stdout(buf):

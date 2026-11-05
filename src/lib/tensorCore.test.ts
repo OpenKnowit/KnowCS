@@ -9,7 +9,7 @@ const T = (v: number[], shape: number[], dtype: TT['dtype'] = 'float32', grad = 
   return t
 }
 
-describe('printing matches PyTorch 2.12', () => {
+describe('printing matches PyTorch', () => {
   const cases: [TT, string][] = [
     [T([1, 3, 5], [3], 'int64'), 'tensor([1, 3, 5])'],
     [T([1, 2, 3, 4], [2, 2]), 'tensor([[1., 2.],\n        [3., 4.]])'],

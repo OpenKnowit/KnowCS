@@ -740,3 +740,1676 @@ torch.ones(2).storage if False else 0
 torch.ones(2).dim_order() if False else 0
 torch.ones(2).pin_memory if False else 0
 torch.ones(2).share_memory_().is_shared()
+
+# ---- nn: repr of every layer (fill(m) gives a module fixed weights; see gen-torch-cases.py)
+nn.Linear(2, 3)
+nn.Linear(2, 3, bias=False)
+nn.Bilinear(2, 3, 4)
+nn.Identity()
+nn.Identity(54, unused_argument1=0.1)
+nn.Conv1d(1, 2, 3)
+nn.Conv1d(1, 2, 3, stride=2, padding=1, dilation=2, groups=1, bias=False)
+nn.Conv1d(2, 4, 3, padding='same', groups=2)
+nn.Conv2d(1, 2, 3)
+nn.Conv2d(1, 2, (3, 5), stride=(2, 1), padding=(1, 2))
+nn.Conv2d(2, 4, 3, padding='same', dilation=2, groups=2, bias=False, padding_mode='reflect')
+nn.Conv2d(2, 4, 3, padding='valid')
+nn.Conv3d(1, 2, 3)
+nn.ConvTranspose1d(1, 2, 3)
+nn.ConvTranspose2d(1, 2, 3)
+nn.ConvTranspose2d(1, 2, 3, stride=2, padding=1, output_padding=1, bias=False)
+nn.ConvTranspose2d(2, 4, 3, groups=2, dilation=2)
+nn.MaxPool1d(2)
+nn.MaxPool1d(3, stride=1, padding=1, dilation=1, ceil_mode=True, return_indices=True)
+nn.MaxPool2d(2)
+nn.MaxPool2d((2, 3), stride=1, padding=(1, 0))
+nn.MaxPool2d(2, dilation=2, ceil_mode=True)
+nn.AvgPool1d(2)
+nn.AvgPool1d(3, stride=1, padding=1, ceil_mode=True, count_include_pad=False)
+nn.AvgPool2d(2)
+nn.AvgPool2d((2, 3), stride=1, padding=(1, 0), ceil_mode=True, count_include_pad=False, divisor_override=2)
+nn.AdaptiveAvgPool1d(2)
+nn.AdaptiveAvgPool2d(1)
+nn.AdaptiveAvgPool2d((7, 7))
+nn.AdaptiveAvgPool2d((None, 2))
+nn.AdaptiveMaxPool1d(2)
+nn.AdaptiveMaxPool2d((1, 1))
+nn.AdaptiveMaxPool2d(2, return_indices=True)
+nn.BatchNorm1d(4)
+nn.BatchNorm1d(4, eps=0.01, momentum=None, affine=False, track_running_stats=False)
+nn.BatchNorm2d(16)
+nn.BatchNorm3d(2)
+nn.LayerNorm(4)
+nn.LayerNorm((2, 3), eps=0.01, elementwise_affine=False)
+nn.LayerNorm(4, bias=False)
+nn.GroupNorm(2, 4)
+nn.GroupNorm(2, 4, eps=0.01, affine=False)
+nn.InstanceNorm1d(2)
+nn.InstanceNorm2d(2, affine=True)
+nn.Dropout()
+nn.Dropout(0.3, inplace=True)
+nn.Dropout1d(0.3)
+nn.Dropout2d(0.3)
+nn.Dropout3d()
+nn.AlphaDropout(0.3)
+nn.Flatten()
+nn.Flatten(0, 1)
+nn.Unflatten(1, (2, 3))
+nn.ReLU()
+nn.ReLU(inplace=True)
+nn.ReLU6()
+nn.ReLU6(True)
+nn.LeakyReLU()
+nn.LeakyReLU(0.2, inplace=True)
+nn.PReLU()
+nn.PReLU(3, init=0.1)
+nn.RReLU()
+nn.ELU()
+nn.ELU(0.5, inplace=True)
+nn.CELU()
+nn.SELU()
+nn.GELU()
+nn.GELU(approximate='tanh')
+nn.SiLU()
+nn.Mish()
+nn.Softplus()
+nn.Softplus(2.0, 10.0)
+nn.Softsign()
+nn.Softshrink()
+nn.Hardshrink()
+nn.Tanhshrink()
+nn.Threshold(0.1, 20.0)
+nn.Hardtanh()
+nn.Hardtanh(-2.0, 2.0)
+nn.Hardsigmoid()
+nn.Hardswish()
+nn.LogSigmoid()
+nn.Sigmoid()
+nn.Tanh()
+nn.Softmax()
+nn.Softmax(dim=1)
+nn.Softmax2d()
+nn.LogSoftmax(dim=1)
+nn.Softmin(dim=1)
+nn.GLU()
+nn.MSELoss()
+nn.L1Loss(reduction='sum')
+nn.SmoothL1Loss(beta=0.5)
+nn.HuberLoss(delta=0.5)
+nn.CrossEntropyLoss()
+nn.CrossEntropyLoss(label_smoothing=0.1)
+nn.NLLLoss()
+nn.BCELoss()
+nn.BCEWithLogitsLoss()
+nn.KLDivLoss()
+nn.PoissonNLLLoss()
+nn.GaussianNLLLoss()
+nn.MarginRankingLoss()
+nn.HingeEmbeddingLoss()
+nn.CosineEmbeddingLoss()
+nn.TripletMarginLoss()
+nn.MultiMarginLoss()
+nn.SoftMarginLoss()
+nn.MultiLabelMarginLoss()
+nn.MultiLabelSoftMarginLoss()
+nn.CosineSimilarity()
+nn.PairwiseDistance()
+nn.Embedding(10, 3)
+nn.Embedding(10, 3, padding_idx=0)
+nn.Embedding(10, 3, max_norm=1.0, norm_type=1.0, scale_grad_by_freq=True, sparse=True)
+nn.EmbeddingBag(10, 3)
+nn.RNN(1, 2)
+nn.RNN(1, 2, 2, nonlinearity='relu', bias=False, batch_first=True, dropout=0.5, bidirectional=True)
+nn.LSTM(3, 4)
+nn.LSTM(3, 4, num_layers=2, batch_first=True, dropout=0.5, bidirectional=True, proj_size=2)
+nn.GRU(1, 2)
+nn.GRU(1, 2, bias=False)
+nn.RNNCell(1, 2)
+nn.RNNCell(1, 2, bias=False, nonlinearity='relu')
+nn.LSTMCell(1, 2)
+nn.GRUCell(1, 2)
+nn.MultiheadAttention(4, 2)
+nn.MultiheadAttention(4, 2, dropout=0.1, batch_first=True)
+nn.TransformerEncoderLayer(4, 2, dim_feedforward=8, dropout=0.0)
+nn.Upsample(scale_factor=2)
+nn.Upsample(size=(4, 4), mode='bilinear')
+nn.Upsample(scale_factor=(2.0, 3.0), mode='bilinear', align_corners=True)
+nn.UpsamplingNearest2d(scale_factor=2)
+nn.UpsamplingBilinear2d(scale_factor=2)
+nn.PixelShuffle(2)
+nn.PixelUnshuffle(2)
+nn.ZeroPad1d(1)
+nn.ZeroPad2d(1)
+nn.ZeroPad2d((1, 2, 3, 4))
+nn.ConstantPad1d(1, 0.5)
+nn.ConstantPad2d(1, 0.5)
+nn.ReflectionPad1d(1)
+nn.ReflectionPad2d(1)
+nn.ReplicationPad1d(1)
+nn.ReplicationPad2d(1)
+nn.CircularPad1d(1)
+nn.CircularPad2d(1)
+nn.Fold((2, 2), 2)
+nn.Unfold(2)
+nn.Sequential()
+nn.Sequential(nn.Linear(1, 2), nn.Sequential(nn.ReLU()))
+nn.ModuleList([nn.Linear(1, 1), nn.Linear(1, 1), nn.ReLU()])
+nn.ModuleDict({'a': nn.ReLU(), 'b': nn.Linear(1, 1)})
+nn.ParameterList([nn.Parameter(torch.ones(2))])
+nn.ParameterDict({'a': nn.Parameter(torch.ones(2))})
+<<<
+class Block(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layers = nn.ModuleList([nn.Linear(2, 2) for k in range(3)])
+        self.norm = nn.BatchNorm1d(2)
+Block()
+>>>
+<<<
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.a = nn.Linear(1, 1)
+        self.w = nn.Parameter(torch.ones(1))
+    def extra_repr(self):
+        return 'hello=1'
+Net()
+>>>
+<<<
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.w = nn.Parameter(torch.ones(1))
+Net()
+>>>
+
+# ---- nn: forward with fixed weights
+m = nn.Linear(2, 3); fill(m); m(torch.tensor([[1., 2.], [3., 4.]]))
+m = nn.Linear(2, 3); fill(m); m(torch.tensor([1., 2.]))
+m = nn.Linear(2, 3, bias=False); fill(m); m(torch.tensor([[1., 2.]]))
+m = nn.Bilinear(2, 3, 2); fill(m); m(torch.tensor([[1., 2.]]), torch.tensor([[1., 0., -1.]]))
+m = nn.Conv1d(1, 2, 3); fill(m); m(torch.arange(6.).view(1, 1, 6))
+m = nn.Conv1d(1, 2, 3); fill(m); m(torch.arange(6.).view(1, 6))
+m = nn.Conv1d(2, 2, 2, stride=2, padding=1, groups=2); fill(m); m(torch.arange(12.).view(1, 2, 6))
+m = nn.Conv1d(1, 1, 2, dilation=2, padding='same'); fill(m); m(torch.arange(6.).view(1, 1, 6))
+m = nn.Conv1d(1, 1, 3, padding=1, padding_mode='circular'); fill(m); m(torch.arange(6.).view(1, 1, 6))
+m = nn.Conv2d(1, 2, 2); fill(m); m(torch.arange(9.).view(1, 1, 3, 3))
+m = nn.Conv2d(1, 2, 2); fill(m); m(torch.arange(9.).view(1, 3, 3))
+m = nn.Conv2d(2, 2, 2, stride=2, padding=1, groups=2, bias=False); fill(m); m(torch.arange(18.).view(1, 2, 3, 3))
+m = nn.Conv2d(1, 1, 2, dilation=2); fill(m); m(torch.arange(16.).view(1, 1, 4, 4))
+m = nn.Conv2d(1, 1, 2, padding='same'); fill(m); m(torch.arange(9.).view(1, 1, 3, 3))
+m = nn.Conv2d(1, 1, 3, padding=1, padding_mode='reflect'); fill(m); m(torch.arange(9.).view(1, 1, 3, 3))
+m = nn.Conv2d(1, 1, 3, padding=1, padding_mode='replicate'); fill(m); m(torch.arange(9.).view(1, 1, 3, 3))
+m = nn.Conv3d(1, 1, 2); fill(m); m(torch.arange(8.).view(1, 1, 2, 2, 2))
+m = nn.ConvTranspose1d(1, 2, 2, stride=2); fill(m); m(torch.arange(3.).view(1, 1, 3))
+m = nn.ConvTranspose2d(1, 2, 2); fill(m); m(torch.arange(4.).view(1, 1, 2, 2))
+m = nn.ConvTranspose2d(1, 1, 3, stride=2, padding=1, output_padding=1); fill(m); m(torch.arange(4.).view(1, 1, 2, 2))
+m = nn.ConvTranspose2d(2, 2, 2, groups=2); fill(m); m(torch.arange(8.).view(1, 2, 2, 2))
+m = nn.ConvTranspose2d(1, 1, 2, dilation=2); fill(m); m(torch.arange(4.).view(1, 1, 2, 2))
+m = nn.ConvTranspose2d(1, 1, 2, stride=2); fill(m); m(torch.arange(4.).view(1, 1, 2, 2), output_size=(5, 5))
+nn.MaxPool1d(2)(torch.tensor([[[1., 3., 2., 5., 4.]]]))
+nn.MaxPool1d(2, stride=1)(torch.tensor([[[1., 3., 2., 5., 4.]]]))
+nn.MaxPool1d(3, stride=2, padding=1)(torch.tensor([[1., 3., 2., 5., 4.]]))
+nn.MaxPool1d(2, ceil_mode=True)(torch.tensor([[[1., 3., 2., 5., 4.]]]))
+nn.MaxPool1d(2, dilation=2)(torch.tensor([[[1., 3., 2., 5., 4.]]]))
+nn.MaxPool1d(2, return_indices=True)(torch.tensor([[[1., 3., 2., 5., 4.]]]))
+nn.MaxPool2d(2)(torch.arange(16.).view(1, 1, 4, 4))
+nn.MaxPool2d(2)(torch.arange(16.).view(1, 4, 4))
+nn.MaxPool2d(3, stride=2, padding=1)(torch.arange(16.).view(1, 1, 4, 4))
+nn.MaxPool2d(3, stride=2, ceil_mode=True)(torch.arange(16.).view(1, 1, 4, 4))
+nn.MaxPool2d(2, dilation=2)(torch.arange(16.).view(1, 1, 4, 4))
+nn.MaxPool2d(2, return_indices=True)(torch.arange(16.).view(1, 1, 4, 4))
+nn.MaxPool2d(2, stride=1, return_indices=True)(torch.tensor([[[[1., 5.], [3., 2.]]]]))
+nn.AvgPool1d(2)(torch.tensor([[[1., 3., 2., 5., 4.]]]))
+nn.AvgPool1d(2, ceil_mode=True)(torch.tensor([[[1., 3., 2., 5., 4.]]]))
+nn.AvgPool1d(3, stride=2, padding=1, count_include_pad=False)(torch.tensor([[[1., 3., 2., 5., 4.]]]))
+nn.AvgPool2d(2)(torch.arange(16.).view(1, 1, 4, 4))
+nn.AvgPool2d(3, stride=2, padding=1)(torch.arange(16.).view(1, 1, 4, 4))
+nn.AvgPool2d(3, stride=2, padding=1, count_include_pad=False)(torch.arange(16.).view(1, 1, 4, 4))
+nn.AvgPool2d(3, stride=2, ceil_mode=True)(torch.arange(16.).view(1, 1, 4, 4))
+nn.AvgPool2d(3, stride=2, ceil_mode=True, count_include_pad=False)(torch.arange(16.).view(1, 1, 4, 4))
+nn.AvgPool2d(2, divisor_override=3)(torch.arange(16.).view(1, 1, 4, 4))
+nn.AdaptiveAvgPool1d(2)(torch.tensor([[[1., 3., 2., 5., 4.]]]))
+nn.AdaptiveMaxPool1d(2)(torch.tensor([[[1., 3., 2., 5., 4.]]]))
+nn.AdaptiveAvgPool2d(1)(torch.arange(16.).view(1, 1, 4, 4))
+nn.AdaptiveAvgPool2d((2, 3))(torch.arange(16.).view(1, 1, 4, 4))
+nn.AdaptiveAvgPool2d((None, 2))(torch.arange(16.).view(1, 1, 4, 4))
+nn.AdaptiveMaxPool2d(1)(torch.arange(16.).view(1, 1, 4, 4))
+nn.AdaptiveMaxPool2d((2, 3))(torch.arange(16.).view(1, 1, 4, 4))
+nn.AdaptiveMaxPool2d(2, return_indices=True)(torch.arange(16.).view(1, 1, 4, 4))
+F.max_unpool2d(*F.max_pool2d(torch.arange(16.).view(1, 1, 4, 4), 2, return_indices=True), 2)
+m = nn.BatchNorm1d(2); m.weight.data = torch.tensor([2., .5]); m.bias.data = torch.tensor([.5, -1.]); m(torch.tensor([[1., 2.], [3., 5.], [2., -1.]]))
+m = nn.BatchNorm1d(2); x1 = torch.tensor([[1., 2.], [3., 5.], [2., -1.]]); m(x1); m.running_mean, m.running_var, m.num_batches_tracked
+m = nn.BatchNorm1d(2); x1 = torch.tensor([[1., 2.], [3., 5.], [2., -1.]]); m(x1); m.eval(); m(x1)
+m = nn.BatchNorm1d(2, momentum=None); m(torch.tensor([[1., 2.], [3., 5.]])); m(torch.tensor([[0., 1.], [4., 4.]])); m.running_mean, m.running_var, m.num_batches_tracked
+m = nn.BatchNorm1d(2, affine=False); m(torch.tensor([[1., 2.], [3., 5.]]))
+m = nn.BatchNorm1d(2, track_running_stats=False); m.eval(); m(torch.tensor([[1., 2.], [3., 5.]]))
+m = nn.BatchNorm1d(2); m.eval(); m(torch.tensor([[1., 2.], [3., 5.]]))
+m = nn.BatchNorm1d(3); x = torch.arange(24.).view(2, 3, 4) ** 1.5; m(x); m.running_mean, m.running_var
+m = nn.BatchNorm2d(2); x = torch.arange(16.).view(2, 2, 2, 2) ** 1.5; m(x); m.running_mean, m.running_var, m(x).sum()
+m = nn.BatchNorm3d(1); x = torch.arange(16.).view(2, 1, 2, 2, 2) ** 2; m(x); m.running_var
+m = nn.LayerNorm(3); m(torch.tensor([[3., 1., 2.], [9., 7., 8.]]))
+m = nn.LayerNorm((3, 4), elementwise_affine=False); m(torch.arange(24.).view(2, 3, 4) ** 2)
+m = nn.LayerNorm(4, bias=False); m.weight.data = torch.tensor([2., .5, 1., 3.]); m(torch.arange(8.).view(2, 4) ** 2)
+m = nn.GroupNorm(2, 4); m(torch.arange(16.).view(2, 4, 2) ** 2)
+m = nn.InstanceNorm1d(2); m(torch.arange(12.).view(1, 2, 6) ** 2)
+m = nn.InstanceNorm2d(1); m(torch.arange(16.).view(1, 1, 4, 4) ** 2)
+nn.Dropout(0.5).eval()(torch.ones(2))
+nn.Dropout(0.0)(torch.ones(2))
+nn.Dropout(1.0)(torch.ones(2))
+nn.Dropout2d(1.0)(torch.ones(1, 1, 2, 2))
+nn.Dropout2d(0.5).eval()(torch.ones(1, 1, 2, 2))
+nn.Dropout1d(1.0)(torch.ones(1, 2, 2))
+nn.Dropout3d(1.0)(torch.ones(1, 1, 1, 2, 2))
+nn.Flatten()(torch.arange(6.).view(1, 2, 3))
+nn.Flatten(0, 1)(torch.arange(6.).view(1, 2, 3))
+nn.Unflatten(1, (2, 3))(torch.arange(6.).view(1, 6))
+nn.Unflatten(1, (2, -1))(torch.arange(6.).view(1, 6))
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.ReLU()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.ReLU6()(X * 4)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.LeakyReLU()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.ELU()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.CELU(0.5)(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.SELU()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.GELU()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.GELU(approximate='tanh')(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.SiLU()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Mish()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Softplus()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Softplus(2.0, 1.0)(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Softsign()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Softshrink()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Hardshrink()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Tanhshrink()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Threshold(0.1, 20.)(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Hardtanh()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Hardsigmoid()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Hardswish()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.LogSigmoid()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Sigmoid()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Tanh()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Softmax(dim=0)(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.LogSoftmax(dim=0)(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.Softmin(dim=0)(X)
+X = torch.tensor([-2., -0.5, 0., 0.5, 2.], requires_grad=True); nn.PReLU()(X)
+X = torch.tensor([-2., -0.5, 0., 0.5], requires_grad=True); nn.GLU(dim=0)(X)
+nn.Softmax2d()(torch.arange(8.).view(1, 2, 2, 2))
+nn.Softmax()(torch.arange(6.).view(2, 3))
+nn.Softmax()(torch.arange(3.))
+nn.Softmax()(torch.arange(8.).view(2, 2, 2))
+nn.LogSoftmax()(torch.arange(6.).view(2, 3))
+x = torch.tensor([-1., 2.]); y = nn.ReLU(inplace=True)(x); x, y is x
+m = nn.Embedding(4, 2); fill(m); m(torch.tensor([[0, 3], [1, 1]]))
+m = nn.Embedding(4, 2, padding_idx=1); m.weight[1], m.padding_idx, m
+m = nn.Embedding(4, 2, padding_idx=1); fill(m); m(torch.tensor([1, 2])).sum().backward(); m.weight.grad
+m = nn.Embedding(4, 2, max_norm=1.0); fill(m); m(torch.tensor([0, 3])), m.weight
+m = nn.Embedding(4, 2, max_norm=0.5, norm_type=1.0); fill(m); m(torch.tensor([0, 3]))
+m = nn.Embedding(4, 2, scale_grad_by_freq=True); fill(m); m(torch.tensor([0, 0, 1])).sum().backward(); m.weight.grad
+nn.Embedding.from_pretrained(torch.tensor([[1., 2.], [3., 4.]]))(torch.tensor([1]))
+nn.Embedding.from_pretrained(torch.tensor([[1., 2.], [3., 4.]])).weight.requires_grad
+m = nn.EmbeddingBag(4, 2, mode='sum'); fill(m); m(torch.tensor([0, 1, 2]), torch.tensor([0, 2]))
+m = nn.EmbeddingBag(4, 2); fill(m); m(torch.tensor([[0, 1], [2, 3]]))
+m = nn.RNN(2, 3); fill(m); o, h = m(torch.ones(4, 2, 2)); o.shape, h.shape, h
+m = nn.RNN(2, 3, nonlinearity='relu'); fill(m); m(torch.ones(4, 2, 2))[1]
+m = nn.RNN(2, 3, 2, bias=False); fill(m); m(torch.ones(4, 2, 2))[1]
+m = nn.RNN(2, 3, batch_first=True, bidirectional=True); fill(m); o, h = m(torch.ones(4, 2, 2)); o, h
+m = nn.RNN(2, 3); fill(m); m(torch.ones(4, 2))
+m = nn.LSTM(2, 3); fill(m); o, (h, c) = m(torch.ones(4, 2, 2)); o.shape, h, c
+m = nn.LSTM(2, 3); fill(m); m(torch.ones(4, 2))[0].shape
+m = nn.LSTM(2, 3, 2, batch_first=True); fill(m); o, (h, c) = m(torch.ones(4, 2, 2)); o, c
+m = nn.LSTM(2, 3, bidirectional=True); fill(m); o, (h, c) = m(torch.ones(4, 2, 2)); o, h
+m = nn.LSTM(2, 3, proj_size=1); fill(m); o, (h, c) = m(torch.ones(4, 2, 2)); o, h, c
+m = nn.LSTM(2, 3, proj_size=1); [(n, p.shape) for n, p in m.named_parameters()]
+m = nn.LSTM(2, 3); fill(m); m(torch.ones(4, 2, 2), (torch.zeros(1, 2, 3) + 1, torch.zeros(1, 2, 3)))[0]
+m = nn.GRU(2, 3); fill(m); o, h = m(torch.ones(4, 2, 2)); o, h
+m = nn.GRU(2, 3, 2, batch_first=True, bidirectional=True); fill(m); m(torch.ones(4, 2, 2))[1]
+m = nn.GRU(2, 3); fill(m); m(torch.ones(4, 2, 2), torch.ones(1, 2, 3))[1]
+m = nn.RNNCell(2, 3); fill(m); m(torch.ones(1, 2))
+m = nn.RNNCell(2, 3); fill(m); m(torch.ones(2))
+m = nn.RNNCell(2, 3, nonlinearity='relu'); fill(m); m(torch.ones(1, 2), torch.ones(1, 3))
+m = nn.LSTMCell(2, 3); fill(m); m(torch.ones(1, 2))
+m = nn.LSTMCell(2, 3); fill(m); m(torch.ones(2), (torch.ones(3), torch.ones(3)))
+m = nn.GRUCell(2, 3); fill(m); m(torch.ones(1, 2))
+m = nn.MultiheadAttention(4, 2); fill(m); x = torch.arange(24.).view(3, 2, 4) / 10; m(x, x, x)
+m = nn.MultiheadAttention(4, 2, batch_first=True); fill(m); x = torch.arange(24.).view(2, 3, 4) / 10; m(x, x, x, need_weights=False)
+m = nn.MultiheadAttention(4, 2); fill(m); x = torch.arange(12.).view(3, 4) / 10; o, w = m(x, x, x, average_attn_weights=False); o.shape, w.shape
+m = nn.MultiheadAttention(4, 2); fill(m); x = torch.arange(24.).view(3, 2, 4) / 10; m(x, x, x, attn_mask=torch.triu(torch.ones(3, 3, dtype=torch.bool), 1))[1]
+m = nn.MultiheadAttention(4, 2); fill(m); x = torch.arange(24.).view(3, 2, 4) / 10; m(x, x, x, key_padding_mask=torch.tensor([[False, False, True], [False, True, True]]))[1]
+[(n, tuple(p.shape)) for n, p in nn.MultiheadAttention(4, 2).named_parameters()]
+m = nn.TransformerEncoderLayer(4, 2, dim_feedforward=8, dropout=0.0); fill(m); m(torch.arange(24.).view(3, 2, 4) / 10)
+nn.Upsample(scale_factor=2)(torch.arange(4.).view(1, 1, 2, 2))
+nn.Upsample(size=(3, 3))(torch.arange(4.).view(1, 1, 2, 2))
+nn.Upsample(scale_factor=2, mode='bilinear')(torch.arange(4.).view(1, 1, 2, 2))
+nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)(torch.arange(4.).view(1, 1, 2, 2))
+nn.Upsample(scale_factor=2, mode='bicubic')(torch.arange(9.).view(1, 1, 3, 3))
+nn.Upsample(scale_factor=2, mode='linear')(torch.arange(3.).view(1, 1, 3))
+nn.Upsample(scale_factor=2, mode='nearest-exact')(torch.arange(3.).view(1, 1, 3))
+nn.UpsamplingNearest2d(scale_factor=2)(torch.arange(4.).view(1, 1, 2, 2))
+nn.UpsamplingBilinear2d(scale_factor=2)(torch.arange(4.).view(1, 1, 2, 2))
+nn.PixelShuffle(2)(torch.arange(8.).view(1, 4, 1, 2))
+nn.PixelUnshuffle(2)(torch.arange(8.).view(1, 1, 2, 4))
+nn.ZeroPad2d(1)(torch.ones(1, 1, 1, 1))
+nn.ZeroPad2d((1, 0, 0, 1))(torch.ones(1, 1, 1, 1))
+nn.ConstantPad1d(1, 2.)(torch.ones(1, 1, 1))
+nn.ReflectionPad2d(1)(torch.arange(4.).view(1, 1, 2, 2))
+nn.ReplicationPad2d(1)(torch.arange(4.).view(1, 1, 2, 2))
+nn.CircularPad2d(1)(torch.arange(4.).view(1, 1, 2, 2))
+nn.Unfold(2)(torch.arange(9.).view(1, 1, 3, 3))
+nn.Fold((3, 3), 2)(nn.Unfold(2)(torch.arange(9.).view(1, 1, 3, 3)))
+nn.CosineSimilarity(dim=1)(torch.tensor([[1., 0.]]), torch.tensor([[1., 1.]]))
+nn.PairwiseDistance()(torch.tensor([[1., 0.]]), torch.tensor([[1., 1.]]))
+m = nn.Sequential(nn.Linear(2, 2), nn.ReLU(), nn.Linear(2, 1)); fill(m); m(torch.ones(1, 2))
+m = nn.Sequential(nn.Linear(2, 2), nn.ReLU()); fill(m); m[0](torch.ones(1, 2)), len(m), m[-1], m[0:1]
+<<<
+from collections import OrderedDict
+m = nn.Sequential(OrderedDict([('fc', nn.Linear(1, 2)), ('act', nn.ReLU())]))
+m, m.fc, list(m.state_dict().keys())
+>>>
+m = nn.Linear(2, 2); m.in_features, m.out_features, m.weight.shape, m.bias.shape
+m = nn.Conv2d(1, 2, 3); m.in_channels, m.out_channels, m.kernel_size, m.stride, m.padding, m.dilation, m.groups, m.padding_mode, m.transposed, m.output_padding
+m = nn.Conv1d(1, 2, 3); m.kernel_size, m.stride, m.padding
+m = nn.MaxPool2d(2); m.kernel_size, m.stride, m.padding, m.dilation, m.ceil_mode, m.return_indices
+m = nn.BatchNorm1d(2); m.num_features, m.eps, m.momentum, m.affine, m.track_running_stats
+m = nn.LSTM(2, 3, 2); m.input_size, m.hidden_size, m.num_layers, m.batch_first, m.bidirectional, m.dropout, m.bias, m.proj_size
+m = nn.Embedding(3, 2); m.num_embeddings, m.embedding_dim, m.padding_idx, m.max_norm
+m = nn.Dropout(0.3); m.p, m.inplace, m.training
+m = nn.Flatten(); m.start_dim, m.end_dim
+m = nn.Softmax(dim=1); m.dim
+m = nn.LeakyReLU(); m.negative_slope, m.inplace
+
+# ---- Module API
+m = nn.Sequential(nn.Linear(1, 1)); type(m.parameters()).__name__, type(m.named_parameters()).__name__, type(m.children()).__name__, type(m.modules()).__name__, type(m.buffers()).__name__, type(m.named_modules()).__name__, type(m.named_children()).__name__, type(m.named_buffers()).__name__
+m = nn.Linear(1, 1); next(m.parameters()).shape
+len(nn.Linear(1, 1).parameters())
+m = nn.Linear(1, 1); next(m.named_parameters())[0]
+m = nn.Sequential(nn.Linear(1, 1), nn.ReLU()); [type(c).__name__ for c in m.children()], [n for n, c in m.named_children()], [type(c).__name__ for c in m.modules()], [n for n, c in m.named_modules()]
+m = nn.Sequential(nn.Linear(1, 1)); [n for n, p in m.named_parameters()], [n for n, p in m.named_parameters(prefix='x')], [n for n, p in m.named_parameters(recurse=False)], len(list(m.parameters(recurse=False)))
+m = nn.BatchNorm1d(1); [n for n, b in m.named_buffers()], len(list(m.buffers()))
+m = nn.Linear(1, 1); m.training, m.eval().training, m.train().training, m.train(False).training
+m = nn.Linear(1, 1); m.requires_grad_(False).weight.requires_grad
+m = nn.Linear(1, 1); m.zero_grad(); m.weight.grad
+m = nn.Linear(1, 1); m.double().weight.dtype, m.float().weight.dtype, m.to(torch.float64).bias.dtype, m.to('cpu').bias.dtype, m.cpu().bias.dtype
+nn.Linear(1, 1).half().weight.dtype
+m = nn.Linear(1, 1); m.type(torch.float64).weight.dtype
+nn.Linear(1, 1).to(torch.int64)
+nn.Linear(1, 1, dtype=torch.float64).weight.dtype
+nn.Linear(1, 1, device='cpu').weight.device
+m = nn.Linear(1, 1); m.get_parameter('weight').shape
+m = nn.Sequential(nn.Linear(1, 1)); m.get_submodule('0')
+m = nn.Sequential(nn.Linear(1, 1)); m.get_parameter('0.bias').shape
+m = nn.Linear(1, 1); hasattr(m, 'weight'), hasattr(m, 'nothing')
+nn.Linear(1, 1).nothing
+nn.Linear(1, 1)(torch.ones(1), torch.ones(1))
+m = nn.Linear(1, 1); m.foo = 3; m.foo
+m = nn.Linear(1, 1); isinstance(m, nn.Module), isinstance(m, nn.Linear), isinstance(m, nn.Conv2d), type(m).__name__, m.__class__.__name__
+m = nn.Linear(1, 1); str(m), repr(m)
+m = nn.BatchNorm1d(2); sd = m.state_dict(); list(sd.keys()), type(sd).__name__, sd['num_batches_tracked'], sd['running_mean'], sd['weight'].requires_grad
+m = nn.Linear(1, 1); sd = m.state_dict(); sd['weight'].requires_grad, sd['weight'] is m.weight
+m = nn.Linear(1, 1); fill(m); m.state_dict()
+m = nn.Sequential(nn.Linear(1, 1), nn.BatchNorm1d(1)); list(m.state_dict().keys())
+m = nn.LSTM(1, 1); list(m.state_dict().keys())
+m = nn.Linear(1, 1); m2 = nn.Linear(1, 1); m2.load_state_dict(m.state_dict())
+m = nn.Linear(1, 1); m.load_state_dict({})
+m = nn.Linear(1, 1); sd = m.state_dict(); sd['x'] = torch.zeros(1); m.load_state_dict(sd)
+m = nn.Linear(1, 1); m.load_state_dict(nn.Linear(2, 1).state_dict())
+m = nn.Linear(1, 1); r = m.load_state_dict({'weight': torch.zeros(1, 1), 'x': torch.zeros(1)}, strict=False); r, r.missing_keys, r.unexpected_keys
+m = nn.Linear(1, 1); m.load_state_dict(3)
+<<<
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(1, 1)
+        self.register_buffer('count', torch.tensor(0))
+        self.register_buffer('scratch', torch.zeros(1), persistent=False)
+        self.register_parameter('gain', nn.Parameter(torch.ones(1)))
+        self.register_buffer('none', None)
+        self.add_module('extra', nn.ReLU())
+        self.register_module('other', nn.Tanh())
+    def forward(self, x):
+        self.count = self.count + 1
+        return self.fc(x) * self.gain
+n = Net()
+n(torch.zeros(1))
+print(n.count, list(n.state_dict().keys()))
+print([k for k, _ in n.named_buffers()], [k for k, _ in n.named_parameters()], [k for k, _ in n.named_modules()], [k for k, _ in n.named_children()])
+n
+>>>
+<<<
+class Net(nn.Module):
+    def forward(self, x):
+        return x
+class Bad(nn.Module):
+    def __init__(self):
+        self.fc = nn.Linear(1, 1)
+print(Net())
+Bad()
+>>>
+<<<
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+print(Net()(torch.zeros(1)))
+>>>
+<<<
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Linear(1, 1)
+    def forward(self, x):
+        return self.fc(x)
+m = Net()
+print(isinstance(m, nn.Module), m.training, sum(p.numel() for p in m.parameters()))
+print(m.fc, m.fc.weight.requires_grad, [type(c).__name__ for c in m.children()])
+m.fc = nn.Linear(1, 2)
+print(m.fc.out_features, list(m.state_dict().keys()))
+del m.fc
+print(list(m.state_dict().keys()))
+>>>
+<<<
+m = nn.Linear(2, 2)
+seen = []
+def init(layer):
+    seen.append(type(layer).__name__)
+nn.Sequential(nn.Linear(1, 1), nn.Sequential(nn.ReLU())).apply(init)
+seen
+>>>
+<<<
+m = nn.Linear(1, 1)
+fill(m)
+out = []
+h = m.register_forward_hook(lambda mod, inp, outp: out.append((type(mod).__name__, inp[0].shape, outp.shape)))
+m(torch.ones(1))
+h.remove()
+m(torch.ones(1))
+out
+>>>
+<<<
+m = nn.Linear(1, 1)
+seen = []
+m.register_forward_pre_hook(lambda mod, inp: seen.append(inp[0].shape))
+m(torch.ones(1))
+seen
+>>>
+d = nn.ModuleDict({'a': nn.ReLU()}); d['b'] = nn.Tanh(); len(d), 'a' in d, list(d.keys()), list(d), [type(v).__name__ for v in d.values()], [k for k, v in d.items()], d.pop('a'), len(d)
+l = nn.ModuleList([nn.ReLU()]); l.append(nn.Tanh()); l.extend([nn.Sigmoid()]); l.insert(0, nn.Identity()); len(l), l[-1], l[1:3], type(l[1:3]).__name__
+s = nn.Sequential(nn.ReLU()); s.append(nn.Tanh()); s.add_module('x', nn.Sigmoid()); s, s.x, s[2]
+s = nn.Sequential(nn.ReLU(), nn.Tanh(), nn.Sigmoid()); s[1] = nn.Identity(); del s[0]; s
+p = nn.ParameterList([nn.Parameter(torch.ones(1))]); p.append(nn.Parameter(torch.zeros(2))); len(p), p[1].shape, [x.shape for x in p]
+p = nn.ParameterDict({'a': nn.Parameter(torch.ones(1))}); p['b'] = nn.Parameter(torch.zeros(2)); len(p), p['b'].shape, list(p.keys())
+nn.ModuleList([nn.ReLU()])(torch.zeros(1))
+nn.ModuleDict({})(torch.zeros(1))
+nn.ModuleDict({})['x']
+nn.Sequential()(torch.ones(1))
+nn.Sequential(nn.ReLU())[3]
+nn.Parameter(torch.ones(1)).is_leaf, nn.Parameter(torch.ones(1)).requires_grad, type(nn.Parameter(torch.ones(1))).__name__, isinstance(nn.Parameter(torch.ones(1)), torch.Tensor), isinstance(nn.Parameter(torch.ones(1)), nn.Parameter)
+nn.Parameter(torch.tensor([1, 2]))
+nn.Parameter(torch.tensor([1, 2]), requires_grad=False)
+m = nn.Linear(1, 1); m.weight = nn.Parameter(torch.ones(1, 1)); m.bias = None; m(torch.ones(1)), list(m.state_dict().keys()), m
+m = nn.Linear(1, 1); m.weight = torch.ones(1, 1)
+m = nn.Linear(1, 1); m.weight = 3
+
+# ---- losses
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.MSELoss()(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.MSELoss(reduction='sum')(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.MSELoss(reduction='none')(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); F.mse_loss(X, Y, weight=torch.tensor([1., 2., 3.]))
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.L1Loss()(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.L1Loss(reduction='none')(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.SmoothL1Loss()(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.SmoothL1Loss(beta=0.5, reduction='none')(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.HuberLoss()(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.HuberLoss(delta=0.5, reduction='sum')(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.PoissonNLLLoss()(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.PoissonNLLLoss(log_input=False, full=True)(X, Y)
+X = torch.tensor([1., 2., 3.], requires_grad=True); Y = torch.tensor([1.5, 2., 5.]); nn.GaussianNLLLoss()(X, Y, torch.ones(3))
+X = torch.tensor([.2, .5, .3], requires_grad=True); Y = torch.tensor([.1, .6, .3]); nn.KLDivLoss(reduction='sum')(X.log(), Y)
+X = torch.tensor([.2, .5, .3], requires_grad=True); Y = torch.tensor([.1, .6, .3]); nn.KLDivLoss(reduction='batchmean')(X.log(), Y)
+X = torch.tensor([.2, .5, .3], requires_grad=True); Y = torch.tensor([.1, .6, .3]); nn.KLDivLoss(reduction='sum', log_target=True)(X.log(), Y.log())
+X = torch.tensor([.2, .5, .3], requires_grad=True); Y = torch.tensor([.1, .6, .3]); F.kl_div(X.log(), Y, reduction='none')
+Z = torch.tensor([[2., 1., .1], [.5, 2.5, .2]], requires_grad=True); T = torch.tensor([0, 1]); nn.CrossEntropyLoss()(Z, T)
+Z = torch.tensor([[2., 1., .1], [.5, 2.5, .2]], requires_grad=True); T = torch.tensor([0, 1]); nn.CrossEntropyLoss(reduction='none')(Z, T)
+Z = torch.tensor([[2., 1., .1], [.5, 2.5, .2]], requires_grad=True); T = torch.tensor([0, 1]); nn.CrossEntropyLoss(weight=torch.tensor([1., 2., .5]))(Z, T)
+Z = torch.tensor([[2., 1., .1], [.5, 2.5, .2]], requires_grad=True); T = torch.tensor([0, 1]); nn.CrossEntropyLoss(label_smoothing=0.1)(Z, T)
+Z = torch.tensor([[2., 1., .1], [.5, 2.5, .2]], requires_grad=True); T = torch.tensor([0, 1]); nn.CrossEntropyLoss(ignore_index=0)(Z, T)
+Z = torch.tensor([[2., 1., .1], [.5, 2.5, .2]], requires_grad=True); nn.CrossEntropyLoss()(Z, torch.tensor([[1., 0., 0.], [.5, .5, 0.]]))
+Z = torch.tensor([2., 1., .1], requires_grad=True); nn.CrossEntropyLoss()(Z, torch.tensor(0))
+Z = torch.arange(12.).view(1, 3, 4); nn.CrossEntropyLoss()(Z, torch.tensor([[0, 1, 2, 0]]))
+Z = torch.tensor([[2., 1., .1], [.5, 2.5, .2]], requires_grad=True); T = torch.tensor([0, 1]); nn.NLLLoss()(F.log_softmax(Z, 1), T)
+Z = torch.tensor([[2., 1., .1], [.5, 2.5, .2]], requires_grad=True); T = torch.tensor([0, 1]); F.nll_loss(F.log_softmax(Z, 1), T, weight=torch.tensor([1., 2., .5]), reduction='sum')
+P = torch.tensor([.9, .2, .6], requires_grad=True); Q = torch.tensor([1., 0., 1.]); nn.BCELoss()(P, Q)
+P = torch.tensor([.9, .2, .6], requires_grad=True); Q = torch.tensor([1., 0., 1.]); nn.BCELoss(weight=torch.tensor([1., 2., 3.]), reduction='none')(P, Q)
+P = torch.tensor([.9, -2., .6], requires_grad=True); Q = torch.tensor([1., 0., 1.]); nn.BCEWithLogitsLoss()(P, Q)
+P = torch.tensor([.9, -2., .6], requires_grad=True); Q = torch.tensor([1., 0., 1.]); nn.BCEWithLogitsLoss(pos_weight=torch.tensor([2.]))(P, Q)
+P = torch.tensor([.9, -2., .6], requires_grad=True); Q = torch.tensor([1., 0., 1.]); nn.BCEWithLogitsLoss(weight=torch.tensor([1., 2., 3.]), reduction='sum')(P, Q)
+P = torch.tensor([.9, -2., .6], requires_grad=True); nn.MarginRankingLoss(margin=0.5)(P, torch.tensor([1., 0., 1.]), torch.tensor([1., -1., 1.]))
+P = torch.tensor([.9, -2., .6], requires_grad=True); nn.HingeEmbeddingLoss()(P, torch.tensor([1., -1., 1.]))
+A = torch.tensor([[1., 2.]], requires_grad=True); nn.CosineEmbeddingLoss()(A, torch.tensor([[2., 1.]]), torch.tensor([1]))
+A = torch.tensor([[1., 2.]], requires_grad=True); nn.TripletMarginLoss()(A, torch.tensor([[2., 1.]]), torch.tensor([[0., 0.]]))
+Z = torch.tensor([[2., 1., .1]], requires_grad=True); nn.MultiMarginLoss()(Z, torch.tensor([0]))
+P = torch.tensor([.9, -2.], requires_grad=True); nn.SoftMarginLoss()(P, torch.tensor([1., -1.]))
+Z = torch.tensor([[2., 1., .1]], requires_grad=True); nn.MultiLabelSoftMarginLoss()(Z, torch.tensor([[1., 0., 1.]]))
+Z = torch.tensor([[2., 1., .1]], requires_grad=True); nn.MultiLabelMarginLoss()(Z, torch.tensor([[0, -1, 2]]))
+nn.CrossEntropyLoss(reduction='x')
+nn.CrossEntropyLoss(reduction='x')(torch.ones(1, 2), torch.tensor([0]))
+nn.MSELoss(reduction='x')(torch.ones(1), torch.ones(1))
+nn.BCELoss()(torch.tensor([1.5]), torch.tensor([1.]))
+nn.BCELoss()(torch.tensor([.5]), torch.tensor([1., 0.]))
+nn.BCEWithLogitsLoss()(torch.tensor([.5]), torch.tensor([1., 0.]))
+nn.CrossEntropyLoss()(torch.ones(2, 3), torch.tensor([0, 1, 2]))
+nn.CrossEntropyLoss()(torch.ones(2, 3), torch.tensor([0, 5]))
+nn.CrossEntropyLoss()(torch.ones(2, 3), torch.tensor([0., 1.]))
+nn.CrossEntropyLoss()(torch.ones(2, 3), torch.tensor([0, 1], dtype=torch.int32))
+nn.NLLLoss()(torch.ones(2, 3), torch.tensor([0., 1.]))
+nn.MSELoss()(torch.ones(2, 3), torch.ones(3))
+nn.MSELoss()(torch.ones(2), torch.ones(3))
+nn.MSELoss()(torch.ones(2), torch.ones(2, dtype=torch.int64))
+nn.L1Loss()(torch.ones(2), torch.ones(3))
+F.cross_entropy(torch.ones(2, 3), torch.tensor([0, 1]), label_smoothing=2.0)
+F.cross_entropy(torch.ones(2, 3), torch.tensor([0, 1]), weight=torch.ones(2))
+F.one_hot(torch.tensor([3]), 2)
+F.one_hot(torch.tensor([-1]))
+F.one_hot(torch.tensor([1.]))
+F.one_hot(torch.tensor([0, 2]))
+F.one_hot(torch.tensor([[0], [2]]), num_classes=4)
+
+# ---- functional
+F.relu(torch.tensor([-1., 2.]))
+F.relu(torch.tensor([-1, 2]))
+F.sigmoid(torch.tensor([0.]))
+F.tanh(torch.tensor([0.]))
+F.softmax(torch.tensor([1., 2.]), dim=0)
+F.softmax(torch.tensor([1., 2.]))
+F.softmax(torch.tensor([1, 2]), dim=0, dtype=torch.float64)
+F.log_softmax(torch.tensor([1., 2.]), dim=0)
+F.softmin(torch.tensor([1., 2.]), dim=0)
+F.gumbel_softmax if False else 0
+F.normalize(torch.tensor([[3., 4.]]))
+F.normalize(torch.tensor([[3., 4.]]), p=1.0, dim=1)
+F.normalize(torch.zeros(1, 2))
+F.cosine_similarity(torch.tensor([[1., 0.]]), torch.tensor([[1., 1.]]))
+F.cosine_similarity(torch.zeros(1, 2), torch.ones(1, 2))
+F.pairwise_distance(torch.tensor([[1., 0.]]), torch.tensor([[1., 1.]]))
+F.pdist(torch.tensor([[0., 0.], [3., 4.]]))
+F.pad(torch.tensor([1., 2.]), (1, 2))
+F.pad(torch.tensor([1., 2.]), (1, 2), value=9.)
+F.pad(torch.arange(4.).view(1, 1, 2, 2), (1, 1, 1, 1), mode='reflect')
+F.pad(torch.arange(4.).view(1, 1, 2, 2), (1, 1, 1, 1), mode='replicate')
+F.pad(torch.arange(4.).view(1, 1, 2, 2), (1, 1, 1, 1), mode='circular')
+F.pad(torch.tensor([[1., 2.]]), (-1, 1))
+F.pad(torch.tensor([1., 2.], requires_grad=True), (1, 2))
+F.pad(torch.ones(2), (1,))
+F.pad(torch.ones(2), (1, 1, 1, 1))
+F.pad(torch.ones(1, 1, 2, 2), (5, 5, 0, 0), mode='reflect')
+F.pad(torch.ones(1, 1, 2, 2), (5, 5, 0, 0), mode='circular')
+F.pad(torch.ones(2), (1, 1), mode='x')
+F.interpolate(torch.arange(4.).view(1, 1, 2, 2), scale_factor=2)
+F.interpolate(torch.arange(4.).view(1, 1, 2, 2), size=3)
+F.interpolate(torch.arange(4.).view(1, 1, 2, 2), size=(3, 4), mode='bilinear')
+F.interpolate(torch.arange(4.).view(1, 1, 2, 2), size=(3, 4), mode='bilinear', align_corners=True)
+F.interpolate(torch.arange(9.).view(1, 1, 3, 3), scale_factor=2, mode='bicubic')
+F.interpolate(torch.arange(9.).view(1, 1, 3, 3), size=(4, 5), mode='bicubic', align_corners=True)
+F.interpolate(torch.arange(9.).view(1, 1, 3, 3), size=(2, 2), mode='area')
+F.interpolate(torch.arange(3.).view(1, 1, 3), scale_factor=2, mode='linear')
+F.interpolate(torch.arange(8.).view(1, 1, 2, 2, 2), scale_factor=2, mode='trilinear')
+F.interpolate(torch.arange(4.).view(1, 1, 2, 2), scale_factor=1.5)
+F.interpolate(torch.arange(4.).view(1, 1, 2, 2))
+F.interpolate(torch.arange(4.).view(1, 1, 2, 2), size=2, scale_factor=2)
+F.interpolate(torch.arange(4.).view(1, 1, 2, 2), size=2, align_corners=True)
+F.interpolate(torch.arange(4.).view(1, 1, 2, 2), size=2, mode='trilinear')
+F.interpolate(torch.arange(4.).view(1, 1, 2, 2), size=2, mode='x')
+F.interpolate(torch.ones(2), size=2)
+F.adaptive_avg_pool2d(torch.arange(16.).view(1, 1, 4, 4), 2)
+F.adaptive_max_pool2d(torch.arange(16.).view(1, 1, 4, 4), 2)
+F.adaptive_avg_pool1d(torch.tensor([[[1., 2., 3.]]]), 2)
+F.max_pool2d(torch.arange(16.).view(1, 1, 4, 4), 2)
+F.max_pool2d(torch.arange(16.).view(1, 1, 4, 4), 2, return_indices=True)
+F.avg_pool2d(torch.arange(16.).view(1, 1, 4, 4), 2)
+F.max_pool1d(torch.tensor([[[1., 2., 3.]]]), 2)
+F.avg_pool1d(torch.tensor([[[1., 2., 3.]]]), 2)
+F.linear(torch.ones(1, 2), torch.ones(3, 2))
+F.linear(torch.ones(1, 2), torch.ones(3, 2), torch.ones(3))
+F.bilinear(torch.ones(1, 2), torch.ones(1, 3), torch.ones(1, 2, 3))
+F.conv1d(torch.arange(6.).view(1, 1, 6), torch.tensor([[[1., 0., -1.]]]))
+F.conv2d(torch.arange(9.).view(1, 1, 3, 3), torch.ones(1, 1, 2, 2))
+F.conv2d(torch.arange(9.).view(1, 1, 3, 3), torch.ones(1, 1, 2, 2), padding='same')
+F.conv2d(torch.arange(9.).view(1, 1, 3, 3), torch.ones(1, 1, 2, 2), stride=2, padding=1, dilation=1, groups=1)
+F.conv3d(torch.arange(8.).view(1, 1, 2, 2, 2), torch.ones(1, 1, 2, 2, 2))
+F.conv_transpose1d(torch.arange(3.).view(1, 1, 3), torch.ones(1, 1, 2))
+F.conv_transpose2d(torch.arange(4.).view(1, 1, 2, 2), torch.ones(1, 1, 2, 2))
+F.dropout(torch.ones(2), training=False)
+F.dropout(torch.ones(2), p=0.0)
+F.dropout(torch.ones(2), p=2.0)
+F.embedding(torch.tensor([1]), torch.arange(4.).view(2, 2))
+F.unfold(torch.arange(9.).view(1, 1, 3, 3), 2)
+F.fold(torch.arange(4.).view(1, 1, 4), (3, 3), 2) if False else F.fold(torch.ones(1, 4, 4), (3, 3), 2)
+F.pixel_shuffle(torch.arange(4.).view(1, 4, 1, 1), 2)
+F.grid_sample(torch.arange(4.).view(1, 1, 2, 2), torch.zeros(1, 1, 1, 2), align_corners=True)
+F.affine_grid(torch.tensor([[[1., 0., 0.], [0., 1., 0.]]]), (1, 1, 2, 2), align_corners=True)
+F.scaled_dot_product_attention(torch.ones(1, 2, 2), torch.ones(1, 2, 2), torch.ones(1, 2, 2))
+F.threshold(torch.tensor([-1., 2.]), 0.5, 9.)
+F.glu(torch.tensor([1., 2.]))
+F.hardsigmoid(torch.tensor([0.]))
+F.hardswish(torch.tensor([0.]))
+F.celu(torch.tensor([-1.]))
+F.rrelu(torch.tensor([1.]), training=False)
+F.tanhshrink(torch.tensor([1.]))
+F.softshrink(torch.tensor([1.]))
+F.hardshrink(torch.tensor([1.]))
+
+# ---- nn.init (fixed values only)
+nn.init.zeros_(torch.ones(2))
+nn.init.ones_(torch.zeros(2))
+nn.init.constant_(torch.zeros(2), 3.)
+nn.init.eye_(torch.zeros(2, 3))
+nn.init.dirac_(torch.zeros(1, 1, 3))
+nn.init.uniform_(torch.zeros(2), 3., 3.)
+nn.init.normal_(torch.zeros(2), 3., 0.)
+nn.init.trunc_normal_(torch.zeros(2), 0., 0., -1., 1.)
+nn.init.calculate_gain('relu'), nn.init.calculate_gain('tanh'), nn.init.calculate_gain('linear'), nn.init.calculate_gain('sigmoid'), nn.init.calculate_gain('leaky_relu'), nn.init.calculate_gain('leaky_relu', 0.2), nn.init.calculate_gain('selu'), nn.init.calculate_gain('conv2d')
+nn.init.calculate_gain('x')
+nn.init.xavier_uniform_(torch.zeros(3))
+nn.init.kaiming_normal_(torch.zeros(2, 2), mode='x')
+m = nn.Linear(1, 1); nn.init.zeros_(m.weight); m.weight, m.weight.requires_grad, m.weight.is_leaf
+nn.init.orthogonal_(torch.zeros(2, 2)).shape
+nn.init.sparse_(torch.zeros(2, 2), 0.5).shape
+
+# ---- optimisers: values and repr
+P = nn.Parameter(torch.ones(1)); torch.optim.SGD([P], lr=0.1)
+P = nn.Parameter(torch.ones(1)); torch.optim.SGD([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.SGD([P], lr=0.1, momentum=0.9, dampening=0.1, weight_decay=0.01, maximize=True)
+P = nn.Parameter(torch.ones(1)); torch.optim.Adam([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.Adam([P], lr=0.01, betas=(0.8, 0.9), eps=1e-6, weight_decay=0.1, amsgrad=True)
+P = nn.Parameter(torch.ones(1)); torch.optim.AdamW([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.RMSprop([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.Adagrad([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.Adadelta([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.Adamax([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.NAdam([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.RAdam([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.ASGD([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.Rprop([P])
+P = nn.Parameter(torch.ones(1)); torch.optim.LBFGS([P])
+A = nn.Parameter(torch.ones(1)); B = nn.Parameter(torch.ones(1)); torch.optim.SGD([{'params': [A]}, {'params': [B], 'lr': 0.5}], lr=0.1)
+P = nn.Parameter(torch.ones(1)); o = torch.optim.SGD([P], lr=0.1); sorted(o.param_groups[0].keys()), o.defaults, len(o.state), o.state_dict()
+P = nn.Parameter(torch.ones(1)); o = torch.optim.Adam([P]); (P ** 2).sum().backward(); o.step(); o.state_dict()
+P = nn.Parameter(torch.ones(1)); o = torch.optim.SGD([P], lr=0.1, momentum=0.9); (P ** 2).sum().backward(); o.step(); o.state_dict()
+P = nn.Parameter(torch.ones(1)); o = torch.optim.SGD([P], lr=0.1); (P ** 2).sum().backward(); o.step(); o.state_dict()
+P = nn.Parameter(torch.ones(1)); o = torch.optim.Adam([P]); (P ** 2).sum().backward(); o.step(); list(o.state[P].keys()), o.state[P]['step']
+torch.optim.SGD([], lr=0.1)
+torch.optim.SGD(torch.ones(1), lr=0.1)
+torch.optim.SGD([nn.Parameter(torch.ones(1))], lr=-1)
+torch.optim.SGD([nn.Parameter(torch.ones(1))], lr=0.1, momentum=-1)
+torch.optim.SGD([nn.Parameter(torch.ones(1))], lr=0.1, nesterov=True)
+torch.optim.SGD([nn.Parameter(torch.ones(1))], lr=0.1, weight_decay=-1)
+torch.optim.Adam([nn.Parameter(torch.ones(1))], betas=(1.0, 0.9))
+torch.optim.Adam([nn.Parameter(torch.ones(1))], eps=-1)
+torch.optim.RMSprop([nn.Parameter(torch.ones(1))], alpha=-1)
+torch.optim.Adagrad([nn.Parameter(torch.ones(1))], lr_decay=-1)
+x = torch.ones(1, requires_grad=True); torch.optim.SGD([x * 2], lr=0.1)
+x = nn.Parameter(torch.ones(1)); torch.optim.SGD([x, x], lr=0.1)
+x = nn.Parameter(torch.ones(1)); o = torch.optim.SGD([x], lr=0.1); o.add_param_group({'params': x})
+torch.optim.SGD([1], lr=0.1)
+torch.optim.Adam([nn.Parameter(torch.ones(1))], wibble=1)
+<<<
+T0 = torch.tensor([1., -2., .5], dtype=torch.float64)
+def run(make, n=6):
+    w = torch.tensor([.3, .7, -.4], dtype=torch.float64, requires_grad=True)
+    opt = make([w])
+    for k in range(n):
+        opt.zero_grad()
+        loss = ((w - T0) ** 4).sum() / 4 + (w ** 2).sum()
+        loss.backward()
+        opt.step()
+    return w.tolist()
+for make in [
+    lambda p: torch.optim.SGD(p, lr=0.1),
+    lambda p: torch.optim.SGD(p, lr=0.1, momentum=0.9),
+    lambda p: torch.optim.SGD(p, lr=0.1, momentum=0.9, dampening=0.5),
+    lambda p: torch.optim.SGD(p, lr=0.1, momentum=0.9, nesterov=True),
+    lambda p: torch.optim.SGD(p, lr=0.1, weight_decay=0.1),
+    lambda p: torch.optim.SGD(p, lr=0.01, maximize=True),
+    lambda p: torch.optim.Adam(p),
+    lambda p: torch.optim.Adam(p, lr=0.1, betas=(0.8, 0.9), eps=1e-6),
+    lambda p: torch.optim.Adam(p, lr=0.1, weight_decay=0.1),
+    lambda p: torch.optim.Adam(p, lr=0.1, amsgrad=True),
+    lambda p: torch.optim.Adam(p, lr=0.1, maximize=True),
+    lambda p: torch.optim.AdamW(p),
+    lambda p: torch.optim.AdamW(p, lr=0.1, weight_decay=0.5),
+    lambda p: torch.optim.AdamW(p, lr=0.1, amsgrad=True),
+    lambda p: torch.optim.RMSprop(p),
+    lambda p: torch.optim.RMSprop(p, lr=0.1, alpha=0.9, weight_decay=0.1),
+    lambda p: torch.optim.RMSprop(p, lr=0.1, momentum=0.9),
+    lambda p: torch.optim.RMSprop(p, lr=0.1, centered=True),
+    lambda p: torch.optim.Adagrad(p),
+    lambda p: torch.optim.Adagrad(p, lr=0.1, lr_decay=0.1),
+    lambda p: torch.optim.Adagrad(p, lr=0.1, initial_accumulator_value=0.5, weight_decay=0.1),
+    lambda p: torch.optim.Adadelta(p),
+    lambda p: torch.optim.Adamax(p),
+    lambda p: torch.optim.NAdam(p),
+    lambda p: torch.optim.RAdam(p),
+    lambda p: torch.optim.ASGD(p),
+    lambda p: torch.optim.Rprop(p),
+]:
+    print(run(make))
+>>>
+<<<
+w = nn.Parameter(torch.tensor([1., 2.]))
+o = torch.optim.LBFGS([w], lr=0.5, max_iter=4)
+def closure():
+    o.zero_grad()
+    l = ((w - 3) ** 2).sum()
+    l.backward()
+    return l
+print(o.step(closure), w)
+>>>
+<<<
+w = nn.Parameter(torch.tensor([1., 2.]))
+o = torch.optim.Adam([w], lr=0.1)
+for k in range(3):
+    o.zero_grad()
+    (w ** 2).sum().backward()
+    o.step()
+print(w)
+print(o.state_dict()['param_groups'][0]['params'], o.state_dict()['state'][0]['step'])
+print(o.state_dict()['state'][0]['exp_avg'], o.state_dict()['state'][0]['exp_avg_sq'])
+>>>
+<<<
+c = nn.Parameter(torch.tensor(2.))
+o = torch.optim.SGD([c], lr=0.1)
+def closure():
+    o.zero_grad()
+    l = c ** 2
+    l.backward()
+    return l
+print(o.step(closure), c)
+print(o.step())
+>>>
+<<<
+a = nn.Parameter(torch.tensor(1.))
+b = nn.Parameter(torch.tensor(1.))
+o = torch.optim.SGD([{'params': [a]}, {'params': [b], 'lr': 0.5}], lr=0.1, momentum=0.5)
+(a + b).backward()
+o.step()
+print(a, b, o.param_groups[1]['lr'], o.param_groups[1]['momentum'])
+o.param_groups[0]['lr'] = 1.0
+o.zero_grad()
+print(a.grad, o)
+>>>
+<<<
+w = nn.Parameter(torch.ones(1))
+o = torch.optim.SGD([w], lr=0.1)
+w.backward(torch.ones(1))
+o.zero_grad(set_to_none=False)
+print(w.grad)
+o.zero_grad()
+print(w.grad)
+>>>
+
+# ---- schedulers
+<<<
+from torch.optim.lr_scheduler import StepLR, MultiStepLR, ExponentialLR, CosineAnnealingLR, LambdaLR, ReduceLROnPlateau, LinearLR, ConstantLR, PolynomialLR, CosineAnnealingWarmRestarts, OneCycleLR, CyclicLR, MultiplicativeLR, SequentialLR, ChainedScheduler
+def lrs(make, n=8):
+    p = nn.Parameter(torch.zeros(1))
+    opt = torch.optim.SGD([p], lr=0.1)
+    sch = make(opt)
+    out = sch.get_last_lr()
+    for e in range(n):
+        opt.step()
+        sch.step()
+        out += sch.get_last_lr()
+    return out, type(sch).__name__, getattr(sch, 'last_epoch', None)
+for make in [
+    lambda o: StepLR(o, step_size=2),
+    lambda o: StepLR(o, 3, gamma=0.5),
+    lambda o: MultiStepLR(o, milestones=[2, 5], gamma=0.5),
+    lambda o: MultiStepLR(o, [2, 2, 5]),
+    lambda o: ExponentialLR(o, gamma=0.9),
+    lambda o: CosineAnnealingLR(o, T_max=4),
+    lambda o: CosineAnnealingLR(o, 3, eta_min=0.01),
+    lambda o: LambdaLR(o, lambda e: 0.5 ** e),
+    lambda o: MultiplicativeLR(o, lambda e: 0.5),
+    lambda o: LinearLR(o),
+    lambda o: LinearLR(o, start_factor=0.5, end_factor=0.25, total_iters=3),
+    lambda o: ConstantLR(o),
+    lambda o: ConstantLR(o, factor=0.5, total_iters=2),
+    lambda o: PolynomialLR(o, total_iters=4, power=2.0),
+    lambda o: CosineAnnealingWarmRestarts(o, T_0=3),
+    lambda o: CosineAnnealingWarmRestarts(o, T_0=2, T_mult=2, eta_min=0.01),
+    lambda o: OneCycleLR(o, max_lr=1.0, total_steps=9),
+    lambda o: CyclicLR(o, base_lr=0.01, max_lr=0.1, step_size_up=2, cycle_momentum=False),
+    lambda o: SequentialLR(o, [ConstantLR(o, 0.5, 2), ExponentialLR(o, 0.9)], milestones=[2]),
+    lambda o: ChainedScheduler([ConstantLR(o, 0.5, 2), ExponentialLR(o, 0.9)]),
+]:
+    print(lrs(make))
+>>>
+<<<
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+def lrs(metrics, **kw):
+    p = nn.Parameter(torch.zeros(1))
+    opt = torch.optim.SGD([p], lr=0.1)
+    sch = ReduceLROnPlateau(opt, **kw)
+    out = []
+    for m in metrics:
+        sch.step(m)
+        out += sch.get_last_lr()
+    return out, sch.best, sch.num_bad_epochs, sch.last_epoch
+M = [1., .9, .9, .9, .9, .8, .8, .8, .8, .8, .8]
+print(lrs(M, patience=2))
+print(lrs(M, factor=0.5, patience=1, cooldown=2))
+print(lrs([.1, .2, .2, .2, .3, .3, .3], mode='max', factor=0.5, patience=1))
+print(lrs(M, factor=0.5, patience=0, threshold=0.2, threshold_mode='abs'))
+print(lrs(M, factor=0.1, patience=0, min_lr=0.05))
+>>>
+<<<
+from torch.optim.lr_scheduler import StepLR
+p = nn.Parameter(torch.zeros(1))
+opt = torch.optim.Adam([p], lr=0.1)
+s = StepLR(opt, step_size=1, gamma=0.5)
+print(s.last_epoch, s.base_lrs, s.get_last_lr(), opt.param_groups[0]['initial_lr'], s.optimizer is opt)
+opt.step()
+s.step()
+print(s.state_dict())
+print(opt)
+opt.param_groups[0]['lr'] = 0.3
+opt.step()
+s.step()
+print(opt.param_groups[0]['lr'], s.base_lrs)
+s2 = StepLR(opt, step_size=1, gamma=0.5, last_epoch=4)
+print(s2.last_epoch, s2.get_last_lr())
+>>>
+torch.optim.lr_scheduler.StepLR(nn.Linear(1, 1), 1)
+p = nn.Parameter(torch.zeros(1)); torch.optim.lr_scheduler.StepLR(torch.optim.SGD([p], lr=0.1), 1, last_epoch=3)
+p = nn.Parameter(torch.zeros(1)); torch.optim.lr_scheduler.ReduceLROnPlateau(torch.optim.SGD([p], lr=0.1), factor=1.0)
+p = nn.Parameter(torch.zeros(1)); torch.optim.lr_scheduler.ReduceLROnPlateau(torch.optim.SGD([p], lr=0.1), mode='x')
+p = nn.Parameter(torch.zeros(1)); torch.optim.lr_scheduler.ReduceLROnPlateau(torch.optim.SGD([p], lr=0.1), threshold_mode='x')
+
+# ---- Dataset, DataLoader, collate
+from torch.utils.data import TensorDataset; ds = TensorDataset(torch.arange(4.), torch.arange(4)); len(ds), ds[1], ds[1:3], len(ds.tensors), ds.tensors[1], type(ds).__name__
+from torch.utils.data import TensorDataset; TensorDataset(torch.zeros(2), torch.zeros(3))
+from torch.utils.data import TensorDataset, DataLoader; [b for b in DataLoader(TensorDataset(torch.arange(5.), torch.arange(5)), batch_size=2)]
+from torch.utils.data import TensorDataset, DataLoader; [b for b in DataLoader(TensorDataset(torch.arange(5.)), batch_size=2, drop_last=True)]
+from torch.utils.data import TensorDataset, DataLoader; l = DataLoader(TensorDataset(torch.arange(5.)), batch_size=2); len(l), l.batch_size, l.drop_last, l.num_workers, type(l.dataset).__name__, type(l).__name__
+from torch.utils.data import TensorDataset, DataLoader; len(DataLoader(TensorDataset(torch.arange(5.)), batch_size=2, drop_last=True))
+from torch.utils.data import TensorDataset, DataLoader; [b for b in DataLoader(TensorDataset(torch.arange(3.)), batch_size=None)]
+from torch.utils.data import TensorDataset, DataLoader; [b for b in DataLoader(TensorDataset(torch.arange(4.)), batch_sampler=[[0, 1], [3]])]
+from torch.utils.data import TensorDataset, DataLoader; [b for b in DataLoader(TensorDataset(torch.arange(4.)), batch_size=2, sampler=[3, 1, 0])]
+from torch.utils.data import TensorDataset, DataLoader; len(DataLoader(TensorDataset(torch.arange(4.)), batch_size=2, sampler=[3, 1, 0]))
+from torch.utils.data import TensorDataset, DataLoader; [b for b in DataLoader(TensorDataset(torch.arange(3.)), batch_size=2, collate_fn=lambda s: len(s))]
+from torch.utils.data import TensorDataset, DataLoader; it = iter(DataLoader(TensorDataset(torch.arange(3.)), batch_size=2)); next(it), next(it)
+from torch.utils.data import TensorDataset, DataLoader; it = iter(DataLoader(TensorDataset(torch.arange(3.)), batch_size=2)); next(it); next(it); next(it)
+from torch.utils.data import DataLoader; [b for b in DataLoader([1, 2, 3], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([1.5, 2.5], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([True, False], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader(['a', 'b', 'c'], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([('a', 1), ('b', 2)], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([{'x': 1, 'y': 'p'}, {'x': 2, 'y': 'q'}], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([[1, 2], [3, 4]], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([(1, (2., 'a')), (3, (4., 'b'))], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([torch.ones(2), torch.zeros(2)], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([torch.ones(2), torch.zeros(3)], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([np.ones(2), np.zeros(2)], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([None, None], batch_size=2)]
+from torch.utils.data import DataLoader; [b for b in DataLoader([[1, 2], [3]], batch_size=2)]
+from torch.utils.data import DataLoader; DataLoader([1], batch_size=0)
+from torch.utils.data import DataLoader; DataLoader([1], shuffle=True, sampler=[0])
+from torch.utils.data import DataLoader; DataLoader([1], batch_size=2, batch_sampler=[[0]])
+from torch.utils.data import DataLoader; DataLoader([1], wibble=1)
+from torch.utils.data import DataLoader; DataLoader(batch_size=1)
+from torch.utils.data import default_collate; default_collate([(1, 'a'), (2, 'b')])
+from torch.utils.data import default_collate; default_collate([1, 2]), default_collate(['a', 'b']), default_collate([1.5, 2.5]), default_collate([torch.ones(1), torch.zeros(1)])
+from torch.utils.data.dataloader import default_collate; default_collate([{'a': 1}, {'a': 2}])
+from torch.utils.data import Subset, TensorDataset; s = Subset(TensorDataset(torch.arange(4.)), [3, 1]); len(s), s[0], s[-1], s.indices, type(s.dataset).__name__
+from torch.utils.data import Subset, TensorDataset; s = Subset(TensorDataset(torch.arange(4.)), [3, 1]); s[[0, 1]]
+from torch.utils.data import Subset; s = Subset([10, 20, 30], [2, 0]); s[0], s[1]
+from torch.utils.data import ConcatDataset, TensorDataset; c = ConcatDataset([TensorDataset(torch.arange(2.)), TensorDataset(torch.arange(3.))]); len(c), c[1], c[2], c[-1], c.cumulative_sizes
+from torch.utils.data import TensorDataset; c = TensorDataset(torch.arange(2.)) + TensorDataset(torch.arange(1.)); type(c).__name__, len(c), c[2]
+from torch.utils.data import StackDataset, TensorDataset; s = StackDataset(torch.arange(2.), torch.arange(2)); len(s), s[1]
+from torch.utils.data import StackDataset; s = StackDataset(a=torch.arange(2.), b=torch.arange(2)); s[1]
+from torch.utils.data import random_split, TensorDataset; a, b = random_split(TensorDataset(torch.arange(5.)), [3, 2]); len(a), len(b), type(a).__name__
+from torch.utils.data import random_split, TensorDataset; [len(x) for x in random_split(TensorDataset(torch.arange(10.)), [0.5, 0.3, 0.2])]
+from torch.utils.data import random_split, TensorDataset; [len(x) for x in random_split(TensorDataset(torch.arange(5.)), [0.5, 0.5])]
+from torch.utils.data import random_split, TensorDataset; random_split(TensorDataset(torch.arange(3.)), [1, 1])
+from torch.utils.data import SequentialSampler; s = SequentialSampler([1, 2, 3]); list(s), len(s), type(s).__name__
+from torch.utils.data import RandomSampler; s = RandomSampler([1, 2, 3]); sorted(list(s)), len(s)
+from torch.utils.data import RandomSampler; s = RandomSampler([1, 2, 3], replacement=True, num_samples=5); len(list(s)), len(s)
+from torch.utils.data import SubsetRandomSampler; s = SubsetRandomSampler([4, 1]); sorted(list(s)), len(s)
+from torch.utils.data import WeightedRandomSampler; s = WeightedRandomSampler([0., 1., 0.], 4); list(s), len(s)
+from torch.utils.data import BatchSampler, SequentialSampler; s = BatchSampler(SequentialSampler([1, 2, 3]), 2, False); list(s), len(s)
+from torch.utils.data import BatchSampler, SequentialSampler; s = BatchSampler(SequentialSampler([1, 2, 3]), 2, True); list(s), len(s)
+<<<
+from torch.utils.data import Dataset, DataLoader
+class D(Dataset):
+    def __init__(self):
+        self.n = 3
+    def __len__(self):
+        return self.n
+    def __getitem__(self, i):
+        return torch.tensor([float(i)]), i, float(i) / 2, 'abc'[i], {'k': i}, (i, i + 1)
+d = D()
+print(len(d), d[1], isinstance(d, Dataset))
+for b in DataLoader(d, batch_size=2):
+    print(b)
+>>>
+<<<
+from torch.utils.data import Dataset
+class D(Dataset):
+    pass
+D()[0]
+>>>
+<<<
+from torch.utils.data import Dataset, DataLoader
+class D(Dataset):
+    def __getitem__(self, i):
+        return i
+len(DataLoader(D(), batch_size=2))
+>>>
+<<<
+from torch.utils.data import IterableDataset, DataLoader
+class Stream(IterableDataset):
+    def __iter__(self):
+        return iter([1, 2, 3])
+print([b for b in DataLoader(Stream(), batch_size=2)])
+print([b for b in DataLoader(Stream(), batch_size=None)])
+>>>
+<<<
+from torch.utils.data import Dataset, DataLoader
+class D(Dataset):
+    def __len__(self):
+        return 2
+    def __getitem__(self, i):
+        return {'x': torch.tensor([i]), 'y': 'p'}
+for b in DataLoader(D(), batch_size=2):
+    print(b)
+print(next(iter(DataLoader(D(), batch_size=1))))
+>>>
+
+# ---- save and load (nothing printed by save)
+torch.save(torch.ones(1), 'a.pt'); torch.load('a.pt')
+torch.save({'x': torch.ones(1), 'n': 3}, 'a.pt'); torch.load('a.pt')
+torch.save([1, 2], 'a.pt'); torch.load('a.pt', weights_only=True)
+torch.load('missing.pt')
+m = nn.Linear(1, 1); fill(m); torch.save(m.state_dict(), 'a.pt'); m2 = nn.Linear(1, 1); m2.load_state_dict(torch.load('a.pt')); m2.weight, m2.bias
+m = nn.Linear(1, 1); fill(m); torch.save(m.state_dict(), 'a.pt'); s = m.weight.clone(); m.weight.data.add_(1); m.load_state_dict(torch.load('a.pt')); torch.equal(m.weight, s)
+m = nn.Linear(1, 1); fill(m); torch.save(m, 'a.pt'); torch.load('a.pt', weights_only=False)
+m = nn.Linear(1, 1); torch.save(m, 'a.pt'); torch.load('a.pt')
+x = torch.ones(1, requires_grad=True); torch.save(x, 'a.pt'); y = torch.load('a.pt'); y, y.requires_grad
+P = nn.Parameter(torch.ones(1)); o = torch.optim.SGD([P], lr=0.1, momentum=0.5); (P * 2).sum().backward(); o.step(); torch.save(o.state_dict(), 'a.pt'); o2 = torch.optim.SGD([P], lr=0.3, momentum=0.5); o2.load_state_dict(torch.load('a.pt')); o2.param_groups[0]['lr'], o2.state_dict()
+
+# ---- torch.linalg, torch.svd
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.inv(A), torch.linalg.det(A), torch.det(A), torch.inverse(A), torch.trace(A)
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.solve(A, torch.tensor([1., 2.]))
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.solve(A, torch.tensor([[1., 2.], [3., 4.]]))
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.solve(A, torch.tensor([[1., 2.], [3., 4.]]), left=False)
+A = torch.tensor([[1., 2.], [3., 4.]]); torch.linalg.det(A), torch.linalg.inv(A)
+A = torch.tensor([[1., 2.], [2., 4.]]); torch.linalg.det(A), torch.det(A)
+torch.linalg.inv(torch.tensor([[1., 2.], [2., 4.]]))
+torch.linalg.solve(torch.tensor([[1., 2.], [2., 4.]]), torch.ones(2))
+torch.linalg.inv(torch.ones(2, 3))
+torch.linalg.inv(torch.tensor([[1, 2], [3, 4]]))
+torch.linalg.det(torch.ones(2, 3))
+torch.linalg.solve(torch.eye(2), torch.ones(3))
+torch.linalg.solve(torch.eye(2), torch.ones(2, dtype=torch.float64))
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.matrix_power(A, 2), torch.linalg.matrix_power(A, 0), torch.linalg.matrix_power(A, -1), torch.matrix_power(A, 2)
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.multi_dot([A, A]), torch.linalg.matrix_rank(A), torch.linalg.matrix_rank(torch.ones(2, 2))
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.slogdet(A), torch.slogdet(A), torch.logdet(A)
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.cholesky(A), torch.cholesky(A) if False else 0
+torch.linalg.cholesky(torch.tensor([[1., 2.], [2., 1.]]))
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.eigvalsh(A), torch.linalg.eigh(A)
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.eigvals(A), torch.linalg.eig(A)
+A = torch.tensor([[0., 1.], [-1., 0.]]); torch.linalg.eigvals(A)
+A = torch.tensor([[1., 2.], [3., 4.], [5., 6.]]); torch.linalg.svdvals(A)
+A = torch.tensor([[1., 2.], [3., 4.], [5., 6.]]); U, S, Vh = torch.linalg.svd(A, full_matrices=False); U.shape, S, Vh.shape, (U @ torch.diag(S) @ Vh).round(decimals=3)
+A = torch.tensor([[1., 2.], [3., 4.], [5., 6.]]); U, S, Vh = torch.linalg.svd(A); U.shape, S.shape, Vh.shape
+A = torch.tensor([[1., 2.], [3., 4.], [5., 6.]]); U, S, V = torch.svd(A); U.shape, S, V.shape
+A = torch.tensor([[1., 2.], [3., 4.], [5., 6.]]); torch.linalg.pinv(A).round(decimals=3), torch.pinverse(A).round(decimals=3)
+A = torch.tensor([[1., 2.], [3., 4.], [5., 6.]]); Q, R = torch.linalg.qr(A); Q.shape, R.shape, R.abs().round(decimals=3), (Q @ R).round(decimals=3)
+A = torch.tensor([[1., 2.], [3., 4.], [5., 6.]]); Q, R = torch.linalg.qr(A, mode='complete'); Q.shape, R.shape
+A = torch.tensor([[1., 2.], [3., 4.], [5., 6.]]); torch.linalg.lstsq(A, torch.tensor([[1.], [2.], [3.]])).solution.round(decimals=3)
+A = torch.tensor([[1., 2.], [3., 4.]]); torch.linalg.cond(A), torch.linalg.cond(A, 'fro'), torch.linalg.cond(A, 1)
+A = torch.tensor([[1., 2.], [3., 4.]]); torch.linalg.norm(A), torch.linalg.norm(A, 'fro'), torch.linalg.norm(A, 'nuc'), torch.linalg.norm(A, 2), torch.linalg.norm(A, -2), torch.linalg.norm(A, 1), torch.linalg.norm(A, float('inf'))
+A = torch.tensor([[1., 2.], [3., 4.]]); torch.linalg.matrix_norm(A), torch.linalg.matrix_norm(A, 'nuc'), torch.linalg.matrix_norm(A, 2), torch.linalg.vector_norm(A), torch.linalg.vector_norm(A, 1, dim=0), torch.linalg.vector_norm(A, float('inf')), torch.linalg.vector_norm(A, 3, dim=1, keepdim=True)
+A = torch.tensor([[1., 2.], [3., 4.]]); torch.norm(A, 'nuc'), torch.norm(A, 'fro'), torch.norm(A, 1), torch.norm(A, 2, dim=1), torch.norm(A, float('inf')), torch.norm(A, p=1, dim=(0, 1))
+torch.linalg.norm(torch.ones(2, 2, 2), ord=1)
+torch.linalg.norm(torch.tensor([1, 2]))
+torch.linalg.norm(torch.ones(2), ord='fro')
+torch.linalg.norm(torch.ones(2, 2), ord=3)
+torch.linalg.vector_norm(torch.ones(2), 'fro')
+torch.linalg.cross(torch.tensor([1., 0., 0.]), torch.tensor([0., 1., 0.]))
+torch.linalg.diagonal(torch.arange(4.).view(2, 2))
+torch.linalg.vecdot(torch.tensor([1., 2.]), torch.tensor([3., 4.]))
+torch.linalg.tensorinv(torch.eye(4).view(2, 2, 2, 2), 2)
+torch.linalg.lu_factor(torch.tensor([[1., 2.], [3., 4.]]))
+torch.linalg.lu(torch.tensor([[1., 2.], [3., 4.]]))
+torch.linalg.matrix_exp(torch.zeros(2, 2))
+torch.lu(torch.tensor([[1., 2.], [3., 4.]]))[1]
+torch.matrix_exp(torch.zeros(2, 2))
+torch.mv(torch.eye(2), torch.ones(2)), torch.mm(torch.eye(2), torch.eye(2)), torch.bmm(torch.ones(1, 2, 2), torch.ones(1, 2, 2)), torch.dot(torch.ones(2), torch.ones(2)), torch.vdot(torch.ones(2), torch.ones(2)), torch.ger(torch.ones(1), torch.ones(2)), torch.outer(torch.ones(1), torch.ones(2)), torch.inner(torch.ones(2), torch.ones(2))
+x = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.linalg.inv(x)
+x = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.linalg.det(x)
+x = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.linalg.solve(x, torch.ones(2))
+x = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.trace(x)
+x = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.linalg.det(x).backward(); x.grad
+x = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.linalg.inv(x).sum().backward(); x.grad
+x = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.linalg.eigvalsh(x).sum().backward(); x.grad
+x = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.linalg.svdvals(x).sum().backward(); x.grad
+x = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.linalg.norm(x, 'nuc').backward(); x.grad
+
+# ---- einsum
+torch.einsum('ij,jk->ik', torch.arange(6.).view(2, 3), torch.arange(6.).view(3, 2))
+torch.einsum('ij,jk', torch.arange(6.).view(2, 3), torch.arange(6.).view(3, 2))
+torch.einsum('ii', torch.arange(4.).view(2, 2))
+torch.einsum('ii->i', torch.arange(4.).view(2, 2))
+torch.einsum('ij->ji', torch.arange(6.).view(2, 3))
+torch.einsum('ij->i', torch.arange(6.).view(2, 3))
+torch.einsum('ij->', torch.arange(6.).view(2, 3))
+torch.einsum('i,i->', torch.tensor([1., 2.]), torch.tensor([3., 4.]))
+torch.einsum('i,j->ij', torch.tensor([1., 2.]), torch.tensor([3., 4., 5.]))
+torch.einsum('...ij->...ji', torch.arange(6.).view(1, 2, 3))
+torch.einsum('...i,...i->...', torch.ones(2, 3), torch.ones(2, 3))
+torch.einsum('bij,bjk->bik', torch.ones(2, 2, 3), torch.ones(2, 3, 2))
+torch.einsum('i,ij,j->', torch.ones(2), torch.ones(2, 3), torch.ones(3))
+torch.einsum('ij,ij->i', torch.arange(6.).view(2, 3), torch.arange(6.).view(2, 3))
+torch.einsum('ij', [torch.ones(1, 2)]) if False else torch.einsum('ij', torch.ones(1, 2))
+x = torch.tensor([1., 2.], requires_grad=True); torch.einsum('i,i->', x, x)
+x = torch.tensor([1., 2.], requires_grad=True); torch.einsum('i,i->', x, x).backward(); x.grad
+x = torch.arange(4., requires_grad=True).view(2, 2); torch.einsum('ii', x).backward()
+x = torch.tensor([[1., 2.], [3., 4.]], requires_grad=True); torch.einsum('ij,jk->ik', x, x).sum().backward(); x.grad
+torch.einsum('ij,jk->ik', torch.ones(2, 3), torch.ones(2, 3))
+torch.einsum('ij', torch.ones(2))
+torch.einsum('i,j', torch.ones(2))
+torch.einsum('i->j', torch.ones(2))
+torch.einsum('ij,jk->ik', torch.ones(2, 3, dtype=torch.int64), torch.ones(3, 2))
+torch.einsum('i,i->', torch.tensor([1, 2]), torch.tensor([3, 4]))
+
+# ---- errors for the usual mistakes
+torch.ones(2, 3) + torch.ones(4, 3)
+torch.ones(2, 3) @ torch.ones(2, 3)
+torch.ones(3) @ torch.ones(2)
+torch.ones(2, 3) @ torch.ones(2)
+torch.ones(2) @ torch.ones(3, 2)
+torch.tensor(1.) @ torch.tensor(1.)
+torch.ones(1, 2, 3) @ torch.ones(1, 2, 3)
+torch.ones(2, 3).view(7)
+torch.ones(2, 3).view(-1, -1)
+torch.ones(2, 3).reshape(4, 2)
+torch.ones(2, 3).t().view(6)
+torch.ones(2, 3, 4).t()
+torch.ones(2, 3).permute(0)
+torch.ones(2, 3).permute(0, 0)
+torch.ones(2, 3).transpose(0, 2)
+torch.ones(2, 3).squeeze(5)
+torch.ones(2, 3).unsqueeze(5)
+torch.ones(2, 3).sum(5)
+torch.ones(2, 3).mean(5)
+torch.ones(2, 3).max(5)
+torch.ones(2, 3).argmax(5)
+torch.ones(2, 3)[5]
+torch.ones(2, 3)[0, 5]
+torch.ones(2, 3)[0, 0, 0]
+torch.ones(2, 3)[1.5]
+torch.ones(2, 3)[torch.tensor([1.])]
+torch.tensor([1, 2]).mean()
+torch.tensor([1, 2]).std()
+torch.tensor([True]).mean()
+torch.ones(2).item()
+torch.ones(2, 2).tolist()
+len(torch.tensor(1.))
+list(torch.tensor(1.))
+float(torch.ones(2))
+int(torch.ones(2))
+bool(torch.ones(2))
+bool(torch.zeros(0))
+if_ = 1 if torch.ones(2) else 0
+list(range(torch.ones(2)))
+list(range(torch.tensor(1.5)))
+[1, 2][torch.tensor(1.)]
+[1, 2][torch.ones(2, dtype=torch.int64)]
+int(torch.tensor(2.5)), float(torch.tensor(2)), bool(torch.tensor(0.)), abs(torch.tensor(-1.)), abs(torch.tensor([-1, 2])), round(torch.tensor(1.5)), -torch.tensor(1.), ~torch.tensor(True), pow(torch.tensor(2.), 3)
+torch.tensor('a')
+torch.tensor([1, 'a'])
+torch.tensor([[1, 2], [3]])
+torch.tensor([[1, 2], 3])
+torch.tensor()
+torch.tensor(None)
+torch.zeros(-1)
+torch.zeros('a')
+torch.ones(2.5)
+torch.arange(0, 1, 0)
+torch.arange(1, 0)
+torch.linspace(0, 1)
+torch.eye(-1)
+torch.full((2,), 'a')
+torch.rand(2, dtype=torch.int64)
+torch.randn(2, dtype=torch.int64)
+torch.randint(5, 2, (1,))
+torch.randint(5)
+torch.randperm(-1)
+torch.cat([torch.ones(2), torch.ones(2, 2)])
+torch.cat([torch.ones(2, 3), torch.ones(3, 3)], dim=1)
+torch.cat([torch.ones(2), torch.ones(2)], dim=5)
+torch.cat(torch.ones(2))
+torch.cat([])
+torch.stack([torch.ones(2), torch.ones(3)])
+torch.stack([])
+torch.ones(2, requires_grad=True).sum().backward().sum() if False else 0
+x = torch.tensor(1., requires_grad=True); y = x * 2; y.backward(); y.backward()
+x = torch.tensor(1., requires_grad=True); y = x * 2; y.backward(retain_graph=True); y.backward(); x.grad
+x = torch.ones(2, requires_grad=True); (x * 2).backward()
+torch.ones(1).backward()
+x = torch.ones(2, requires_grad=True); (x * 2).backward(torch.ones(3))
+x = torch.ones(2, requires_grad=True); (x * 2).backward(torch.ones(2)); x.grad
+x = torch.ones(2, requires_grad=True); (x * 2).sum().backward(); x.grad
+w = torch.ones(2, requires_grad=True); w += 1
+w = torch.ones(2, requires_grad=True); w.add_(1)
+w = torch.ones(2, requires_grad=True); w[0] = 1
+w = torch.ones(2, requires_grad=True); w[0].add_(1)
+w = torch.ones(2, requires_grad=True); w.zero_()
+w = torch.ones(2, requires_grad=True); w.view(2, 1).add_(1)
+w = torch.ones(2, requires_grad=True); y = w * 2; y[0].mul_(3); y.sum().backward(); w.grad
+w = torch.ones(2, requires_grad=True); y = w * 2; z = y.view(2, 1); z.add_(1); y, z
+w = torch.ones(2, requires_grad=True); y = w * 2; z = y[0]; z.mul_(3); y
+w = torch.ones(2, requires_grad=True); y = w * 2; y[0] = 5; y.sum().backward(); w.grad, y
+w = torch.ones(2, requires_grad=True); y = w * 2; y *= 3; y.sum().backward(); w.grad, y
+w = torch.ones(2, requires_grad=True); y = w ** 2; z = y * y; y.add_(1); z.sum().backward()
+w = torch.ones(2, requires_grad=True); y = w * 2; y.add_(1); y.sum().backward(); w.grad, y
+torch.tensor([1, 2], requires_grad=True)
+x = torch.tensor([1, 2]); x.requires_grad = True
+x = torch.tensor([1, 2]); x.requires_grad_()
+x = torch.ones(1, requires_grad=True); y = x * 2; y.requires_grad = False
+x = torch.ones(1, requires_grad=True); y = x * 2; y.grad
+x = torch.ones(2, requires_grad=True); x.numpy()
+np.array(torch.ones(2, requires_grad=True))
+x = torch.ones(1, requires_grad=True); float(x), x.item(), int(x)
+x = torch.ones(1, requires_grad=True); x.detach().numpy(), x.numpy(force=True)
+torch.tensor([1, 2]) + torch.tensor(['a']) if False else 0
+torch.tensor([1, 2]) / 0
+torch.tensor([1, 2]) // 0
+torch.tensor([1, 2]) % 0
+torch.tensor([1., 2.]) / 0
+torch.tensor([1, 2]) + 'a'
+torch.tensor([1, 2]) + None
+torch.tensor([1, 2]) + [1, 2]
+[1, 2] + torch.tensor([1, 2])
+torch.tensor([1., 2.]) + np.array([1., 2.])
+np.array([1., 2.]) + torch.tensor([1., 2.])
+torch.tensor([1, 2]) & torch.tensor([1., 2.])
+torch.tensor([1., 2.]) & torch.tensor([1., 2.])
+torch.tensor([1., 2.]) | 1
+~torch.tensor([1., 2.])
+-torch.tensor([True])
+x = torch.tensor([1, 2]); x /= 2
+x = torch.tensor([1, 2]); x.div_(2)
+x = torch.tensor([1, 2]); x.sqrt_()
+x = torch.tensor([1, 2]); x.add_(0.5)
+x = torch.tensor([1, 2]); x += 0.5
+x = torch.ones(1); x += torch.ones(3)
+x = torch.ones(2); x[0:1] = torch.ones(3)
+x = torch.ones(2); x[0] = 'a'
+x = torch.ones(2); x.copy_(torch.ones(3))
+torch.ones(2).fill_(torch.ones(2))
+torch.ones(2).masked_fill(torch.tensor([1, 0]), 0.)
+torch.ones(2).masked_fill(torch.ones(3, dtype=torch.bool), 0.)
+torch.ones(2).masked_select(torch.tensor([1, 0]))
+torch.ones(2, 3).expand(4, 3)
+torch.ones(2, 3).expand(3)
+torch.ones(3).expand(-1, 3)
+torch.ones(2, 3).repeat(2)
+torch.ones(3).narrow(0, 2, 5)
+torch.ones(3).split([1, 1])
+torch.ones(3).split(-1)
+torch.ones(3).chunk(0)
+torch.tensor(1.).split(1)
+torch.ones(3).topk(5)
+torch.ones(2, 2).gather(1, torch.tensor([[0.]]))
+torch.ones(2, 2).gather(1, torch.tensor([0]))
+torch.ones(2, 2).gather(1, torch.tensor([[5]]))
+torch.ones(2, 2).gather(1, torch.zeros(3, 1, dtype=torch.int64))
+torch.ones(2).index_select(0, torch.tensor([5]))
+torch.ones(2).index_select(0, torch.tensor([[0]]))
+torch.tensor([-1]).bincount()
+torch.tensor([1.]).bincount()
+torch.ones(2, 2, dtype=torch.int64).bincount()
+torch.tensor([1.]).cumsum()
+torch.ones(2, 2).flip(0, 0)
+torch.ones(2, 2).flip(5)
+torch.ones(2, 2).roll((1, 1), 0)
+torch.ones(2, 2, 2).trace()
+torch.ones(2, 2, 2).diag()
+torch.ones(2).tril()
+torch.outer(torch.ones(2, 2), torch.ones(2))
+torch.inner(torch.ones(2), torch.ones(3))
+torch.dot(torch.ones(2, 2), torch.ones(2, 2))
+torch.dot(torch.ones(2), torch.ones(3))
+torch.tensor([1, 2]) @ torch.tensor([1., 2.])
+torch.matmul(torch.ones(2, 2, dtype=torch.int64), torch.ones(2, 2))
+torch.mm(torch.ones(2), torch.ones(2))
+torch.mv(torch.ones(2, 2), torch.ones(3))
+torch.bmm(torch.ones(2, 2), torch.ones(2, 2))
+torch.clamp(torch.ones(1))
+torch.lerp(torch.tensor([1]), torch.tensor([2]), 0.5)
+torch.ones(2).normal_(0., -1.)
+torch.tensor([1]).normal_()
+torch.tensor([1]).uniform_()
+torch.meshgrid(torch.ones(2, 2))
+torch.meshgrid(torch.ones(2), indexing='x')
+torch.allclose(torch.ones(1), torch.ones(1, dtype=torch.float64))
+torch.ones(2).softmax()
+torch.argmax(torch.zeros(0))
+torch.max(torch.zeros(0))
+torch.min(torch.zeros(0))
+torch.median(torch.zeros(0))
+torch.ones(2).sum(dtype='x')
+torch.ones(2).to('x')
+torch.ones(2).type('x')
+torch.ones(2).cuda()
+torch.ones(2).to('cuda')
+torch.ones(2, device='cuda')
+torch.device('x')
+torch.cuda.current_device()
+y = torch.tensor(1.); torch.autograd.grad(y, y)
+x = torch.tensor(1., requires_grad=True); u = torch.tensor(1., requires_grad=True); torch.autograd.grad(x * 2, u)
+x = torch.tensor(1., requires_grad=True); u = torch.tensor(1., requires_grad=True); torch.autograd.grad(x * 2, [x, u], allow_unused=True)
+x = torch.ones(2, requires_grad=True); torch.autograd.grad(x * 2, x)
+x = torch.ones(2, requires_grad=True); torch.autograd.grad(x * 2, x, torch.ones(2))
+x = torch.tensor(2., requires_grad=True); y = x ** 2; torch.autograd.grad(y, x), x.grad
+x = torch.tensor(2., requires_grad=True); y = x ** 2; torch.autograd.grad(y, x); torch.autograd.grad(y, x)
+nn.Linear(6272, 128)(torch.zeros(1, 12544))
+nn.Linear(2, 2)(torch.zeros(1, 3))
+nn.Linear(2, 2)(torch.zeros(3))
+nn.Linear(2, 1)(torch.tensor([[1, 2]]))
+nn.Linear(2, 1)(torch.ones(1, 2, dtype=torch.float64))
+nn.Linear(2, 1)(3)
+nn.Linear(2, 1)(np.ones(2))
+nn.Linear(2, 1)()
+nn.Linear(2)
+nn.Linear(2, 1, wibble=1)
+nn.Linear('a', 1)
+nn.Linear(-1, 1)
+nn.Conv2d(1, 8, 3)(torch.zeros(1, 3, 8, 8))
+nn.Conv2d(1, 1, 1)(torch.ones(1, 1, 2, 2, dtype=torch.float64))
+nn.Conv2d(1, 1, 1, bias=False)(torch.ones(1, 1, 2, 2, dtype=torch.float64))
+nn.Conv2d(1, 1, 1)(torch.ones(1, 1, 2, 2, dtype=torch.uint8))
+nn.Conv2d(1, 1, 1)(torch.ones(1, 1, 2, 2, dtype=torch.int64))
+nn.Conv2d(1, 2, 1)(torch.ones(2, 2))
+nn.Conv2d(1, 2, 3)(torch.ones(1, 1, 2, 2))
+nn.Conv1d(1, 2, 3)(torch.zeros(1, 2, 8))
+nn.Conv1d(1, 2, 3)(torch.zeros(1, 1, 2))
+nn.Conv1d(1, 2, 3)(torch.zeros(2))
+nn.Conv2d(2, 4, 1, groups=2)(torch.zeros(1, 3, 2, 2))
+nn.Conv2d(3, 3, 1, groups=2)
+nn.Conv2d(3, 3, 1, groups=0)
+nn.Conv2d(1, 1, 3, stride=2, padding='same')
+nn.Conv2d(1, 1)
+nn.ConvTranspose2d(1, 2, 2)(torch.zeros(1, 3, 2, 2))
+nn.ConvTranspose2d(1, 1, 3, padding_mode='reflect')
+nn.MaxPool2d(2)(torch.ones(2))
+nn.MaxPool2d(5)(torch.ones(1, 1, 2, 2))
+nn.MaxPool2d(2, padding=2)(torch.ones(1, 1, 4, 4))
+nn.MaxPool2d(2)(torch.ones(1, 1, 4, 4, dtype=torch.int64))
+nn.AvgPool2d(5)(torch.ones(1, 1, 2, 2))
+nn.AvgPool2d(2)(torch.ones(1, 1, 2, 2, dtype=torch.int64))
+nn.MaxPool1d(2)(torch.ones(2))
+nn.AdaptiveAvgPool2d(1)(torch.ones(2))
+nn.BatchNorm2d(2)(torch.zeros(2, 2))
+nn.BatchNorm1d(2)(torch.zeros(2))
+nn.BatchNorm1d(2)(torch.zeros(1, 2))
+nn.BatchNorm1d(2)(torch.zeros(2, 3))
+nn.BatchNorm1d(2).eval()(torch.zeros(2, 3))
+nn.BatchNorm1d(2, track_running_stats=False)(torch.zeros(2, 3))
+nn.BatchNorm1d(2)(torch.ones(2, 2, dtype=torch.float64))
+nn.BatchNorm1d(2)(torch.ones(2, 2, dtype=torch.int64))
+nn.LayerNorm(3)(torch.zeros(2, 4))
+nn.LayerNorm(3)(torch.ones(1, 3, dtype=torch.float64))
+nn.GroupNorm(3, 4)
+nn.GroupNorm(2, 4)(torch.ones(1, 3))
+nn.Dropout(2.0)
+nn.Dropout2d(2.0)
+nn.Embedding(2, 2)(torch.tensor([5]))
+nn.Embedding(2, 2)(torch.tensor([.5]))
+nn.Embedding(2, 2, padding_idx=5)
+nn.LSTM(3, 4)(torch.zeros(3))
+nn.GRU(3, 4)(torch.zeros(2, 1, 5))
+nn.RNN(3, 4)(torch.zeros(2, 1, 3), torch.zeros(1, 2, 4))
+nn.LSTM(3, 4)(torch.zeros(2, 1, 3), (torch.zeros(2, 1, 4), torch.zeros(1, 1, 4)))
+nn.LSTM(3, 4)(torch.zeros(2, 1, 3), torch.zeros(1, 1, 4))
+nn.RNN(3, 4)(torch.zeros(2, 1, 3, dtype=torch.float64))
+nn.RNN(3, 4)(torch.zeros(2, 1, 3, dtype=torch.int64))
+nn.LSTM(3, 4)(torch.zeros(2, 1, 3, dtype=torch.float64))
+nn.RNN(3, 4, nonlinearity='x')
+nn.RNN(3, 4)(torch.zeros(2, 3), torch.zeros(1, 1, 4))
+nn.RNN(3, 4)(torch.zeros(2, 1, 3), torch.zeros(1, 4))
+nn.RNNCell(3, 4)(torch.zeros(1, 2))
+nn.LSTM(3, 4, proj_size=4)
+nn.LSTM(3, 4, proj_size=-1)
+nn.LSTM(3, 4, dropout=2.0)
+nn.MultiheadAttention(5, 2)
+nn.MultiheadAttention(4, 2)(torch.zeros(1, 1, 3), torch.zeros(1, 1, 3), torch.zeros(1, 1, 3))
+nn.Upsample(scale_factor=2)(torch.ones(2))
+nn.Upsample(scale_factor=2, mode='bilinear')(torch.ones(1, 1, 2))
+nn.ZeroPad2d((1, 2))
+nn.Unflatten(1, (2, 2))(torch.ones(1, 3))
+nn.Softmax(dim=5)(torch.ones(2))
+nn.Flatten(5)(torch.ones(2))
+torch.utils.data.DataLoader([1], batch_size=-1)
+torch.nn.functional.relu(3)
+torch.sum(3)
+torch.sum([1, 2])
+torch.mean(torch.tensor([1, 2]))
+torch.abs(3)
+torch.sqrt(4.)
+torch.exp(1)
+torch.sin('a')
+torch.max(3)
+torch.max(torch.ones(2), 'a')
+torch.add(torch.ones(1))
+torch.add(1, 2)
+torch.mul(torch.ones(1), 'a')
+torch.ones(1).add('a')
+torch.ones(1).add()
+torch.ones(1).view()
+torch.ones(1).view('a')
+torch.ones(1).reshape()
+torch.ones(1).nothing
+torch.nothing
+nn.Nothing
+F.nothing
+torch.optim.Nothing
+torch.ones(2).sum(wibble=1)
+torch.ones(2).sum(0, 1, 2)
+torch.sort(torch.ones(1), wibble=1)
+torch.zeros(2, wibble=1)
+torch.tensor([1.], wibble=1)
+torch.ones(2).topk()
+torch.ones(2).gather()
+
+# ---- generators, indexing with tensors
+next(nn.Linear(1, 1).parameters()).shape
+list(range(torch.tensor(3)))
+[10, 20][torch.tensor(1)]
+'abc'[torch.tensor(1)]
+[10, 20, 30][torch.tensor(1):]
+(10, 20)[torch.tensor(0)]
+np.arange(3)[torch.tensor(1)]
+torch.zeros(torch.tensor(2))
+torch.zeros(2)[torch.tensor(1)]
+torch.arange(4)[torch.tensor([1, 2])]
+torch.arange(4)[torch.tensor([True, False, True, False])]
+torch.arange(4)[torch.tensor(1):]
+torch.arange(4)[torch.tensor(1.):]
+f'{torch.tensor(1.5)}', f'{torch.tensor(2)}', f'{torch.tensor(True)}', f'{torch.tensor([1.5])}', '{}'.format(torch.tensor(1.5)), str(torch.tensor(1.5)), '%s' % torch.tensor(1.5), '%.2f' % torch.tensor(1.5), '%d' % torch.tensor(2)
+f'{torch.tensor([1., 2.]):.2f}'
+f'{torch.tensor(1.5):>8.2f}', f'{torch.tensor(5):d}', f'{torch.tensor(5):03d}', f'{torch.tensor(1.5):e}', f'{torch.tensor([1.5]):.2f}'
+torch.tensor(1.5).__repr__(), torch.tensor(1.5).__str__(), torch.tensor(1.5).__float__(), torch.tensor(1).__int__(), torch.tensor(1).__index__(), torch.tensor(1.).__bool__(), torch.ones(2).__len__()
+
+# ---- more elementwise
+X = torch.tensor([-1.5, -0.5, 0., 0.5, 1.5]); torch.asinh(X), torch.arcsinh(X), torch.arctan(X), torch.deg2rad(X), torch.rad2deg(X), torch.sinc(X), torch.sgn(X), torch.fix(X)
+X = torch.tensor([.1, .5, .9]); torch.acosh(X + 1), torch.arccosh(X + 1), torch.atanh(X), torch.arctanh(X), torch.arcsin(X), torch.arccos(X), torch.logit(X), torch.logit(X, eps=.2), torch.erfinv(X)
+X = torch.tensor([.5, 1., 2.5, 10.]); torch.lgamma(X), torch.digamma(X), torch.i0(X), torch.polygamma(1, X), torch.mvlgamma(X + 1, 2)
+torch.signbit(torch.tensor([-1., 0., 1., -0.])), torch.positive(torch.tensor([1.])), torch.nan_to_num(torch.tensor([float('nan'), float('inf'), -float('inf'), 1.])), torch.nan_to_num(torch.tensor([float('nan'), float('inf')]), nan=1., posinf=2.)
+torch.hypot(torch.tensor([3.]), torch.tensor([4.])), torch.logaddexp(torch.tensor([1.]), torch.tensor([2.])), torch.logaddexp2(torch.tensor([1.]), torch.tensor([2.])), torch.copysign(torch.tensor([1., -2.]), torch.tensor([-1., 1.])), torch.copysign(torch.tensor([1., -2.]), -1.)
+torch.xlogy(torch.tensor([0., 2.]), torch.tensor([3., 4.])), torch.xlogy(2., torch.tensor([3., 4.])), torch.fmax(torch.tensor([1., float('nan')]), torch.tensor([2., 3.])), torch.fmin(torch.tensor([1., float('nan')]), torch.tensor([2., 3.]))
+torch.gcd(torch.tensor([12, 7]), torch.tensor([18, 3])), torch.lcm(torch.tensor([4, 3]), torch.tensor([6, 5])), torch.heaviside(torch.tensor([-1., 0., 1.]), torch.tensor(.5)), torch.float_power(torch.tensor([2.]), 3), torch.ldexp(torch.tensor([1.]), torch.tensor([3]))
+torch.bitwise_and(torch.tensor([6]), torch.tensor([3])), torch.bitwise_or(torch.tensor([6]), torch.tensor([3])), torch.bitwise_xor(torch.tensor([6]), torch.tensor([3])), torch.bitwise_not(torch.tensor([6])), torch.bitwise_left_shift(torch.tensor([1]), torch.tensor([3])), torch.bitwise_right_shift(torch.tensor([8]), torch.tensor([1]))
+torch.bitwise_and(torch.tensor([1.]), torch.tensor([1.]))
+torch.bitwise_not(torch.tensor([1.]))
+torch.gcd(torch.tensor([1.]), torch.tensor([1.]))
+torch.addcmul(torch.ones(2), torch.tensor([2., 3.]), torch.tensor([4., 5.]), value=.5), torch.addcdiv(torch.ones(2), torch.tensor([2., 3.]), torch.tensor([4., 5.]))
+torch.addcdiv(torch.ones(1), torch.tensor([2]), torch.tensor([4]))
+torch.isin(torch.tensor([1, 2, 3]), torch.tensor([2, 5])), torch.isin(torch.tensor([1, 2, 3]), torch.tensor([2, 5]), invert=True), torch.isin(torch.tensor([1, 2]), 2)
+torch.is_nonzero(torch.tensor(1)), torch.is_same_size(torch.ones(1), torch.ones(2)), torch.is_complex(torch.ones(1)), torch.ones(1).is_signed(), torch.ones(1, dtype=torch.uint8).is_signed()
+torch.is_nonzero(torch.ones(2))
+torch.ones(2, 3).stride(), torch.ones(2, 3).stride(0), torch.ones(2, 3)[1:].storage_offset(), torch.ones(2).is_shared(), torch.ones(2).share_memory_().is_shared()
+torch.nextafter(torch.tensor([1.]), torch.tensor([2.])) > 1, torch.frexp(torch.tensor([4., 0.5])), torch.conj(torch.tensor([1.])), torch.isreal(torch.tensor([1.])), torch.angle(torch.tensor([-1., 1.])), torch.real(torch.tensor([1.]))
+torch.imag(torch.tensor([1.]))
+torch.igamma(torch.tensor([1.]), torch.tensor([2.])), torch.igammac(torch.tensor([1.]), torch.tensor([2.])), torch.special.gammainc(torch.tensor([1.]), torch.tensor([2.])), torch.special.gammaincc(torch.tensor([1.]), torch.tensor([2.])), torch.special.zeta(torch.tensor([2.]), torch.tensor([1.]))
+x = torch.tensor([.5, 1.5], requires_grad=True); torch.lgamma(x).sum().backward(); x.grad
+x = torch.tensor([.5, 1.5], requires_grad=True); torch.digamma(x).sum().backward(); x.grad
+x = torch.tensor([.1, .5], requires_grad=True); torch.erfinv(x).sum().backward(); x.grad
+x = torch.tensor([.5, 1.5], requires_grad=True); torch.asinh(x), torch.acosh(x + 1), torch.deg2rad(x), torch.rad2deg(x), torch.sinc(x), torch.sgn(x), torch.lgamma(x), torch.digamma(x), torch.i0(x)
+x = torch.tensor([.1, .5], requires_grad=True); torch.logit(x), torch.erfinv(x), torch.nan_to_num(x), torch.hypot(x, x), torch.logaddexp(x, x), torch.logaddexp2(x, x), torch.copysign(x, x), torch.copysign(x, 1.), torch.xlogy(x, x), torch.fmax(x, x), torch.fmin(x, x), torch.heaviside(x, x), torch.float_power(x, 2), torch.ldexp(x, torch.tensor([1, 1]))
+x = torch.tensor([.1, .5], requires_grad=True); torch.addcmul(x, x, x), torch.addcdiv(x, x, x), torch.nansum(x), torch.nanmean(x), torch.logsumexp(x, 0), torch.cummax(x, 0).values, torch.cummin(x, 0).values, torch.logcumsumexp(x, 0), torch.quantile(x, .5), torch.nanquantile(x, .5), torch.nanmedian(x), torch.diff(x), torch.aminmax(x).min, torch.dist(x, x), torch.vdot(x, x), torch.msort(x), torch.trapezoid(x), torch.cov(x.view(1, 2).expand(2, 2)), torch.corrcoef(torch.stack([x, x * x]))
+x = torch.tensor([[.1, .5], [.3, .2]], requires_grad=True); torch.rot90(x), torch.rot90(x, 2), torch.rot90(x, 3), torch.diag_embed(x), torch.diagflat(x), torch.kron(x, x), torch.tensor_split(x, 2)[0], torch.hsplit(x, 2)[0], torch.vsplit(x, 2)[0], x.reshape_as(x), x.select(0, 1), x.unfold(0, 1, 1), torch.adjoint(x), torch.tensordot(x, x), torch.cdist(x, x), torch.renorm(x, 2, 0, 1.), torch.index_add(x, 0, torch.tensor([0]), x[:1]), torch.index_copy(x, 0, torch.tensor([0]), x[:1]), torch.scatter_reduce(x, 0, torch.tensor([[0, 0]]), x[:1], 'sum'), torch.masked_scatter(x, x > .2, x), torch.index_put(x, (torch.tensor([0]),), x[:1])
+
+# ---- more reductions
+X = torch.tensor([1., float('nan'), 3.]); torch.nansum(X), torch.nanmean(X), torch.nanmedian(X), torch.nanmedian(X, 0), X.nanquantile(.5)
+X = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); torch.nansum(X, 0), torch.nansum(X, 1, keepdim=True), torch.nanmean(X, 1), torch.logsumexp(X, 0), torch.logsumexp(X, (0, 1)), torch.logsumexp(X, 1, keepdim=True)
+X = torch.tensor([[1., 2., 3.], [4., 5., 6.]]); torch.aminmax(X), torch.aminmax(X, dim=0), torch.aminmax(X, dim=1, keepdim=True), torch.aminmax(X, keepdim=True)
+torch.aminmax(torch.zeros(0))
+torch.nanmean(torch.tensor([1, 2]))
+X = torch.tensor([1., 2., 3., 4.]); X.quantile(.5), X.quantile(torch.tensor([.25, .75])), X.quantile(.4, interpolation='lower'), X.quantile(.4, interpolation='higher'), X.quantile(.4, interpolation='midpoint'), X.quantile(.4, interpolation='nearest'), torch.quantile(X, .5, keepdim=True)
+X = torch.tensor([[1., 2.], [3., 4.]]); X.quantile(.5), X.quantile(.5, dim=0), X.quantile(.5, dim=1, keepdim=True), X.quantile(torch.tensor([.1, .9]), dim=0), X.quantile(.5, keepdim=True)
+torch.tensor([1., 2.]).quantile(2.)
+torch.tensor([1, 2]).quantile(.5)
+torch.tensor([1., 2.]).quantile(.5, interpolation='x')
+torch.tensor([1., float('nan')]).quantile(.5)
+X = torch.tensor([1., 3., 2.]); X.cummax(0), X.cummin(0), torch.cummax(torch.tensor([[1, 3], [2, 2]]), 1), torch.cummin(torch.tensor([[1, 3], [2, 2]]), 0), torch.logcumsumexp(X, 0)
+X = torch.tensor([1., 3., 2., 7.]); X.diff(), X.diff(2), X.diff(prepend=torch.tensor([0.])), X.diff(append=torch.tensor([9.])), torch.diff(torch.tensor([[1, 3], [2, 5]])), torch.diff(torch.tensor([[1, 3], [2, 5]]), dim=0), torch.diff(torch.tensor([True, False, False]))
+torch.tensor(1.).diff()
+X = torch.tensor([1., 2., 1., 4.]); X.histc(bins=3), X.histc(bins=4, min=0, max=4), torch.histc(X, 2), torch.histogram(X, bins=3), torch.histogram(X, bins=2, range=(0., 4.)), torch.histogram(X, bins=torch.tensor([0., 2., 5.])), torch.histogram(X, bins=2, density=True), torch.histogram(X, bins=2, weight=torch.tensor([1., 2., 3., 4.]))
+torch.tensor([1, 2]).histc()
+torch.histogram(torch.tensor([1, 2]), bins=2)
+X = torch.tensor([1, 1, 2, 2, 3, 1]); X.unique_consecutive(), X.unique_consecutive(return_inverse=True), X.unique_consecutive(return_counts=True), X.unique_consecutive(return_inverse=True, return_counts=True), torch.unique_consecutive(torch.tensor([[1, 1], [1, 1], [2, 3]]), dim=0)
+torch.msort(torch.tensor([[3, 1], [2, 4]])), torch.argwhere(torch.tensor([[0, 1], [1, 0]])), torch.trapezoid(torch.tensor([1., 2., 3.])), torch.trapezoid(torch.tensor([1., 2., 3.]), dx=2.), torch.trapezoid(torch.tensor([1., 2., 3.]), torch.tensor([0., 1., 3.])), torch.trapz(torch.tensor([1., 2.])), torch.cumulative_trapezoid(torch.tensor([1., 2., 3.]))
+X = torch.tensor([[1., 2., 4.], [2., 1., 0.]]); torch.cov(X), torch.cov(X, correction=0), torch.cov(X[0]), torch.corrcoef(X), torch.corrcoef(X[0]), torch.cov(X, fweights=torch.tensor([1, 2, 1])), torch.cov(X, aweights=torch.tensor([.5, 1., 1.]))
+torch.cov(torch.ones(1, 1, 1))
+torch.std_mean(torch.tensor([1., 2.])), torch.var_mean(torch.tensor([[1., 2.], [3., 5.]]), 0), torch.std_mean(torch.tensor([[1., 2.], [3., 5.]]), dim=1, keepdim=True), torch.var_mean(torch.tensor([1., 2.]), unbiased=False)
+torch.dist(torch.ones(2), torch.zeros(2)), torch.dist(torch.ones(2), torch.zeros(2), 1), torch.renorm(torch.tensor([[3., 4.], [.3, .4]]), 2, 0, 1.)
+
+# ---- more shapes
+torch.arange(4.).reshape_as(torch.zeros(2, 2)), torch.arange(4.).view_as(torch.zeros(2, 2))
+torch.arange(6.).tensor_split(3), torch.arange(7.).tensor_split(3), torch.arange(6.).tensor_split((1, 3)), torch.arange(6.).view(2, 3).tensor_split(2, dim=1), torch.tensor_split(torch.arange(4), torch.tensor([1]))
+torch.arange(6.).view(2, 3).hsplit(3), torch.arange(4.).view(2, 2).vsplit(2), torch.arange(8.).view(2, 2, 2).dsplit(2), torch.arange(4.).hsplit(2), torch.hsplit(torch.arange(4.), (1,)), torch.vsplit(torch.arange(4.).view(2, 2), (1,))
+torch.vsplit(torch.arange(3.).view(3, 1), 2)
+torch.vsplit(torch.arange(3.), 1)
+torch.dstack([torch.ones(2), torch.zeros(2)]), torch.dstack((torch.ones(1, 2), torch.zeros(1, 2))), torch.atleast_1d(torch.tensor(1.)), torch.atleast_2d(torch.ones(2)), torch.atleast_3d(torch.ones(2, 2)).shape, torch.atleast_1d(torch.tensor(1.), torch.ones(2)), torch.atleast_2d((torch.tensor(1.),)), torch.atleast_3d(torch.tensor(1.)).shape
+X = torch.arange(4.).view(2, 2); X.rot90(), X.rot90(2), X.rot90(3), X.rot90(-1), X.rot90(1, (1, 0)), torch.rot90(X, 4)
+torch.arange(2.).rot90()
+torch.arange(4.).view(2, 2).rot90(1, (0, 0))
+torch.cross(torch.tensor([1., 0., 0.]), torch.tensor([0., 1., 0.])), torch.tensor([[1., 0., 0.]]).cross(torch.tensor([[0., 1., 0.]]), dim=1), torch.kron(torch.tensor([1, 2]), torch.tensor([3, 4])), torch.kron(torch.eye(2), torch.ones(1, 2)), torch.vdot(torch.tensor([1., 2.]), torch.tensor([3., 4.]))
+torch.cross(torch.ones(2), torch.ones(2))
+torch.diagflat(torch.tensor([1., 2.])), torch.diagflat(torch.tensor([1., 2.]), 1), torch.diagflat(torch.tensor([[1., 2.], [3., 4.]])), torch.diag_embed(torch.tensor([1., 2.])), torch.diag_embed(torch.tensor([1., 2.]), offset=1), torch.diag_embed(torch.tensor([[1., 2.], [3., 4.]])), torch.diag_embed(torch.tensor([[1., 2.], [3., 4.]]), dim1=0, dim2=2)
+torch.arange(4.).view(2, 2).sum_to_size(1, 2), torch.arange(4.).view(2, 2).sum_to_size(2), torch.arange(4.).view(2, 2).sum_to_size(2, 2)
+torch.arange(4.).view(2, 2).sum_to_size(3)
+torch.arange(6.).view(2, 3).select(0, 1), torch.arange(6.).view(2, 3).select(1, -1), torch.arange(6.).unfold(0, 2, 2), torch.arange(6.).view(2, 3).unfold(1, 2, 1), torch.arange(6.).unfold(0, 2, 1).shape
+torch.arange(6.).select(0, 9)
+torch.arange(3.).unfold(0, 9, 1)
+torch.zeros(3).index_add(0, torch.tensor([0, 0]), torch.tensor([1., 2.])), torch.zeros(3).index_add(0, torch.tensor([1]), torch.tensor([1.]), alpha=2), torch.zeros(2, 2).index_add(1, torch.tensor([1]), torch.ones(2, 1)), torch.zeros(3).index_copy(0, torch.tensor([2]), torch.tensor([1.])), torch.zeros(2, 2).index_copy(0, torch.tensor([1]), torch.ones(1, 2))
+torch.zeros(2, 2).index_put((torch.tensor([0, 1]), torch.tensor([1, 0])), torch.tensor([1., 2.])), torch.ones(2).index_put((torch.tensor([0, 0]),), torch.tensor([1., 2.]), accumulate=True), torch.zeros(2, 2).put(torch.tensor([1]), torch.tensor([5.])), torch.zeros(2).index_add_(0, torch.tensor([0]), torch.ones(1))
+torch.zeros(3).scatter_reduce(0, torch.tensor([0, 0, 1]), torch.tensor([1., 2., 3.]), 'sum'), torch.ones(3).scatter_reduce(0, torch.tensor([0, 0, 1]), torch.tensor([1., 2., 3.]), 'prod'), torch.ones(3).scatter_reduce(0, torch.tensor([0, 0]), torch.tensor([1., 2.]), 'mean'), torch.ones(3).scatter_reduce(0, torch.tensor([0, 0]), torch.tensor([3., 2.]), 'amax'), torch.ones(3).scatter_reduce(0, torch.tensor([0, 0]), torch.tensor([3., 2.]), 'amin', include_self=False)
+torch.ones(3).scatter_reduce(0, torch.tensor([0]), torch.tensor([1.]), 'x')
+torch.zeros(3).scatter(0, torch.tensor([0, 0]), torch.tensor([1., 2.]), reduce='add'), torch.ones(3).scatter(0, torch.tensor([0, 0]), 2., reduce='multiply')
+torch.zeros(3).scatter(0, torch.tensor([0]), torch.tensor([1.]), reduce='x')
+torch.zeros(4).masked_scatter(torch.tensor([True, False, True, False]), torch.tensor([1., 2., 3.])), torch.zeros(2, 2).masked_scatter(torch.tensor([[True, False], [False, True]]), torch.arange(4.))
+torch.zeros(2).masked_scatter(torch.tensor([1, 0]), torch.ones(1))
+torch.zeros(2).masked_scatter(torch.tensor([True, True]), torch.ones(1))
+torch.zeros(6, 2).fill_diagonal_(1., wrap=True), torch.zeros(3, 3).fill_diagonal_(1., wrap=True), torch.zeros(2, 3).fill_diagonal_(1.), torch.zeros(5, 2).fill_diagonal_(1., wrap=True)
+x = torch.arange(6.); x.resize_(2, 2), x.resize_(3, 3)
+torch.ones(2, requires_grad=True).resize_(1)
+x = torch.arange(3.); x.apply_(lambda v: v * 2), x
+x = torch.tensor([1., 2.], requires_grad=True); y = x * 2; h = y.register_hook(lambda g: g * 3); y.sum().backward(); h.remove(); x.grad
+x = torch.tensor([1., 2.], requires_grad=True); x.register_hook(lambda g: print('saw', g)); (x * 2).sum().backward(); x.grad
+torch.ones(1).register_hook(lambda g: g)
+torch.tril_indices(3, 3), torch.triu_indices(3, 3, 1), torch.tril_indices(2, 3, -1), torch.triu_indices(2, 3)
+torch.combinations(torch.tensor([1, 2, 3])), torch.combinations(torch.tensor([1, 2, 3]), 3), torch.combinations(torch.tensor([1, 2]), with_replacement=True), torch.combinations(torch.tensor([1, 2]), 3)
+torch.combinations(torch.ones(2, 2))
+torch.cartesian_prod(torch.tensor([1, 2]), torch.tensor([3])), torch.cartesian_prod(torch.tensor([1, 2])), torch.cartesian_prod(torch.tensor([1.]), torch.tensor([2]))
+torch.block_diag(torch.ones(1, 1), torch.ones(2), torch.tensor(3.)), torch.block_diag(), torch.block_diag(torch.tensor([1, 2]))
+torch.block_diag(torch.ones(1, 1, 1))
+torch.vander(torch.tensor([1, 2])), torch.vander(torch.tensor([1., 2.]), 3, True), torch.chain_matmul(torch.eye(2), torch.eye(2)), torch.linalg.vander(torch.tensor([1., 2.]))
+torch.tensordot(torch.ones(2, 3), torch.ones(3, 2), 1), torch.tensordot(torch.ones(2, 3), torch.ones(2, 3)), torch.tensordot(torch.arange(6.).view(2, 3), torch.arange(6.).view(2, 3), ([0], [0])), torch.tensordot(torch.ones(2), torch.ones(3), 0)
+torch.tensordot(torch.ones(2), torch.ones(3), ([0], [0]))
+torch.gradient(torch.tensor([1., 4., 9.])), torch.gradient(torch.tensor([1., 4., 9.]), spacing=2.), torch.gradient(torch.tensor([1., 4., 9.]), edge_order=2), torch.gradient(torch.tensor([1., 4., 9.]), spacing=(torch.tensor([0., 1., 3.]),)), torch.gradient(torch.tensor([[1., 2.], [4., 8.]])), torch.gradient(torch.tensor([[1., 2.], [4., 8.]]), dim=1)
+torch.bucketize(torch.tensor([1, 5]), torch.tensor([2, 4])), torch.bucketize(torch.tensor([2]), torch.tensor([2, 4]), right=True), torch.bucketize(3, torch.tensor([2, 4])), torch.searchsorted(torch.tensor([1, 3, 5]), torch.tensor([2, 3])), torch.searchsorted(torch.tensor([1, 3, 5]), torch.tensor([3]), right=True), torch.searchsorted(torch.tensor([1, 3, 5]), 3), torch.searchsorted(torch.tensor([1, 3, 5]), torch.tensor([3]), side='right'), torch.searchsorted(torch.tensor([[1, 3], [2, 4]]), torch.tensor([[2], [3]])), torch.searchsorted(torch.tensor([3, 1]), torch.tensor([2]), sorter=torch.tensor([1, 0])), torch.searchsorted(torch.tensor([1, 3]), torch.tensor([2]), out_int32=True)
+torch.searchsorted(torch.tensor([1, 3]), torch.tensor([2]), right=True, side='left')
+torch.bucketize(torch.tensor([2]), torch.ones(2, 2))
+torch.cdist(torch.ones(2, 2), torch.zeros(1, 2)), torch.cdist(torch.ones(2, 2), torch.zeros(1, 2), p=1), torch.cdist(torch.ones(1, 2, 2), torch.zeros(1, 1, 2)), torch.cosine_similarity(torch.ones(1, 2), torch.ones(1, 2)), torch.pdist(torch.tensor([[0., 0.], [3., 4.]])), torch.pairwise_distance(torch.ones(1, 2), torch.zeros(1, 2))
+torch.cdist(torch.ones(2), torch.ones(2))
+torch.cdist(torch.ones(1, 2), torch.ones(1, 3))
+torch.unravel_index(torch.tensor([5]), (2, 3)), torch.rsub(torch.ones(1), torch.zeros(1)), torch.typename(torch.ones(1)), torch.asarray([1, 2]), torch.asarray(torch.ones(1)), torch.nuclear_norm(torch.eye(2)), torch.frobenius_norm(torch.eye(2), (0, 1)), torch.newaxis
+torch.zeros(2).eq_(0), torch.ones(2).ne_(1), torch.ones(2).gt_(0), torch.ones(2).cumsum_(0), torch.ones(1).lgamma_(), torch.ones(1).digamma_(), torch.tensor([1.]).deg2rad_(), torch.tensor([.5]).logit_(), torch.tensor([float('nan')]).nan_to_num_(), torch.tensor([2.]).hypot_(torch.tensor([1.])), torch.tensor([1., 2.]).addcmul_(torch.ones(2), torch.ones(2)), torch.tensor([1]).bitwise_and_(torch.tensor([1])), torch.abs_(torch.tensor([-1.])), torch.exp_(torch.tensor([0.]))
+torch.ones(2).maximum(torch.zeros(2)), torch.ones(2).minimum(torch.zeros(2)), torch.ones(2).greater(0), torch.ones(2).less_equal(0), torch.ones(2).not_equal(1), torch.ones(1).arctan2(torch.ones(1)), torch.arctan2(torch.ones(1), torch.ones(1)), torch.ones(1).ndimension(), torch.ones(1).element_size(), torch.ones(1).is_inference(), torch.ones(1).layout, torch.strided
+torch.zeros(2, 2).addmm(torch.eye(2), torch.ones(2, 2)), torch.zeros(2).addmv(torch.eye(2), torch.ones(2), alpha=2), torch.zeros(2, 2).addr(torch.ones(2), torch.ones(2)), torch.zeros(2, 2).addbmm(torch.eye(2).view(1, 2, 2), torch.eye(2).view(1, 2, 2)), torch.zeros(1, 2, 2).baddbmm(torch.eye(2).view(1, 2, 2), torch.eye(2).view(1, 2, 2), beta=2)
+torch.arange(4.).split_with_sizes((1, 3)), torch.ones(1).new(2, 2).shape, torch.ones(1).new([1., 2.]), torch.ones(2, dtype=torch.int8).new([1]), torch.ones(2).index_reduce(0, torch.tensor([0, 0]), torch.tensor([2., 3.]), 'prod')
+torch.arange(4.).split_with_sizes((1, 2))
+
+# ---- dtypes and windows
+torch.finfo(torch.float32), torch.finfo(torch.float64), torch.finfo(torch.float16), torch.finfo().eps, torch.finfo(torch.float32).max, torch.finfo(torch.float32).min, torch.finfo(torch.float32).tiny, torch.finfo(torch.float32).bits, torch.finfo(torch.float32).resolution
+torch.iinfo(torch.int8), torch.iinfo(torch.int32), torch.iinfo(torch.uint8), torch.iinfo(torch.int16).max, torch.iinfo(torch.int32).min, torch.iinfo(torch.int32).bits
+torch.finfo(torch.int32)
+torch.iinfo(torch.float32)
+torch.promote_types(torch.int32, torch.float32), torch.promote_types(torch.uint8, torch.int8), torch.can_cast(torch.float32, torch.int32), torch.can_cast(torch.int32, torch.float32), torch.result_type(torch.ones(1), 1.), torch.result_type(torch.ones(1, dtype=torch.int8), torch.ones(1, dtype=torch.uint8)), torch.result_type(torch.tensor(1), 1.)
+torch.hann_window(4), torch.hamming_window(4), torch.blackman_window(4), torch.bartlett_window(4), torch.hann_window(4, periodic=False), torch.hamming_window(4, False), torch.blackman_window(5, False), torch.bartlett_window(5, False), torch.hann_window(1), torch.hann_window(0), torch.hann_window(3, dtype=torch.float64), torch.kaiser_window(4), torch.kaiser_window(4, False, 5.)
+torch.tensor([1, 2], dtype=torch.int8) + torch.tensor([1, 2], dtype=torch.uint8), torch.tensor([1, 2], dtype=torch.int16) * 2, torch.tensor([1.], dtype=torch.float16) + 1, torch.tensor([1.], dtype=torch.float16), torch.ones(1, dtype=torch.int16).dtype, torch.ones(1).short().type(), torch.ones(1).char().type(), torch.ones(1).half().type(), torch.tensor(300).char(), torch.tensor(70000).short(), torch.tensor(1.00001).half()
+torch.set_default_dtype(torch.float64); torch.tensor([1.]).dtype, torch.ones(1).dtype, torch.arange(1.).dtype, torch.linspace(0, 1, 2).dtype, torch.get_default_dtype(), torch.rand(1).dtype, torch.tensor(1.5) / 2, torch.tensor([1]) / 2
+torch.set_default_dtype(torch.float16); torch.tensor([1.]).dtype, torch.get_default_dtype()
+torch.set_default_dtype(torch.int32)
+torch.set_default_dtype(torch.float64); torch.finfo().eps
+
+# ---- more nn
+m = nn.AdaptiveAvgPool3d(1); m, m(torch.arange(8.).view(1, 1, 2, 2, 2))
+m = nn.AdaptiveAvgPool3d((1, None, 2)); m, m(torch.arange(8.).view(1, 2, 2, 2)).shape
+m = nn.AdaptiveMaxPool3d(1, return_indices=True); m, m(torch.arange(8.).view(1, 1, 2, 2, 2))
+m = nn.AdaptiveMaxPool3d(2); m(torch.arange(8.).view(1, 1, 2, 2, 2)).shape, F.adaptive_avg_pool3d(torch.ones(1, 1, 2, 2, 2), 1), F.adaptive_max_pool3d(torch.ones(1, 1, 2, 2, 2), 1), F.adaptive_max_pool3d(torch.ones(1, 1, 2, 2, 2), 1, return_indices=True), F.adaptive_max_pool3d_with_indices(torch.ones(1, 1, 2, 2, 2), 1)
+F.adaptive_max_pool1d_with_indices(torch.tensor([[[1., 3., 2.]]]), 1), F.adaptive_max_pool2d_with_indices(torch.arange(4.).view(1, 1, 2, 2), 1)
+nn.AdaptiveAvgPool3d(1)(torch.ones(2, 2))
+m = nn.LPPool3d(2, 2); m, m(torch.ones(1, 1, 2, 2, 2)), F.lp_pool3d(torch.ones(1, 1, 2, 2, 2), 2, 2), F.lp_pool3d(torch.ones(1, 1, 2, 2, 2), 2.0, 2, 2)
+m = nn.MaxUnpool3d(2); m, m(torch.ones(1, 1, 1, 1, 1), torch.tensor([[[[[3]]]]])), F.max_unpool3d(torch.ones(1, 1, 1, 1, 1), torch.tensor([[[[[3]]]]]), 2)
+nn.FeatureAlphaDropout(), nn.FeatureAlphaDropout(.2, True), nn.FeatureAlphaDropout().eval()(torch.ones(1)), F.feature_alpha_dropout(torch.ones(1), training=False), F.alpha_dropout(torch.ones(1), training=False)
+F.feature_alpha_dropout(torch.ones(1), 2.)
+m = nn.TripletMarginWithDistanceLoss(); m, m(torch.ones(1, 2), torch.zeros(1, 2), torch.ones(1, 2)), nn.TripletMarginWithDistanceLoss(margin=.5, swap=True, reduction='sum')(torch.ones(1, 2), torch.zeros(1, 2), torch.ones(1, 2)), nn.TripletMarginWithDistanceLoss(distance_function=lambda a, b: (a - b).abs().sum(1))(torch.ones(1, 2), torch.zeros(1, 2), torch.ones(1, 2)), F.triplet_margin_with_distance_loss(torch.ones(1, 2), torch.zeros(1, 2), torch.ones(1, 2))
+m = nn.LazyLinear(2); m, m.out_features if hasattr(m, 'out_features') else None, list(m.parameters()) == [] if False else None, m(torch.ones(1, 3)).shape, m, m.weight.shape, list(m.state_dict().keys()), type(m).__name__
+F.group_norm(torch.arange(4.).view(1, 2, 2), 2), F.group_norm(torch.arange(4.).view(1, 2, 2), 1, torch.ones(2), torch.zeros(2))
+F.layer_norm(torch.arange(4.).view(2, 2), (2,)), F.layer_norm(torch.arange(4.).view(2, 2), [2], torch.ones(2), torch.zeros(2)), F.instance_norm(torch.arange(4.).view(1, 2, 2)), F.batch_norm(torch.arange(4.).view(2, 2), None, None, training=True), F.batch_norm(torch.arange(4.).view(2, 2), torch.zeros(2), torch.ones(2))
+F.embedding_bag(torch.tensor([[0, 1]]), torch.arange(4.).view(2, 2)), F.embedding_bag(torch.tensor([0, 1, 1]), torch.arange(4.).view(2, 2), torch.tensor([0, 2])), F.embedding_bag(torch.tensor([[0, 1]]), torch.arange(4.).view(2, 2), mode='sum'), F.embedding_bag(torch.tensor([[0, 1]]), torch.arange(4.).view(2, 2), mode='max')
+torch.conv1d(torch.ones(1, 1, 3), torch.ones(1, 1, 2)), torch.conv2d(torch.ones(1, 1, 2, 2), torch.ones(1, 1, 1, 1)), torch.conv_transpose1d(torch.ones(1, 1, 2), torch.ones(1, 1, 2)), torch.max_pool1d(torch.ones(1, 1, 2), 2), torch.max_pool2d(torch.ones(1, 1, 2, 2), 2), torch.avg_pool1d(torch.ones(1, 1, 2), 2), torch.adaptive_avg_pool1d(torch.ones(1, 1, 2), 1), torch.adaptive_max_pool1d(torch.ones(1, 1, 2), 1), torch.pixel_shuffle(torch.ones(1, 4, 1, 1), 2), torch.dropout(torch.ones(1), 0., True), torch.alpha_dropout(torch.ones(1), 0., False), torch.selu(torch.ones(1)), torch.celu(torch.ones(1)), torch.bilinear(torch.ones(1, 1), torch.ones(1, 1), torch.ones(1, 1, 1)), torch.embedding(torch.ones(1, 1), torch.tensor([0])), torch.kl_div(torch.ones(1), torch.ones(1)), torch.hardshrink(torch.ones(1))
+torch.nn.utils.rnn.pad_sequence([torch.ones(2), torch.zeros(1)]), torch.nn.utils.rnn.pad_sequence([torch.ones(2), torch.zeros(1)], batch_first=True, padding_value=9.), torch.nn.utils.rnn.pad_sequence([torch.ones(2), torch.zeros(1)], padding_side='left'), torch.nn.utils.rnn.unpad_sequence(torch.tensor([[1., 2.], [3., 0.]]), torch.tensor([2, 1]))
+from torch.nn.utils.rnn import pad_sequence; pad_sequence([torch.ones(1, 2)])
+nn.utils.clip_grad_norm_([], 1.), nn.utils.get_total_norm([torch.tensor([3.]), torch.tensor([4.])])
+p = nn.Parameter(torch.tensor([3., 4.])); (p * 1).sum().backward(); nn.utils.clip_grad_norm(p, 1.), p.grad
+ps = [nn.Parameter(torch.zeros(1)), nn.Parameter(torch.zeros(2))]; nn.utils.vector_to_parameters(torch.arange(3.), ps); ps, nn.utils.parameters_to_vector(ps)
+nn.utils.vector_to_parameters(3, [])
+nn.init.dirac_(torch.zeros(2, 2, 3)), nn.init.dirac_(torch.zeros(2, 2, 1, 1), 2), nn.init.constant(torch.zeros(1), 2), nn.init.eye(torch.zeros(2, 2)).shape, nn.init.uniform(torch.zeros(1), 1., 1.), nn.init.normal(torch.zeros(1), 1., 0.)
+nn.init.dirac_(torch.zeros(2))
+nn.init.orthogonal_(torch.zeros(1))
+nn.init.sparse_(torch.zeros(1))
+x = nn.init.orthogonal_(torch.zeros(3, 2)); (x.T @ x).round(decimals=3)
+x = nn.init.orthogonal_(torch.zeros(2, 3), gain=2); (x @ x.T).round(decimals=3)
+x = nn.init.sparse_(torch.zeros(4, 2), sparsity=.5); (x == 0).sum()
+m = nn.Sequential(nn.Linear(1, 1)); len(list(m.children())), m.get_submodule('0').in_features, m.get_parameter('0.weight').shape, m.get_submodule('')
+m = nn.Sequential(nn.Linear(1, 1)); m.get_submodule('x')
+d = nn.TransformerDecoderLayer(4, 2, dim_feedforward=8, dropout=0.); fill(d); d(torch.arange(24.).view(3, 2, 4) / 10, torch.arange(8.).view(1, 2, 4) / 10)
+d = nn.TransformerDecoderLayer(4, 2, dim_feedforward=8, dropout=0., norm_first=True, batch_first=True); fill(d); d(torch.arange(24.).view(2, 3, 4) / 10, torch.arange(8.).view(2, 1, 4) / 10).shape
+d = nn.TransformerDecoderLayer(4, 2, dim_feedforward=8); len(list(d.parameters())), [n for n, _ in d.named_children()]
+d = nn.TransformerDecoder(nn.TransformerDecoderLayer(4, 2, dim_feedforward=8, dropout=0.), 2); fill(d); len(d.layers), d(torch.arange(24.).view(3, 2, 4) / 10, torch.arange(8.).view(1, 2, 4) / 10).shape, d.num_layers
+
+# ---- more linalg
+A = torch.tensor([[2., 1.], [1., 3.]]); torch.linalg.matmul(A, A), torch.linalg.inv_ex(A), torch.linalg.cholesky_ex(A), torch.linalg.solve_ex(A, torch.ones(2)), torch.linalg.lu_factor_ex(A)
+A = torch.tensor([[2., 1.], [1., 3.]]); LU, piv = torch.linalg.lu_factor(A); torch.linalg.lu_solve(LU, piv, torch.ones(2, 1)), torch.lu_solve(torch.ones(2, 1), LU, piv), piv.dtype
+L = torch.tensor([[2., 0.], [1., 3.]]); torch.linalg.solve_triangular(L, torch.ones(2, 1), upper=False), torch.linalg.solve_triangular(L.T, torch.ones(2, 1), upper=True), torch.linalg.solve_triangular(L, torch.ones(1, 2), upper=False, left=False), torch.linalg.solve_triangular(L, torch.ones(2, 1), upper=False, unitriangular=True), torch.triangular_solve(torch.ones(2, 1), L, upper=False).solution, torch.cholesky_solve(torch.ones(2, 1), L), torch.cholesky_inverse(L)
+torch.linalg.eigvals(torch.tensor([[2., 0.], [0., 3.]])).real, torch.linalg.eigvals(torch.tensor([[2., 0.], [0., 3.]])).imag, torch.linalg.eigvals(torch.tensor([[2., 0.], [0., 3.]])).shape, torch.linalg.eigvals(torch.tensor([[2., 0.], [0., 3.]])).dtype
+A = torch.tensor([[2., 1.], [1., 3.]]); A.logdet(), A.slogdet(), A.pinverse(), A.matrix_exp(), A.lu()[1], A.svd().S
+issubclass(torch.linalg.LinAlgError, RuntimeError)
+
+
+# ---- custom autograd
+<<<
+class Square(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        return x ** 2
+    @staticmethod
+    def backward(ctx, g):
+        x, = ctx.saved_tensors
+        return 2 * x * g
+x = torch.tensor([3.], requires_grad=True)
+y = Square.apply(x)
+print(y, y.requires_grad)
+y.sum().backward()
+print(x.grad)
+print(Square.apply(torch.tensor([2.])))
+>>>
+<<<
+class Pair(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, a, b):
+        ctx.n = 2
+        return a + b, a * b
+    @staticmethod
+    def backward(ctx, g1, g2):
+        return g1 * ctx.n, g2
+a = torch.tensor([1.], requires_grad=True)
+b = torch.tensor([2.], requires_grad=True)
+s, p = Pair.apply(a, b)
+(s + p).sum().backward()
+print(a.grad, b.grad, s.grad_fn.name())
+>>>
+<<<
+class NoBack(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        return x * 2
+x = torch.ones(1, requires_grad=True)
+NoBack.apply(x).backward()
+>>>
+x = torch.tensor(2., requires_grad=True); torch.autograd.gradcheck(lambda v: v ** 2, (torch.tensor([2.], dtype=torch.float64, requires_grad=True),)), torch.autograd.gradcheck(lambda v: v.detach() * 0 + v ** 3, (torch.tensor([2.], dtype=torch.float64, requires_grad=True),))
+<<<
+try:
+    torch.linalg.inv(torch.zeros(2, 2))
+except torch.linalg.LinAlgError as e:
+    print('caught', e)
+try:
+    torch.linalg.cholesky(torch.zeros(2, 2))
+except RuntimeError as e:
+    print('runtime', type(e).__name__)
+>>>
+
+# ---- removed from torch.* in favour of torch.linalg
+torch.cholesky(torch.eye(2))
+torch.solve(torch.eye(2), torch.eye(2))
+torch.lstsq(torch.eye(2), torch.eye(2))
+torch.eig(torch.eye(2))
+torch.symeig(torch.eye(2))
+torch.matrix_rank(torch.eye(2))
+torch.qr(torch.eye(2))
+torch.eye(2).cholesky()
+torch.eye(2).qr()
+
+# ---- second-order gradients
+x = torch.tensor(2., requires_grad=True); g, = torch.autograd.grad(x ** 3, x, create_graph=True); h, = torch.autograd.grad(g, x); g, h
+x = torch.tensor(2., requires_grad=True); g, = torch.autograd.grad(x ** 3, x, create_graph=True); h, = torch.autograd.grad(g, x, create_graph=True); i, = torch.autograd.grad(h, x); h, i
+x = torch.tensor([1., 2.], requires_grad=True); g, = torch.autograd.grad((x * x).sum(), x, create_graph=True); g, g.requires_grad; g.sum().backward(); x.grad
+x = torch.tensor([1., 2.], requires_grad=True); g, = torch.autograd.grad(x.exp().sum() + x.sin().sum() + x.cos().sum() + x.log().sum() + x.sqrt().sum() + x.tanh().sum() + x.sigmoid().sum(), x, create_graph=True); g.sum().backward(); x.grad
+x = torch.tensor([1., 2.], requires_grad=True); g, = torch.autograd.grad((x / (x + 1)).mean() + (2 ** x).sum() + (1 - x).sum() + (1 / x).sum() + (x ** 2.5).sum(), x, create_graph=True); g.sum().backward(); x.grad
+x = torch.tensor([[1., 2.], [3., 4.]], requires_grad=True); g, = torch.autograd.grad((x @ x).sum() + x.t().sum() + x.view(-1).sum() + x[0].sum() + x[:, 1].sum() + x.mean(0).sum() + x.unsqueeze(0).sum() + x.flip(0).sum() + x.expand(2, 2, 2).sum(), x, create_graph=True); g.sum().backward(); x.grad
+x = torch.tensor([1., 2.], requires_grad=True); w = torch.tensor([[1., 2.], [3., 4.]], requires_grad=True); g, = torch.autograd.grad((F.linear(x, w) ** 2).sum(), w, create_graph=True); g.sum().backward(); x.grad, w.grad
+x = torch.tensor(2., requires_grad=True); y = x ** 2; y.backward(create_graph=True); x.grad, x.grad.requires_grad; g = x.grad; x.grad = None; g.backward(); x.grad
+x = torch.tensor(2., requires_grad=True); torch.autograd.backward(x ** 2, create_graph=True); x.grad
+x = torch.tensor(2., requires_grad=True); (x ** 2).backward(create_graph=True); (x ** 2).backward(create_graph=True); x.grad
+x = torch.tensor(1., requires_grad=True); u = torch.tensor(1., requires_grad=True); torch.autograd.grad(x * 2, u, create_graph=True)
+x = torch.tensor(1., requires_grad=True); u = torch.tensor(1., requires_grad=True); torch.autograd.grad(x * 2, u, create_graph=True, allow_unused=True)
+x = torch.tensor(1., requires_grad=True); torch.autograd.grad(torch.ones(1) * 2, x, create_graph=True)
+from torch.autograd.functional import jacobian, hessian; x = torch.tensor([1., 2.]); jacobian(lambda v: v ** 2, x), hessian(lambda v: (v ** 3).sum(), x), x.requires_grad
+from torch.autograd.functional import jacobian, hessian; a, b = torch.tensor([1., 2.]), torch.tensor([3.]); jacobian(lambda u, v: u * v, (a, b)), hessian(lambda u, v: (u * u).sum() * v.sum(), (a, b))
+from torch.autograd.functional import hessian; hessian(lambda v: v ** 2, torch.tensor([1., 2.]))
+
+# ---- grad_fn names of the newer functions
+x = torch.tensor([.1, .5], requires_grad=True); torch.trapezoid(x), torch.trapezoid(x, dx=2.), torch.trapezoid(x, torch.tensor([0., 1.])), torch.trapz(x), torch.cumulative_trapezoid(x), torch.cumulative_trapezoid(x, torch.tensor([0., 1.]))
+x = torch.tensor([.1, .5], requires_grad=True); torch.cov(x), torch.corrcoef(x), torch.gradient(x)[0], torch.kron(x, x), torch.vander(x), torch.vander(x, increasing=True), torch.cartesian_prod(x, x), torch.combinations(x), torch.std_mean(x)[0], torch.var_mean(x)[1], x.sum_to_size(1), torch.atleast_2d(x), torch.atleast_3d(x), torch.dstack([x, x]), torch.linalg.vecdot(x, x), torch.unique_consecutive(x), torch.cross(torch.ones(3, requires_grad=True), torch.ones(3), dim=0)
+X = torch.tensor([[.1, .5], [.3, .2]], requires_grad=True); torch.block_diag(X, X), torch.chain_matmul(X, X), torch.linalg.multi_dot([X, X]), X.addmm(X, X), X.addr(X[0], X[0]), X.addbmm(X.view(1, 2, 2), X.view(1, 2, 2)), X.put(torch.tensor([0]), torch.tensor([1.])), X.index_reduce(0, torch.tensor([0]), X[:1], 'prod'), X.split_with_sizes((1, 1))[0]
+X = torch.tensor([[.1, .5], [.3, .2]], requires_grad=True); torch.einsum('ii', X), torch.einsum('ij->ji', X), torch.einsum('ij,jk->ik', X, X), torch.einsum('i,j->ij', X[0], X[1]), torch.einsum('ij->i', X), torch.einsum('ij->', X), torch.einsum('ii->i', X)
+X = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.linalg.qr(X)[0].grad_fn.name(), torch.linalg.eigh(X)[0].grad_fn.name(), torch.linalg.eigvalsh(X).grad_fn.name(), torch.linalg.svdvals(X).grad_fn.name(), torch.linalg.svd(X)[0].grad_fn.name(), torch.linalg.svd(X)[1].grad_fn.name(), torch.linalg.pinv(X).grad_fn.name(), torch.linalg.cholesky(X).grad_fn.name(), torch.linalg.slogdet(X)[0].grad_fn.name(), torch.linalg.slogdet(X)[1].grad_fn.name(), torch.logdet(X).grad_fn.name(), torch.linalg.cond(X).grad_fn.name(), torch.linalg.norm(X, 'nuc').grad_fn.name(), torch.linalg.norm(X, 2).grad_fn.name(), torch.linalg.norm(X, -2).grad_fn.name(), torch.linalg.matrix_exp(X).grad_fn.name(), torch.linalg.lu(X)[1].grad_fn.name(), torch.linalg.lu_factor(X)[0].grad_fn.name(), torch.linalg.solve_triangular(X, X, upper=True).grad_fn.name()
+X = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.logdet(X).backward(); X.grad
+X = torch.tensor([[2., 1.], [1., 3.]], requires_grad=True); torch.linalg.slogdet(X)[1].backward(); X.grad
+torch.linalg.solve_triangular(torch.eye(2), torch.ones(2), upper=False)
+x = torch.ones(2, 2, requires_grad=True); torch.scatter_reduce(x, 0, torch.tensor([[0, 0]]), x[:1], 'sum').sum().backward(); x.grad
+x = torch.ones(1, requires_grad=True); (x // 2).sum().backward()
+x = torch.ones(1, requires_grad=True); torch.heaviside(x, x).sum().backward()
+torch.__version__
+torch.ones(2).view(shape=(2,))
+torch.ones(2).view(size=(2,)), torch.ones(2).reshape(shape=(2,)), torch.ones(2).reshape((2,))
+torch.zeros(2).topk(1, out=torch.zeros(1))
+F.interpolate(torch.zeros(1, 1, 2, 2), scale_factor=2, antialias=True)
+F.interpolate(torch.arange(4.).view(1, 1, 4), scale_factor=1.3, mode='linear'), F.interpolate(torch.arange(4.).view(1, 1, 4), scale_factor=1.3, mode='linear', recompute_scale_factor=True), F.interpolate(torch.arange(4.).view(1, 1, 4), scale_factor=1.3, recompute_scale_factor=False), nn.Upsample(scale_factor=2, recompute_scale_factor=True)(torch.arange(2.).view(1, 1, 2))
+F.interpolate(torch.zeros(1, 1, 2), size=3, recompute_scale_factor=True)
+x = torch.ones(2, 3, requires_grad=True); s = torch.zeros(2, 3).scatter(1, torch.tensor([[0, 2], [1, 1]]), x[:, :2]); s.sum().backward(); x.grad
