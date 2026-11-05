@@ -82,8 +82,8 @@ also reads (`GET /api/resources`); without the service the page shows its built-
   `PORT=3021`, `HOST=127.0.0.1`, `COOKIE_SECURE=true`, `TRUST_PROXY=true`. Change the passphrase there and
   `systemctl restart knowcs-admin`.
 - Service: `knowcs-admin.service` (template here), `systemctl status knowcs-admin`, logs with `journalctl -u knowcs-admin`.
-- OpenResty: the vhost's `location /api/` proxies to `127.0.0.1:3021` (the container uses host networking); see
-  `dev.knowcs.online.conf`. Production gets the same block when it moves to this version.
+- OpenResty: the vhost's `location /api/` proxies to `127.0.0.1:3021` (the container uses host networking), on both
+  `knowcs.online.conf` and `dev.knowcs.online.conf`. The two sites share one service, so they show the same list.
 
 Sign-in sets an HttpOnly, SameSite=Strict, signed cookie for 12 hours; five wrong passphrases per minute per IP are
 refused; changes are accepted only from the site's own pages (Origin check). Update the code with the same three files
