@@ -642,3 +642,46 @@ print(bool((r.random(3) == s.random(3)).all()), type(r).__name__, r.integers(0, 
 q = np.arange(4); r.shuffle(q); print(sorted(q.tolist()))
 rs = np.random.RandomState(0); t = np.random.RandomState(0)
 print(bool((rs.rand(2) == t.rand(2)).all()), rs.randn(2).shape, rs.randint(0, 5, 2).shape, rs.normal(0, 1, 2).shape, rs.uniform(0, 1, 2).shape, rs.choice(3, 2).shape, rs.permutation(3).shape)
+### files in memory
+import os, json, csv, io
+print(os.path.exists('a.txt'), os.listdir('.'))
+with open('a.txt', 'w') as f:
+    print(f.write('one\ntwo\n'), f.closed)
+print(f.closed, os.path.exists('a.txt'), os.path.isfile('a.txt'), os.path.getsize('a.txt'))
+print(open('a.txt').read(), open('a.txt', 'r').readlines())
+with open('a.txt', 'a') as f:
+    f.write('three')
+with open('a.txt') as f:
+    print(f.readline(), [line.strip() for line in f])
+for line in open('a.txt'):
+    print(line, end='')
+print()
+try:
+    open('nope.txt')
+except FileNotFoundError as e:
+    print(type(e).__name__, e.args[0] if False else 'missing')
+try:
+    f = open('a.txt'); f.close(); f.read()
+except ValueError as e:
+    print(e)
+with open('d.json', 'w') as f:
+    json.dump({'a': [1, 2]}, f)
+with open('d.json') as f:
+    print(json.load(f), f.name)
+with open('t.csv', 'w', newline='') as f:
+    w = csv.writer(f)
+    w.writerow(['a', 'b'])
+    w.writerows([[1, 'x,y'], [2, 'q"r']])
+print(repr(open('t.csv').read()))
+with open('t.csv', newline='') as f:
+    print(list(csv.reader(f)))
+with open('t.csv', newline='') as f:
+    print([dict(r) for r in csv.DictReader(f)])
+with open('u.csv', 'w', newline='') as f:
+    w = csv.DictWriter(f, fieldnames=['x', 'y'])
+    w.writeheader(); w.writerow({'x': 1, 'y': 2})
+print(repr(open('u.csv').read()))
+s = io.StringIO(); s.write('hi\n'); print('there', file=s); print(repr(s.getvalue()))
+s = io.StringIO('a\nb\n'); print(s.readline(), s.read(), list(io.StringIO('p\nq')), s.tell())
+os.remove('a.txt'); print(os.path.exists('a.txt'), sorted(os.listdir('.')))
+os.makedirs('dir/sub'); print(os.path.isdir('dir/sub'), os.path.isdir('zzz'), os.path.dirname('dir/sub/x.txt'))

@@ -297,7 +297,7 @@ const makeJson = (h: Host): Value => {
     if (Array.isArray(x)) return L(x.map(load))
     return { k: 'dict', d: PyDict.from(Object.entries(x as object).map(([a, b]) => [S(a), load(b)])) }
   }
-  return mod('json', {
+  const out: Value = mod('json', {
     dumps: F('dumps', (a, kw) => {
       const ind = kw.indent
       const indent = !ind || ind.k === 'none' ? null : ind.k === 'str' ? ind.v : ' '.repeat(h.toInt(ind))
@@ -312,8 +312,16 @@ const makeJson = (h: Host): Value => {
         throw e
       }
     }),
+    dump: F('dump', (a, kw) => {
+      const f = a[1]
+      const dumps = (out as { attrs: Record<string, Value> }).attrs.dumps
+      h.call(h.getAttr(f, 'write'), [h.call(dumps, [a[0]], kw)])
+      return NONE
+    }),
+    load: F('load', (a) => h.call((out as { attrs: Record<string, Value> }).attrs.loads, [h.call(h.getAttr(a[0], 'read'), [])])),
     JSONDecodeError: decodeError,
   })
+  return out
 }
 
 // ---------------------------------------------------------------- collections
@@ -1159,6 +1167,208 @@ const makeDatetime = (h: Host): Value => {
   })
 }
 
+// ---------------------------------------------------------------- files: kept in memory for one run
+
+/** the run's files, by normalised path */
+const filesOf = (h: Host): Map<string, string> => {
+  let m = h.state.get('files') as Map<string, string> | undefined
+  if (!m) h.state.set('files', (m = new Map()))
+  return m
+}
+const CWD = '/sandbox'
+const fullPath = (p: string) => {
+  const parts: string[] = []
+  for (const part of (p.startsWith('/') ? p : `${CWD}/${p}`).split('/')) {
+    if (part === '..') parts.pop()
+    else if (part && part !== '.') parts.push(part)
+  }
+  return `/${parts.join('/')}`
+}
+const noSuchFile = (h: Host, p: string) => h.raise(h.excClass('FileNotFoundError'), [S(`[Errno 2] No such file or directory: ${repr(S(p))} (this sandbox starts with no files; a program can write its own, and they last for one run)`)])
+
+/** a text file or io.StringIO: text held in memory, with a read position */
+class TextFile extends Base {
+  readonly cls: string
+  text: string
+  at = 0
+  closed = false
+  path: string | null
+  mode: string
+  files: Map<string, string> | null
+  constructor(cls: string, text: string, path: string | null, mode: string, files: Map<string, string> | null) {
+    super()
+    this.cls = cls
+    this.text = text
+    this.path = path
+    this.mode = mode
+    this.files = files
+    if (mode.startsWith('a')) this.at = text.length
+  }
+  repr() { return this.path === null ? '<_io.StringIO object>' : `<_io.TextIOWrapper name=${repr(S(this.path))} mode=${repr(S(this.mode))} encoding='UTF-8'>` }
+  check(h: Host) { if (this.closed) throw h.err('ValueError', 'I/O operation on closed file.') }
+  save() { if (this.files && this.path !== null) this.files.set(fullPath(this.path), this.text) }
+  put(s: string) {
+    this.text = this.text.slice(0, this.at) + s + this.text.slice(this.at + s.length)
+    this.at += s.length
+    this.save()
+  }
+  line() {
+    const nl = this.text.indexOf('\n', this.at)
+    const end = nl < 0 ? this.text.length : nl + 1
+    const out = this.text.slice(this.at, end)
+    this.at = end
+    return out
+  }
+  iter(h: Host) {
+    this.check(h)
+    const out: Value[] = []
+    while (this.at < this.text.length) out.push(S(this.line()))
+    return out
+  }
+  enter() { return { k: 'obj', o: this } as Value }
+  exit() { this.closed = true }
+  getAttr(name: string, h: Host): Value | undefined {
+    const canRead = () => { if (this.path !== null && !/r|\+/.test(this.mode)) throw h.raise(h.excClass('OSError'), [S('not readable')]) }
+    switch (name) {
+      case 'read': return F(name, (a) => {
+        this.check(h)
+        canRead()
+        const n = a[0] && a[0].k !== 'none' ? h.toInt(a[0]) : -1
+        const out = n < 0 ? this.text.slice(this.at) : this.text.slice(this.at, this.at + n)
+        this.at += out.length
+        return S(out)
+      })
+      case 'readline': return F(name, () => { this.check(h); canRead(); return S(this.line()) })
+      case 'readlines': return F(name, () => { this.check(h); canRead(); return L(this.iter(h)) })
+      case 'write': return F(name, (a) => {
+        this.check(h)
+        if (this.path !== null && this.mode.startsWith('r') && !this.mode.includes('+')) throw h.raise(h.excClass('OSError'), [S('not writable')])
+        if (a[0]?.k !== 'str') throw h.err('TypeError', `write() argument must be str, not ${typeName(a[0] ?? NONE)}`)
+        this.put(a[0].v)
+        return int(a[0].v.length)
+      })
+      case 'writelines': return F(name, (a) => { this.check(h); for (const x of h.iterate(a[0])) this.put((x as { v: string }).v); return NONE })
+      case 'getvalue': return F(name, () => S(this.text))
+      case 'seek': return F(name, (a) => { this.at = h.toInt(a[0]); return int(this.at) })
+      case 'tell': return F(name, () => int(this.at))
+      case 'truncate': return F(name, () => { this.text = this.text.slice(0, this.at); this.save(); return int(this.at) })
+      case 'flush': return F(name, () => NONE)
+      case 'close': return F(name, () => { this.closed = true; return NONE })
+      case 'readable': case 'writable': case 'seekable': return F(name, () => bool(true))
+      case 'name': return this.path === null ? undefined : S(this.path)
+      case 'mode': return this.path === null ? undefined : S(this.mode)
+      case 'closed': return bool(this.closed)
+    }
+    return undefined
+  }
+}
+
+const makeFiles = (h: Host): Value => {
+  const files = filesOf(h)
+  return mod('_sandbox_files', {
+    open: F('open', (a, kw) => {
+      const pathV = kw.file ?? a[0]
+      if (pathV?.k !== 'str') throw h.err('TypeError', 'open() needs a file name as a string')
+      const mode = (kw.mode ?? a[1]) ? ((kw.mode ?? a[1]) as { v: string }).v : 'r'
+      if (mode.includes('b')) throw h.err('NotImplementedError', 'binary files are not available in this sandbox: open the file in text mode')
+      const key = fullPath(pathV.v)
+      const have = files.get(key)
+      if (mode.startsWith('r') && have === undefined) return noSuchFile(h, pathV.v)
+      if (mode.startsWith('x') && have !== undefined) return h.raise(h.excClass('FileExistsError'), [S(`[Errno 17] File exists: ${repr(pathV)}`)])
+      const raw = mode.startsWith('w') || mode.startsWith('x') ? '' : have ?? ''
+      // text mode reads \r\n as \n, unless newline='' asks for the file as it is
+      const text = kw.newline ? raw : raw.replace(/\r\n?/g, '\n')
+      files.set(key, text)
+      return { k: 'obj', o: new TextFile('TextIOWrapper', text, pathV.v, mode, files) }
+    }),
+  })
+}
+
+const makeIo = (): Value => mod('io', {
+  StringIO: { k: 'type', name: 'io.StringIO', call: (a, kw) => {
+    const init = kw.initial_value ?? a[0]
+    return { k: 'obj', o: new TextFile('StringIO', init?.k === 'str' ? init.v : '', null, 'r+', null) }
+  } },
+})
+
+const makeCsv = (h: Host): Value => {
+  const parseLine = (line: string, delim: string): string[] => {
+    const out: string[] = []
+    let cur = ''
+    let quoted = false
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i]
+      if (quoted) {
+        if (c === '"' && line[i + 1] === '"') {
+          cur += '"'
+          i++
+        } else if (c === '"') quoted = false
+        else cur += c
+      } else if (c === '"') quoted = true
+      else if (c === delim) {
+        out.push(cur)
+        cur = ''
+      } else cur += c
+    }
+    out.push(cur)
+    return out
+  }
+  const delimOf = (kw: Kw) => (kw.delimiter?.k === 'str' ? kw.delimiter.v : ',')
+  const lines = (src: Value): (() => string | undefined) => {
+    const next = h.iterOf(src)
+    return () => {
+      for (let x = next(); x !== undefined; x = next()) {
+        const t = (x as { v: string }).v.replace(/\r?\n$/, '')
+        if (t !== '') return t
+      }
+      return undefined
+    }
+  }
+  const quote = (v: Value, delim: string) => {
+    const t = v.k === 'none' ? '' : h.str(v)
+    return t.includes(delim) || t.includes('"') || t.includes('\n') ? `"${t.replace(/"/g, '""')}"` : t
+  }
+  const lineEnd = (kw: Kw) => (kw.lineterminator?.k === 'str' ? kw.lineterminator.v : '\r\n')
+  const writeRow = (f: Value, cells: string[], kw: Kw) => h.call(h.getAttr(f, 'write'), [S(cells.join(delimOf(kw)) + lineEnd(kw))])
+  return mod('csv', {
+    reader: F('reader', (a, kw) => {
+      const next = lines(a[0])
+      return iter('_csv.reader', () => {
+        const t = next()
+        return t === undefined ? undefined : L(parseLine(t, delimOf(kw)).map(S))
+      })
+    }),
+    writer: F('writer', (a, kw) => mod('_csv.writer', {
+      writerow: F('writerow', (b) => writeRow(a[0], h.iterate(b[0]).map((x) => quote(x, delimOf(kw))), kw)),
+      writerows: F('writerows', (b) => {
+        for (const row of h.iterate(b[0])) writeRow(a[0], h.iterate(row).map((x) => quote(x, delimOf(kw))), kw)
+        return NONE
+      }),
+    })),
+    DictReader: F('DictReader', (a, kw) => {
+      const next = lines(a[0])
+      const given = kw.fieldnames && kw.fieldnames.k !== 'none' ? h.iterate(kw.fieldnames).map((x) => (x as { v: string }).v) : null
+      const names = given ?? parseLine(next() ?? '', delimOf(kw))
+      return iter('csv.DictReader', () => {
+        const t = next()
+        if (t === undefined) return undefined
+        const cells = parseLine(t, delimOf(kw))
+        return { k: 'dict', d: PyDict.from(names.map((n, i) => [S(n), i < cells.length ? S(cells[i]) : NONE])) }
+      })
+    }),
+    DictWriter: F('DictWriter', (a, kw) => {
+      const names = h.iterate(kw.fieldnames ?? a[1]).map((x) => (x as { v: string }).v)
+      const row = (d: Value) => writeRow(a[0], names.map((n) => quote((d as { d: PyDict }).d?.get(S(n)) ?? S(''), delimOf(kw))), kw)
+      return mod('csv.DictWriter', {
+        writeheader: F('writeheader', () => writeRow(a[0], names.map((n) => quote(S(n), delimOf(kw))), kw)),
+        writerow: F('writerow', (b) => row(b[0])),
+        writerows: F('writerows', (b) => { for (const d of h.iterate(b[0])) row(d); return NONE }),
+      })
+    }),
+    QUOTE_MINIMAL: int(0),
+  })
+}
+
 // ---------------------------------------------------------------- os, sys
 
 class Stream extends Base {
@@ -1185,7 +1395,12 @@ const makeOsPath = (h: Host): Value => {
     if (v?.k !== 'str') throw h.err('TypeError', `expected str, not ${v ? typeName(v) : 'nothing'}`)
     return v.v
   }
-  const no = F('exists', () => bool(false))
+  const files = filesOf(h)
+  const isFile = (p: string) => files.has(fullPath(p))
+  const isDir = (p: string) => {
+    const full = fullPath(p)
+    return full === CWD || full === '/' || [...files.keys()].some((k) => k.startsWith(`${full}/`)) || dirsOf(h).has(full)
+  }
   return mod('os.path', {
     join: F('join', (a) => S(a.map(text).reduce((acc, p) => (p.startsWith('/') ? p : acc === '' || acc.endsWith('/') ? acc + p : `${acc}/${p}`)))),
     basename: F('basename', (a) => S(text(a[0]).slice(text(a[0]).lastIndexOf('/') + 1))),
@@ -1201,26 +1416,46 @@ const makeOsPath = (h: Host): Value => {
       const at = base.lastIndexOf('.')
       return at <= 0 ? tuple([S(p), S('')]) : tuple([S(p.slice(0, p.length - base.length + at)), S(base.slice(at))])
     }),
-    exists: no, isfile: no, isdir: no,
-    abspath: F('abspath', (a) => S(text(a[0]).startsWith('/') ? text(a[0]) : `/sandbox/${text(a[0])}`)),
+    exists: F('exists', (a) => bool(isFile(text(a[0])) || isDir(text(a[0])))),
+    isfile: F('isfile', (a) => bool(isFile(text(a[0])))),
+    isdir: F('isdir', (a) => bool(isDir(text(a[0])))),
+    getsize: F('getsize', (a) => {
+      const v = files.get(fullPath(text(a[0])))
+      return v === undefined ? noSuchFile(h, text(a[0])) : int(v.length)
+    }),
+    abspath: F('abspath', (a) => S(fullPath(text(a[0])))),
   })
 }
 
+const dirsOf = (h: Host): Set<string> => {
+  let d = h.state.get('dirs') as Set<string> | undefined
+  if (!d) h.state.set('dirs', (d = new Set()))
+  return d
+}
+
 const makeOs = (h: Host): Value => {
-  const missing = (v: Value | undefined) => h.raise(h.excClass('FileNotFoundError'), [S(`this sandbox has no files: ${v?.k === 'str' ? repr(v) : ''}`)])
+  const files = filesOf(h)
+  const dirs = dirsOf(h)
+  const pathOf = (v: Value | undefined) => (v?.k === 'str' ? v.v : '.')
   return mod('os', {
     path: makeOsPath(h),
     sep: S('/'),
     linesep: S('\n'),
     environ: { k: 'dict', d: new PyDict() },
     getenv: F('getenv', (a) => a[1] ?? NONE),
-    getcwd: F('getcwd', () => S('/sandbox')),
-    listdir: F('listdir', (a) => (!a[0] || (a[0].k === 'str' && (a[0].v === '.' || a[0].v === '/sandbox')) ? L([]) : missing(a[0]))),
+    getcwd: F('getcwd', () => S(CWD)),
+    listdir: F('listdir', (a) => {
+      const full = fullPath(pathOf(a[0]))
+      const names = new Set<string>()
+      for (const k of [...files.keys(), ...dirs]) if (k.startsWith(`${full}/`)) names.add(k.slice(full.length + 1).split('/')[0])
+      if (!names.size && full !== CWD && !dirs.has(full)) return noSuchFile(h, pathOf(a[0]))
+      return L([...names].sort().map(S))
+    }),
     cpu_count: F('cpu_count', () => int(1)),
-    chdir: F('chdir', (a) => missing(a[0])),
-    remove: F('remove', (a) => missing(a[0])),
-    makedirs: F('makedirs', () => NONE),
-    mkdir: F('mkdir', () => NONE),
+    chdir: F('chdir', () => { throw h.err('NotImplementedError', 'os.chdir is not available in this sandbox: use paths from the current folder') }),
+    remove: F('remove', (a) => (files.delete(fullPath(pathOf(a[0]))) ? NONE : noSuchFile(h, pathOf(a[0])))),
+    makedirs: F('makedirs', (a) => { dirs.add(fullPath(pathOf(a[0]))); return NONE }),
+    mkdir: F('mkdir', (a) => { dirs.add(fullPath(pathOf(a[0]))); return NONE }),
   })
 }
 
@@ -1392,6 +1627,31 @@ const build = (h: Host): Record<string, Value> => ({
     return mod('abc', { ABC: base, ABCMeta: base, abstractmethod: F('abstractmethod', (a) => a[0]) })
   })(),
   warnings: mod('warnings', { warn: noop('warn'), filterwarnings: noop('filterwarnings'), simplefilter: noop('simplefilter') }),
+  io: makeIo(),
+  csv: makeCsv(h),
+  _sandbox_files: makeFiles(h),
+  // a notebook's habits, so its first cell runs
+  'google.colab': mod('google.colab', {
+    drive: mod('google.colab.drive', {
+      mount: F('mount', (a) => { h.print(`Mounted at ${h.str(a[0] ?? S('/content/drive'))} (nothing is mounted in this sandbox: it starts with no files)\n`); return NONE }),
+    }),
+    files: mod('google.colab.files', {
+      upload: F('upload', () => { throw h.err('NotImplementedError', 'files.upload needs Colab: this sandbox starts with no files') }),
+    }),
+  }),
+  google: mod('google', {}),
+  tqdm: mod('tqdm', { tqdm: F('tqdm', (a) => a[0]), trange: F('trange', (a) => {
+      const [from, to] = a.length > 1 ? [h.toInt(a[0]), h.toInt(a[1])] : [0, h.toInt(a[0])]
+      let i = from
+      return iter('tqdm', () => (i < to ? int(i++) : undefined))
+    }) }),
+  'IPython.display': mod('IPython.display', { display: F('display', (a) => { for (const x of a) h.print(`${repr(x)}\n`); return NONE }) }),
+  IPython: mod('IPython', {}),
+  logging: mod('logging', Object.fromEntries([
+    ...['debug', 'info', 'warning', 'error', 'critical', 'basicConfig'].map((n) => [n, noop(n)] as const),
+    ['getLogger', F('getLogger', () => mod('logging.Logger', Object.fromEntries(['debug', 'info', 'warning', 'error', 'critical', 'setLevel'].map((n) => [n, noop(n)]))))] as const,
+    ...Object.entries({ DEBUG: 10, INFO: 20, WARNING: 30, ERROR: 40, CRITICAL: 50 }).map(([n, v]) => [n, int(v)] as const),
+  ])),
   gc: mod('gc', { collect: noop('collect', int(0)), enable: noop('enable'), disable: noop('disable') }),
   traceback: mod('traceback', { print_exc: noop('print_exc'), format_exc: noop('format_exc', S('')) }),
   pprint: mod('pprint', {
@@ -1406,6 +1666,6 @@ return build
 let load: ReturnType<typeof define> | undefined
 
 export const STDLIB: PyLib = {
-  modules: ['re', 'json', 'collections', 'itertools', 'functools', 'operator', 'statistics', 'dataclasses', 'copy', 'datetime', 'os', 'os.path', 'sys', 'heapq', 'bisect', 'string', 'typing', '__future__', 'time', 'abc', 'warnings', 'gc', 'traceback', 'pprint'],
+  modules: ['re', 'json', 'collections', 'itertools', 'functools', 'operator', 'statistics', 'dataclasses', 'copy', 'datetime', 'os', 'os.path', 'sys', 'heapq', 'bisect', 'string', 'typing', '__future__', 'time', 'abc', 'warnings', 'gc', 'traceback', 'pprint', 'io', 'csv', '_sandbox_files', 'google', 'google.colab', 'tqdm', 'IPython', 'IPython.display', 'logging'],
   load: (h) => (load ??= define())(h),
 }

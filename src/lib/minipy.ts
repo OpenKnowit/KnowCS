@@ -14,6 +14,7 @@ import type { Interval } from './poly'
 import { allclose, average, bincount, diff, histogram, isin, median, meshgrid, pad as padArray, padWidths, percentile } from './ndextra'
 import { STDLIB, erf, gammaFn, gcdOf } from './pyStdlib'
 import { ARRAY_METHODS_VIA_FUNCTION, addNumpy } from './npMore'
+import { gamma as gammaDraw } from './npRandom'
 import {
   SandboxRandom, concatenate, cumsum, det, expandDims, flip, hstack, inv, norm, outer, repeat, roundHalfEven, sortAlong,
   squeeze, stack, swapaxes, tile, trace, unique, vstack, commonDType,
@@ -1961,6 +1962,7 @@ class Interp implements Host {
   module(name: string): Value {
     const np = this.np as Value & { k: 'module' }
     if (name === 'numpy') return np
+    if (name === 'builtins') return { k: 'module', name, attrs: this.builtins }
     if (name.startsWith('numpy.')) {
       const sub = np.attrs[name.slice(6)]
       if (sub?.k === 'module') return sub
@@ -1970,7 +1972,7 @@ class Interp implements Host {
     const lib = this.libs.find((l) => l.modules.includes(name))
     if (!lib) {
       const have = ['numpy', 'math', 'random', ...this.libs.flatMap((l) => l.modules.filter((m) => !m.includes('.')))]
-      if (/^(cv2|sklearn|scipy|PIL|skimage|seaborn|statsmodels|torchvision|networkx|sympy)(\.|$)/.test(name)) {
+      if (/^(cv2|sklearn|scipy|PIL|skimage|seaborn|statsmodels|torchvision|networkx|sympy|requests)(\.|$)/.test(name)) {
         throw this.err('ModuleNotFoundError', `No module named '${name}' in step-through mode: switch to Real Python to import it (this sandbox has ${[...new Set(have)].join(', ')})`)
       }
       throw this.err('ModuleNotFoundError', `No module named '${name}' (this sandbox has ${[...new Set(have)].join(', ')})`)
@@ -4336,6 +4338,7 @@ class Interp implements Host {
       case 'values': return () => ({ k: 'list', items: m.values(), view: 'dict_values' })
       case 'items': return () => ({ k: 'list', items: m.items().map(([a, b]) => tuple([a, b])), view: 'dict_items' })
       case 'clear': return () => { for (const k of m.keys()) m.delete(k); return NONE }
+      case 'fromkeys': return (args) => ({ k: 'dict', d: PyDict.from(this.iterate(args[0]).map((x) => [x, args[1] ?? NONE])) })
       case 'popitem': return (args, kw) => {
         const keys = m.keys()
         if (!keys.length) throw this.err('KeyError', "'popitem(): dictionary is empty'")
@@ -5142,7 +5145,9 @@ class Interp implements Host {
       print: fn('print', (args, kw) => {
         const sep = kw.sep && kw.sep.k === 'str' ? kw.sep.v : ' '
         const end = kw.end && kw.end.k === 'str' ? kw.end.v : '\n'
-        this.stdout.push(args.map((a) => this.str(a)).join(sep) + end)
+        const text = args.map((a) => this.str(a)).join(sep) + end
+        if (kw.file && kw.file.k !== 'none') this.call(this.getAttr(kw.file, 'write'), [str_(text)])
+        else this.stdout.push(text)
         return NONE
       }),
       len: fn('len', (args) => {
@@ -5260,7 +5265,7 @@ class Interp implements Host {
       NotImplemented: NOT_IMPLEMENTED,
       __name__: str_('__main__'),
       input: fn('input', () => { throw this.err('EOFError', 'this sandbox has no keyboard input: set the value in the code instead') }),
-      open: fn('open', () => { throw this.err('NotImplementedError', 'this sandbox has no files: build the data in the code, or use Real Python where the page offers it') }),
+      open: fn('open', (args, kw) => this.call((this.module('_sandbox_files') as { attrs: Record<string, Value> }).attrs.open, args, kw)),
       help: fn('help', (args) => {
         const x = args[0]
         const doc = x?.k === 'func' ? x.doc : undefined
@@ -5620,6 +5625,10 @@ class Interp implements Host {
           return { k: 'list', items: it.slice(0, n) }
         } },
         gauss: gauss('gauss'), normalvariate: gauss('normalvariate'),
+        betavariate: { k: 'fn', name: 'betavariate', call: (args) => {
+          const [x, y] = [gammaDraw(r, this.num(args[0])), gammaDraw(r, this.num(args[1]))]
+          return float(x / (x + y))
+        } },
         expovariate: { k: 'fn', name: 'expovariate', call: (args) => float(-Math.log(1 - r.next()) / this.num(args[0])) },
         shuffle: { k: 'fn', name: 'shuffle', call: (args) => {
           if (args[0].k !== 'list') throw this.err('TypeError', 'shuffle() needs a list')
