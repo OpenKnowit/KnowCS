@@ -262,7 +262,8 @@ export const unaryOp = (op: UnaryOp, a: NDArray): NDArray => {
     if (a.dtype === 'bool') {
       throw new PyError('TypeError', 'The numpy boolean negative, the `-` operator, is not supported, use the `~` operator or the logical_not function instead.')
     }
-    return NDArray.create(a.values().map((x) => -x || 0), a.shape, a.dtype)
+    // floats keep -0.0, which NumPy prints; integers have no such thing
+    return NDArray.create(a.values().map((x) => (a.dtype === 'float64' ? -x : -x || 0)), a.shape, a.dtype)
   }
   if (a.dtype === 'float64') throw new PyError('TypeError', "ufunc 'invert' not supported for the input types")
   return NDArray.create(a.values().map((x) => (a.dtype === 'bool' ? 1 - x : ~x)), a.shape, a.dtype)
@@ -643,15 +644,21 @@ export const setIndex = (a: NDArray, items: IndexItem[], value: NDArray): IndexP
 
 // ---------------- repr / str 格式化（对齐 numpy 默认打印风格） ----------------
 
+/** np.set_printoptions: reset at the start of every run */
+export const printOptions = { precision: 8, suppress: false, threshold: 1000, edgeitems: 3, linewidth: 75 }
+export const resetPrintOptions = () => Object.assign(printOptions, { precision: 8, suppress: false, threshold: 1000, edgeitems: 3, linewidth: 75 })
+
 const fmtFloatRaw = (v: number): string => {
   if (Number.isNaN(v)) return 'nan'
   if (!Number.isFinite(v)) return v > 0 ? 'inf' : '-inf'
   if (Object.is(v, -0)) return '-0.' // toFixed drops the sign of negative zero; numpy keeps it
-  return v.toFixed(8).replace(/0+$/, '')
+  const s = v.toFixed(printOptions.precision)
+  return s.includes('.') ? s.replace(/0+$/, '') : `${s}.`
 }
 
 /** numpy 规则：最大值 ≥ 1e8，或最小非零绝对值 < 1e-4，或二者之比 > 1000 时改用科学计数法 */
 const needsScientific = (values: number[]): boolean => {
+  if (printOptions.suppress) return false
   const abs = values.filter((v) => Number.isFinite(v) && v !== 0).map(Math.abs)
   if (!abs.length) return false
   // loops, not Math.max(...abs): large arrays have more elements than the call stack takes arguments
@@ -665,7 +672,7 @@ const formatScientific = (values: number[]): string[] => {
     if (!Number.isFinite(v)) return null
     // shortest round-trip digits, capped at numpy's default precision of 8 (trailing zeros dropped)
     let [mant, exp] = v.toExponential().split('e')
-    if ((mant.split('.')[1] ?? '').length > 8) [mant, exp] = v.toExponential(8).replace(/\.?0+e/, 'e').split('e')
+    if ((mant.split('.')[1] ?? '').length > printOptions.precision) [mant, exp] = v.toExponential(printOptions.precision).replace(/\.?0+e/, 'e').split('e')
     const [i, f = ''] = mant.split('.')
     const e = Number(exp)
     return { i, f, e: `e${e < 0 ? '-' : '+'}${String(Math.abs(e)).padStart(2, '0')}` }
@@ -693,18 +700,14 @@ export const formatElements = (values: number[], dtype: DType): string[] => {
   return words.map((s) => s.padStart(w))
 }
 
-const SUMMARY_THRESHOLD = 1000
-const EDGE = 3
-const LINE_WIDTH = 75
-
 const shownIndices = (n: number, summarize: boolean): (number | null)[] =>
-  summarize && n > 2 * EDGE
-    ? [...Array.from({ length: EDGE }, (_, i) => i), null, ...Array.from({ length: EDGE }, (_, i) => n - EDGE + i)]
+  summarize && n > 2 * printOptions.edgeitems
+    ? [...Array.from({ length: printOptions.edgeitems }, (_, i) => i), null, ...Array.from({ length: printOptions.edgeitems }, (_, i) => n - printOptions.edgeitems + i)]
     : Array.from({ length: n }, (_, i) => i)
 
 const formatNested = (a: NDArray, repr: boolean, indent: number): string => {
   const vals = a.values()
-  const summarize = a.size > SUMMARY_THRESHOLD
+  const summarize = a.size > printOptions.threshold
   const st = cStrides(a.shape)
   // 只用显示出来的元素计算列宽（与 numpy 一致）
   const shownFlat: number[] = []
@@ -730,7 +733,7 @@ const formatNested = (a: NDArray, repr: boolean, indent: number): string => {
       items.forEach((w, k) => {
         const word = k < items.length - 1 ? w + sep : w
         const next = cur ? `${cur} ${word}` : word
-        if (cur && lead + next.length + (k === items.length - 1 ? a.ndim - d : 0) > LINE_WIDTH) {
+        if (cur && lead + next.length + (k === items.length - 1 ? a.ndim - d : 0) > printOptions.linewidth) {
           lines.push(cur)
           cur = word
         } else cur = next
@@ -768,7 +771,7 @@ export const arrayRepr = (a: NDArray): string => {
   if (a.size === 0) {
     return a.ndim === 1 ? `${name}([], dtype=${a.dtype})` : `${name}([], shape=${shapeStr(a.shape)}, dtype=${a.dtype})`
   }
-  const suffix = a.size > SUMMARY_THRESHOLD ? `, shape=${shapeStr(a.shape)}` : ''
+  const suffix = a.size > printOptions.threshold ? `, shape=${shapeStr(a.shape)}` : ''
   return `${name}(${formatNested(a, true, name.length + 1)}${suffix})`
 }
 

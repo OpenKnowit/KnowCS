@@ -5,7 +5,7 @@
 import {
   NDArray, PyError, MAX_SIZE, arrayRepr, arrayStr, binaryOp, castValue, dot, formatScalar, getIndex, reduce,
   reshape, setIndex, sharesMemory, shapeStr, transpose, unaryOp, checkSize, applyOp, cStrides, broadcastShapes, broadcastTo,
-  reduceDType, setSizeLimit, normAxis,
+  reduceDType, setSizeLimit, normAxis, resetPrintOptions,
 } from './ndarray'
 import type { AxisNote, BinOp, DType, IndexItem, IndexPlan, ReduceKind } from './ndarray'
 import type { Display, PyEvent, PyEventInput } from './pyEvents'
@@ -13,6 +13,7 @@ import { DEFAULT_IV, complexRepr, convert, deriv, integ, lstsq, mapParams, polyR
 import type { Interval } from './poly'
 import { allclose, average, bincount, diff, histogram, isin, median, meshgrid, pad as padArray, padWidths, percentile } from './ndextra'
 import { STDLIB, erf, gammaFn, gcdOf } from './pyStdlib'
+import { ARRAY_METHODS_VIA_FUNCTION, addNumpy } from './npMore'
 import {
   SandboxRandom, concatenate, cumsum, det, expandDims, flip, hstack, inv, norm, outer, repeat, roundHalfEven, sortAlong,
   squeeze, stack, swapaxes, tile, trace, unique, vstack, commonDType,
@@ -21,7 +22,7 @@ import {
 // ================= 词法 =================
 
 type TokType = 'name' | 'num' | 'str' | 'fstr' | 'op' | 'nl' | 'indent' | 'dedent' | 'eof'
-interface Tok { t: TokType; v: string; pos: number; end: number; line: number; body?: number }
+interface Tok { t: TokType; v: string; pos: number; end: number; line: number; imag?: boolean; body?: number }
 
 const OPS = [
   '**=', '//=', '<<=', '>>=', '...', '->', '**', '//', '==', '!=', '<=', '>=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '@=', '<<', '>>', ':=',
@@ -83,7 +84,11 @@ export const tokenize = (src: string, offset = 0, firstLine = 1): Tok[] => {
       const text = m[0].replace(/_/g, '')
       push('num', radix ? String(Number(text)) : text, i, i + m[0].length)
       i += m[0].length
-      if (src[i] === 'j' || src[i] === 'J') throw new PyError('NotImplementedError', 'complex numbers are not supported in this sandbox', line)
+      // complex numbers are not modelled, but np.mgrid[0:1:5j] spells "5 points" with one
+      if (src[i] === 'j' || src[i] === 'J') {
+        toks[toks.length - 1].imag = true
+        i++
+      }
       continue
     }
     // string prefixes: r'…' b'…' f'…' rf'…'
@@ -158,7 +163,7 @@ export interface CompFor { target: Node; iter: Node; conds: Node[] }
 export type FPart = string | { x: Node; conv: 'r' | 's' | 'a' | null; spec: string; specX?: Node }
 
 export type Node = Span & (
-  | { k: 'num'; v: number; isFloat: boolean }
+  | { k: 'num'; v: number; isFloat: boolean; imag?: boolean }
   | { k: 'str'; v: string }
   | { k: 'fstr'; parts: FPart[] }
   | { k: 'const'; v: 'True' | 'False' | 'None' }
@@ -926,7 +931,7 @@ class Parser {
     if (tk.t === 'num') {
       this.next()
       const isFloat = /[.eE]/.test(tk.v)
-      return this.mk(tk, { k: 'num', v: Number(tk.v), isFloat })
+      return this.mk(tk, { k: 'num', v: Number(tk.v), isFloat, imag: tk.imag })
     }
     if (tk.t === 'str' || tk.t === 'fstr') {
       // adjacent literals concatenate; any f-string makes the whole run an f-string
@@ -1037,12 +1042,12 @@ export const parse = (src: string): Stmt[] => new Parser(tokenize(src)).program(
 
 // ================= 运行时值 =================
 
-type Fn = (args: Value[], kw: Record<string, Value>) => Value
+export type Fn = (args: Value[], kw: Record<string, Value>) => Value
 
 /** 可视化用的 API 分类：决定「输出元素来自哪些输入元素」的计算方式 */
 export type ApiKind = 'create' | 'move' | 'elementwise' | 'reduce' | 'scan' | 'matmul' | 'sort' | 'unique' | 'linalg' | 'random' | 'info' | 'poly' | 'group'
 
-interface ApiMeta {
+export interface ApiMeta {
   /** 'np.sum' / 'ndarray.sum' / 'np.linalg.inv' … */
   name: string
   kind: ApiKind
@@ -1124,7 +1129,6 @@ export type Value =
 
 export interface Frame { vars: Map<string, Value>; parent: Frame | null; isClass?: boolean; owner?: ClassValue | null; self?: Value; globals?: Set<string>; nonlocals?: Set<string> }
 
-/** Python dict: insertion-ordered, keyed by a hash of the key's value (1, 1.0 and True collide, as in Python) */
 /** round() on a float looks at the exact binary value: round(2.675, 2) is 2.67, round(0.125, 2) is 0.12 */
 const roundExact = (x: number, nd: number): number => {
   if (!Number.isFinite(x) || Math.abs(x) >= 1e21 || nd > 20) return x
@@ -1141,6 +1145,7 @@ const roundExact = (x: number, nd: number): number => {
 /** the running program's __hash__, so instances that compare equal find the same dict entry */
 let instHash: ((v: InstValue) => string | undefined) | null = null
 
+/** Python dict: insertion-ordered, keyed by a hash of the key's value (1, 1.0 and True collide, as in Python) */
 export class PyDict {
   m = new Map<string, [Value, Value]>()
   static hash(v: Value): string {
@@ -1220,6 +1225,92 @@ export abstract class PyObj {
   isa?(name: string): boolean
   /** a richer rendering for the output pane (a table, a figure …) when this is the cell's last value */
   display?(): Display | null
+}
+
+/** 5j: only np.mgrid and friends can use one */
+class ImagLiteral extends PyObj {
+  readonly cls = 'complex'
+  v: number
+  constructor(v: number) {
+    super()
+    this.v = v
+  }
+  repr() { return `${this.v}j` }
+  binop(): Value | undefined {
+    throw new PyError('NotImplementedError', 'complex numbers are not supported in this sandbox: arrays here hold real numbers only')
+  }
+}
+
+/** a.flat: walks the array as one long row, and writes through to it */
+class FlatIter extends PyObj {
+  readonly cls = 'numpy.flatiter'
+  a: NDArray
+  constructor(a: NDArray) {
+    super()
+    this.a = a
+  }
+  repr() { return '<numpy.flatiter object>' }
+  len() { return this.a.size }
+  iter() { return this.a.values().map((x) => fromScalar(x, this.a.dtype)) }
+  toArray() { return NDArray.create(this.a.values(), [this.a.size], this.a.dtype) }
+  at(i: number) {
+    const n = this.a.size
+    if (i < -n || i >= n) throw new PyError('IndexError', `index ${i} is out of bounds for size ${n}`)
+    return i < 0 ? i + n : i
+  }
+  /** the positions an index picks: an integer, a slice or a list of them */
+  picks(idx: Value, h: Host): number[] | null {
+    if (isNum(idx)) return null
+    const n = this.a.size
+    if (idx.k === 'slice') {
+      const step = idx.step.k === 'none' ? 1 : h.toInt(idx.step)
+      const clamp = (v: number) => (v < 0 ? Math.max(0, v + n) : Math.min(v, n))
+      const start = idx.start.k === 'none' ? (step > 0 ? 0 : n - 1) : clamp(h.toInt(idx.start))
+      const stop = idx.stop.k === 'none' ? (step > 0 ? n : -1) : clamp(h.toInt(idx.stop))
+      const out: number[] = []
+      for (let i = start; step > 0 ? i < stop : i > stop; i += step) out.push(i)
+      return out
+    }
+    return toArray(idx).values().map((i) => this.at(i))
+  }
+  getItem(idx: Value, h: Host): Value {
+    const v = this.a.values()
+    const many = this.picks(idx, h)
+    if (!many) return fromScalar(v[this.at(h.toInt(idx))], this.a.dtype)
+    return arr(NDArray.create(many.map((i) => v[i]), [many.length], this.a.dtype))
+  }
+  setItem(idx: Value, x: Value, h: Host) {
+    const ad = this.a.addresses()
+    const many = this.picks(idx, h) ?? [this.at(h.toInt(idx))]
+    const vals = toArray(x).values()
+    many.forEach((i, k) => { this.a.data[ad[i]] = castValue(vals[k % vals.length], this.a.dtype) })
+  }
+}
+
+/** a.flags */
+class ArrayFlags extends PyObj {
+  readonly cls = 'numpy.flagsobj'
+  a: NDArray
+  constructor(a: NDArray) {
+    super()
+    this.a = a
+  }
+  table(): Record<string, boolean> {
+    const c = this.a.isCContiguous()
+    const f = this.a.ndim <= 1 ? c : false
+    return { C_CONTIGUOUS: c, F_CONTIGUOUS: f, OWNDATA: !this.a.base, WRITEABLE: true, ALIGNED: true, WRITEBACKIFCOPY: false }
+  }
+  repr() { return Object.entries(this.table()).map(([k, v]) => `  ${k} : ${v ? 'True' : 'False'}`).join('\n') }
+  getItem(idx: Value): Value {
+    const v = this.table()[(idx as { v: string }).v]
+    if (v === undefined) throw new PyError('KeyError', repr(idx))
+    return bool(v)
+  }
+  getAttr(name: string): Value | undefined {
+    const short: Record<string, string> = { c_contiguous: 'C_CONTIGUOUS', contiguous: 'C_CONTIGUOUS', f_contiguous: 'F_CONTIGUOUS', fortran: 'F_CONTIGUOUS', owndata: 'OWNDATA', writeable: 'WRITEABLE', aligned: 'ALIGNED' }
+    const key = short[name]
+    return key ? bool(this.table()[key]) : undefined
+  }
 }
 
 /** What a library sees of the interpreter */
@@ -1406,6 +1497,7 @@ export const repr = (v: Value): string => {
 }
 
 export const str = (v: Value): string => {
+  if (v.k === 'carray') return complexRepr(v.re, v.im).replace(/^array\(/, '').replace(/\)$/, '').replace(/, /g, ' ')
   if (v.k === 'str') return v.v
   if (v.k === 'array') return arrayStr(v.a)
   if (v.k === 'dtype') return v.d
@@ -1771,6 +1863,11 @@ class Interp implements Host {
     this.deadline = Date.now() + (opts.timeBudget ?? 2000)
     this.np = this.makeNumpy()
     this.builtins = this.makeBuiltins()
+    // these exceptions live in NumPy's namespace but need the exception tree, which comes second
+    const np = (this.np as { attrs: Record<string, Value> }).attrs
+    const linalgAttrs = (np.linalg as { attrs: Record<string, Value> }).attrs
+    linalgAttrs.LinAlgError = this.excClass('LinAlgError')
+    np.exceptions = { k: 'module', name: 'numpy.exceptions', attrs: { AxisError: this.excClass('AxisError') } }
   }
 
   err(type: string, msg: string): PyError {
@@ -2299,6 +2396,9 @@ class Interp implements Host {
         if (n > 0) out.set(k, int(n))
       }
       return { k: 'dict', d: out, flavor: 'Counter' }
+    }
+    if ((op === '<<' || op === '>>') && (l.k === 'array' || r.k === 'array')) {
+      return this.call((this.np as { attrs: Record<string, Value> }).attrs[op === '<<' ? 'left_shift' : 'right_shift'], [l, r])
     }
     if (l.k === 'dict' && r.k === 'dict' && op === '|') return { ...l, d: PyDict.from([...l.d.items(), ...r.d.items()]) }
     if (isMatrix(l) || isMatrix(r)) return this.matrixOp(op, l, r)
@@ -2829,7 +2929,7 @@ class Interp implements Host {
 
   eval(n: Node): Value {
     switch (n.k) {
-      case 'num': return n.isFloat ? float(n.v) : int(n.v)
+      case 'num': return n.imag ? { k: 'obj', o: new ImagLiteral(n.v) } : n.isFloat ? float(n.v) : int(n.v)
       case 'str': return { k: 'str', v: n.v }
       case 'const': return n.v === 'None' ? NONE : bool(n.v === 'True')
       case 'ellipsis': return { k: 'ellipsis' }
@@ -3609,17 +3709,75 @@ class Interp implements Host {
   }
 
   reduceFn(a: NDArray, kind: ReduceKind, args: Value[], kw: Record<string, Value>): Value {
+    const axisV = kw.axis ?? args[0]
+    const keep = !!kw.keepdims && this.truthy(kw.keepdims)
+    // several axes at once: run them together as one long axis
+    if (axisV?.k === 'tuple') {
+      const axes = axisV.items.map((x) => normAxis(this.toInt(x), a.ndim))
+      const rest = a.shape.map((_, i) => i).filter((i) => !axes.includes(i))
+      const merged = reshape(transpose(a, [...rest, ...axes]).copy(), [...rest.map((i) => a.shape[i]), -1])
+      const sub: Kw = { ...kw, axis: int(-1) }
+      delete sub.keepdims
+      if (kw.where) sub.where = arr(reshape(transpose(broadcastTo(toArray(kw.where), a.shape), [...rest, ...axes]).copy(), merged.shape))
+      const res = this.reduceFn(merged, kind, [], sub)
+      if (!keep) return res
+      const shape = a.shape.map((d, i) => (axes.includes(i) ? 1 : d))
+      return arr(reshape(toArray(res), shape))
+    }
     const axis = this.kwInt(kw, args, 0, 'axis')
-    const res = reduce(a, kind, axis)
+    const hasInitial = !!kw.initial && kw.initial.k !== 'none'
+    if (kw.where || hasInitial) return this.reduceMasked(a, kind, axis, kw, keep)
+    const ddof = kw.ddof ? this.num(kw.ddof) : 0
+    let res = reduce(a, kind, axis)
+    if (ddof && (kind === 'std' || kind === 'var')) {
+      // the variance with a different divisor; std is its root, as in NumPy
+      const n = axis === null ? a.size : a.shape[normAxis(axis, a.ndim)]
+      const corrected = (v: number) => (kind === 'var' ? (v * n) / (n - ddof) : Math.sqrt((v * n) / (n - ddof)))
+      const variance = reduce(a, 'var', axis)
+      res = typeof variance === 'number' ? corrected(variance) : NDArray.create(variance.values().map(corrected), variance.shape, 'float64')
+    }
     // keepdims=True leaves the reduced axis in place with length 1, so the result still broadcasts against a.
     // A matrix does this by itself along an axis: m.sum(axis=1) is a column
-    if ((kw.keepdims && this.truthy(kw.keepdims)) || (a.matrix && axis !== null)) {
+    if (keep || (a.matrix && axis !== null)) {
       const shape = axis === null ? a.shape.map(() => 1) : a.shape.map((d, i) => (i === normAxis(axis, a.ndim) ? 1 : d))
       const vals = typeof res === 'number' ? [res] : res.values()
       return arr(NDArray.create(vals, shape, typeof res === 'number' ? reduceDType(kind, a.dtype) : res.dtype))
     }
     if (typeof res === 'number') return fromScalar(res, reduceDType(kind, a.dtype))
     return arr(res)
+  }
+
+  /** np.sum(a, where=mask) and np.max(a, initial=0): each lane is cut down by the mask, then reduced as usual */
+  reduceMasked(a: NDArray, kind: ReduceKind, axis: number | null, kw: Kw, keep: boolean): Value {
+    const mask = kw.where ? broadcastTo(toArray(kw.where), a.shape) : null
+    const initial = kw.initial && kw.initial.k !== 'none' ? this.num(kw.initial) : null
+    const dtype = reduceDType(kind, a.dtype)
+    const one = (xs: number[], on: number[] | null): number => {
+      const vals = on ? xs.filter((_, i) => on[i]) : [...xs]
+      if (initial !== null) vals.push(initial)
+      if (!vals.length) {
+        if (kind === 'sum') return 0
+        if (kind === 'prod') return 1
+        if (kind === 'any') return 0
+        if (kind === 'all') return 1
+        if (kind === 'mean' || kind === 'std' || kind === 'var') return NaN
+        throw this.err('ValueError', `zero-size array to reduction operation ${kind} which has no identity`)
+      }
+      return reduce(NDArray.create(vals, [vals.length], a.dtype), kind, null) as number
+    }
+    if (axis === null) {
+      const r = one(a.values(), mask ? mask.values() : null)
+      return keep ? arr(NDArray.create([r], a.shape.map(() => 1), dtype)) : fromScalar(r, dtype)
+    }
+    const ax = normAxis(axis, a.ndim)
+    const order = [...a.shape.map((_, i) => i).filter((i) => i !== ax), ax]
+    const moved = transpose(a, order).values()
+    const movedMask = mask ? transpose(mask, order).values() : null
+    const n = a.shape[ax]
+    const outer = order.slice(0, -1).map((i) => a.shape[i])
+    const out = Array.from({ length: outer.reduce((p, x) => p * x, 1) }, (_, i) => one(moved.slice(i * n, i * n + n), movedMask ? movedMask.slice(i * n, i * n + n) : null))
+    if (keep) return arr(NDArray.create(out, a.shape.map((d, i) => (i === ax ? 1 : d)), dtype))
+    return outer.length ? arr(NDArray.create(out, outer, dtype)) : fromScalar(out[0], dtype)
   }
 
   /** ndarray 方法表：impl(self) 返回可调用对象，便于在元素编号数组上重放 */
@@ -3641,6 +3799,51 @@ class Interp implements Host {
       case 'round': return M('elementwise', (a) => (args, kw) => arr(this.roundArr(a, this.kwInt(kw, args, 0, 'decimals') ?? 0)))
       case 'clip': return M('elementwise', (a) => (args, kw) => this.clip(arr(a), kw.min ?? kw.a_min ?? args[0], kw.max ?? kw.a_max ?? args[1]))
       case 'tolist': return M('info', (a) => () => this.toList(a))
+      case 'sort': return M('sort', (a) => (args, kw) => {
+        const sorted = sortAlong(a, this.kwInt(kw, args, 0, 'axis') ?? -1).sorted
+        const ad = a.addresses()
+        sorted.values().forEach((x, i) => { a.data[ad[i]] = x })
+        return NONE
+      })
+      // a full sort is one valid partition; NumPy's arrangement of the two sides differs and is not promised
+      case 'partition': return M('sort', (a) => (args, kw) => {
+        const sorted = sortAlong(a, kw.axis ? this.toInt(kw.axis) : args[1] ? this.toInt(args[1]) : -1).sorted
+        const ad = a.addresses()
+        sorted.values().forEach((x, i) => { a.data[ad[i]] = x })
+        return NONE
+      })
+      case 'argpartition': return M('sort', (a) => (args, kw) => arr(sortAlong(a, kw.axis ? this.toInt(kw.axis) : args[1] ? this.toInt(args[1]) : -1).order))
+      case 'fill': return M('elementwise', (a) => (args) => {
+        const x = castValue(this.num(args[0]), a.dtype)
+        for (const at of a.addresses()) a.data[at] = x
+        return NONE
+      })
+      case 'put': return M('move', (a) => (args) => {
+        const ind = toArray(args[0]).values()
+        const vals = toArray(args[1]).values()
+        const ad = a.addresses()
+        const n = a.size
+        ind.forEach((i, k) => {
+          if (i < -n || i >= n) throw this.err('IndexError', `index ${i} is out of bounds for axis 0 with size ${n}`)
+          a.data[ad[i < 0 ? i + n : i]] = castValue(vals[k % vals.length], a.dtype)
+        })
+        return NONE
+      })
+      case 'resize': return M('move', (a) => (args) => {
+        // in place, padding with zeros (np.resize instead repeats the data)
+        if (a.base) throw this.err('ValueError', 'cannot resize this array: it does not own its data')
+        const shape = this.toShape(args)
+        checkSize(shape)
+        const old = a.values()
+        a.data = Array.from({ length: shape.reduce((p, x) => p * x, 1) }, (_, i) => old[i] ?? 0)
+        a.shape = shape
+        a.strides = cStrides(shape)
+        a.offset = 0
+        return NONE
+      })
+      case 'compress': return M('move', (a) => (args, kw) => this.call((this.np as { attrs: Record<string, Value> }).attrs.compress, [args[0], arr(a), ...args.slice(1)], kw))
+      case 'view': return M('move', (a) => () => arr(new NDArray(a.data, a.shape, a.strides, a.offset, a.dtype, a.base ?? a)))
+      case 'trace': return M('info', (a) => () => fromScalar(trace(a), a.dtype === 'bool' ? 'int64' : a.dtype))
       case 'item': return M('info', (a) => (args) => {
         if (args[0]) return fromScalar(a.values()[this.toInt(args[0])], a.dtype)
         if (a.size !== 1) throw this.err('ValueError', 'can only convert an array of size 1 to a Python scalar')
@@ -3965,6 +4168,20 @@ class Interp implements Host {
           case 'H': return toMatrix(arr(transpose(a)))
           case 'I': return toMatrix(arr(inv(plainView(a))))
         }
+      }
+      switch (name) {
+        case 'real': return obj
+        case 'imag': return arr(NDArray.create(new Array<number>(a.size).fill(0), a.shape, a.dtype))
+        case 'itemsize': return int(a.dtype === 'bool' ? 1 : 8)
+        case 'nbytes': return int(a.size * (a.dtype === 'bool' ? 1 : 8))
+        case 'mT': return arr(transpose(a, a.shape.map((_, i) => (i === a.ndim - 1 ? a.ndim - 2 : i === a.ndim - 2 ? a.ndim - 1 : i))))
+        case 'flat': return { k: 'obj', o: new FlatIter(a) }
+        case 'flags': return { k: 'obj', o: new ArrayFlags(a) }
+      }
+      // the array methods that are the NumPy function with the array first
+      if (ARRAY_METHODS_VIA_FUNCTION[name]) {
+        const f = (this.np as { attrs: Record<string, Value> }).attrs[name]
+        return { k: 'fn', name, call: (args, kw) => this.call(f, [obj, ...args], kw), api: { name: `ndarray.${name}`, kind: ARRAY_METHODS_VIA_FUNCTION[name] }, self: a }
       }
       const m = this.arrayMethod(name)
       if (m) return { k: 'fn', name, call: m.impl(a), api: m.meta, self: a, rebind: m.impl }
@@ -4716,7 +4933,34 @@ class Interp implements Host {
       }, 'group'),
       histogram: fn('histogram', (args, kw) => {
         const b = kw.bins ?? args[1]
-        if (b && b.k !== 'none' && !isNum(b)) throw this.err('NotImplementedError', 'histogram takes a number of bins in this sandbox (not a list of edges)')
+        const density = (kw.density ?? args[3]) && this.truthy(kw.density ?? args[3])
+        const weights = kw.weights ?? args[4]
+        if ((b && b.k !== 'none' && !isNum(b)) || density || (weights && weights.k !== 'none')) {
+          const v = asArr(args[0], 'histogram').values()
+          let edges: number[]
+          if (b && b.k !== 'none' && !isNum(b)) edges = toArray(b).values()
+          else {
+            const rg0 = kw.range ?? args[2]
+            const span = rg0 && rg0.k !== 'none' ? toArray(rg0, 'float64').values() : [Math.min(...v), Math.max(...v)]
+            const [lo, hi] = span[0] === span[1] ? [span[0] - 0.5, span[1] + 0.5] : span
+            const n = b && b.k !== 'none' ? this.toInt(b) : 10
+            edges = Array.from({ length: n + 1 }, (_, i) => lo + ((hi - lo) * i) / n)
+          }
+          const w = weights && weights.k !== 'none' ? toArray(weights).values() : null
+          const counts = new Array<number>(edges.length - 1).fill(0)
+          v.forEach((x, i) => {
+            if (x < edges[0] || x > edges[edges.length - 1]) return
+            // each bin is half open, except the last
+            let k = edges.findIndex((e) => x < e) - 1
+            if (k < 0) k = edges.length - 2
+            counts[k] += w ? w[i] : 1
+          })
+          const total = counts.reduce((t, c) => t + c, 0)
+          const out = density ? counts.map((c, i) => c / total / (edges[i + 1] - edges[i])) : counts
+          const whole = !density && (!w || toArray(weights!).dtype !== 'float64')
+          const edgeType = b && b.k !== 'none' && !isNum(b) ? toArray(b).dtype : 'float64'
+          return tuple([arr(NDArray.create(out, [out.length], whole ? 'int64' : 'float64')), arr(NDArray.create(edges, [edges.length], edgeType))])
+        }
         const rg = kw.range ?? args[2]
         const range = rg && rg.k !== 'none' ? (toArray(rg, 'float64').values() as [number, number]) : null
         const r = histogram(asArr(args[0], 'histogram'), b && b.k !== 'none' ? this.toInt(b) : 10, range)
@@ -4833,6 +5077,7 @@ class Interp implements Host {
       bool_: dt('bool', 'bool'),
       ndarray: { k: 'type', name: 'numpy.ndarray', call: () => { throw this.err('TypeError', 'use np.array / np.zeros to create arrays') } },
     }
+    addNumpy(this, attrs, (random as { attrs: Record<string, Value> }).attrs, (linalg as { attrs: Record<string, Value> }).attrs, { fn, rnd, la })
     return { k: 'module', name: 'numpy', attrs }
   }
 
@@ -5419,6 +5664,7 @@ export const runPython = (src: string, opts: RunOptions = {}): RunResult => {
     if (it.classAttr(v.cls, '__eq__') && !v.cls.builtin) throw new PyError('TypeError', `unhashable type: '${v.cls.name}'`)
     return undefined
   }
+  resetPrintOptions()
   let out: string | null = null
   let outDisplay: Display | null = null
   let error: RunResult['error'] = null
