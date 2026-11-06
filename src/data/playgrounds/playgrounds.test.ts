@@ -4,10 +4,14 @@ import { PYTORCH_PLAYGROUND } from './pytorch'
 import { KERAS_PLAYGROUND } from './keras'
 import { TENSORFLOW_PLAYGROUND } from './tensorflow'
 import { PANDAS_PLAYGROUND } from './pandas'
+import { PYTHON_PLAYGROUND } from './python'
+import { SKLEARN_PLAYGROUND } from './sklearn'
+import { CV2_PLAYGROUND } from './cv2'
+import { loadLibsFor } from '../../lib/pyLazy'
 import { runIn } from './run'
 import type { PlayConfig } from './types'
 
-const CONFIGS: PlayConfig[] = [MATPLOTLIB_PLAYGROUND, PYTORCH_PLAYGROUND, KERAS_PLAYGROUND, TENSORFLOW_PLAYGROUND, PANDAS_PLAYGROUND]
+const CONFIGS: PlayConfig[] = [MATPLOTLIB_PLAYGROUND, PYTORCH_PLAYGROUND, KERAS_PLAYGROUND, TENSORFLOW_PLAYGROUND, PANDAS_PLAYGROUND, PYTHON_PLAYGROUND, SKLEARN_PLAYGROUND, CV2_PLAYGROUND]
 
 describe.each(CONFIGS.map((c) => [c.id, c] as const))('%s playground', (_id, config) => {
   it('every category has an example and every example has a known category', () => {
@@ -16,7 +20,8 @@ describe.each(CONFIGS.map((c) => [c.id, c] as const))('%s playground', (_id, con
     expect(new Set(config.entries.map((e) => e.id)).size).toBe(config.entries.length)
   })
 
-  it.each(config.entries.map((e) => [e.id, e] as const))('%s runs as intended', (_e, entry) => {
+  it.each(config.entries.map((e) => [e.id, e] as const))('%s runs as intended', async (_e, entry) => {
+    await loadLibsFor(entry.code)
     const r = runIn(config, entry.code, 10_000)
     if (entry.expectError) expect(r.error?.type).toBe(entry.expectError)
     else expect(r.error).toBeNull()

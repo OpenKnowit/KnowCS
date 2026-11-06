@@ -293,6 +293,100 @@ plt.plot(z, 1 / (1 + np.exp(-z)), label='sigmoid')
 plt.legend()
 plt.title('Hard threshold vs smooth activation')`,
   },
+  // ---- what the sandbox gained later; each one was run on the real library
+  {
+    id: 'bars', cat: 'charts', label: 'plt.bar / plt.hist',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+fig, (a, b) = plt.subplots(1, 2, figsize=(8, 3))
+a.bar(['cat', 'dog', 'bird'], [5, 7, 3])
+a.set_title('bar: one height per label')
+b.hist([1, 2, 2, 3, 3, 3, 4, 4, 5], bins=5)
+b.set_title('hist: counts per bin')
+plt.tight_layout()`,
+  },
+  {
+    id: 'contour', cat: 'charts', label: 'plt.contourf',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+x, y = np.meshgrid(np.linspace(-2, 2, 60), np.linspace(-2, 2, 60))
+z = x ** 2 + y ** 2
+plt.contourf(x, y, z, levels=10, cmap='viridis')
+plt.colorbar(label='loss')
+plt.title('a loss surface from above')`,
+  },
+  {
+    id: 'fill', cat: 'charts', label: 'plt.fill_between',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(0, 10, 50)
+mean = np.sin(x)
+plt.plot(x, mean, label='mean')
+plt.fill_between(x, mean - 0.3, mean + 0.3, alpha=0.3, label='± 0.3')
+plt.legend()`,
+  },
+  {
+    id: 'twinx', cat: 'charts', label: 'ax.twinx',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+epochs = np.arange(1, 11)
+fig, ax = plt.subplots()
+ax.plot(epochs, 1 / epochs, 'r', label='loss')
+ax.set_ylabel('loss')
+right = ax.twinx()
+right.plot(epochs, 1 - 0.5 / epochs, 'b', label='accuracy')
+right.set_ylabel('accuracy')`,
+  },
+  {
+    id: 'log', cat: 'charts', label: 'plt.yscale(\'log\')',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+lr = np.array([0.0001, 0.001, 0.01, 0.1, 1])
+loss = np.array([2.1, 1.2, 0.4, 0.5, 3.0])
+plt.plot(lr, loss, 'o-')
+plt.xscale('log')
+plt.xlabel('learning rate')
+plt.ylabel('loss')`,
+  },
+  {
+    id: 'surface', cat: 'charts', label: 'plot_surface',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+x, y = np.meshgrid(np.linspace(-2, 2, 30), np.linspace(-2, 2, 30))
+z = np.sin(x) * np.cos(y)
+ax = plt.figure().add_subplot(projection='3d')
+ax.plot_surface(x, y, z, cmap='coolwarm')
+ax.set_title('3D surface')`,
+  },
+  {
+    id: 'scatter3', cat: 'charts', label: 'plt.scatter(c=…)',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(1)
+xy = rng.normal(size=(60, 2))
+plt.scatter(xy[:, 0], xy[:, 1], c=xy[:, 0] + xy[:, 1], s=40 * np.abs(xy[:, 1]) + 10, cmap='plasma')
+plt.colorbar()
+plt.axhline(0, color='gray')
+plt.axvline(0, color='gray')`,
+  },
+  {
+    id: 'seaborn', cat: 'charts', label: 'sns.heatmap',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+m = np.array([[50, 2], [5, 43]])
+sns.heatmap(m, annot=True, fmt='d', cmap='Blues')
+plt.xlabel('predicted')
+plt.ylabel('true')`,
+  },
 ]
 
 export const MATPLOTLIB_PLAYGROUND: PlayConfig = {
@@ -301,7 +395,7 @@ export const MATPLOTLIB_PLAYGROUND: PlayConfig = {
   maxSize: 2_000_000,
   timeBudget: 2000,
   debounce: 350,
-  cats: ['basics', 'images', 'ml'],
+  cats: ['basics', 'images', 'ml', 'charts'],
   entries: ENTRIES,
   prelude: H,
   callApis: [],

@@ -153,6 +153,7 @@ export const LAB_REDIRECTS: Record<string, string> = {
 export type PageSpec =
   | { kind: 'home'; path: string }
   | { kind: 'playground'; path: string }
+  | { kind: 'coverage'; path: string }
   | { kind: 'module'; path: string; id: ModuleId }
   | { kind: 'notes'; path: string }
   | { kind: 'note'; path: string; id: string }
@@ -175,6 +176,7 @@ export const STUDY_PAGES_ONLINE: boolean = false
 export const PAGES: PageSpec[] = [
   { kind: 'home', path: 'index.html' },
   { kind: 'playground', path: 'playground/index.html' },
+  { kind: 'coverage', path: 'playground/coverage/index.html' },
   ...MODULES.map((m): PageSpec => ({ kind: 'module', path: `${m.id}/index.html`, id: m.id })),
   ...(STUDY_PAGES_ONLINE
     ? ([

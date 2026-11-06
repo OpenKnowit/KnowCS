@@ -33,4 +33,4 @@ export const importsOf = (code: string): string[] => {
 }
 
 /** libraries whose playground offers the real-Python check (PyTorch, Keras and TensorFlow have no Pyodide build) */
-export const REAL_PYTHON_LIBS = new Set(['numpy', 'matplotlib', 'pandas'])
+export const REAL_PYTHON_LIBS = new Set(['numpy', 'matplotlib', 'pandas', 'python'])

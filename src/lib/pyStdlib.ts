@@ -673,17 +673,35 @@ class CmpKey extends Base {
 }
 
 const makeFunctools = (h: Host): Value => {
-  const memo = (f: Value): Value => {
+  const memo = (f: Value, maxsize: number | null = null): Value => {
     const seen = new Map<string, Value>()
+    let hits = 0
+    let misses = 0
     const wrapper: Value & { k: 'fn' } = {
       k: 'fn', name: f.k === 'func' ? f.name : 'cached', bindable: true,
       call: (args, kw) => {
         const key = PyDict.hash(tuple([...args, ...Object.entries(kw).flatMap(([a, b]) => [S(a), b])]))
-        let v = seen.get(key)
-        if (!v) seen.set(key, (v = h.call(f, args, kw)))
+        const known = seen.get(key)
+        if (known) {
+          hits++
+          // the most recently used stays longest
+          seen.delete(key)
+          seen.set(key, known)
+          return known
+        }
+        misses++
+        const v = h.call(f, args, kw)
+        seen.set(key, v)
+        if (maxsize !== null && seen.size > maxsize) seen.delete(seen.keys().next().value as string)
         return v
       },
-      attrs: new Map<string, Value>([['cache_clear', F('cache_clear', () => { seen.clear(); return NONE })], ['__wrapped__', f]]),
+      attrs: new Map<string, Value>([
+        ['cache_clear', F('cache_clear', () => { seen.clear(); hits = misses = 0; return NONE })],
+        ['cache_info', F('cache_info', () => {
+          const CacheInfo = h.call(h.getAttr(h.module('collections'), 'namedtuple'), [S('CacheInfo'), S('hits misses maxsize currsize')])
+          return h.call(CacheInfo, [int(hits), int(misses), maxsize === null ? NONE : int(maxsize), int(seen.size)])
+        })],
+        ['__wrapped__', f]]),
     }
     return wrapper
   }
@@ -695,9 +713,10 @@ const makeFunctools = (h: Host): Value => {
     }),
     partial: F('partial', (a, kw) => ({ k: 'fn', name: 'partial', call: (args, ckw) => h.call(a[0], [...a.slice(1), ...args], { ...kw, ...ckw }) })),
     lru_cache: F('lru_cache', (a, kw) => {
-      if (a[0] && (a[0].k === 'func' || a[0].k === 'bound')) return memo(a[0])
-      void kw
-      return F('decorator', (b) => memo(b[0]))
+      // used bare it is lru_cache(maxsize=128)
+      if (a[0] && (a[0].k === 'func' || a[0].k === 'bound')) return memo(a[0], 128)
+      const size = kw.maxsize ?? a[0]
+      return F('decorator', (b) => memo(b[0], !size ? 128 : size.k === 'none' ? null : h.toInt(size)))
     }),
     cache: F('cache', (a) => memo(a[0])),
     cached_property: { k: 'type', name: 'cached_property', call: (a) => {

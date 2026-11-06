@@ -99,6 +99,96 @@ plt.xlabel('predicted')
 plt.ylabel('true')
 plt.colorbar()`,
   },
+  // ---- what the sandbox gained later; each one was run on the real library
+  {
+    id: 'select', cat: 'tensors', label: 'tf.where / gather',
+    code: `import tensorflow as tf
+
+x = tf.constant([[1., 2.], [3., 4.]])
+print(tf.where(x > 2))
+print(tf.where(x > 2, x, 0.))
+print(tf.boolean_mask(x, x > 2))
+print(tf.gather(x, [1, 0]))
+print(tf.gather_nd(x, [[0, 1]]))`,
+  },
+  {
+    id: 'reduce', cat: 'tensors', label: 'reduce_* / argmax',
+    code: `import tensorflow as tf
+
+x = tf.constant([[1., 5.], [3., 2.]])
+print(tf.reduce_sum(x), tf.reduce_mean(x, axis=0), tf.reduce_max(x, axis=1, keepdims=True))
+print(tf.argmax(x, axis=1), tf.one_hot([0, 1], 2))
+print(tf.nn.softmax(x), tf.math.top_k(x, 1).indices)`,
+  },
+  {
+    id: 'dtype_strict', cat: 'tensors', label: 'dtype errors', expectError: 'InvalidArgumentError',
+    code: `import tensorflow as tf
+
+a = tf.constant([1.5, 2.5])
+b = tf.constant([1, 2])
+print(a.dtype, b.dtype, repr(a.dtype))
+print(a + tf.cast(b, tf.float32))
+print(tf.add(tf.constant(2.0), 1))    # a Python number follows the tensor
+tf.add(1, tf.constant(2.0))           # but as the first argument of tf.add it does not`,
+  },
+  {
+    id: 'second_order', cat: 'autograd', label: 'nested tapes',
+    code: `import tensorflow as tf
+
+x = tf.Variable(3.0)
+with tf.GradientTape() as outer:
+    with tf.GradientTape() as inner:
+        y = x ** 3
+    g = inner.gradient(y, x)     # 3x² = 27
+print(g, outer.gradient(g, x))   # 6x = 18`,
+  },
+  {
+    id: 'persistent', cat: 'autograd', label: 'persistent / watch',
+    code: `import tensorflow as tf
+
+c = tf.constant(2.0)
+with tf.GradientTape(persistent=True) as t:
+    t.watch(c)              # constants are not watched by default
+    a = c * c
+    b = a * c
+print(t.gradient(a, c), t.gradient(b, c))
+with tf.GradientTape() as t2:
+    d = c * 2
+print(t2.gradient(d, c))    # no watch: None`,
+  },
+  {
+    id: 'tf_function', cat: 'autograd', label: '@tf.function',
+    code: `import tensorflow as tf
+
+@tf.function
+def f(x):
+    return x * 2 + 1
+
+print(f(tf.constant(3.0)))
+print(tf.function(lambda x: x + 1)(1))    # the result is a tensor`,
+  },
+  {
+    id: 'dataset', cat: 'data', label: 'tf.data.Dataset',
+    code: `import tensorflow as tf
+
+ds = tf.data.Dataset.from_tensor_slices(([1., 2., 3., 4., 5.], [0, 1, 0, 1, 0]))
+print(ds, ds.cardinality())
+for x, y in ds.map(lambda a, b: (a * 2, b)).batch(2).take(2):
+    print(x.numpy().tolist(), y.numpy().tolist())
+print(ds.batch(2), ds.batch(2).element_spec)`,
+  },
+  {
+    id: 'from_gen', cat: 'data', label: 'from_generator',
+    code: `import tensorflow as tf
+
+def gen():
+    for i in range(4):
+        yield float(i), i % 2
+
+ds = tf.data.Dataset.from_generator(gen, output_signature=(tf.TensorSpec(shape=(), dtype=tf.float32), tf.TensorSpec(shape=(), dtype=tf.int32)))
+print(ds)
+print([(float(a), int(b)) for a, b in ds])`,
+  },
 ]
 
 export const TENSORFLOW_PLAYGROUND: PlayConfig = {
@@ -107,7 +197,7 @@ export const TENSORFLOW_PLAYGROUND: PlayConfig = {
   maxSize: 2_000_000,
   timeBudget: 4000,
   debounce: 600,
-  cats: ['tensors', 'autograd', 'keras'],
+  cats: ['tensors', 'autograd', 'keras', 'data'],
   entries: ENTRIES,
   prelude: H,
   callApis: ['tf.', 'op:'],
