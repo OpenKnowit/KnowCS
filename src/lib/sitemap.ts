@@ -2,7 +2,7 @@
 
 export type ModuleId =
   | 'numpy' | 'numpy-broadcast' | 'bayes-basics' | 'naive-bayes' | 'bayes-virus' | 'gaussian-nb' | 'knn' | 'evaluation' | 'cross-validation'
-  | 'kmeans' | 'kmeans-table' | 'perceptron' | 'backprop' | 'xor-mlp' | 'kernel' | 'convolution' | 'otsu' | 'affine' | 'cnn-shapes' | 'pytorch' | 'alphabeta'
+  | 'kmeans' | 'kmeans-table' | 'perceptron' | 'backprop' | 'xor-mlp' | 'kernel' | 'convolution' | 'otsu' | 'affine' | 'cnn-shapes' | 'cnn-live' | 'nn-classify' | 'nn-paint' | 'pytorch' | 'alphabeta'
 
 export interface ModuleInfo {
   id: ModuleId
@@ -32,17 +32,20 @@ export const MODULES: ModuleInfo[] = [
   { id: 'perceptron', lec: 5, kind: 'lab', exams: ['22F', '22S', '23F', '23S'] },
   { id: 'backprop', lec: 6, kind: 'classic', legacy: 'backprop', exams: [] },
   { id: 'xor-mlp', lec: 6, kind: 'lab', exams: ['22S', '23S', '25S', 'F23', 'F24'] },
+  { id: 'nn-classify', lec: 6, kind: 'lab', exams: [] },
+  { id: 'nn-paint', lec: 6, kind: 'lab', exams: [] },
   { id: 'kernel', lec: 7, kind: 'classic', legacy: 'kernel', exams: [] },
   { id: 'convolution', lec: 7, kind: 'lab', exams: ['F22', 'F23', 'F24'] },
   { id: 'otsu', lec: 7, kind: 'lab', exams: ['F22', 'F24'] },
   { id: 'affine', lec: 7, kind: 'lab', exams: ['F22', 'F24'] },
   { id: 'cnn-shapes', lec: 8, kind: 'lab', exams: ['F22', 'F23', 'F24'] },
+  { id: 'cnn-live', lec: 8, kind: 'lab', exams: [] },
   { id: 'pytorch', lec: 9, kind: 'lab', exams: ['F22'] },
   { id: 'alphabeta', lec: 10, kind: 'classic', legacy: 'alphabeta', exams: ['F22', 'F23', 'F24'] },
 ]
 
 /** Labs marked with a star on the Visualize page. */
-export const STARRED: ReadonlySet<ModuleId> = new Set<ModuleId>(['xor-mlp', 'convolution', 'cnn-shapes', 'alphabeta'])
+export const STARRED: ReadonlySet<ModuleId> = new Set<ModuleId>(['xor-mlp', 'convolution', 'cnn-shapes', 'cnn-live', 'alphabeta'])
 
 /** Explainer videos (/watch/<id>/): in-browser animations with captions, one per heavily examined idea. */
 export interface EpisodeInfo {

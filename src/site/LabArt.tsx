@@ -819,6 +819,58 @@ const ART: Record<ModuleId, () => ReactElement> = {
   },
 
   // "The volume after each layer": light-blue boxes shrinking, then the flat dense layers
+  // input, a grid of activation maps, the class bars
+  'cnn-live': () => {
+    const shade = (r: number, k: number) => ['#0f172a', '#334155', '#64748b', '#cbd5e1', '#1e293b', '#94a3b8', '#475569'][(r * 5 + k * 3) % 7]
+    return (
+      <>
+        <rect x={14} y={78} width={36} height={36} rx={3} fill="#93c5fd" />
+        <path d="M14 104 L 26 92 L 36 102 L 50 90 V 114 H 14 Z" fill="#2563eb" fillOpacity={0.6} />
+        {Array.from({ length: 6 }, (_, r) => Array.from({ length: 7 }, (_, k) => (
+          <rect key={`${r}-${k}`} x={60 + k * 25} y={32 + r * 23} width={22} height={20} rx={2} fill={shade(r, k)} />
+        )))}
+        {[56, 30, 18, 11, 7].map((w, i) => (
+          <g key={i}>
+            <rect x={240} y={46 + i * 22} width={w} height={17} rx={3} fill={i ? C.blueM : '#34d399'} />
+          </g>
+        ))}
+      </>
+    )
+  },
+  // the data and the boundary, then the same data in the hidden layer's bent space
+  'nn-classify': () => {
+    const dots = (pts: number[][], col: string) => pts.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={3.6} fill={col} stroke="#fff" strokeWidth={0.8} />)
+    return (
+      <>
+        <rect x={14} y={40} width={136} height={120} rx={8} fill={C.blueL} />
+        <circle cx={82} cy={100} r={38} fill={C.roseL} />
+        {dots([[76, 92], [90, 108], [70, 112], [96, 88], [84, 100]], C.rose)}
+        {dots([[30, 60], [132, 62], [34, 142], [128, 146], [82, 50], [82, 150], [24, 100], [140, 104]], C.blue)}
+        <rect x={170} y={40} width={136} height={120} rx={8} fill="#f8fafc" stroke="#e2e8f0" />
+        <path d="M180 150 L 296 50" stroke="#0f172a" strokeWidth={2} strokeDasharray="6 4" />
+        {dots([[192, 70], [206, 84], [216, 62], [226, 92], [200, 104]], C.rose)}
+        {dots([[252, 136], [270, 118], [282, 138], [288, 104], [246, 118], [266, 146]], C.blue)}
+      </>
+    )
+  },
+  // the picture, and the network's painting of it
+  'nn-paint': () => {
+    const scene = (x: number, blur: number) => (
+      <g>
+        <rect x={x} y={40} width={136} height={120} rx={8} fill="#fb923c" />
+        <rect x={x} y={40} width={136} height={55} rx={8} fill="#6366f1" fillOpacity={0.7} />
+        <circle cx={x + 92} cy={84} r={18} fill="#fef08a" />
+        <path d={blur ? `M${x} 134 C ${x + 40} 108, ${x + 80} 140, ${x + 136} 116 V 160 H ${x} Z` : `M${x} 136 L ${x + 34} 108 L ${x + 62} 130 L ${x + 100} 102 L ${x + 136} 124 V 160 H ${x} Z`} fill="#312e81" />
+      </g>
+    )
+    return (
+      <>
+        {scene(14, 0)}
+        <Txt x={160} y={100} s={14} c={C.line}>→</Txt>
+        {scene(170, 1)}
+      </>
+    )
+  },
   'cnn-shapes': () => {
     const box: [string, string, string] = ['#bfdbfe', '#dbeafe', '#93c5fd']
     const flat: [string, string, string] = ['#c7d2fe', '#e0e7ff', '#a5b4fc']

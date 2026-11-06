@@ -916,6 +916,18 @@
       "numpy-broadcast": {
         "title": "NumPy 廣播",
         "blurb": "為什麼 (3, 1) + (1, 4) 會得到 3 × 4：把形狀右對齊，逐個軸檢查。"
+      },
+      "cnn-live": {
+        "title": "實時看 CNN 內部",
+        "blurb": "一個真實的 CNN 在瀏覽器裏識別 CIFAR-10 圖片，每一層的每個通道都能看到。"
+      },
+      "nn-classify": {
+        "title": "神經網絡怎樣彎曲空間",
+        "blurb": "用你擺的點訓練小網絡，看隱藏層把平面彎到一條直線就能分開兩類。"
+      },
+      "nn-paint": {
+        "title": "神經網絡畫畫",
+        "blurb": "訓練網絡把 (x, y) 映射成顏色，看它從一片模糊畫出整張圖。"
       }
     },
     "home": {
@@ -2216,6 +2228,169 @@
         "mark_4": "題目禁循環就別用循環：2024 春期末 Q2(a) 用了顯式循環，結果正確也只給 1 分。",
         "mark_5": "判斷輸出題括號也要對：2023 春寫明沒有部分分。"
       }
+    },
+    "live": {
+      "net_title": "每一層的每個通道",
+      "net_sub": "在你的瀏覽器裏用時 {{ms}} ms · {{params}} 個參數",
+      "loading": "正在加載網絡…",
+      "load_failed": "網絡加載失敗，請檢查連接後刷新頁面。",
+      "grid_aria": "激活圖：每列一層，每行一個通道",
+      "cell_aria": "{{layer}}，通道 {{channel}}",
+      "top5": "最可能的五個類別",
+      "truth": "標籤：",
+      "own_picture": "你的圖片",
+      "sample_aria": "測試圖片 {{n}}：{{c}}",
+      "verdict_right": "判斷正確：{{c}}，{{p}}%。",
+      "verdict_wrong": "判斷錯誤：它説是{{c}}（{{p}}%），標籤是{{truth}}。",
+      "verdict_own": "它説是{{c}}（{{p}}%）。它只認識 CIFAR-10 的十個類別，所以只能從中選一個。",
+      "pick_title": "選一張圖片",
+      "pick_sub": "{{n}} 張測試圖片，網絡訓練時沒見過",
+      "prev": "上一張",
+      "next": "下一張",
+      "play": "播放",
+      "pause": "暫停",
+      "upload": "用自己的圖片",
+      "upload_note": "圖片在你的瀏覽器裏縮小到 32 × 32，不會上傳。",
+      "err_too_big": "文件超過 10 MB。",
+      "err_bad_type": "這不是 PNG、JPEG、WebP、GIF 或 BMP 圖片。",
+      "err_too_many_pixels": "這張圖片的像素太多。",
+      "err_decode": "無法讀取這張圖片。",
+      "close_title": "放大：{{layer}}，通道 {{channel}}",
+      "close_stats": "{{n}} × {{n}} · 最小 {{min}} · 最大 {{max}} · {{zeros}}% 為零",
+      "close_fc": "“{{c}}”在 softmax 之前的分數：{{v}}",
+      "kind": {
+        "conv": "一個濾波器對上一層的響應。在這一層的亮度範圍內，灰色約等於零，白和黑是符號相反的強響應。",
+        "relu": "同一張圖把所有負值變成 0，所以大部分變黑，只留下濾波器要找的內容。",
+        "pool": "每個 2 × 2 區域取最大值：尺寸減半，保留最強的響應。",
+        "fc": "每個類別一個數。這十個分數經過 softmax 得到右邊的柱條。",
+        "input": "輸入圖片。"
+      },
+      "read_title": "怎麼看這張圖",
+      "read": {
+        "conv": "<b>conv</b> 尺寸不變，混合相鄰像素：3 × 3 加 padding，所以 32² 還是 32²。前面的濾波器對邊緣和顏色有響應。",
+        "relu": "<b>relu</b> 讓灰色的圖大部分變黑，因為它把所有負值變成 0。",
+        "pool": "<b>pool</b> 尺寸減半：32² → 16² → 8² → 4²。這裏每格畫得一樣大，所以後面的圖看起來更粗糙。",
+        "deep": "<b>越往右</b>，每個像素依賴的原圖範圍越大，圖也越來越不像原圖。到 4² 時它説明的是“有什麼”，而不是“在哪裏”。",
+        "fc": "<b>fc</b> 讀取全部 4 × 4 × 10 = 160 個數，給每個類別一個分數。同一層共用一個亮度範圍，所以幾乎全黑的圖表示這個濾波器對這張圖沒什麼反應。"
+      },
+      "score_title": "它有多準？",
+      "score_sub": "在全部 10,000 張 CIFAR-10 測試圖片上",
+      "score_acc": "測試準確率",
+      "score_chance": "瞎猜是 10%",
+      "score_params": "參數量",
+      "score_params_d": "小到能畫出每個通道",
+      "code_title": "用 Keras 寫同一個網絡",
+      "code_sub": "summary() 的參數量和本頁一致",
+      "class": {
+        "airplane": "飛機",
+        "automobile": "汽車",
+        "bird": "鳥",
+        "cat": "貓",
+        "deer": "鹿",
+        "dog": "狗",
+        "frog": "青蛙",
+        "horse": "馬",
+        "ship": "船",
+        "truck": "卡車"
+      },
+      "credit": "基於 Andrej Karpathy 的 <b>ConvNetJS</b>（MIT 許可），佈局參考 <a>CS231n 主頁</a>上的 demo。權重是用 scripts/train-cnn-live.py 在 <c>CIFAR-10</c>（Krizhevsky, 2009）上為本站訓練的，每一層都和 PyTorch 對照過。"
+    },
+    "toy": {
+      "data_title": "數據",
+      "data": {
+        "blobs": {
+          "title": "兩團點",
+          "note": "一條直線就夠"
+        },
+        "xor": {
+          "title": "XOR",
+          "note": "課上的問題，加了雜訊"
+        },
+        "circle": {
+          "title": "圓",
+          "note": "一類被另一類包圍"
+        },
+        "spiral": {
+          "title": "螺旋",
+          "note": "難，試試深一點的網絡"
+        }
+      },
+      "net_title": "網絡",
+      "hidden": "隱藏層",
+      "none": "無",
+      "activation": "激活函數",
+      "lr": "學習率",
+      "run": "訓練",
+      "pause": "暫停",
+      "restart": "重新隨機權重",
+      "add_title": "自己加點",
+      "brush": "點左圖時添加",
+      "red": "紅色",
+      "blue": "藍色",
+      "clear": "清空所有點",
+      "steps": "步數",
+      "loss": "損失",
+      "acc": "準確率",
+      "input_title": "輸入空間",
+      "input_sub": "底色是網絡給每個位置判的類別",
+      "input_aria": "訓練點（{{n}} 個）和網絡劃分的區域。點擊可添加一個點。",
+      "hidden_title": "最後一個隱藏層",
+      "hidden_sub": "同樣的網格和點，被網絡移動之後",
+      "hidden_aria": "最後兩個隱藏單元看到的輸入網格和點，以及輸出層的那條直線",
+      "no_hidden": "沒有隱藏層就什麼都不會移動：輸出層只能用一條直線直接分開輸入。",
+      "read_title": "看什麼",
+      "read": {
+        "line": "<b>輸出層只會畫直線。</b>就是右圖的虛線，這裏每個網絡都一樣。",
+        "warp": "<b>隱藏層負責移動這些點</b>，好讓這條直線能分開它們。右圖的網格就是左圖那個正方形移動後的樣子，左圖彎曲的邊界和右圖的直線是同一個判斷。",
+        "two": "<b>試試“圓”配隱藏層“2”。</b>兩個單元只能用兩條線切平面，準確率停在 90% 左右。再換成“6-2”，能到 100%。",
+        "relu": "<b>換成 ReLU</b>，邊界會變成一段段直線，每一段來自某個單元開始起作用的位置。",
+        "spiral": "<b>螺旋需要更大的網絡：</b>16-16-2 配 tanh，大約半分鐘能分對大部分。學習率調到 0.1 或換成 ReLU，通常會塌到 50%，可以試試並觀察損失。"
+      },
+      "credit": "基於 Andrej Karpathy 的 ConvNetJS（MIT 許可），參考其中的 <a>classify2d demo</a>。"
+    },
+    "paint": {
+      "picture": "圖片",
+      "pic": {
+        "sunset": {
+          "title": "日落",
+          "note": "平滑的顏色和一條硬的山脊"
+        },
+        "face": {
+          "title": "笑臉",
+          "note": "小細節最後才出現"
+        },
+        "stripes": {
+          "title": "條紋",
+          "note": "全是邊緣，最難"
+        }
+      },
+      "upload": "用自己的圖片",
+      "upload_note": "圖片在你的瀏覽器裏縮小到 64 × 64，不會上傳。",
+      "err_too_big": "文件超過 10 MB。",
+      "err_bad_type": "這不是 PNG、JPEG、WebP、GIF 或 BMP 圖片。",
+      "err_too_many_pixels": "這張圖片的像素太多。",
+      "err_decode": "無法讀取這張圖片。",
+      "net_title": "網絡",
+      "depth": "隱藏層數",
+      "width": "每層單元數",
+      "lr": "學習率",
+      "run": "開始畫",
+      "pause": "暫停",
+      "restart": "重新開始",
+      "steps": "步數",
+      "loss": "損失",
+      "params": "參數量",
+      "pixels": "對應 {{n}} 個顏色值",
+      "original": "原圖",
+      "painted": "網絡畫的",
+      "read_title": "這是在做什麼",
+      "read": {
+        "what": "<b>網絡一次只看一個像素：</b>輸入是 (x, y)，學着輸出這個像素的 (r, g, b)。這就是用均方誤差做迴歸，和圖像本身沒有特別的關係。",
+        "edges": "<b>平滑的區域先出現，邊緣最後。</b>ReLU 網絡由一塊塊平面拼成，鋭利的細節需要很多塊。",
+        "depth": "<b>試試 1 個隱藏層，再試 7 個。</b>單元數相近時，層數越多能拼出的塊數多得多。",
+        "compress": "<b>對比參數量和像素數。</b>網絡比圖片小時背不下整張圖，只能保留最能降低誤差的部分。"
+      },
+      "credit": "基於 Andrej Karpathy 的 ConvNetJS（MIT 許可），參考其中的 <a>image regression demo</a>。"
     }
   },
   "watch": {

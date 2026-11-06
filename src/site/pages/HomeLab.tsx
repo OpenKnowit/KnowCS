@@ -24,7 +24,7 @@ const CODE: Record<ModuleId, string> = {
   numpy: 'INDEX LAB', 'numpy-broadcast': 'BROADCAST LAB', 'bayes-basics': 'BAYES RULE', 'bayes-virus': 'BASE-RATE LAB', 'naive-bayes': 'NAIVE BAYES TABLE', 'gaussian-nb': 'GAUSSIAN NB',
   knn: 'NEIGHBOUR LAB', evaluation: 'CONFUSION MATRIX', 'cross-validation': 'D-FOLD CV', kmeans: 'CLUSTER LAB', 'kmeans-table': 'K-MEANS TABLE',
   perceptron: 'PERCEPTRON TABLE', backprop: 'BACKPROP LAB', 'xor-mlp': 'XOR · MLP', kernel: 'EDGE KERNELS', convolution: 'CONV LAB',
-  otsu: 'HISTOGRAM · OTSU', affine: 'AFFINE LAB', 'cnn-shapes': 'SHAPE CALCULATOR', pytorch: 'TENSOR LAB', alphabeta: 'GAME TREE',
+  otsu: 'HISTOGRAM · OTSU', affine: 'AFFINE LAB', 'cnn-shapes': 'SHAPE CALCULATOR', 'cnn-live': 'LIVE ACTIVATIONS', 'nn-classify': 'BENDING SPACE', 'nn-paint': 'NEURAL PAINTER', pytorch: 'TENSOR LAB', alphabeta: 'GAME TREE',
 }
 
 // ---------------------------------------------------------------- line sketches (320 × 150)
@@ -181,6 +181,29 @@ function Sketch({ id, c }: { id: ModuleId; c: string }) {
           </g>
         ))}
         <path d="M270 75 h20" stroke={c} strokeDasharray={dash} />
+      </>
+    ),
+    'cnn-live': (
+      <>
+        {Array.from({ length: 4 }, (_, r) => Array.from({ length: 8 }, (_, k) => (
+          <rect key={`${r}-${k}`} x={44 + k * 26} y={22 + r * 27} width={22} height={23} rx={2} fill={c} fillOpacity={0.08 + (((r * 5 + k * 3) % 7) / 7) * 0.5} stroke={c} strokeWidth={0.8} />
+        )))}
+      </>
+    ),
+    'nn-classify': (
+      <>
+        <path d="M60 110 C 110 30, 150 130, 200 60 S 260 70, 270 40" fill="none" stroke={c} strokeWidth={1.8} />
+        {[[80, 50], [105, 40], [130, 62], [210, 40], [240, 30]].map(([x, y], k) => <circle key={k} cx={x} cy={y} r={4} fill="none" stroke={c} strokeWidth={1.3} />)}
+        {[[90, 115], [140, 110], [190, 100], [235, 95]].map(([x, y], k) => <circle key={k} cx={x} cy={y} r={4} fill={c} fillOpacity={0.6} />)}
+      </>
+    ),
+    'nn-paint': (
+      <>
+        <rect x={60} y={30} width={90} height={90} rx={4} fill="none" stroke={c} strokeWidth={1.3} />
+        <circle cx={118} cy={62} r={14} fill={c} fillOpacity={0.5} />
+        <path d="M60 100 L 90 78 L 118 96 L 150 74" fill="none" stroke={c} strokeWidth={1.3} />
+        <path d="M160 75 h20" stroke={c} strokeDasharray={dash} />
+        {Array.from({ length: 6 }, (_, r) => Array.from({ length: 6 }, (_, k) => <rect key={`${r}-${k}`} x={190 + k * 15} y={30 + r * 15} width={15} height={15} fill={c} fillOpacity={0.06 + ((r + k) % 5) * 0.1} />))}
       </>
     ),
     pytorch: (

@@ -156,6 +156,33 @@ export const decodeToGrey = async (bytes: Uint8Array, info: ImageInfo): Promise<
   }
 }
 
+/** an upload as the RGBA pixels of a `size` square, centre-cropped on white; for pages that keep the colour */
+export const readUploadSquare = async (file: File, size: number): Promise<Uint8ClampedArray> => {
+  if (file.size > MAX_FILE_BYTES) throw new ImageInputError('too_big')
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const info = checkImageBytes(bytes, MAX_FILE_BYTES)
+  let bitmap: ImageBitmap
+  try {
+    bitmap = await createImageBitmap(new Blob([bytes as BlobPart], { type: `image/${info.type}` }))
+  } catch {
+    throw new ImageInputError('decode')
+  }
+  try {
+    const side = Math.min(bitmap.width, bitmap.height)
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = size
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) throw new ImageInputError('decode')
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, size, size)
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size)
+    return ctx.getImageData(0, 0, size, size).data
+  } finally {
+    bitmap.close()
+  }
+}
+
 export const readUpload = async (file: File): Promise<number[][]> => {
   // refuse by the stated size first, so a huge file is not read into memory at all
   if (file.size > MAX_FILE_BYTES) throw new ImageInputError('too_big')

@@ -27,6 +27,9 @@ export const LAB_LOADERS: Partial<Record<ModuleId, Loader>> = {
   otsu: memo(withPacks(i18n, ['lab.otsu'], () => import('./modules/Otsu'))),
   affine: memo(withPacks(i18n, ['lab.affine'], () => import('./modules/Affine'))),
   'cnn-shapes': memo(withPacks(i18n, ['lab.cnn'], () => import('./modules/CnnShapes'))),
+  'cnn-live': memo(withPacks(i18n, ['lab.live'], () => import('./modules/CnnLive'))),
+  'nn-classify': memo(withPacks(i18n, ['lab.toy'], () => import('./modules/NnClassify'))),
+  'nn-paint': memo(withPacks(i18n, ['lab.paint'], () => import('./modules/NnPaint'))),
   pytorch: memo(withPacks(i18n, ['lab.pytorch'], () => import('./modules/PyTorch'))),
 }
 

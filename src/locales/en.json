@@ -916,6 +916,18 @@
       "numpy-broadcast": {
         "title": "NumPy broadcasting",
         "blurb": "Why (3, 1) + (1, 4) gives a 3 × 4 grid: line the shapes up on the right and check every axis."
+      },
+      "cnn-live": {
+        "title": "Inside a CNN, live",
+        "blurb": "A real CNN runs in your browser on CIFAR-10 pictures, and you see every channel of every layer."
+      },
+      "nn-classify": {
+        "title": "How a network bends space",
+        "blurb": "Train a small network on points you place, and watch the hidden layer bend the plane until a straight line can split the classes."
+      },
+      "nn-paint": {
+        "title": "A network paints a picture",
+        "blurb": "Train a network to map (x, y) to a colour, and watch it paint a picture from a blur."
       }
     },
     "home": {
@@ -2216,6 +2228,169 @@
         "mark_4": "If loops are banned, do not use them: in the 2024 Spring final Q2(a) a correct result with explicit loops gets 1 mark.",
         "mark_5": "Brackets count in predict-the-output questions: 2023 Spring gave no partial marks."
       }
+    },
+    "live": {
+      "net_title": "Every channel of every layer",
+      "net_sub": "{{ms}} ms in your browser · {{params}} parameters",
+      "loading": "Loading the network…",
+      "load_failed": "The network could not be loaded. Check your connection and reload the page.",
+      "grid_aria": "Activation maps: one column per layer, one row per channel",
+      "cell_aria": "{{layer}}, channel {{channel}}",
+      "top5": "The five most likely classes",
+      "truth": "Label:",
+      "own_picture": "Your picture",
+      "sample_aria": "Test picture {{n}}: {{c}}",
+      "verdict_right": "Correct: {{c}}, {{p}}%.",
+      "verdict_wrong": "Wrong: it says {{c}} ({{p}}%), the label is {{truth}}.",
+      "verdict_own": "It says {{c}} ({{p}}%). It only knows the ten CIFAR-10 classes, so it has to pick one of them.",
+      "pick_title": "Pick a picture",
+      "pick_sub": "{{n}} test pictures the network never trained on",
+      "prev": "Previous picture",
+      "next": "Next picture",
+      "play": "Play",
+      "pause": "Pause",
+      "upload": "Use your own picture",
+      "upload_note": "It is shrunk to 32 × 32 in your browser and never leaves it.",
+      "err_too_big": "That file is over 10 MB.",
+      "err_bad_type": "That is not a PNG, JPEG, WebP, GIF or BMP picture.",
+      "err_too_many_pixels": "That picture has too many pixels.",
+      "err_decode": "That picture could not be read.",
+      "close_title": "Close-up: {{layer}}, channel {{channel}}",
+      "close_stats": "{{n}} × {{n}} · min {{min}} · max {{max}} · {{zeros}}% zeros",
+      "close_fc": "score for “{{c}}” before softmax: {{v}}",
+      "kind": {
+        "conv": "A filter’s response to the layer before. Grey is about zero in this layer’s scale, white and black are strong responses of opposite sign.",
+        "relu": "The same map with every negative value set to 0, so most of it goes black. Only what the filter looks for survives.",
+        "pool": "The largest value in each 2 × 2 block: half the size, with the strongest responses kept.",
+        "fc": "One number per class. The ten scores go through softmax to give the bars.",
+        "input": "The input."
+      },
+      "read_title": "How to read it",
+      "read": {
+        "conv": "<b>conv</b> keeps the size and mixes neighbours: 3 × 3 with padding, so 32² stays 32². Early filters respond to edges and colours.",
+        "relu": "<b>relu</b> turns the grey maps mostly black, because it zeroes every negative value.",
+        "pool": "<b>pool</b> halves the size: 32² → 16² → 8² → 4². Each square here is drawn the same size, so later maps look blockier.",
+        "deep": "<b>Going right</b>, each pixel depends on more of the picture and the maps stop looking like the picture. By 4² they say what is there, not where.",
+        "fc": "<b>fc</b> reads all 4 × 4 × 10 = 160 numbers and gives each class a score. A layer shares one brightness scale, so a nearly black map is a filter with little to say about this picture."
+      },
+      "score_title": "How good is it?",
+      "score_sub": "on all 10,000 CIFAR-10 test pictures",
+      "score_acc": "Test accuracy",
+      "score_chance": "guessing gets 10%",
+      "score_params": "Parameters",
+      "score_params_d": "small enough to show every channel",
+      "code_title": "The same network in Keras",
+      "code_sub": "The parameter count in summary() matches this page",
+      "class": {
+        "airplane": "airplane",
+        "automobile": "car",
+        "bird": "bird",
+        "cat": "cat",
+        "deer": "deer",
+        "dog": "dog",
+        "frog": "frog",
+        "horse": "horse",
+        "ship": "ship",
+        "truck": "truck"
+      },
+      "credit": "Runs on Andrej Karpathy’s <b>ConvNetJS</b> (MIT licence), with the layout of the demo on <a>CS231n’s front page</a>. The weights were trained for this site on <c>CIFAR-10</c> (Krizhevsky, 2009) with scripts/train-cnn-live.py, and each layer is checked against PyTorch."
+    },
+    "toy": {
+      "data_title": "Data",
+      "data": {
+        "blobs": {
+          "title": "Two clusters",
+          "note": "One straight line is enough"
+        },
+        "xor": {
+          "title": "XOR",
+          "note": "The lecture’s problem, with noise"
+        },
+        "circle": {
+          "title": "Circle",
+          "note": "One class inside the other"
+        },
+        "spiral": {
+          "title": "Spiral",
+          "note": "Hard: try the deep network"
+        }
+      },
+      "net_title": "Network",
+      "hidden": "Hidden layers",
+      "none": "none",
+      "activation": "Activation",
+      "lr": "Learning rate",
+      "run": "Train",
+      "pause": "Pause",
+      "restart": "New random weights",
+      "add_title": "Add your own points",
+      "brush": "A tap on the left panel adds",
+      "red": "red",
+      "blue": "blue",
+      "clear": "Remove all points",
+      "steps": "Steps",
+      "loss": "Loss",
+      "acc": "Accuracy",
+      "input_title": "Input space",
+      "input_sub": "The tint is the class the network gives each place",
+      "input_aria": "Training points ({{n}}) and the regions the network assigns to each class. Tap to add a point.",
+      "hidden_title": "Last hidden layer",
+      "hidden_sub": "The same grid and points after the network has moved them",
+      "hidden_aria": "The input grid and points as the last two hidden units see them, with the output layer’s straight line",
+      "no_hidden": "With no hidden layer nothing moves: the output layer has to split the input directly, with one straight line.",
+      "read_title": "What to look for",
+      "read": {
+        "line": "<b>The output layer only draws a straight line.</b> That is the dashed line on the right, in every network here.",
+        "warp": "<b>The hidden layers move the points</b> so that line can work. The grid on the right is the left panel’s square after the move. Its bent line on the left is the same decision.",
+        "two": "<b>Try Circle with hidden layer “2”.</b> Two units can only cut the plane with two lines, and it stops at about 90%. Then try “6-2”, which reaches 100%.",
+        "relu": "<b>Switch to ReLU</b> and the boundary is made of straight pieces, each from where a unit turns on.",
+        "spiral": "<b>Spiral needs more:</b> 16-16-2 with tanh gets most of it in about half a minute. At a learning rate of 0.1, or with ReLU, it usually collapses to 50%: try it and watch the loss."
+      },
+      "credit": "Runs on Andrej Karpathy’s ConvNetJS (MIT licence), after its <a>classify2d demo</a>."
+    },
+    "paint": {
+      "picture": "Picture",
+      "pic": {
+        "sunset": {
+          "title": "Sunset",
+          "note": "Smooth colours and one hard ridge"
+        },
+        "face": {
+          "title": "Face",
+          "note": "Small details: the last to appear"
+        },
+        "stripes": {
+          "title": "Stripes",
+          "note": "All edges: the hardest"
+        }
+      },
+      "upload": "Use your own picture",
+      "upload_note": "It is shrunk to 64 × 64 in your browser and never leaves it.",
+      "err_too_big": "That file is over 10 MB.",
+      "err_bad_type": "That is not a PNG, JPEG, WebP, GIF or BMP picture.",
+      "err_too_many_pixels": "That picture has too many pixels.",
+      "err_decode": "That picture could not be read.",
+      "net_title": "Network",
+      "depth": "Hidden layers",
+      "width": "Units per layer",
+      "lr": "Learning rate",
+      "run": "Paint",
+      "pause": "Pause",
+      "restart": "Start again",
+      "steps": "Steps",
+      "loss": "Loss",
+      "params": "Parameters",
+      "pixels": "for {{n}} colour values",
+      "original": "The picture",
+      "painted": "The network’s painting",
+      "read_title": "What is happening",
+      "read": {
+        "what": "<b>The network sees one pixel at a time:</b> its input is (x, y), and it learns to output that pixel’s (r, g, b). It is regression with mean squared error, and nothing about it is special to images.",
+        "edges": "<b>Smooth areas come first, edges last.</b> A ReLU network is made of flat pieces, and sharp detail needs many of them.",
+        "depth": "<b>Try 1 hidden layer, then 7.</b> With the same units, more layers can make far more pieces.",
+        "compress": "<b>Compare the parameter count with the pixels.</b> When the network is smaller than the picture it cannot memorise it, so it keeps what lowers the error most."
+      },
+      "credit": "Runs on Andrej Karpathy’s ConvNetJS (MIT licence), after its <a>image regression demo</a>."
     }
   },
   "watch": {
