@@ -1,7 +1,7 @@
 // --- 各库实验台（matplotlib / PyTorch / Keras / TensorFlow / pandas）共用的配置类型 ---
 import type { PyLib } from '../../lib/minipy'
 
-export type PlaygroundId = 'matplotlib' | 'pytorch' | 'keras' | 'tensorflow' | 'pandas'
+export type PlaygroundId = 'matplotlib' | 'pytorch' | 'keras' | 'tensorflow' | 'pandas' | 'python' | 'sklearn' | 'cv2'
 
 export interface PlayEntry {
   id: string

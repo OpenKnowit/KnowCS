@@ -12,6 +12,9 @@ export const LIBS = [
   { id: 'pytorch', name: 'PyTorch', line: 'import torch', color: '#e11d48' },
   { id: 'keras', name: 'Keras', line: 'import keras', color: '#d97706' },
   { id: 'tensorflow', name: 'TensorFlow', line: 'import tensorflow as tf', color: '#ea580c' },
+  { id: 'python', name: 'Python', line: 'from pathlib import Path', color: '#475569' },
+  { id: 'sklearn', name: 'scikit-learn', line: 'from sklearn.neighbors import KNeighborsClassifier', color: '#16a34a' },
+  { id: 'cv2', name: 'OpenCV', line: 'import cv2', color: '#0891b2' },
 ] as const
 export type LibId = (typeof LIBS)[number]['id']
 

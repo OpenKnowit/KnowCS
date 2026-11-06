@@ -208,6 +208,98 @@ test = df.drop(train.index)     # every row not drawn for training
 print(len(train), 'train rows,', len(test), 'test rows')
 test`,
   },
+  // ---- what the sandbox gained later; each one was run on the real library
+  {
+    id: 'merge', cat: 'combine', label: 'pd.merge',
+    code: `import pandas as pd
+import numpy as np
+
+students = pd.DataFrame({'id': [1, 2, 3], 'name': ['Ann', 'Bo', 'Cy']})
+marks = pd.DataFrame({'id': [1, 2, 4], 'mark': [90, 75, 60]})
+print(pd.merge(students, marks, on='id'))
+print(pd.merge(students, marks, on='id', how='left'))`,
+  },
+  {
+    id: 'concat', cat: 'combine', label: 'pd.concat',
+    code: `import pandas as pd
+import numpy as np
+
+a = pd.DataFrame({'x': [1, 2]})
+b = pd.DataFrame({'x': [3], 'y': [4]})
+print(pd.concat([a, b]))
+print(pd.concat([a, b], ignore_index=True))
+print(pd.concat([a, a], axis=1))`,
+  },
+  {
+    id: 'melt', cat: 'combine', label: 'df.melt',
+    code: `import pandas as pd
+import numpy as np
+
+wide = pd.DataFrame({'name': ['Ann', 'Bo'], 'math': [90, 80], 'art': [70, 95]})
+long = wide.melt(id_vars='name', var_name='subject', value_name='mark')
+print(long)
+print(long.pivot(index='name', columns='subject', values='mark'))`,
+  },
+  {
+    id: 'crosstab', cat: 'combine', label: 'pd.crosstab',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'pred': [1, 0, 1, 1, 0], 'true': [1, 0, 0, 1, 1]})
+print(pd.crosstab(df['true'], df['pred']))
+print(pd.crosstab(df['true'], df['pred'], normalize='index'))`,
+  },
+  {
+    id: 'agg', cat: 'group', label: 'groupby.agg',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'cls': ['a', 'a', 'b', 'b'], 'x': [1, 2, 3, 5], 'y': [10, 20, 30, 40]})
+print(df.groupby('cls').agg({'x': 'mean', 'y': ['min', 'max']}))
+print(df.groupby('cls')['x'].agg(['mean', 'std', 'count']))`,
+  },
+  {
+    id: 'transform', cat: 'group', label: 'groupby.transform',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'cls': ['a', 'a', 'b', 'b'], 'x': [1., 3., 10., 30.]})
+df['mean'] = df.groupby('cls')['x'].transform('mean')
+df['centred'] = df['x'] - df['mean']
+print(df)
+print(df.groupby('cls')['x'].rank())`,
+  },
+  {
+    id: 'strings', cat: 'series', label: 'Series.str',
+    code: `import pandas as pd
+import numpy as np
+
+s = pd.Series(['  Cat ', 'dog', None, 'Bird 2'])
+print(s.str.strip().str.lower())
+print(s.str.contains('o', na=False))
+print(s.str.len())
+print(s.str.split().str[0])`,
+  },
+  {
+    id: 'rolling', cat: 'series', label: 'rolling / cumsum',
+    code: `import pandas as pd
+import numpy as np
+
+s = pd.Series([1, 2, 3, 4, 5, 6])
+print(s.rolling(3).mean())
+print(s.expanding().max())
+print(s.cumsum(), s.pct_change().round(2), s.shift(1))`,
+  },
+  {
+    id: 'dummies', cat: 'series', label: 'pd.get_dummies',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'colour': ['red', 'blue', 'red'], 'size': [1, 2, 3]})
+print(pd.get_dummies(df, columns=['colour']))
+print(df['colour'].value_counts())
+print(df['colour'].map({'red': 0, 'blue': 1}))`,
+  },
 ]
 
 export const PANDAS_PLAYGROUND: PlayConfig = {
@@ -216,7 +308,7 @@ export const PANDAS_PLAYGROUND: PlayConfig = {
   maxSize: 2_000_000,
   timeBudget: 2000,
   debounce: 400,
-  cats: ['basics', 'select', 'clean', 'ml'],
+  cats: ['basics', 'select', 'clean', 'ml', 'combine', 'group', 'series'],
   entries: ENTRIES,
   prelude: H,
   callApis: [],

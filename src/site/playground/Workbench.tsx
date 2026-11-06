@@ -536,7 +536,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
             <StepView step={selected.kind === 'call' ? { kind: 'call', call: selected.call } : { kind: 'event', ev: selected.ev }} />
           </VisualBoundary>
         ) : (
-          !result.error && <p className="text-sm text-slate-500">{t('playground.ui.nothing')}</p>
+          !result.error && <p className="text-sm text-slate-500">{t(spec.callApis?.length === 0 ? 'playground.ui.nothing_prints' : 'playground.ui.nothing')}</p>
         )}
         {!figureStep && result.displays.map((d: Display, k) => (d.type === 'figure' ? <FigureView key={`${deferredRan}#${k}`} fig={d.fig} /> : <TableView key={k} table={d.table} />))}
       </div>

@@ -654,7 +654,8 @@
       "random": "隨機",
       "poly": "多項式",
       "stats": "計數與統計",
-      "ml": "課程常用寫法"
+      "ml": "課程常用寫法",
+      "files": "文件"
     },
     "kind": {
       "create": "建立",
@@ -788,7 +789,21 @@
       "zscore": "標準化：每一列變成均值 0、標準差 1，這樣 KNN 的距離不會被某個特徵主導。",
       "onehot": "用標籤去索引單位矩陣，得到 one-hot 行，也就是 categorical cross-entropy 的目標。",
       "confusion": "不用循環的混淆矩陣：true * k + pred 給每對 (真實, 預測) 一個編號，再用 bincount 計數。",
-      "perceptron": "一次算出所有樣本的感知機預測：對 X @ w + b 取階躍函數。"
+      "perceptron": "一次算出所有樣本的感知機預測：對 X @ w + b 取階躍函數。",
+      "split": "把陣列切成幾段：np.split 要能整除，或者直接給切點；np.array_split 允許大小不等。",
+      "moveaxis": "移動一個軸，其餘順序不變：常用於 channels-last（Keras）和 channels-first（PyTorch）之間轉換。",
+      "nonzero": "找出非零或 True 的位置：nonzero 每個軸給一個陣列，argwhere 每個命中給一行。",
+      "take_along": "np.take 選整行或整列；np.take_along_axis 每行用不同的索引，正好配合 argsort 的結果。",
+      "percentile": "百分位數預設在排序後的值之間插值。q3 − q1 就是用來找離羣值的四分位距。",
+      "corrcoef": "相關係數矩陣和協方差矩陣。cov 的對角線是方差，分母是 n − 1。",
+      "solve": "直接解 Ax = b，比乘逆矩陣更快也更準。",
+      "eigh": "對稱矩陣的特徵值，從小到大。特徵向量的正負號不固定，所以這裏只打印大小。",
+      "svd": "奇異值分解：U、奇異值（從大到小）和 Vᵀ 相乘等於 A。",
+      "lstsq": "最小二乘擬合：第一列全 1 對應截距，第二列對應斜率。",
+      "rng": "現代的隨機數寫法：一個可以傳來傳去的生成器對象。這裏的數值和真實 NumPy 不同，因為沙盒有自己的生成器。",
+      "save_load": "把一個陣列存成 .npy 再讀回來，形狀和 dtype 不變。這裏的文件只保留到本次執行結束。",
+      "savez": "一個文件存多個陣列，按名字取：課程數據集常用這種格式。",
+      "savetxt": "把陣列存成文本：fmt 決定寫出的格式，loadtxt 讀回來是浮點數。"
     },
     "run_block": "在 NumPy 面板中執行",
     "plot_label": "多項式曲線",
@@ -986,7 +1001,10 @@
         "pandas": "表格、選取、分組",
         "pytorch": "張量、自動求導、訓練循環",
         "keras": "模型、summary()、fit",
-        "tensorflow": "張量、Variable、GradientTape"
+        "tensorflow": "張量、Variable、GradientTape",
+        "python": "文件、數據結構、文本、腳本工具",
+        "sklearn": "模型、縮放、評估指標、交叉驗證",
+        "cv2": "顏色、閾值、濾波、幾何變換"
       },
       "libraries": "庫",
       "hide_libs": "收起示例欄",
@@ -4355,7 +4373,8 @@
         "steps_off": "逐步可視化需要「逐步演示」引擎。真實 Python 按原樣執行程式碼，顯示輸出和圖。"
       },
       "result": "結果",
-      "result_note": "最終完成的圖，和 plt.show() 畫出來的一樣。"
+      "result_note": "最終完成的圖，和 plt.show() 畫出來的一樣。",
+      "nothing_prints": "程序畫的圖或搭的模型會顯示在這裏。這段程序只有打印，結果在“輸出”裏。"
     },
     "view": {
       "figure_label": "包含 {{n}} 個子圖的圖",
@@ -4414,7 +4433,8 @@
       "cat": {
         "basics": "基礎",
         "images": "圖像",
-        "ml": "機器學習圖"
+        "ml": "機器學習圖",
+        "charts": "更多圖表"
       },
       "e": {
         "anatomy": "Figure 是整張畫布，Axes 是畫布裏的一個子圖。plt.subplots() 同時返回兩者，之後在 ax 上調用方法（set_title、set_xlabel、legend）。plt.* 函數做的是同一件事，只是作用在「當前」Axes 上。",
@@ -4436,7 +4456,15 @@
         "boxplot": "箱子覆蓋中間一半的數據（Q1 到 Q3），橙線是中位數；須線延伸到 1.5 倍四分位距以內最遠的點，之外的圓圈是離羣值。",
         "pie": "各類樣本數的餅圖。貓佔 62 %，一直猜「貓」就能有 62 % 的準確率，所以還要看精確率和召回率。",
         "annotate": "annotate 把文字寫在 xytext，並畫一個箭頭指向點 xy。這裏標出驗證損失最低的那一輪，也就是早停會停下的地方。",
-        "step": "plt.step 畫會跳變的函數。where='post' 表示每個值保持到下一個 x：感知機的硬閾值與平滑的 sigmoid 對比。"
+        "step": "plt.step 畫會跳變的函數。where='post' 表示每個值保持到下一個 x：感知機的硬閾值與平滑的 sigmoid 對比。",
+        "bars": "柱狀圖畫你給定的值；直方圖把數據分箱後計數。",
+        "contour": "填充等高線：從上方看損失曲面的常用畫法。",
+        "fill": "在曲線周圍填一條帶，常用來表示多次訓練的波動範圍。",
+        "twinx": "給不同量綱的量加第二條 y 軸：把損失和準確率畫在一張圖上。",
+        "log": "對數軸讓每個數量級佔同樣的寬度，是看學習率搜索結果的自然方式。",
+        "surface": "3D 曲面：和等高線同樣的數據，從側面看。",
+        "scatter3": "散點圖還能多表達兩個量：c 控制顏色，s 控制面積。",
+        "seaborn": "seaborn 的 heatmap，畫帶數字的混淆矩陣的常用寫法。"
       }
     },
     "keras": {
@@ -4446,7 +4474,11 @@
       "cat": {
         "build": "搭建",
         "train": "訓練",
-        "pitfalls": "易錯點"
+        "pitfalls": "易錯點",
+        "functional": "函數式模型",
+        "custom": "自定義類",
+        "callbacks": "回調與保存",
+        "sequences": "文本、序列與數據"
       },
       "e": {
         "cnn_summary": "第 8 講的 CNN。summary 步驟給出每層的輸出形狀和計算公式：'valid' 的 3 × 3 卷積讓 28 → 26 → 24，池化減半為 12，Flatten 得到 12·12·64 = 9216；每個 Conv2D 有 (3·3·通道數 + 1)·filters 個參數。",
@@ -4462,7 +4494,19 @@
         "no_flatten": "沒有 Flatten 時，Dense 只作用於最後一個軸，輸出是 (None, 28, 28, 10)，只有 20 個參數，而不是每張圖一個預測。summary 讓這個錯誤一目瞭然。",
         "no_channel": "Conv2D 要求輸入為 (batch, 高, 寬, 通道)。形狀為 (N, 28, 28) 的灰度陣列需要先 reshape(-1, 28, 28, 1)，第 8 講在搭建模型前也對 x_train 這樣做了。",
         "same_stride": "padding='same' 保持尺寸（輸出 = ceil(N / S)）；不加（'valid'）時輸出為 floor((N − K) / S) + 1。從 model.summary() 讀出形狀，並核對參數個數：(K·K·C_in + 1)·C_out。",
-        "onehot": "to_categorical 把整數標籤變成 one-hot 行。配合 categorical_crossentropy 使用；用 sparse_categorical_crossentropy 時保留整數標籤。"
+        "onehot": "to_categorical 把整數標籤變成 one-hot 行。配合 categorical_crossentropy 使用；用 sparse_categorical_crossentropy 時保留整數標籤。",
+        "residual": "函數式 API 可以分叉再合併。這裏輸入跳過兩層再加回來，就是一個殘差塊。",
+        "two_inputs": "兩個輸入的模型：給輸入命名，數據就用同名的字典傳入。",
+        "features": "一個共享權重、在指定層停下的新模型：用來查看 CNN 內部算出了什麼。",
+        "custom_layer": "自定義層：build 在知道輸入形狀後建立權重，call 負責計算。",
+        "subclass": "把模型寫成類，類似 PyTorch 的 nn.Module。放在屬性裏的層會被追蹤，compile 和 fit 照常使用。",
+        "early_stop": "當監控值連續 patience 個 epoch 的改善都小於 min_delta 時停止。",
+        "lr_schedule": "在每個 epoch 開始時調整學習率，用過的學習率會記在 history 裏。",
+        "my_callback": "自定義回調在每個鈎子執行，可以讀取日誌，也可以停止訓練。",
+        "saving": "保存整個模型，再連同權重和 compile 設置一起讀回來。這裏的文件只保留到本次執行結束。",
+        "rnn_summary": "從詞到向量再到序列層。return_sequences 讓每個時間步都有輸出，交給下一個循環層。",
+        "text": "把文本變成整數序列：adapt 建詞表，沒見過的詞是 1，不夠長的用 0 補齊。",
+        "dataset_fit": "fit 可以接收 tf.data 數據管道：批次已經在管道里了，所以不用 batch_size。"
       }
     },
     "tensorflow": {
@@ -4472,7 +4516,8 @@
       "cat": {
         "tensors": "張量",
         "autograd": "GradientTape",
-        "keras": "tf.keras"
+        "keras": "tf.keras",
+        "data": "tf.data"
       },
       "e": {
         "constant": "tf.constant 生成不可變的張量，print 會顯示它的值、形狀和 dtype；.numpy() 把它轉回 NumPy 陣列。這裏 Python 整數會變成 int32，而 NumPy 會用 int64。",
@@ -4482,7 +4527,15 @@
         "tape": "在 with tf.GradientTape() as tape: 中，TensorFlow 會記錄對 Variable 的運算；之後 tape.gradient(y, x) 給出 dy/dx：x = 3 時 2x + 2 = 8。",
         "linreg": "手寫完整的訓練循環：在 tape 內算損失，用 tape.gradient 得到 [dw, db]，再執行 w.assign_sub(lr · dw)。w → 2，b → 1。",
         "tf_keras": "Keras 也以 tf.keras 的形式包含在 TensorFlow 裏，舊課件程式碼就是這樣導入的。點開 summary 步驟，可以看到每層的輸出形狀和參數個數。",
-        "confusion": "tf.math.confusion_matrix(labels, predictions) 統計每一對（真實, 預測）。對角線上是預測正確的數量，所以準確率 = 對角線之和 / 總數。"
+        "confusion": "tf.math.confusion_matrix(labels, predictions) 統計每一對（真實, 預測）。對角線上是預測正確的數量，所以準確率 = 對角線之和 / 總數。",
+        "select": "按條件或位置取值。tf.where 一個參數給位置，三個參數在兩個值之間選擇。",
+        "reduce": "reduce_ 系列就是換了名字的 NumPy sum、mean。argmax 返回 int64。",
+        "dtype_strict": "TensorFlow 不會替你轉換 dtype，tf.add 第一個參數是 Python 數字時也一樣。",
+        "second_order": "tape 嵌套 tape 得到二階導：外層記錄內層梯度的計算過程。",
+        "persistent": "tape 會自動跟蹤 Variable；常量需要 watch。不加 persistent=True 只能求一次。",
+        "tf_function": "真實 TensorFlow 會把函數編譯成計算圖。沙盒直接執行，結果相同。",
+        "dataset": "把數據管道寫成一條鏈：map、shuffle、batch、take。遍歷時才會真正執行。",
+        "from_gen": "從 Python 生成器取數據，適合放不進記憶體的情況。output_signature 聲明產出的類型。"
       }
     },
     "frame": {
@@ -4525,7 +4578,10 @@
         "basics": "基礎",
         "select": "選取",
         "clean": "清洗",
-        "ml": "課程計算"
+        "ml": "課程計算",
+        "combine": "合併與變形",
+        "group": "分組",
+        "series": "文本、窗口與編碼"
       },
       "e": {
         "create": "DataFrame 是由命名列組成的表，每一列都是一個單一 dtype 的 Series：int64、float64（None 變成 NaN），或存放文字的 object。",
@@ -4548,7 +4604,16 @@
         "cut": "pd.cut 按區間把數值變成類別：年齡 0–30、30–50、50–100。類別型樸素貝葉斯需要這一步，而且類別保持順序（young < middle < old）。",
         "gaussian_nb": "高斯樸素貝葉斯為每個類別、每個特徵擬合一條正態曲線。agg(['mean', 'std']) 在一張表裏給出每個類別的兩個參數（pandas 的 std 是樣本標準差，ddof=1）。",
         "pivot": "pivot_table 按 index 分組並對值求平均：這裏就是 K-Means 的更新步驟，每個簇得到一個新質心。",
-        "sample_split": "sample(frac=0.75) 隨機抽取 75 % 的行作訓練集，drop(train.index) 把剩下的留作測試集。沙盒抽到的行與真實 pandas 不同，但劃分方法一樣。"
+        "sample_split": "sample(frac=0.75) 隨機抽取 75 % 的行作訓練集，drop(train.index) 把剩下的留作測試集。沙盒抽到的行與真實 pandas 不同，但劃分方法一樣。",
+        "merge": "按鍵連接兩張表。預設只保留兩邊都有的 id；how='left' 保留左表每一行，缺的填 NaN。",
+        "concat": "把表堆起來。按列名對齊，缺的列變成 NaN；ignore_index 重新編號行。",
+        "melt": "melt 把寬表變成長表，每個值一行；pivot 再變回去。",
+        "crosstab": "統計兩列取值的組合：用真實標籤和預測標籤就是混淆矩陣。",
+        "agg": "每組同時算多個統計量：每類的均值和標準差正是高斯樸素貝葉斯需要的。",
+        "transform": "transform 每行給一個值而不是每組一個，所以結果可以直接作為新列。",
+        "strings": "對整列應用字符串方法；缺失值保持缺失，不會報錯。",
+        "rolling": "滑動平均需要窗口填滿，所以開頭是 NaN。適合平滑抖動的損失曲線。",
+        "dummies": "把文本列做 one-hot 編碼，模型才能用；類別有順序時可以改用 map。"
       }
     },
     "pytorch": {
@@ -4559,7 +4624,9 @@
         "tensors": "張量",
         "autograd": "自動求導",
         "nn": "層與形狀",
-        "train": "訓練"
+        "train": "訓練",
+        "maths": "數學與概率分佈",
+        "scripts": "腳本與保存"
       },
       "e": {
         "attrs": "每個張量都有形狀（torch.Size）、數據類型和設備。Python 整數會變成 int64，torch.zeros 這類工廠函數預設是 float32；本沙盒中的設備始終是 CPU。",
@@ -4583,7 +4650,90 @@
         "dataloader": "DataLoader 把數據集切成 batch：len(loader) = ⌈10 / 4⌉ = 3，每次迭代得到一個 batch 的 (inputs, labels)，與第 9 講 train_model 的寫法一致。",
         "cat_stack": "torch.cat 沿已有的軸拼接；torch.stack 在新軸上疊放，兩個 (2, 3) 的張量變成 (2, 2, 3)。把多張圖片組成一個批次用的就是 stack。",
         "conv_edge": "F.conv2d 就是第 7 講的卷積，只是採用 PyTorch 的 (批次, 通道, H, W) 佈局。手動設定的 Sobel 卷積核在暗區與亮區交界處響應最強；不加填充時輸出為 (H − 3 + 1) × (W − 3 + 1)。",
-        "softmax_acc": "softmax 把每行 logits 變成概率，argmax(dim=1) 取預測類別，(pred == y).float().mean() 就是準確率。直接對 logits 取 argmax 結果相同，因為 softmax 不改變大小順序。"
+        "softmax_acc": "softmax 把每行 logits 變成概率，argmax(dim=1) 取預測類別，(pred == y).float().mean() 就是準確率。直接對 logits 取 argmax 結果相同，因為 softmax 不改變大小順序。",
+        "einsum": "einsum 給每個軸起名：-> 右邊消失的字母就是被求和的軸。",
+        "solve": "torch.linalg 和 np.linalg 有同樣的函數，只是作用在張量上。",
+        "distributions": "可以採樣也可以求導的概率分佈：損失函數通常由 log_prob 構成。",
+        "create_graph": "保留梯度本身的計算圖，就能再求一次導：也就是二階導。",
+        "rnn": "循環層：out 每個時間步一個向量，h 和 c 是每個堆疊層最後的狀態。",
+        "attention": "一個 Transformer 編碼層不改變形狀：5 個 token 互相關注，每個還是 16 維。",
+        "block": "繼承容器來給重複結構起名：寫 conv-norm-activation 塊的常用方式。",
+        "scheduler": "在訓練中調整學習率。調度器在優化器之後調用，通常每個 epoch 一次。",
+        "save_load": "保存權重而不是模型：state_dict 就是張量組成的字典。這裏的文件只保留到本次執行結束。",
+        "skeleton": "真實訓練腳本開頭做的事：解析參數、設種子、選設備。這些語句在這裏都能執行，設備是 CPU。"
+      }
+    },
+    "python": {
+      "title": "Python 標準庫",
+      "subtitle": "{{n}} 個示例：文件、數據結構、文本和腳本常用工具。無需安裝。",
+      "sandbox_note": "在瀏覽器中執行，基於重寫的 Python：包括語言本身和約 50 個標準庫模塊，已與 CPython 3.10 對照。文件夾一開始是空的，程序寫的文件只保留到本次執行結束。沒有網絡和線程，b'...' 只是普通字符串。",
+      "cat": {
+        "files": "文件",
+        "data": "數據結構",
+        "text": "文本",
+        "script": "腳本與工具"
+      },
+      "e": {
+        "pathlib": "把路徑當對象：/ 用來拼接，方法可以讀寫和列出文件。文件夾一開始是空的，只保留到本次執行結束。",
+        "open_csv": "with 會自動關閉文件。csv 負責處理引號，讀回來的值都是字符串。",
+        "json": "把設置存成文本：True 變成 true，None 變成 null，讀回來完全一樣。",
+        "pickle": "把 Python 對象原樣保存，包括它的類。只加載可信的 pickle，因為加載時可能執行程式碼。",
+        "tempfile": "一個離開程式碼塊就消失的文件夾，以及複製、移動和通配符查找。",
+        "collections": "Counter 計數，defaultdict 自動補缺失的鍵，deque 保留最近 n 個，namedtuple 給元組字段起名。",
+        "itertools": "product 一行寫完網格搜索，其餘幾個也能省掉嵌套循環。",
+        "functools": "lru_cache 記住結果，讓這個遞歸從指數時間變成線性時間。",
+        "dataclass": "自動寫好 __init__、__repr__、__eq__ 的類，以及代替裸字符串的具名常量。",
+        "heapq": "堆可以很快取出最小值，比如最佳優先搜索。bisect 在有序列表裏查找。",
+        "regex": "按模式查找、替換和切分：括號捕獲你想保留的部分。",
+        "format": "f-string 的格式説明可以控制小數、寬度、千分位和百分比，textwrap 按單詞換行。",
+        "argparse": "腳本的命令行參數。這裏沒有命令行，所以把列表直接傳給 parse_args。",
+        "contextlib": "用生成器寫 with 塊：yield 之前是準備，之後是收尾。",
+        "datetime": "日期可以加減，strftime 負責格式化。2024 是閏年，所以那個加法落在 3 月 1 日。",
+        "numbers": "精確分數，以及為什麼浮點數要用 isclose 比較：0.1 + 0.2 並不嚴格等於 0.3。",
+        "inspect": "把函數簽名當數據讀取，庫就是這樣檢查參數的。SimpleNamespace 是存設置的簡便對象。",
+        "eval_exec": "執行字符串裏的程式碼。寫小工具可以，但絕不要用在不是自己寫的文本上。"
+      }
+    },
+    "sklearn": {
+      "title": "scikit-learn",
+      "subtitle": "{{n}} 個示例：幾行寫完課程裏的模型，還有縮放、評估指標和交叉驗證。",
+      "sandbox_note": "在瀏覽器中執行，基於重寫的 scikit-learn：包括 KNN、樸素貝葉斯、K-means、線性與邏輯迴歸、決策樹、PCA、縮放器、評估指標和交叉驗證，已與 scikit-learn 1.7 對照。沒有 SVM 和集成方法，random_state 也無法復現真實結果。",
+      "cat": {
+        "models": "模型",
+        "prep": "預處理",
+        "eval": "評估"
+      },
+      "e": {
+        "knn": "第 3 講的 KNN，三行寫完：fit 存下數據，predict 讓鄰居投票。",
+        "naive_bayes": "高斯樸素貝葉斯為每個類別和特徵記一個均值和方差，和第 2 講手算的一樣。",
+        "kmeans": "指定初始中心的 KMeans。inertia_ 是演算法要減小的距離平方和。",
+        "linear": "最小二乘正好得到 y = 2x + 1。Ridge 加了懲罰項，把斜率往 0 拉。",
+        "tree": "決策樹用兩層判斷解決 XOR，單條直線做不到。",
+        "pipeline": "要先縮放，否則大數值的列決定所有距離。Pipeline 只用訓練數據擬合縮放器。",
+        "encode": "把文本變成數字；PolynomialFeatures 讓線性模型也能擬合曲線。",
+        "metrics": "第 3 講混淆矩陣算出的那些數，以及按類別的完整報告。",
+        "cv": "第 3 講交叉驗證的折，以及用它們嘗試每種設置的 GridSearchCV。",
+        "pca": "這些點幾乎在一條直線上，所以一個主成分就保留了幾乎全部方差。主成分的正負號是任意的。"
+      }
+    },
+    "cv2": {
+      "title": "OpenCV",
+      "subtitle": "{{n}} 個示例：顏色、閾值、濾波和幾何變換，都作用在陣列上，對應第 7 講。",
+      "sandbox_note": "在瀏覽器中執行，基於重寫的 cv2：包括顏色轉換、閾值、濾波、形態學、縮放和變換，已與 OpenCV 4.13 對照。圖片是程式碼裏生成的 NumPy 陣列，因為 imread 沒有文件可讀。沒有繪圖和輪廓功能。",
+      "cat": {
+        "colour": "顏色與閾值",
+        "filter": "濾波",
+        "geometry": "幾何變換"
+      },
+      "e": {
+        "colours": "OpenCV 按 BGR 存顏色，所以 plt.imshow 之前要轉成 RGB。灰度是 0.299 R + 0.587 G + 0.114 B。",
+        "threshold": "固定閾值，以及第 7 講的 Otsu 方法，它會自己選閾值並返回。",
+        "histogram": "按分箱統計灰度；equalizeHist 把它們拉伸到整個範圍。",
+        "filter": "第 7 講的任意卷積核。要先轉成浮點數：在 uint8 上，負的邊緣值會被截斷成 0。",
+        "blur": "平均值會把孤立的白點抹開；中值能去掉它們，因為它們永遠不是中間值。",
+        "morphology": "腐蝕縮小白色區域，膨脹擴大；依次做這兩步能去掉小噪點。",
+        "resize": "注意順序：resize 接收 (寬, 高)，而 .shape 給的是 (高, 寬, 通道)。",
+        "warp": "第 7 講仿射變換的 2 × 3 矩陣：最後一列是平移。"
       }
     }
   }

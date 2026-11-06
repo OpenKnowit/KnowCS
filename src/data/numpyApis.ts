@@ -1,7 +1,7 @@
 // NumPy API 目录：右侧可视化面板的分类与示例代码。说明文案在 locales 的 numpy_api.api.<id>。
 // match：示例运行后，第一个 api 名在列表里的调用会被选中展示（找不到就展示最后一次调用）。
 
-export type ApiCat = 'create' | 'shape' | 'index' | 'math' | 'reduce' | 'stats' | 'sort' | 'linalg' | 'ml' | 'poly' | 'random'
+export type ApiCat = 'create' | 'shape' | 'index' | 'math' | 'reduce' | 'stats' | 'sort' | 'linalg' | 'ml' | 'poly' | 'random' | 'files'
 
 export interface ApiEntry {
   id: string
@@ -11,7 +11,7 @@ export interface ApiEntry {
   code: string
 }
 
-export const API_CATS: ApiCat[] = ['create', 'shape', 'index', 'math', 'reduce', 'stats', 'sort', 'linalg', 'ml', 'poly', 'random']
+export const API_CATS: ApiCat[] = ['create', 'shape', 'index', 'math', 'reduce', 'stats', 'sort', 'linalg', 'ml', 'poly', 'random', 'files']
 
 const H = 'import numpy as np\n'
 
@@ -116,6 +116,134 @@ export const NUMPY_APIS: ApiEntry[] = [
   { id: 'rand', cat: 'random', label: 'np.random.rand', match: ['np.random.rand'], code: `${H}np.random.seed(0)\nnp.random.rand(2, 3)   # uniform in [0, 1)` },
   { id: 'randint', cat: 'random', label: 'np.random.randint', match: ['np.random.randint'], code: `${H}np.random.seed(1)\nnp.random.randint(0, 10, size=(2, 4))` },
   { id: 'randn', cat: 'random', label: 'np.random.randn', match: ['np.random.randn'], code: `${H}np.random.seed(2)\nnp.random.randn(5)   # standard normal` },
+  {
+    id: 'split', cat: 'shape', label: 'np.split', match: ['np.split'],
+    code: `import numpy as np
+
+a = np.arange(6)
+print(np.split(a, 3))
+print(np.split(a, [1, 4]))    # cut before index 1 and 4
+print(np.array_split(np.arange(7), 3))   # sizes may differ`,
+  },
+  {
+    id: 'moveaxis', cat: 'shape', label: 'np.moveaxis', match: ['np.moveaxis'],
+    code: `import numpy as np
+
+images = np.zeros((10, 32, 32, 3))
+print(np.moveaxis(images, -1, 1).shape)     # channels last to first
+print(np.transpose(images, (0, 3, 1, 2)).shape)   # the same, spelled out`,
+  },
+  {
+    id: 'nonzero', cat: 'index', label: 'np.nonzero / argwhere', match: ['np.nonzero'],
+    code: `import numpy as np
+
+a = np.array([[0, 3], [5, 0]])
+print(np.nonzero(a))       # (rows, columns)
+print(np.argwhere(a > 0))  # one [row, column] per hit
+print(a[np.nonzero(a)])`,
+  },
+  {
+    id: 'take_along', cat: 'index', label: 'np.take_along_axis', match: ['np.take_along_axis'],
+    code: `import numpy as np
+
+scores = np.array([[3, 1, 2], [1, 3, 2]])
+print(np.take(scores, [0, 2], axis=1))
+order = np.argsort(scores, axis=1)
+print(np.take_along_axis(scores, order, axis=1))`,
+  },
+  {
+    id: 'percentile', cat: 'stats', label: 'np.percentile', match: ['np.percentile'],
+    code: `import numpy as np
+
+x = np.array([1, 2, 3, 4, 10])
+print(np.percentile(x, 50), np.quantile(x, 0.25))
+q1, q3 = np.percentile(x, [25, 75])
+print(q3 - q1)    # interquartile range`,
+  },
+  {
+    id: 'corrcoef', cat: 'stats', label: 'np.corrcoef / np.cov', match: ['np.corrcoef'],
+    code: `import numpy as np
+
+x = np.array([1., 2., 3., 4.])
+y = np.array([2., 4., 5., 9.])
+print(np.corrcoef(x, y))
+print(np.cov(x, y))     # n − 1 in the denominator`,
+  },
+  {
+    id: 'solve', cat: 'linalg', label: 'np.linalg.solve', match: ['np.linalg.solve'],
+    code: `import numpy as np
+
+A = np.array([[2., 1.], [1., 3.]])
+b = np.array([3., 5.])
+x = np.linalg.solve(A, b)
+print(x, A @ x)
+print(np.linalg.matrix_rank(A), np.linalg.cond(A))`,
+  },
+  {
+    id: 'eigh', cat: 'linalg', label: 'np.linalg.eigh', match: ['np.linalg.eigh'],
+    code: `import numpy as np
+
+S = np.array([[2., 1.], [1., 2.]])
+values, vectors = np.linalg.eigh(S)
+print(values)
+print(np.round(np.abs(vectors), 4))
+print(np.allclose(S @ vectors, vectors * values))`,
+  },
+  {
+    id: 'svd', cat: 'linalg', label: 'np.linalg.svd', match: ['np.linalg.svd'],
+    code: `import numpy as np
+
+A = np.array([[3., 0.], [4., 5.], [0., 1.]])
+U, s, Vt = np.linalg.svd(A, full_matrices=False)
+print(U.shape, s.shape, Vt.shape)
+print(np.round(s, 4))
+print(np.allclose(U @ np.diag(s) @ Vt, A))`,
+  },
+  {
+    id: 'lstsq', cat: 'linalg', label: 'np.linalg.lstsq', match: ['np.linalg.lstsq'],
+    code: `import numpy as np
+
+X = np.array([[1., 1.], [1., 2.], [1., 3.]])
+y = np.array([2., 3., 5.])
+w, *_ = np.linalg.lstsq(X, y, rcond=None)
+print(w)
+print(X @ w)`,
+  },
+  {
+    id: 'rng', cat: 'random', label: 'default_rng', match: [],
+    code: `import numpy as np
+
+rng = np.random.default_rng(0)
+print(rng.random((2, 2)).shape, rng.integers(0, 10, 3).shape)
+print(sorted(rng.choice(5, 3, replace=False).tolist()) != [])
+print(sorted(rng.permutation(4).tolist()))`,
+  },
+  {
+    id: 'save_load', cat: 'files', label: 'np.save / np.load', match: ['np.save'],
+    code: `import numpy as np
+
+a = np.arange(6).reshape(2, 3)
+np.save('a.npy', a)
+b = np.load('a.npy')
+print(b, b.dtype, b.shape)`,
+  },
+  {
+    id: 'savez', cat: 'files', label: 'np.savez', match: ['np.savez'],
+    code: `import numpy as np
+
+np.savez('data.npz', x=np.ones((2, 2)), y=np.array([0, 1]))
+d = np.load('data.npz')
+print(d.files)
+print(d['x'], d['y'])`,
+  },
+  {
+    id: 'savetxt', cat: 'files', label: 'np.savetxt / loadtxt', match: ['np.savetxt'],
+    code: `import numpy as np
+
+np.savetxt('t.csv', np.array([[1, 2], [3, 4]]), delimiter=',', fmt='%d')
+print(open('t.csv').read())
+print(np.loadtxt('t.csv', delimiter=','))`,
+  },
 ]
 
 /** Code blocks in the note → a runnable version in the panel (matched by their content). */

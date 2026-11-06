@@ -4,14 +4,16 @@
 // Writes src/assets/playground/<library>/<example>.webp, then scripts/playground-thumbs-fit.py frames them at 16:10. Examples whose pane stays empty get no picture
 // (the gallery shows their code instead). Rebuild afterwards so the pictures are bundled.
 import { spawn } from 'node:child_process'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const base = process.argv[2] ?? 'http://127.0.0.1:5180'
-const out = join(dirname(fileURLToPath(import.meta.url)), '../src/assets/playground')
-const LIBS = process.env.LIBS ? process.env.LIBS.split(',') : ['numpy', 'matplotlib', 'pandas', 'pytorch', 'keras', 'tensorflow']
+const assets = join(dirname(fileURLToPath(import.meta.url)), '../src/assets/playground')
+// ONLY_NEW=/some/folder photographs just the examples with no picture yet, into that folder
+const out = process.env.ONLY_NEW || assets
+const LIBS = process.env.LIBS ? process.env.LIBS.split(',') : ['numpy', 'matplotlib', 'pandas', 'pytorch', 'keras', 'tensorflow', 'python', 'sklearn', 'cv2']
 const port = 9337
 const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', ['--headless=new', '--no-proxy-server', `--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'thumbs-'))}`, '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' })
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -53,6 +55,7 @@ for (const lib of LIBS) {
   })()`)
   mkdirSync(join(out, lib), { recursive: true })
   for (const id of ids) {
+    if (process.env.ONLY_NEW && existsSync(join(assets, lib, `${id}.webp`))) continue
     await js(`document.querySelector('[data-entry="${lib}:${id}"]').click(); true`)
     await sleep(lib === 'numpy' ? 450 : 900)
     const box = await js(`(() => {

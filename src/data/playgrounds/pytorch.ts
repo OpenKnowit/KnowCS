@@ -349,6 +349,139 @@ print(probs)
 print(pred)
 print((pred == y).float().mean())          # accuracy: 2 of 3`,
   },
+  // ---- what the sandbox gained later; each one was run on the real library
+  {
+    id: 'einsum', cat: 'maths', label: 'torch.einsum',
+    code: `import torch
+
+A = torch.tensor([[1., 2.], [3., 4.]])
+b = torch.tensor([1., 1.])
+print(torch.einsum('ij,j->i', A, b))     # A @ b
+print(torch.einsum('ij,kj->ik', A, A))   # A @ A.T
+print(torch.einsum('ii->', A))           # trace`,
+  },
+  {
+    id: 'solve', cat: 'maths', label: 'torch.linalg',
+    code: `import torch
+
+A = torch.tensor([[2., 1.], [1., 3.]])
+b = torch.tensor([3., 5.])
+print(torch.linalg.solve(A, b))
+print(torch.linalg.det(A), torch.linalg.inv(A))
+print(torch.linalg.norm(A), torch.linalg.matrix_rank(A))
+print(torch.linalg.svdvals(A), torch.linalg.eigvalsh(A))`,
+  },
+  {
+    id: 'distributions', cat: 'maths', label: 'torch.distributions',
+    code: `import torch
+
+from torch.distributions import Normal, Categorical
+n = Normal(torch.tensor(0.), torch.tensor(1.))
+print(n, n.log_prob(torch.tensor(0.)), n.sample((3,)).shape)
+c = Categorical(logits=torch.tensor([0., 1., 2.]))
+print(c.probs, c.entropy(), c.log_prob(torch.tensor(2)))`,
+  },
+  {
+    id: 'create_graph', cat: 'autograd', label: 'create_graph=True',
+    code: `import torch
+
+x = torch.tensor(2., requires_grad=True)
+y = x ** 3
+g, = torch.autograd.grad(y, x, create_graph=True)
+print(g)            # 3x² = 12
+h, = torch.autograd.grad(g, x)
+print(h)            # 6x = 12`,
+  },
+  {
+    id: 'rnn', cat: 'nn', label: 'nn.LSTM',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+lstm = nn.LSTM(input_size=4, hidden_size=8, num_layers=2, batch_first=True)
+x = torch.zeros(3, 5, 4)      # batch, time, features
+out, (h, c) = lstm(x)
+print(out.shape, h.shape, c.shape)
+print(lstm)
+print(sum(p.numel() for p in lstm.parameters()))`,
+  },
+  {
+    id: 'attention', cat: 'nn', label: 'TransformerEncoderLayer',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+layer = nn.TransformerEncoderLayer(d_model=16, nhead=2, dim_feedforward=32, batch_first=True)
+x = torch.zeros(2, 5, 16)
+print(layer(x).shape)
+encoder = nn.TransformerEncoder(layer, num_layers=2)
+print(encoder(x).shape, sum(p.numel() for p in encoder.parameters()))`,
+  },
+  {
+    id: 'block', cat: 'nn', label: 'class Block(nn.Sequential)',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Block(nn.Sequential):
+    def __init__(self, a, b):
+        super().__init__(nn.Conv2d(a, b, 3, padding=1), nn.BatchNorm2d(b), nn.ReLU())
+
+net = nn.Sequential(Block(3, 8), nn.MaxPool2d(2), Block(8, 16), nn.Flatten())
+print(net)
+print(net(torch.zeros(1, 3, 32, 32)).shape)`,
+  },
+  {
+    id: 'scheduler', cat: 'train', label: 'lr_scheduler',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+w = nn.Parameter(torch.zeros(1))
+opt = torch.optim.SGD([w], lr=0.1)
+sched = torch.optim.lr_scheduler.StepLR(opt, step_size=2, gamma=0.5)
+for epoch in range(5):
+    opt.step()
+    sched.step()
+    print(epoch, sched.get_last_lr())`,
+  },
+  {
+    id: 'save_load', cat: 'scripts', label: 'torch.save / load',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+import os
+from pathlib import Path
+net = nn.Linear(2, 1)
+out = Path('runs')
+out.mkdir(exist_ok=True)
+torch.save(net.state_dict(), out / 'net.pt')
+print(os.path.exists(out / 'net.pt'), list(net.state_dict().keys()))
+again = nn.Linear(2, 1)
+print(again.load_state_dict(torch.load(out / 'net.pt')))
+print(torch.equal(again.weight, net.weight))`,
+  },
+  {
+    id: 'skeleton', cat: 'scripts', label: 'a training script',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+import argparse, random
+import numpy as np
+p = argparse.ArgumentParser()
+p.add_argument('--lr', type=float, default=0.1)
+p.add_argument('--epochs', type=int, default=3)
+args = p.parse_args([])
+random.seed(0); np.random.seed(0); torch.manual_seed(0)
+device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
+print(args, device in ('cuda', 'mps', 'cpu'))
+model = nn.Linear(1, 1).to(device)
+print(next(model.parameters()).shape, torch.get_num_threads() > 0)
+with torch.inference_mode():
+    print(model(torch.zeros(1, 1, device=device)).shape, torch.is_inference_mode_enabled())`,
+  },
 ]
 
 export const PYTORCH_PLAYGROUND: PlayConfig = {
@@ -357,7 +490,7 @@ export const PYTORCH_PLAYGROUND: PlayConfig = {
   maxSize: 2_000_000,
   timeBudget: 4000,
   debounce: 600,
-  cats: ['tensors', 'autograd', 'nn', 'train'],
+  cats: ['tensors', 'autograd', 'nn', 'train', 'maths', 'scripts'],
   entries: ENTRIES,
   prelude: NN,
   callApis: ['torch.', 'Tensor.', 'op:', 'F.'],

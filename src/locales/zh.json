@@ -654,7 +654,8 @@
       "random": "随机",
       "poly": "多项式",
       "stats": "计数与统计",
-      "ml": "课程常用写法"
+      "ml": "课程常用写法",
+      "files": "文件"
     },
     "kind": {
       "create": "创建",
@@ -788,7 +789,21 @@
       "zscore": "标准化：每一列变成均值 0、标准差 1，这样 KNN 的距离不会被某个特征主导。",
       "onehot": "用标签去索引单位矩阵，得到 one-hot 行，也就是 categorical cross-entropy 的目标。",
       "confusion": "不用循环的混淆矩阵：true * k + pred 给每对 (真实, 预测) 一个编号，再用 bincount 计数。",
-      "perceptron": "一次算出所有样本的感知机预测：对 X @ w + b 取阶跃函数。"
+      "perceptron": "一次算出所有样本的感知机预测：对 X @ w + b 取阶跃函数。",
+      "split": "把数组切成几段：np.split 要能整除，或者直接给切点；np.array_split 允许大小不等。",
+      "moveaxis": "移动一个轴，其余顺序不变：常用于 channels-last（Keras）和 channels-first（PyTorch）之间转换。",
+      "nonzero": "找出非零或 True 的位置：nonzero 每个轴给一个数组，argwhere 每个命中给一行。",
+      "take_along": "np.take 选整行或整列；np.take_along_axis 每行用不同的索引，正好配合 argsort 的结果。",
+      "percentile": "百分位数默认在排序后的值之间插值。q3 − q1 就是用来找离群值的四分位距。",
+      "corrcoef": "相关系数矩阵和协方差矩阵。cov 的对角线是方差，分母是 n − 1。",
+      "solve": "直接解 Ax = b，比乘逆矩阵更快也更准。",
+      "eigh": "对称矩阵的特征值，从小到大。特征向量的正负号不固定，所以这里只打印大小。",
+      "svd": "奇异值分解：U、奇异值（从大到小）和 Vᵀ 相乘等于 A。",
+      "lstsq": "最小二乘拟合：第一列全 1 对应截距，第二列对应斜率。",
+      "rng": "现代的随机数写法：一个可以传来传去的生成器对象。这里的数值和真实 NumPy 不同，因为沙盒有自己的生成器。",
+      "save_load": "把一个数组存成 .npy 再读回来，形状和 dtype 不变。这里的文件只保留到本次运行结束。",
+      "savez": "一个文件存多个数组，按名字取：课程数据集常用这种格式。",
+      "savetxt": "把数组存成文本：fmt 决定写出的格式，loadtxt 读回来是浮点数。"
     },
     "run_block": "在 NumPy 面板中运行",
     "plot_label": "多项式曲线",
@@ -986,7 +1001,10 @@
         "pandas": "表格、选取、分组",
         "pytorch": "张量、自动求导、训练循环",
         "keras": "模型、summary()、fit",
-        "tensorflow": "张量、Variable、GradientTape"
+        "tensorflow": "张量、Variable、GradientTape",
+        "python": "文件、数据结构、文本、脚本工具",
+        "sklearn": "模型、缩放、评估指标、交叉验证",
+        "cv2": "颜色、阈值、滤波、几何变换"
       },
       "libraries": "库",
       "hide_libs": "收起示例栏",
@@ -4355,7 +4373,8 @@
         "steps_off": "逐步可视化需要「逐步演示」引擎。真实 Python 按原样运行代码，显示输出和图。"
       },
       "result": "结果",
-      "result_note": "最终完成的图，和 plt.show() 画出来的一样。"
+      "result_note": "最终完成的图，和 plt.show() 画出来的一样。",
+      "nothing_prints": "程序画的图或搭的模型会显示在这里。这段程序只有打印，结果在“输出”里。"
     },
     "view": {
       "figure_label": "包含 {{n}} 个子图的图",
@@ -4414,7 +4433,8 @@
       "cat": {
         "basics": "基础",
         "images": "图像",
-        "ml": "机器学习图"
+        "ml": "机器学习图",
+        "charts": "更多图表"
       },
       "e": {
         "anatomy": "Figure 是整张画布，Axes 是画布里的一个子图。plt.subplots() 同时返回两者，之后在 ax 上调用方法（set_title、set_xlabel、legend）。plt.* 函数做的是同一件事，只是作用在「当前」Axes 上。",
@@ -4436,7 +4456,15 @@
         "boxplot": "箱子覆盖中间一半的数据（Q1 到 Q3），橙线是中位数；须线延伸到 1.5 倍四分位距以内最远的点，之外的圆圈是离群值。",
         "pie": "各类样本数的饼图。猫占 62 %，一直猜「猫」就能有 62 % 的准确率，所以还要看精确率和召回率。",
         "annotate": "annotate 把文字写在 xytext，并画一个箭头指向点 xy。这里标出验证损失最低的那一轮，也就是早停会停下的地方。",
-        "step": "plt.step 画会跳变的函数。where='post' 表示每个值保持到下一个 x：感知机的硬阈值与平滑的 sigmoid 对比。"
+        "step": "plt.step 画会跳变的函数。where='post' 表示每个值保持到下一个 x：感知机的硬阈值与平滑的 sigmoid 对比。",
+        "bars": "柱状图画你给定的值；直方图把数据分箱后计数。",
+        "contour": "填充等高线：从上方看损失曲面的常用画法。",
+        "fill": "在曲线周围填一条带，常用来表示多次训练的波动范围。",
+        "twinx": "给不同量纲的量加第二条 y 轴：把损失和准确率画在一张图上。",
+        "log": "对数轴让每个数量级占同样的宽度，是看学习率搜索结果的自然方式。",
+        "surface": "3D 曲面：和等高线同样的数据，从侧面看。",
+        "scatter3": "散点图还能多表达两个量：c 控制颜色，s 控制面积。",
+        "seaborn": "seaborn 的 heatmap，画带数字的混淆矩阵的常用写法。"
       }
     },
     "keras": {
@@ -4446,7 +4474,11 @@
       "cat": {
         "build": "搭建",
         "train": "训练",
-        "pitfalls": "易错点"
+        "pitfalls": "易错点",
+        "functional": "函数式模型",
+        "custom": "自定义类",
+        "callbacks": "回调与保存",
+        "sequences": "文本、序列与数据"
       },
       "e": {
         "cnn_summary": "第 8 讲的 CNN。summary 步骤给出每层的输出形状和计算公式：'valid' 的 3 × 3 卷积让 28 → 26 → 24，池化减半为 12，Flatten 得到 12·12·64 = 9216；每个 Conv2D 有 (3·3·通道数 + 1)·filters 个参数。",
@@ -4462,7 +4494,19 @@
         "no_flatten": "没有 Flatten 时，Dense 只作用于最后一个轴，输出是 (None, 28, 28, 10)，只有 20 个参数，而不是每张图一个预测。summary 让这个错误一目了然。",
         "no_channel": "Conv2D 要求输入为 (batch, 高, 宽, 通道)。形状为 (N, 28, 28) 的灰度数组需要先 reshape(-1, 28, 28, 1)，第 8 讲在搭建模型前也对 x_train 这样做了。",
         "same_stride": "padding='same' 保持尺寸（输出 = ceil(N / S)）；不加（'valid'）时输出为 floor((N − K) / S) + 1。从 model.summary() 读出形状，并核对参数个数：(K·K·C_in + 1)·C_out。",
-        "onehot": "to_categorical 把整数标签变成 one-hot 行。配合 categorical_crossentropy 使用；用 sparse_categorical_crossentropy 时保留整数标签。"
+        "onehot": "to_categorical 把整数标签变成 one-hot 行。配合 categorical_crossentropy 使用；用 sparse_categorical_crossentropy 时保留整数标签。",
+        "residual": "函数式 API 可以分叉再合并。这里输入跳过两层再加回来，就是一个残差块。",
+        "two_inputs": "两个输入的模型：给输入命名，数据就用同名的字典传入。",
+        "features": "一个共享权重、在指定层停下的新模型：用来查看 CNN 内部算出了什么。",
+        "custom_layer": "自定义层：build 在知道输入形状后创建权重，call 负责计算。",
+        "subclass": "把模型写成类，类似 PyTorch 的 nn.Module。放在属性里的层会被追踪，compile 和 fit 照常使用。",
+        "early_stop": "当监控值连续 patience 个 epoch 的改善都小于 min_delta 时停止。",
+        "lr_schedule": "在每个 epoch 开始时调整学习率，用过的学习率会记在 history 里。",
+        "my_callback": "自定义回调在每个钩子运行，可以读取日志，也可以停止训练。",
+        "saving": "保存整个模型，再连同权重和 compile 设置一起读回来。这里的文件只保留到本次运行结束。",
+        "rnn_summary": "从词到向量再到序列层。return_sequences 让每个时间步都有输出，交给下一个循环层。",
+        "text": "把文本变成整数序列：adapt 建词表，没见过的词是 1，不够长的用 0 补齐。",
+        "dataset_fit": "fit 可以接收 tf.data 数据管道：批次已经在管道里了，所以不用 batch_size。"
       }
     },
     "tensorflow": {
@@ -4472,7 +4516,8 @@
       "cat": {
         "tensors": "张量",
         "autograd": "GradientTape",
-        "keras": "tf.keras"
+        "keras": "tf.keras",
+        "data": "tf.data"
       },
       "e": {
         "constant": "tf.constant 生成不可变的张量，print 会显示它的值、形状和 dtype；.numpy() 把它转回 NumPy 数组。这里 Python 整数会变成 int32，而 NumPy 会用 int64。",
@@ -4482,7 +4527,15 @@
         "tape": "在 with tf.GradientTape() as tape: 中，TensorFlow 会记录对 Variable 的运算；之后 tape.gradient(y, x) 给出 dy/dx：x = 3 时 2x + 2 = 8。",
         "linreg": "手写完整的训练循环：在 tape 内算损失，用 tape.gradient 得到 [dw, db]，再执行 w.assign_sub(lr · dw)。w → 2，b → 1。",
         "tf_keras": "Keras 也以 tf.keras 的形式包含在 TensorFlow 里，旧课件代码就是这样导入的。点开 summary 步骤，可以看到每层的输出形状和参数个数。",
-        "confusion": "tf.math.confusion_matrix(labels, predictions) 统计每一对（真实, 预测）。对角线上是预测正确的数量，所以准确率 = 对角线之和 / 总数。"
+        "confusion": "tf.math.confusion_matrix(labels, predictions) 统计每一对（真实, 预测）。对角线上是预测正确的数量，所以准确率 = 对角线之和 / 总数。",
+        "select": "按条件或位置取值。tf.where 一个参数给位置，三个参数在两个值之间选择。",
+        "reduce": "reduce_ 系列就是换了名字的 NumPy sum、mean。argmax 返回 int64。",
+        "dtype_strict": "TensorFlow 不会替你转换 dtype，tf.add 第一个参数是 Python 数字时也一样。",
+        "second_order": "tape 嵌套 tape 得到二阶导：外层记录内层梯度的计算过程。",
+        "persistent": "tape 会自动跟踪 Variable；常量需要 watch。不加 persistent=True 只能求一次。",
+        "tf_function": "真实 TensorFlow 会把函数编译成计算图。沙盒直接运行，结果相同。",
+        "dataset": "把数据管道写成一条链：map、shuffle、batch、take。遍历时才会真正运行。",
+        "from_gen": "从 Python 生成器取数据，适合放不进内存的情况。output_signature 声明产出的类型。"
       }
     },
     "frame": {
@@ -4525,7 +4578,10 @@
         "basics": "基础",
         "select": "选取",
         "clean": "清洗",
-        "ml": "课程计算"
+        "ml": "课程计算",
+        "combine": "合并与变形",
+        "group": "分组",
+        "series": "文本、窗口与编码"
       },
       "e": {
         "create": "DataFrame 是由命名列组成的表，每一列都是一个单一 dtype 的 Series：int64、float64（None 变成 NaN），或存放文字的 object。",
@@ -4548,7 +4604,16 @@
         "cut": "pd.cut 按区间把数值变成类别：年龄 0–30、30–50、50–100。类别型朴素贝叶斯需要这一步，而且类别保持顺序（young < middle < old）。",
         "gaussian_nb": "高斯朴素贝叶斯为每个类别、每个特征拟合一条正态曲线。agg(['mean', 'std']) 在一张表里给出每个类别的两个参数（pandas 的 std 是样本标准差，ddof=1）。",
         "pivot": "pivot_table 按 index 分组并对值求平均：这里就是 K-Means 的更新步骤，每个簇得到一个新质心。",
-        "sample_split": "sample(frac=0.75) 随机抽取 75 % 的行作训练集，drop(train.index) 把剩下的留作测试集。沙盒抽到的行与真实 pandas 不同，但划分方法一样。"
+        "sample_split": "sample(frac=0.75) 随机抽取 75 % 的行作训练集，drop(train.index) 把剩下的留作测试集。沙盒抽到的行与真实 pandas 不同，但划分方法一样。",
+        "merge": "按键连接两张表。默认只保留两边都有的 id；how='left' 保留左表每一行，缺的填 NaN。",
+        "concat": "把表堆起来。按列名对齐，缺的列变成 NaN；ignore_index 重新编号行。",
+        "melt": "melt 把宽表变成长表，每个值一行；pivot 再变回去。",
+        "crosstab": "统计两列取值的组合：用真实标签和预测标签就是混淆矩阵。",
+        "agg": "每组同时算多个统计量：每类的均值和标准差正是高斯朴素贝叶斯需要的。",
+        "transform": "transform 每行给一个值而不是每组一个，所以结果可以直接作为新列。",
+        "strings": "对整列应用字符串方法；缺失值保持缺失，不会报错。",
+        "rolling": "滑动平均需要窗口填满，所以开头是 NaN。适合平滑抖动的损失曲线。",
+        "dummies": "把文本列做 one-hot 编码，模型才能用；类别有顺序时可以改用 map。"
       }
     },
     "pytorch": {
@@ -4559,7 +4624,9 @@
         "tensors": "张量",
         "autograd": "自动求导",
         "nn": "层与形状",
-        "train": "训练"
+        "train": "训练",
+        "maths": "数学与概率分布",
+        "scripts": "脚本与保存"
       },
       "e": {
         "attrs": "每个张量都有形状（torch.Size）、数据类型和设备。Python 整数会变成 int64，torch.zeros 这类工厂函数默认是 float32；本沙盒中的设备始终是 CPU。",
@@ -4583,7 +4650,90 @@
         "dataloader": "DataLoader 把数据集切成 batch：len(loader) = ⌈10 / 4⌉ = 3，每次迭代得到一个 batch 的 (inputs, labels)，与第 9 讲 train_model 的写法一致。",
         "cat_stack": "torch.cat 沿已有的轴拼接；torch.stack 在新轴上叠放，两个 (2, 3) 的张量变成 (2, 2, 3)。把多张图片组成一个批次用的就是 stack。",
         "conv_edge": "F.conv2d 就是第 7 讲的卷积，只是采用 PyTorch 的 (批次, 通道, H, W) 布局。手动设定的 Sobel 卷积核在暗区与亮区交界处响应最强；不加填充时输出为 (H − 3 + 1) × (W − 3 + 1)。",
-        "softmax_acc": "softmax 把每行 logits 变成概率，argmax(dim=1) 取预测类别，(pred == y).float().mean() 就是准确率。直接对 logits 取 argmax 结果相同，因为 softmax 不改变大小顺序。"
+        "softmax_acc": "softmax 把每行 logits 变成概率，argmax(dim=1) 取预测类别，(pred == y).float().mean() 就是准确率。直接对 logits 取 argmax 结果相同，因为 softmax 不改变大小顺序。",
+        "einsum": "einsum 给每个轴起名：-> 右边消失的字母就是被求和的轴。",
+        "solve": "torch.linalg 和 np.linalg 有同样的函数，只是作用在张量上。",
+        "distributions": "可以采样也可以求导的概率分布：损失函数通常由 log_prob 构成。",
+        "create_graph": "保留梯度本身的计算图，就能再求一次导：也就是二阶导。",
+        "rnn": "循环层：out 每个时间步一个向量，h 和 c 是每个堆叠层最后的状态。",
+        "attention": "一个 Transformer 编码层不改变形状：5 个 token 互相关注，每个还是 16 维。",
+        "block": "继承容器来给重复结构起名：写 conv-norm-activation 块的常用方式。",
+        "scheduler": "在训练中调整学习率。调度器在优化器之后调用，通常每个 epoch 一次。",
+        "save_load": "保存权重而不是模型：state_dict 就是张量组成的字典。这里的文件只保留到本次运行结束。",
+        "skeleton": "真实训练脚本开头做的事：解析参数、设种子、选设备。这些语句在这里都能运行，设备是 CPU。"
+      }
+    },
+    "python": {
+      "title": "Python 标准库",
+      "subtitle": "{{n}} 个示例：文件、数据结构、文本和脚本常用工具。无需安装。",
+      "sandbox_note": "在浏览器中运行，基于重写的 Python：包括语言本身和约 50 个标准库模块，已与 CPython 3.10 对照。文件夹一开始是空的，程序写的文件只保留到本次运行结束。没有网络和线程，b'...' 只是普通字符串。",
+      "cat": {
+        "files": "文件",
+        "data": "数据结构",
+        "text": "文本",
+        "script": "脚本与工具"
+      },
+      "e": {
+        "pathlib": "把路径当对象：/ 用来拼接，方法可以读写和列出文件。文件夹一开始是空的，只保留到本次运行结束。",
+        "open_csv": "with 会自动关闭文件。csv 负责处理引号，读回来的值都是字符串。",
+        "json": "把设置存成文本：True 变成 true，None 变成 null，读回来完全一样。",
+        "pickle": "把 Python 对象原样保存，包括它的类。只加载可信的 pickle，因为加载时可能执行代码。",
+        "tempfile": "一个离开代码块就消失的文件夹，以及复制、移动和通配符查找。",
+        "collections": "Counter 计数，defaultdict 自动补缺失的键，deque 保留最近 n 个，namedtuple 给元组字段起名。",
+        "itertools": "product 一行写完网格搜索，其余几个也能省掉嵌套循环。",
+        "functools": "lru_cache 记住结果，让这个递归从指数时间变成线性时间。",
+        "dataclass": "自动写好 __init__、__repr__、__eq__ 的类，以及代替裸字符串的具名常量。",
+        "heapq": "堆可以很快取出最小值，比如最佳优先搜索。bisect 在有序列表里查找。",
+        "regex": "按模式查找、替换和切分：括号捕获你想保留的部分。",
+        "format": "f-string 的格式说明可以控制小数、宽度、千分位和百分比，textwrap 按单词换行。",
+        "argparse": "脚本的命令行参数。这里没有命令行，所以把列表直接传给 parse_args。",
+        "contextlib": "用生成器写 with 块：yield 之前是准备，之后是收尾。",
+        "datetime": "日期可以加减，strftime 负责格式化。2024 是闰年，所以那个加法落在 3 月 1 日。",
+        "numbers": "精确分数，以及为什么浮点数要用 isclose 比较：0.1 + 0.2 并不严格等于 0.3。",
+        "inspect": "把函数签名当数据读取，库就是这样检查参数的。SimpleNamespace 是存设置的简便对象。",
+        "eval_exec": "运行字符串里的代码。写小工具可以，但绝不要用在不是自己写的文本上。"
+      }
+    },
+    "sklearn": {
+      "title": "scikit-learn",
+      "subtitle": "{{n}} 个示例：几行写完课程里的模型，还有缩放、评估指标和交叉验证。",
+      "sandbox_note": "在浏览器中运行，基于重写的 scikit-learn：包括 KNN、朴素贝叶斯、K-means、线性与逻辑回归、决策树、PCA、缩放器、评估指标和交叉验证，已与 scikit-learn 1.7 对照。没有 SVM 和集成方法，random_state 也无法复现真实结果。",
+      "cat": {
+        "models": "模型",
+        "prep": "预处理",
+        "eval": "评估"
+      },
+      "e": {
+        "knn": "第 3 讲的 KNN，三行写完：fit 存下数据，predict 让邻居投票。",
+        "naive_bayes": "高斯朴素贝叶斯为每个类别和特征记一个均值和方差，和第 2 讲手算的一样。",
+        "kmeans": "指定初始中心的 KMeans。inertia_ 是算法要减小的距离平方和。",
+        "linear": "最小二乘正好得到 y = 2x + 1。Ridge 加了惩罚项，把斜率往 0 拉。",
+        "tree": "决策树用两层判断解决 XOR，单条直线做不到。",
+        "pipeline": "要先缩放，否则大数值的列决定所有距离。Pipeline 只用训练数据拟合缩放器。",
+        "encode": "把文本变成数字；PolynomialFeatures 让线性模型也能拟合曲线。",
+        "metrics": "第 3 讲混淆矩阵算出的那些数，以及按类别的完整报告。",
+        "cv": "第 3 讲交叉验证的折，以及用它们尝试每种设置的 GridSearchCV。",
+        "pca": "这些点几乎在一条直线上，所以一个主成分就保留了几乎全部方差。主成分的正负号是任意的。"
+      }
+    },
+    "cv2": {
+      "title": "OpenCV",
+      "subtitle": "{{n}} 个示例：颜色、阈值、滤波和几何变换，都作用在数组上，对应第 7 讲。",
+      "sandbox_note": "在浏览器中运行，基于重写的 cv2：包括颜色转换、阈值、滤波、形态学、缩放和变换，已与 OpenCV 4.13 对照。图片是代码里生成的 NumPy 数组，因为 imread 没有文件可读。没有绘图和轮廓功能。",
+      "cat": {
+        "colour": "颜色与阈值",
+        "filter": "滤波",
+        "geometry": "几何变换"
+      },
+      "e": {
+        "colours": "OpenCV 按 BGR 存颜色，所以 plt.imshow 之前要转成 RGB。灰度是 0.299 R + 0.587 G + 0.114 B。",
+        "threshold": "固定阈值，以及第 7 讲的 Otsu 方法，它会自己选阈值并返回。",
+        "histogram": "按分箱统计灰度；equalizeHist 把它们拉伸到整个范围。",
+        "filter": "第 7 讲的任意卷积核。要先转成浮点数：在 uint8 上，负的边缘值会被截断成 0。",
+        "blur": "平均值会把孤立的白点抹开；中值能去掉它们，因为它们永远不是中间值。",
+        "morphology": "腐蚀缩小白色区域，膨胀扩大；依次做这两步能去掉小噪点。",
+        "resize": "注意顺序：resize 接收 (宽, 高)，而 .shape 给的是 (高, 宽, 通道)。",
+        "warp": "第 7 讲仿射变换的 2 × 3 矩阵：最后一列是平移。"
       }
     }
   }

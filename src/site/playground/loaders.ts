@@ -19,6 +19,9 @@ export const PLAYGROUND_LOADERS: Partial<Record<string, () => Promise<PlayConfig
   pytorch: memo(withPacks(i18n, [...SHARED, 'playground.pytorch'], () => import('../../data/playgrounds/pytorch').then((m) => m.PYTORCH_PLAYGROUND))),
   keras: memo(withPacks(i18n, [...SHARED, 'playground.keras'], () => import('../../data/playgrounds/keras').then((m) => m.KERAS_PLAYGROUND))),
   tensorflow: memo(withPacks(i18n, [...SHARED, 'playground.tensorflow'], () => import('../../data/playgrounds/tensorflow').then((m) => m.TENSORFLOW_PLAYGROUND))),
+  python: memo(withPacks(i18n, [...SHARED, 'playground.python'], () => import('../../data/playgrounds/python').then((m) => m.PYTHON_PLAYGROUND))),
+  sklearn: memo(withPacks(i18n, [...SHARED, 'playground.sklearn'], () => import('../../data/playgrounds/sklearn').then((m) => m.SKLEARN_PLAYGROUND))),
+  cv2: memo(withPacks(i18n, [...SHARED, 'playground.cv2'], () => import('../../data/playgrounds/cv2').then((m) => m.CV2_PLAYGROUND))),
   pandas: memo(withPacks(i18n, [...SHARED, 'playground.frame', 'playground.pandas'], () => import('../../data/playgrounds/pandas').then((m) => m.PANDAS_PLAYGROUND))),
 }
 

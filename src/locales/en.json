@@ -654,7 +654,8 @@
       "random": "Random",
       "poly": "Polynomial",
       "stats": "Count & stats",
-      "ml": "Course recipes"
+      "ml": "Course recipes",
+      "files": "Files"
     },
     "kind": {
       "create": "creates",
@@ -788,7 +789,21 @@
       "zscore": "Standardisation: every column ends up with mean 0 and standard deviation 1, so no feature dominates the KNN distance.",
       "onehot": "Indexing the identity matrix with the labels gives one-hot rows, the targets for categorical cross-entropy.",
       "confusion": "A confusion matrix without loops: true * k + pred gives each (true, pred) pair its own number, and bincount counts them.",
-      "perceptron": "A perceptron's prediction for all rows at once: the step function of X @ w + b."
+      "perceptron": "A perceptron's prediction for all rows at once: the step function of X @ w + b.",
+      "split": "Cut an array into pieces: np.split needs an exact division, or takes the positions to cut at. np.array_split allows unequal sizes.",
+      "moveaxis": "Move one axis and keep the others in order: the usual way between channels-last (Keras) and channels-first (PyTorch).",
+      "nonzero": "Find where the non-zero or True entries are: nonzero gives one array per axis, argwhere one row per hit.",
+      "take_along": "np.take picks whole rows or columns. np.take_along_axis uses a different index in each row, which is what argsort produces.",
+      "percentile": "Percentiles interpolate between sorted values by default. q3 − q1 is the interquartile range used to spot outliers.",
+      "corrcoef": "The correlation and covariance matrices. The diagonal of cov holds the variances, with n − 1 in the denominator.",
+      "solve": "Solve Ax = b directly, which is faster and more accurate than multiplying by the inverse.",
+      "eigh": "Eigenvalues of a symmetric matrix, in ascending order. A vector’s sign is not fixed, so only its size is printed.",
+      "svd": "Singular value decomposition: U, the singular values (largest first) and Vᵀ multiply back to A.",
+      "lstsq": "The least-squares fit: the first column of ones gives the intercept, the second the slope.",
+      "rng": "The modern way to draw random numbers: a generator object you pass around. The numbers here differ from real NumPy, as the sandbox has its own generator.",
+      "save_load": "Save one array to a .npy file and read it back with its shape and dtype. Files here last one run.",
+      "savez": "Several arrays in one file, by name: what a course dataset is often shipped as.",
+      "savetxt": "Arrays as text: fmt sets how numbers are written, and loadtxt reads them back as floats."
     },
     "run_block": "Run in the NumPy panel",
     "plot_label": "Polynomial curves",
@@ -986,7 +1001,10 @@
         "pandas": "Tables, selection, groupby",
         "pytorch": "Tensors, autograd, training loops",
         "keras": "Models, summary(), fit",
-        "tensorflow": "Tensors, Variables, GradientTape"
+        "tensorflow": "Tensors, Variables, GradientTape",
+        "python": "Files, data structures, text, script tools",
+        "sklearn": "Models, scaling, metrics, cross-validation",
+        "cv2": "Colour, thresholds, filters, warps"
       },
       "libraries": "Libraries",
       "hide_libs": "Hide the examples",
@@ -4355,7 +4373,8 @@
         "steps_off": "Step-by-step views need the Step-through engine. Real Python runs the code as is and shows its output and figures."
       },
       "result": "Result",
-      "result_note": "The finished figure, as plt.show() draws it."
+      "result_note": "The finished figure, as plt.show() draws it.",
+      "nothing_prints": "What this program draws or builds appears here. This one only prints, so its results are under Output."
     },
     "view": {
       "figure_label": "Figure with {{n}} axes",
@@ -4414,7 +4433,8 @@
       "cat": {
         "basics": "Basics",
         "images": "Images",
-        "ml": "ML plots"
+        "ml": "ML plots",
+        "charts": "More charts"
       },
       "e": {
         "anatomy": "A Figure is the whole canvas; an Axes is one plot inside it. plt.subplots() returns both, then you call methods on ax (set_title, set_xlabel, legend). The plt.* functions do the same thing on the current Axes.",
@@ -4436,7 +4456,15 @@
         "boxplot": "Each box spans the middle half of the data (Q1 to Q3) with the median in orange; whiskers reach the furthest points within 1.5 IQR, and the circle beyond is an outlier.",
         "pie": "A pie chart of class counts. With 62 % cats, always guessing \"cat\" already scores 62 % accuracy, so look at precision and recall too.",
         "annotate": "annotate writes text at xytext and draws an arrow to the point xy. Here it marks the epoch with the lowest validation loss, where early stopping would stop.",
-        "step": "plt.step draws a function that jumps. where='post' keeps each value until the next x: the perceptron's hard threshold next to the smooth sigmoid."
+        "step": "plt.step draws a function that jumps. where='post' keeps each value until the next x: the perceptron's hard threshold next to the smooth sigmoid.",
+        "bars": "A bar chart shows a value you give it; a histogram counts data into bins.",
+        "contour": "Filled contours: the usual picture of a loss surface seen from above.",
+        "fill": "Shade a band around a line, as when showing the spread of several training runs.",
+        "twinx": "A second y axis for a quantity on another scale: loss and accuracy on one plot.",
+        "log": "A log axis gives each power of ten the same space, the natural view of a learning-rate search.",
+        "surface": "A 3D surface: the same data as a contour plot, seen from the side.",
+        "scatter3": "A scatter plot can carry two more values: colour with c and area with s.",
+        "seaborn": "Seaborn’s heatmap, the usual way to draw a confusion matrix with its counts."
       }
     },
     "keras": {
@@ -4446,7 +4474,11 @@
       "cat": {
         "build": "Build",
         "train": "Train",
-        "pitfalls": "Pitfalls"
+        "pitfalls": "Pitfalls",
+        "functional": "Functional models",
+        "custom": "Your own classes",
+        "callbacks": "Callbacks & saving",
+        "sequences": "Text, sequences, data"
       },
       "e": {
         "cnn_summary": "Lecture 8's CNN. The summary step shows each output shape with its formula: 'valid' 3 × 3 convolutions shrink 28 → 26 → 24, pooling halves 24 → 12, Flatten gives 12·12·64 = 9216, and each Conv2D has (3·3·channels + 1)·filters parameters.",
@@ -4462,7 +4494,19 @@
         "no_flatten": "Without Flatten, Dense acts only on the last axis, so the output is (None, 28, 28, 10) with just 20 parameters and not one prediction per image. The summary makes the mistake visible.",
         "no_channel": "Conv2D expects (batch, height, width, channels). Grayscale arrays of shape (N, 28, 28) need reshape(-1, 28, 28, 1), as lecture 8 does with x_train before building the model.",
         "same_stride": "padding='same' keeps the size (output = ceil(N / S)); without it ('valid') the output is floor((N − K) / S) + 1. Read the shapes off model.summary() and check the parameter counts: (K·K·C_in + 1)·C_out.",
-        "onehot": "to_categorical turns integer labels into one-hot rows. Use it with categorical_crossentropy; keep integer labels for sparse_categorical_crossentropy."
+        "onehot": "to_categorical turns integer labels into one-hot rows. Use it with categorical_crossentropy; keep integer labels for sparse_categorical_crossentropy.",
+        "residual": "The Functional API can branch and join. Here the input skips two layers and is added back: a residual block.",
+        "two_inputs": "A model with two inputs: name them, and pass the data as a dictionary with the same names.",
+        "features": "A new model that shares the weights and stops at a chosen layer: how to look at what a CNN computes inside.",
+        "custom_layer": "A layer of your own: build creates the weights once the input shape is known, call does the computing.",
+        "subclass": "A model as a class, like nn.Module in PyTorch. Layers kept in attributes are tracked, and compile and fit work as usual.",
+        "early_stop": "Stop when the monitored value stops improving by at least min_delta, for patience epochs in a row.",
+        "lr_schedule": "Change the learning rate at the start of each epoch. The rate used is recorded in the history.",
+        "my_callback": "Your own callback runs at each hook and can read the logs or stop training.",
+        "saving": "Save the whole model, then load it with its weights and compile settings. Files here last one run.",
+        "rnn_summary": "Words to vectors to sequence layers. return_sequences keeps one output per time step, for the next recurrent layer to read.",
+        "text": "Turn text into integer sequences: adapt builds the vocabulary, unknown words become 1, and short ones are padded with 0.",
+        "dataset_fit": "fit takes a tf.data pipeline: batching is already in it, so no batch_size here."
       }
     },
     "tensorflow": {
@@ -4472,7 +4516,8 @@
       "cat": {
         "tensors": "Tensors",
         "autograd": "GradientTape",
-        "keras": "tf.keras"
+        "keras": "tf.keras",
+        "data": "tf.data"
       },
       "e": {
         "constant": "tf.constant makes an immutable tensor, and print shows its values, shape and dtype. .numpy() converts it back to a NumPy array. Python ints become int32 here, while NumPy would use int64.",
@@ -4482,7 +4527,15 @@
         "tape": "Inside with tf.GradientTape() as tape:, TensorFlow records the operations on Variables. tape.gradient(y, x) then gives dy/dx, here 2x + 2 = 8 at x = 3.",
         "linreg": "A full training loop by hand: compute the loss inside the tape, get [dw, db] with tape.gradient, then w.assign_sub(lr · dw). w → 2 and b → 1.",
         "tf_keras": "Keras ships inside TensorFlow as tf.keras, the way older lecture code imports it. Open the summary step to see each layer's output shape and parameter count.",
-        "confusion": "tf.math.confusion_matrix(labels, predictions) counts each (true, predicted) pair. The diagonal holds the correct predictions, so accuracy = diagonal sum / total."
+        "confusion": "tf.math.confusion_matrix(labels, predictions) counts each (true, predicted) pair. The diagonal holds the correct predictions, so accuracy = diagonal sum / total.",
+        "select": "Pick values by condition or position. tf.where with one argument gives the positions, with three it chooses between two values.",
+        "reduce": "The reduce_ functions are NumPy’s sum and mean under another name. argmax gives int64.",
+        "dtype_strict": "TensorFlow never converts between dtypes for you, and that includes a Python number in the first argument of tf.add.",
+        "second_order": "A tape inside a tape gives a second derivative: the outer tape records how the inner gradient is computed.",
+        "persistent": "A tape follows variables on its own; a constant needs watch. Without persistent=True you can only ask once.",
+        "tf_function": "In real TensorFlow this compiles the function to a graph. The sandbox runs it directly, with the same results.",
+        "dataset": "A data pipeline as a chain: map, shuffle, batch, take. Nothing runs until you iterate.",
+        "from_gen": "Data from a Python generator, for when it does not fit in memory. output_signature declares what it yields."
       }
     },
     "frame": {
@@ -4525,7 +4578,10 @@
         "basics": "Basics",
         "select": "Select",
         "clean": "Clean",
-        "ml": "Course maths"
+        "ml": "Course maths",
+        "combine": "Combine & reshape",
+        "group": "Group by",
+        "series": "Text, windows, encoding"
       },
       "e": {
         "create": "A DataFrame is a table of named columns, each a Series with one dtype: int64, float64 (None becomes NaN) or object for text.",
@@ -4548,7 +4604,16 @@
         "cut": "pd.cut turns a number into a category by bins: ages 0–30, 30–50, 50–100. Categorical Naive Bayes needs this, and the categories keep their order (young < middle < old).",
         "gaussian_nb": "Gaussian Naive Bayes fits one normal curve per class and feature. agg(['mean', 'std']) gives both parameters for every class in one table (pandas' std is the sample std, ddof=1).",
         "pivot": "pivot_table groups by index and averages the values: here the K-Means update step, giving one new centroid per cluster.",
-        "sample_split": "sample(frac=0.75) draws 75 % of the rows at random for training, and drop(train.index) keeps the rest for testing. The sandbox draws different rows from real pandas, but the split works the same way."
+        "sample_split": "sample(frac=0.75) draws 75 % of the rows at random for training, and drop(train.index) keeps the rest for testing. The sandbox draws different rows from real pandas, but the split works the same way.",
+        "merge": "Join two tables on a key. The default keeps only ids in both; how='left' keeps every row of the left one and fills the gaps with NaN.",
+        "concat": "Stack tables. Columns are matched by name and missing ones become NaN; ignore_index renumbers the rows.",
+        "melt": "melt turns wide data into long, one row per value; pivot turns it back.",
+        "crosstab": "Count pairs of values: with true and predicted labels this is a confusion matrix.",
+        "agg": "Several summaries per group at once: the mean and std per class are exactly what Gaussian naive Bayes needs.",
+        "transform": "transform gives one value per row instead of per group, so the result can go straight into a new column.",
+        "strings": "String methods applied to a whole column at once; a missing value stays missing instead of raising an error.",
+        "rolling": "A moving average needs a full window, so the first results are NaN. Handy for smoothing a noisy loss curve.",
+        "dummies": "One-hot encode a text column so a model can use it; map is the alternative when the classes have an order."
       }
     },
     "pytorch": {
@@ -4559,7 +4624,9 @@
         "tensors": "Tensors",
         "autograd": "Autograd",
         "nn": "Layers & shapes",
-        "train": "Training"
+        "train": "Training",
+        "maths": "Maths & distributions",
+        "scripts": "Scripts & saving"
       },
       "e": {
         "attrs": "Every tensor has a shape (torch.Size), a dtype and a device. Python ints become int64, factory functions like torch.zeros give float32, and in this sandbox the device is always the CPU.",
@@ -4583,7 +4650,90 @@
         "dataloader": "A DataLoader cuts a dataset into batches: len(loader) = ⌈10 / 4⌉ = 3, and each iteration gives (inputs, labels) for one batch, as in lecture 9's train_model.",
         "cat_stack": "torch.cat joins tensors along an axis they already have; torch.stack puts them on a new axis, so two (2, 3) tensors become (2, 2, 3). Stacking images into a batch is a stack.",
         "conv_edge": "F.conv2d is the convolution of lecture 7 with PyTorch's (batch, channels, H, W) layout. A hand-set Sobel kernel lights up where the dark half meets the bright half; with no padding the output is (H − 3 + 1) × (W − 3 + 1).",
-        "softmax_acc": "softmax turns each row of logits into probabilities, argmax(dim=1) picks the predicted class, and (pred == y).float().mean() is the accuracy. argmax of the logits gives the same classes, since softmax keeps the order."
+        "softmax_acc": "softmax turns each row of logits into probabilities, argmax(dim=1) picks the predicted class, and (pred == y).float().mean() is the accuracy. argmax of the logits gives the same classes, since softmax keeps the order.",
+        "einsum": "einsum names each axis: letters that disappear on the right of -> are summed over.",
+        "solve": "torch.linalg has the same functions as np.linalg, working on tensors.",
+        "distributions": "Probability distributions you can sample from and differentiate: log_prob is what a loss is usually built from.",
+        "create_graph": "Keep the graph of the gradient itself, so it can be differentiated again: a second derivative.",
+        "rnn": "A recurrent layer: out has one vector per time step, h and c the final state of each stacked layer.",
+        "attention": "One Transformer encoder layer keeps the shape: each of the 5 tokens looks at the others and stays 16-dimensional.",
+        "block": "Subclass a container to name a repeated pattern: the usual way to write conv-norm-activation blocks.",
+        "scheduler": "Change the learning rate as training goes on. Call the scheduler after the optimizer, usually once per epoch.",
+        "save_load": "Save the weights, not the model: state_dict is a plain dictionary of tensors. Files here last one run.",
+        "skeleton": "What the top of a real training script does: arguments, seeds, choosing a device. These lines run here, on the CPU."
+      }
+    },
+    "python": {
+      "title": "Python standard library",
+      "subtitle": "{{n}} examples: files, data structures, text and the tools a script needs. Nothing to install.",
+      "sandbox_note": "Runs in your browser on a re-implementation of Python: the language and about 50 standard library modules, checked against CPython 3.10. It starts with an empty folder, and files a program writes last for one run. There is no network, no threads, and b'...' is a plain string.",
+      "cat": {
+        "files": "Files",
+        "data": "Data structures",
+        "text": "Text",
+        "script": "Scripts & tools"
+      },
+      "e": {
+        "pathlib": "Paths as objects: / joins them, and the methods read, write and list files. The folder starts empty and lasts one run.",
+        "open_csv": "with closes the file for you. csv handles quoting and reads every value back as a string.",
+        "json": "Settings as text: True becomes true and None becomes null, and it reads back the same.",
+        "pickle": "Save a Python object as it is, class included. Only load pickles you trust, because loading one can run code.",
+        "tempfile": "A folder that disappears after the block, with copying, moving and wildcard search inside it.",
+        "collections": "Counter tallies, defaultdict fills in missing keys, deque keeps the last n items, and namedtuple names a tuple’s fields.",
+        "itertools": "product is a grid search written in one line, and the rest save you from nested loops.",
+        "functools": "lru_cache remembers results, which turns this recursion from exponential to linear time.",
+        "dataclass": "A class that writes its own __init__, __repr__ and __eq__, and named constants instead of bare strings.",
+        "heapq": "A heap gives the smallest item quickly, as in best-first search. bisect searches a sorted list.",
+        "regex": "Find, replace and split by pattern: the brackets capture what you want to keep.",
+        "format": "f-string specs cover decimals, width, thousands and percent, and textwrap breaks long lines at word boundaries.",
+        "argparse": "Command-line options for a script. There is no command line here, so pass the list to parse_args yourself.",
+        "contextlib": "Write a with block as a generator: what comes before yield is setup, what comes after is cleanup.",
+        "datetime": "Dates add and subtract, and strftime formats them. 2024 is a leap year, so that addition lands on 1 March.",
+        "numbers": "Exact fractions, and why you compare floats with isclose: 0.1 + 0.2 is not exactly 0.3.",
+        "inspect": "A function’s signature as data, which is how libraries check your arguments. SimpleNamespace is a quick object for settings.",
+        "eval_exec": "Run code from a string. Fine for a quick tool, but never on text you did not write yourself."
+      }
+    },
+    "sklearn": {
+      "title": "scikit-learn",
+      "subtitle": "{{n}} examples: the models of the course in a few lines, with scaling, metrics and cross-validation.",
+      "sandbox_note": "Runs in your browser on a re-implementation of scikit-learn: KNN, naive Bayes, K-means, linear and logistic regression, decision trees, PCA, scalers, metrics and cross-validation, checked against scikit-learn 1.7. There are no SVMs or ensembles, and random_state values do not reproduce real results.",
+      "cat": {
+        "models": "Models",
+        "prep": "Preprocessing",
+        "eval": "Evaluation"
+      },
+      "e": {
+        "knn": "The KNN of lecture 3 in three lines: fit stores the data, predict votes among the neighbours.",
+        "naive_bayes": "Gaussian naive Bayes keeps a mean and a variance per class and feature, as computed by hand in lecture 2.",
+        "kmeans": "KMeans with chosen starting centres. inertia_ is the sum of squared distances that the algorithm reduces.",
+        "linear": "Least squares gives y = 2x + 1 exactly. Ridge adds a penalty, which pulls the slope towards 0.",
+        "tree": "A decision tree solves XOR with two levels of questions, which no single line can do.",
+        "pipeline": "Scale first, or the large column decides every distance. A pipeline fits the scaler on training data only.",
+        "encode": "Text to numbers, and PolynomialFeatures, which lets a linear model fit a curve.",
+        "metrics": "The numbers from lecture 3’s confusion matrix, including the full report per class.",
+        "cv": "The folds of lecture 3’s cross-validation, and GridSearchCV, which tries every setting with them.",
+        "pca": "These points almost lie on a line, so one component keeps nearly all the variance. A component’s sign is arbitrary."
+      }
+    },
+    "cv2": {
+      "title": "OpenCV",
+      "subtitle": "{{n}} examples: colour, thresholds, filters and geometry on arrays, as in lecture 7.",
+      "sandbox_note": "Runs in your browser on a re-implementation of cv2: colour conversion, thresholds, filters, morphology, resize and warps, checked against OpenCV 4.13. Pictures are NumPy arrays made in the code, because imread has no files to read. There is no drawing and no contours.",
+      "cat": {
+        "colour": "Colour & thresholds",
+        "filter": "Filters",
+        "geometry": "Geometry"
+      },
+      "e": {
+        "colours": "OpenCV stores colours as BGR, so plt.imshow needs a conversion to RGB. Grey is 0.299 R + 0.587 G + 0.114 B.",
+        "threshold": "A fixed threshold, and Otsu’s method from lecture 7, which chooses the value itself and returns it.",
+        "histogram": "Count the grey levels in bins; equalizeHist stretches them over the whole range.",
+        "filter": "Any kernel of lecture 7. Convert to float first: on uint8, the negative edge values would be clipped to 0.",
+        "blur": "An average smears lone white dots; a median removes them, because they are never the middle value.",
+        "morphology": "Erode shrinks white areas and dilate grows them; doing both in that order removes small specks.",
+        "resize": "Careful with the order: resize takes (width, height), while .shape gives (height, width, channels).",
+        "warp": "The 2 × 3 matrices of lecture 7’s affine transforms: the last column is the translation."
       }
     }
   }

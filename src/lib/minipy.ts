@@ -4911,6 +4911,16 @@ class Interp implements Host {
     return typeof r === 'number' ? fromScalar(r, 'float64') : arr(r)
   }
 
+  /** np.percentile with one q, or with a list of them: the q axis comes first */
+  percentiles(a: NDArray, q: Value | undefined, scale: number, axis: number | null): Value {
+    if (q && (q.k === 'list' || q.k === 'tuple' || q.k === 'array')) {
+      const parts = Array.from(toArray(q, 'float64').values(), (v) => percentile(a, this.scalarQ(float(v), scale), axis))
+      if (typeof parts[0] === 'number') return arr(NDArray.create(parts as number[], [parts.length], 'float64'))
+      return arr(stack(parts as NDArray[], 0))
+    }
+    return this.orderStat(percentile(a, this.scalarQ(q, scale), axis))
+  }
+
   /** percentile's q (scale 1) or quantile's q (scale 100, so 0.75 → 75) as one number */
   scalarQ(v: Value | undefined, scale: number): number {
     if (!v) throw this.err('TypeError', "missing required argument 'q'")
@@ -5310,8 +5320,8 @@ class Interp implements Host {
         return tuple([arr(r.out), arr(r.edges)])
       }, 'group'),
       median: fn('median', (args, kw) => this.orderStat(median(asArr(args[0], 'median'), this.kwInt(kw, args, 1, 'axis'))), 'reduce', { axisPos: 1, defaultAxis: null }),
-      percentile: fn('percentile', (args, kw) => this.orderStat(percentile(asArr(args[0], 'percentile'), this.scalarQ(kw.q ?? args[1], 1), this.kwInt(kw, args, 2, 'axis'))), 'reduce', { axisPos: 2, defaultAxis: null }),
-      quantile: fn('quantile', (args, kw) => this.orderStat(percentile(asArr(args[0], 'quantile'), this.scalarQ(kw.q ?? args[1], 100), this.kwInt(kw, args, 2, 'axis'))), 'reduce', { axisPos: 2, defaultAxis: null }),
+      percentile: fn('percentile', (args, kw) => this.percentiles(asArr(args[0], 'percentile'), kw.q ?? args[1], 1, this.kwInt(kw, args, 2, 'axis')), 'reduce', { axisPos: 2, defaultAxis: null }),
+      quantile: fn('quantile', (args, kw) => this.percentiles(asArr(args[0], 'quantile'), kw.q ?? args[1], 100, this.kwInt(kw, args, 2, 'axis')), 'reduce', { axisPos: 2, defaultAxis: null }),
       average: fn('average', (args, kw) => {
         const w = kw.weights ?? args[2]
         return this.orderStat(average(asArr(args[0], 'average'), this.kwInt(kw, args, 1, 'axis'), w && w.k !== 'none' ? toArray(w) : null))
