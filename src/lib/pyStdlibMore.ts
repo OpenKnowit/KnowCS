@@ -118,6 +118,19 @@ const makeStatistics = (h: Host): Value => {
   })
 }
 
+/** how two dates, datetimes or timedeltas compare, given the first minus the second */
+const compared = (op: string, diff: number): Value | undefined => {
+  switch (op) {
+    case '<': return bool(diff < 0)
+    case '>': return bool(diff > 0)
+    case '<=': return bool(diff <= 0)
+    case '>=': return bool(diff >= 0)
+    case '==': return bool(diff === 0)
+    case '!=': return bool(diff !== 0)
+  }
+  return undefined
+}
+
 class TimeDelta extends Base {
   readonly cls = 'datetime.timedelta'
   ms: number
@@ -125,7 +138,16 @@ class TimeDelta extends Base {
     super()
     this.ms = ms
   }
-  repr() { return `datetime.timedelta(seconds=${this.ms / 1000})` }
+  pickled() { return this }
+  hashKey() { return `timedelta:${this.ms}` }
+  repr() {
+    const days = Math.floor(this.ms / 86400000)
+    const rest = this.ms - days * 86400000
+    const seconds = Math.floor(rest / 1000)
+    const micros = Math.round((rest - seconds * 1000) * 1000)
+    const parts = [days && `days=${days}`, seconds && `seconds=${seconds}`, micros && `microseconds=${micros}`].filter(Boolean)
+    return `datetime.timedelta(${parts.join(', ') || '0'})`
+  }
   str() {
     const total = Math.abs(this.ms) / 1000
     const days = Math.floor(total / 86400)
@@ -145,13 +167,11 @@ class TimeDelta extends Base {
     }
     return undefined
   }
-  binop(op: string, o: Value): Value | undefined {
+  binop(op: string, o: Value, reflected: boolean): Value | undefined {
     if (o.k === 'obj' && o.o instanceof TimeDelta) {
       if (op === '+') return { k: 'obj', o: new TimeDelta(this.ms + o.o.ms) }
       if (op === '-') return { k: 'obj', o: new TimeDelta(this.ms - o.o.ms) }
-      if (op === '<') return bool(this.ms < o.o.ms)
-      if (op === '>') return bool(this.ms > o.o.ms)
-      if (op === '==') return bool(this.ms === o.o.ms)
+      return compared(op, reflected ? o.o.ms - this.ms : this.ms - o.o.ms)
     }
     return undefined
   }
@@ -163,9 +183,13 @@ class DateTime extends Base {
   dateOnly: boolean
   constructor(d: Date, dateOnly = false) {
     super()
-    this.d = d
+    // a date has no time of day, however it was made: two of the same day are equal
+    this.d = dateOnly ? new Date(d.getFullYear(), d.getMonth(), d.getDate()) : d
     this.dateOnly = dateOnly
   }
+  pickled() { return this }
+  // a date and a datetime are never equal, so they never share a key
+  hashKey() { return `${this.dateOnly ? 'date' : 'datetime'}:${this.d.getTime()}` }
   repr() {
     const d = this.d
     return this.dateOnly
@@ -194,11 +218,13 @@ class DateTime extends Base {
   }
   binop(op: string, o: Value, reflected: boolean): Value | undefined {
     if (o.k === 'obj' && o.o instanceof DateTime) {
-      const diff = this.d.getTime() - o.o.d.getTime()
-      if (op === '-') return { k: 'obj', o: new TimeDelta(reflected ? -diff : diff) }
-      if (op === '<') return bool(diff < 0)
-      if (op === '>') return bool(diff > 0)
-      if (op === '==') return bool(diff === 0)
+      const diff = (this.d.getTime() - o.o.d.getTime()) * (reflected ? -1 : 1)
+      if (this.dateOnly !== o.o.dateOnly) {
+        if (op === '==' || op === '!=') return bool(op === '!=')
+        return undefined
+      }
+      if (op === '-') return { k: 'obj', o: new TimeDelta(diff) }
+      return compared(op, diff)
     }
     if (o.k === 'obj' && o.o instanceof TimeDelta && (op === '+' || op === '-')) {
       return { k: 'obj', o: new DateTime(new Date(this.d.getTime() + (op === '+' ? o.o.ms : -o.o.ms)), this.dateOnly) }

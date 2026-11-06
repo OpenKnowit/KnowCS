@@ -3347,3 +3347,38 @@ got = sys.stdout.getvalue()
 sys.stdout = old
 print(repr(got))
 print('__file__' in globals() or True, __name__, __doc__)
+### date as a key, and the same object through pickle and copy
+import collections, copy, pickle
+from datetime import date, datetime, timedelta
+a = datetime(2024, 2, 28, 13, 5, 9)
+d = date(2024, 2, 28)
+print(collections.Counter([d, date(2024, 2, 28), date(2024, 3, 1)]).most_common())
+print({d: 1}[date(2024, 2, 28)], {a: 2}[datetime(2024, 2, 28, 13, 5, 9)], {timedelta(days=1): 3}[timedelta(hours=24)])
+print(len({d, date(2024, 2, 28), a.date()}), a.date() == d, d in {a.date()}, a in {datetime(2024, 2, 28, 13, 5, 9)}, a in {datetime(2024, 2, 28, 13, 5, 10)})
+print(hash(d) == hash(date(2024, 2, 28)), hash(a) == hash(datetime(2024, 2, 28, 13, 5, 9)), hash(timedelta(1)) == hash(timedelta(hours=24)))
+print(len({d, datetime(2024, 2, 28)}), d == datetime(2024, 2, 28))
+by = collections.defaultdict(list)
+for t in [datetime(2024, 1, 1, 8), datetime(2024, 1, 1, 20), datetime(2024, 1, 2, 8)]:
+    by[t.date()].append(t.hour)
+print(dict(by))
+for x in [a, d, timedelta(days=2, seconds=5)]:
+    p = pickle.loads(pickle.dumps(x))
+    print(p, repr(p), p == x, copy.copy(x) == x, copy.deepcopy(x) == x, {x: 1}[p])
+n = pickle.loads(pickle.dumps({'when': [a, d], 'gap': (timedelta(1),)}))
+print(n, n['when'][0] + n['gap'][0], copy.deepcopy(n) == n)
+with open('d.pkl', 'wb') as f:
+    pickle.dump(a, f)
+with open('d.pkl', 'rb') as f:
+    print(pickle.load(f).strftime('%Y-%m-%d %H:%M:%S'))
+print(d + timedelta(days=1), d - date(2024, 2, 1), a - timedelta(hours=1), sorted([date(2024, 2, 1), date(2023, 1, 1)]))
+print(d != date(2024, 2, 28), d != date(2024, 2, 29), d <= date(2024, 2, 28), d >= date(2024, 2, 29), timedelta(1) != timedelta(hours=24), timedelta(1) <= timedelta(2))
+### reversed operands and small differences
+from datetime import date, datetime, timedelta
+print(repr(timedelta(0)), repr(timedelta(seconds=-1)), repr(timedelta(days=-2, hours=3)), repr(timedelta(milliseconds=1500)), repr(timedelta(weeks=1)))
+a, b = date(2024, 1, 1), date(2024, 1, 5)
+print(a - b, b - a, a < b, b < a, a > b, timedelta(1) - timedelta(2) < timedelta(0))
+print(datetime(2024, 1, 1) != date(2024, 1, 1), max(a, b), min([b, a]), sorted([timedelta(2), timedelta(1)]))
+try:
+    print(date(2024, 1, 1) < datetime(2024, 1, 1))
+except TypeError as e:
+    print(type(e).__name__)
