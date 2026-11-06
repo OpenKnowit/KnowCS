@@ -1,7 +1,7 @@
 // The parts of Python's standard library a course's code reaches for, built on the sandbox's own values.
 // Nothing here touches files, the network or the clock beyond reading the time.
 import { PyError } from './ndarray'
-import { PyDict, PyObj, isNum, makeSet, py, repr, setItems, typeName } from './minipy'
+import { PyDict, PyObj, isNum, makeSet, py, repr, setItems, str, typeName } from './minipy'
 import type { ClassValue, Host, InstValue, Kw, PyLib, Value } from './minipy'
 
 const SANDBOX_CWD = '/sandbox'
@@ -147,6 +147,34 @@ const translateRegex = (p: string, flags: number): string => {
 }
 const jsFlags = (flags: number, extra: string) => `${extra}${flags & I ? 'i' : ''}${flags & M ? 'm' : ''}${flags & DOTALL ? 's' : ''}u`
 
+const FLAG_NAMES: [number, string][] = [[2, 'IGNORECASE'], [4, 'LOCALE'], [8, 'MULTILINE'], [16, 'DOTALL'], [32, 'UNICODE'], [64, 'VERBOSE'], [256, 'ASCII']]
+const flagText = (v: number) => FLAG_NAMES.filter(([b]) => v & b).map(([, n]) => `re.${n}`).join('|') || '0'
+
+/** re.I and friends: a whole number that prints its name, as enum.IntFlag does */
+class RegexFlag extends Base {
+  readonly cls = 'RegexFlag'
+  v: number
+  constructor(v: number) {
+    super()
+    this.v = v
+  }
+  repr() { return flagText(this.v) }
+  asIndex() { return this.v }
+  asNumber() { return this.v }
+  truthy() { return this.v !== 0 }
+  hashKey() { return `n${this.v}` }
+  binop(op: string, other: Value): Value | undefined {
+    const o = other.k === 'obj' && other.o instanceof RegexFlag ? other.o.v : other.k === 'int' ? other.v : null
+    if (o === null) return undefined
+    if (op === '|') return { k: 'obj', o: new RegexFlag(this.v | o) }
+    if (op === '&') return { k: 'obj', o: new RegexFlag(this.v & o) }
+    if (op === '^') return { k: 'obj', o: new RegexFlag(this.v ^ o) }
+    if (op === '==') return bool(this.v === o)
+    if (op === '!=') return bool(this.v !== o)
+    return undefined
+  }
+}
+
 class Pattern extends Base {
   readonly cls = 're.Pattern'
   source: string
@@ -159,7 +187,7 @@ class Pattern extends Base {
     this.err = h
     this.rx('g')
   }
-  repr() { return `re.compile(${repr(S(this.source))})` }
+  repr() { return `re.compile(${repr(S(this.source))}${this.flags ? `, ${flagText(this.flags)}` : ''})` }
   rx(extra: string, wrap?: (s: string) => string): RegExp {
     const s = translateRegex(this.source, this.flags)
     try {
@@ -240,6 +268,9 @@ class Pattern extends Base {
       })
       case 'split': return F(name, (a, kw) => this.split(text(a[0]), kw.maxsplit ? h.toInt(kw.maxsplit) : a[1] ? h.toInt(a[1]) : 0))
       case 'pattern': return S(this.source)
+      // text patterns are Unicode unless asked otherwise
+      case 'flags': return int(this.flags & 256 ? this.flags : this.flags | 32)
+      case 'groups': return int(new RegExp(`${translateRegex(this.source, this.flags)}|`).exec('')!.length - 1)
     }
     return undefined
   }
@@ -249,7 +280,7 @@ const makeRe = (h: Host): Value => {
   const compile = (p: Value, flags?: Value): Pattern => {
     if (p.k === 'obj' && p.o instanceof Pattern) return p.o
     if (p.k !== 'str') throw h.err('TypeError', 'first argument must be string or compiled pattern')
-    return new Pattern(p.v, flags ? h.toInt(flags) : 0, h)
+    return new Pattern(p.v, !flags ? 0 : flags.k === 'obj' && flags.o instanceof RegexFlag ? flags.o.v : h.toInt(flags), h)
   }
   /** re.search(pattern, s, flags) is pattern.search(s) */
   const direct = (name: string, flagAt: number): Value => F(name, (a, kw) => {
@@ -269,7 +300,7 @@ const makeRe = (h: Host): Value => {
     }),
     split: F('split', (a, kw) => compile(a[0], kw.flags ?? a[3]).split((a[1] as { v: string }).v, kw.maxsplit ? h.toInt(kw.maxsplit) : a[2] ? h.toInt(a[2]) : 0)),
     escape: F('escape', (a) => S((a[0] as { v: string }).v.replace(/[^\w]/g, '\\$&'))),
-    I: int(I), IGNORECASE: int(I), M: int(M), MULTILINE: int(M), S: int(DOTALL), DOTALL: int(DOTALL), X: int(VERBOSE), VERBOSE: int(VERBOSE),
+    ...Object.fromEntries(([['I', I], ['IGNORECASE', I], ['M', M], ['MULTILINE', M], ['S', DOTALL], ['DOTALL', DOTALL], ['X', VERBOSE], ['VERBOSE', VERBOSE]] as const).map(([n, v]): [string, Value] => [n, { k: 'obj', o: new RegexFlag(v) }])),
     error: subclassOf(h, 'error', 'Exception'),
   })
 }
@@ -486,19 +517,24 @@ const makeItertools = (h: Host): Value => {
     count: F('count', (a, kw) => {
       const start = kw.start ?? a[0] ?? int(0)
       const step = kw.step ?? a[1] ?? int(1)
-      return gen('count', function* () {
-        let x = start
+      let x = start
+      const it = gen('count', function* () {
         for (;;) {
-          yield x
+          const now = x
           x = h.binop('+', x, step)
+          yield now
         }
       })
+      const plain = !kw.step && !a[1]
+      return { ...it, shown: () => `count(${repr(x)}${plain ? '' : `, ${repr(step)}`})` } as Value
     }),
     repeat: F('repeat', (a, kw) => {
       const times = kw.times ?? a[1]
-      return gen('repeat', function* () {
-        for (let i = 0; !times || i < h.toInt(times); i++) yield a[0]
+      let left = times ? h.toInt(times) : Infinity
+      const it = gen('repeat', function* () {
+        for (; left > 0; left--) yield a[0]
       })
+      return { ...it, shown: () => `repeat(${repr(a[0])}${times ? `, ${left}` : ''})` } as Value
     }),
     cycle: F('cycle', (a) => gen('cycle', function* () {
       const saved: Value[] = []
@@ -797,12 +833,12 @@ const makeOperator = (h: Host): Value => {
     truth: F('truth', (a) => bool(h.truthy(a[0]))),
     contains: F('contains', (a) => h.compare('in', a[1], a[0])),
     getitem: F('getitem', (a) => pick(a[0], a[1])),
-    itemgetter: F('itemgetter', (keys) => F('itemgetter', (a) => (keys.length === 1 ? pick(a[0], keys[0]) : tuple(keys.map((k) => pick(a[0], k)))))),
-    attrgetter: F('attrgetter', (names) => F('attrgetter', (a) => {
+    itemgetter: F('itemgetter', (keys) => ({ ...F('itemgetter', (a) => (keys.length === 1 ? pick(a[0], keys[0]) : tuple(keys.map((k) => pick(a[0], k))))), shown: `operator.itemgetter(${keys.map(repr).join(', ')})` }) as Value),
+    attrgetter: F('attrgetter', (names) => ({ ...F('attrgetter', (a) => {
       const one = (n: Value) => (n as { v: string }).v.split('.').reduce((o, p) => h.getAttr(o, p), a[0])
       return names.length === 1 ? one(names[0]) : tuple(names.map(one))
-    })),
-    methodcaller: F('methodcaller', (m, kw) => F('methodcaller', (a) => h.call(h.getAttr(a[0], (m[0] as { v: string }).v), m.slice(1), kw))),
+    }), shown: `operator.attrgetter(${names.map(repr).join(', ')})` }) as Value),
+    methodcaller: F('methodcaller', (m, kw) => ({ ...F('methodcaller', (a) => h.call(h.getAttr(a[0], (m[0] as { v: string }).v), m.slice(1), kw)), shown: `operator.methodcaller(${m.map(repr).join(', ')})` }) as Value),
   })
 }
 
@@ -829,7 +865,40 @@ class TypingAlias extends Base {
     return { k: 'obj', o: new TypingAlias(`${this.name}[${(idx.k === 'tuple' ? idx.items : [idx]).map(shown).join(', ')}]`) } as Value
   }
   binop() { return { k: 'obj', o: this } as Value }
-  call(args: Value[]) { return args[0] ?? NONE }
+  call(args: Value[], _kw?: Kw, _h?: Host): Value {
+    // a TypeVar prints with a tilde, and is only ever looked at
+    if (this.name === 'TypeVar') return { k: 'obj', o: new TypingVar(args[0] ? str(args[0]) : '') } as Value
+    return args[0] ?? NONE
+  }
+  /** class Box(Generic[T]) and class Q(Protocol) have nothing to inherit at run time */
+  mroEntries(): Value[] { return /^(Generic|Protocol)\b/.test(this.name) ? [] : [{ k: 'obj', o: this }] }
+}
+
+class TypingVar extends Base {
+  readonly cls = 'TypeVar'
+  name: string
+  constructor(name: string) {
+    super()
+    this.name = name
+  }
+  repr() { return `~${this.name}` }
+}
+
+/** class P(NamedTuple) with annotated fields: the same kind of value collections.namedtuple makes */
+class TypingNamedTuple extends TypingAlias {
+  mroEntries(): Value[] { return [] }
+  call(args: Value[], _kw?: Kw, h?: Host): Value {
+    if (!h) return NONE
+    const fields = h.iterate(args[1]).map((f) => h.iterate(f)[0])
+    return h.call(h.getAttr(h.module('collections'), 'namedtuple'), [args[0], L(fields)])
+  }
+  classFromBody(name: string, ns: Map<string, Value>, h: Host): Value {
+    const ann = ns.get('__annotations__')
+    const fields = ann?.k === 'dict' ? ann.d.keys().map((k) => (k as { v: string }).v) : []
+    for (const [k, v] of ns) if (v.k === 'func' && !k.startsWith('__')) throw h.err('NotImplementedError', `${name}.${k}: methods on a typing.NamedTuple class are not available in this sandbox: use a dataclass`)
+    const defaults = fields.flatMap((f) => (ns.has(f) ? [ns.get(f)!] : []))
+    return h.call(h.getAttr(h.module('collections'), 'namedtuple'), [S(name), L(fields.map(S))], { defaults: tuple(defaults) })
+  }
 }
 
 class FieldSpec extends Base {
@@ -2063,7 +2132,7 @@ const build = (h: Host): Record<string, Value> => ({
   heapq: makeHeapq(h),
   bisect: makeBisect(h),
   string: makeString(),
-  typing: mod('typing', Object.fromEntries(TYPING.map((n) => [n, { k: 'obj', o: new TypingAlias(n) } as Value]))),
+  typing: mod('typing', Object.fromEntries(TYPING.map((n) => [n, { k: 'obj', o: n === 'NamedTuple' ? new TypingNamedTuple(n) : new TypingAlias(n) } as Value]))),
   __future__: mod('__future__', { annotations: bool(true) }),
   time: mod('time', {
     time: F('time', () => float(Date.now() / 1000)),

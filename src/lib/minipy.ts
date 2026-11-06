@@ -14,7 +14,7 @@ import type { Interval } from './poly'
 import { allclose, average, bincount, diff, histogram, isin, median, meshgrid, pad as padArray, padWidths, percentile } from './ndextra'
 import { ON_DEMAND } from './pyLazy'
 import { STDLIB, erf, gammaFn, gcdOf } from './pyStdlib'
-import { ARRAY_METHODS_VIA_FUNCTION, addNumpy } from './npMore'
+import { ARRAY_METHODS_VIA_FUNCTION, addNumpy, spacedBetween } from './npMore'
 import { gamma as gammaDraw } from './npRandom'
 import {
   SandboxRandom, concatenate, cumsum, det, expandDims, flip, hstack, inv, norm, outer, repeat, roundHalfEven, sortAlong,
@@ -1159,7 +1159,7 @@ export interface ClassMeta {
 }
 
 /** builtin: part of Python (ValueError …), so it prints without __main__; module: the library module it prints with */
-export interface ClassValue { k: 'class'; name: string; bases: Value[]; ns: Map<string, Value>; host: HostClass | null; builtin?: boolean; module?: string; meta?: ClassMeta }
+export interface ClassValue { k: 'class'; generic?: boolean; name: string; bases: Value[]; ns: Map<string, Value>; host: HostClass | null; builtin?: boolean; module?: string; meta?: ClassMeta }
 export interface InstValue { k: 'inst'; cls: ClassValue; attrs: Map<string, Value>; state: Record<string, unknown> }
 
 export type Value =
@@ -1177,7 +1177,7 @@ export type Value =
   | { k: 'dict'; d: PyDict; flavor?: 'Counter' | 'defaultdict' | 'OrderedDict'; factory?: Value }
   | { k: 'set'; s: PyDict; frozen?: boolean }
   /** an iterator: next() gives undefined when it is exhausted */
-  | { k: 'iter'; name: string; next: () => Value | undefined; send?: (v: Value) => Value | undefined; throw?: (e: unknown) => Value | undefined; close?: () => void; result?: Value }
+  | { k: 'iter'; shown?: () => string; name: string; next: () => Value | undefined; send?: (v: Value) => Value | undefined; throw?: (e: unknown) => Value | undefined; close?: () => void; result?: Value }
   /** @staticmethod, @classmethod, @property */
   | { k: 'descr'; kind: 'static' | 'class' | 'prop'; f: Value; setter?: Value }
   | { k: 'range'; start: number; stop: number; step: number }
@@ -1185,7 +1185,7 @@ export type Value =
   | { k: 'ellipsis' }
   | { k: 'array'; a: NDArray }
   /** bindable: acts as a method when stored in a class (functools.lru_cache …) */
-  | { k: 'fn'; name: string; call: Fn; api?: ApiMeta; self?: NDArray; rebind?: (self: NDArray) => Fn; bindable?: boolean; attrs?: Map<string, Value> }
+  | { k: 'fn'; shown?: string; name: string; call: Fn; api?: ApiMeta; self?: NDArray; rebind?: (self: NDArray) => Fn; bindable?: boolean; attrs?: Map<string, Value> }
   | { k: 'type'; name: string; call: Fn; dtype?: DType; api?: ApiMeta; host?: HostClass; attrs?: Map<string, Value>; parents?: string[]; methods?: Map<string, Value> }
   | { k: 'poly'; coef: number[]; domain: Interval; window: Interval }
   | { k: 'carray'; re: number[]; im: number[] }
@@ -1296,6 +1296,18 @@ export const objId = (o: object): number => {
  * A Python object implemented by a sandbox library (DataFrame, Tensor, Figure, …).
  * Every hook is optional: a missing one gives Python's usual TypeError / AttributeError.
  */
+/** dir() of the built-in values, as CPython lists them */
+const BUILTIN_DIR: Record<string, string> = {
+  list: '__add__ __class__ __class_getitem__ __contains__ __delattr__ __delitem__ __dir__ __doc__ __eq__ __format__ __ge__ __getattribute__ __getitem__ __gt__ __hash__ __iadd__ __imul__ __init__ __init_subclass__ __iter__ __le__ __len__ __lt__ __mul__ __ne__ __new__ __reduce__ __reduce_ex__ __repr__ __reversed__ __rmul__ __setattr__ __setitem__ __sizeof__ __str__ __subclasshook__ append clear copy count extend index insert pop remove reverse sort',
+  str: '__add__ __class__ __contains__ __delattr__ __dir__ __doc__ __eq__ __format__ __ge__ __getattribute__ __getitem__ __getnewargs__ __gt__ __hash__ __init__ __init_subclass__ __iter__ __le__ __len__ __lt__ __mod__ __mul__ __ne__ __new__ __reduce__ __reduce_ex__ __repr__ __rmod__ __rmul__ __setattr__ __sizeof__ __str__ __subclasshook__ capitalize casefold center count encode endswith expandtabs find format format_map index isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper join ljust lower lstrip maketrans partition removeprefix removesuffix replace rfind rindex rjust rpartition rsplit rstrip split splitlines startswith strip swapcase title translate upper zfill',
+  dict: '__class__ __class_getitem__ __contains__ __delattr__ __delitem__ __dir__ __doc__ __eq__ __format__ __ge__ __getattribute__ __getitem__ __gt__ __hash__ __init__ __init_subclass__ __ior__ __iter__ __le__ __len__ __lt__ __ne__ __new__ __or__ __reduce__ __reduce_ex__ __repr__ __reversed__ __ror__ __setattr__ __setitem__ __sizeof__ __str__ __subclasshook__ clear copy fromkeys get items keys pop popitem setdefault update values',
+  set: '__and__ __class__ __class_getitem__ __contains__ __delattr__ __dir__ __doc__ __eq__ __format__ __ge__ __getattribute__ __gt__ __hash__ __iand__ __init__ __init_subclass__ __ior__ __isub__ __iter__ __ixor__ __le__ __len__ __lt__ __ne__ __new__ __or__ __rand__ __reduce__ __reduce_ex__ __repr__ __ror__ __rsub__ __rxor__ __setattr__ __sizeof__ __str__ __sub__ __subclasshook__ __xor__ add clear copy difference difference_update discard intersection intersection_update isdisjoint issubset issuperset pop remove symmetric_difference symmetric_difference_update union update',
+  tuple: '__add__ __class__ __class_getitem__ __contains__ __delattr__ __dir__ __doc__ __eq__ __format__ __ge__ __getattribute__ __getitem__ __getnewargs__ __gt__ __hash__ __init__ __init_subclass__ __iter__ __le__ __len__ __lt__ __mul__ __ne__ __new__ __reduce__ __reduce_ex__ __repr__ __rmul__ __setattr__ __sizeof__ __str__ __subclasshook__ count index',
+  int: '__abs__ __add__ __and__ __bool__ __ceil__ __class__ __delattr__ __dir__ __divmod__ __doc__ __eq__ __float__ __floor__ __floordiv__ __format__ __ge__ __getattribute__ __getnewargs__ __gt__ __hash__ __index__ __init__ __init_subclass__ __int__ __invert__ __le__ __lshift__ __lt__ __mod__ __mul__ __ne__ __neg__ __new__ __or__ __pos__ __pow__ __radd__ __rand__ __rdivmod__ __reduce__ __reduce_ex__ __repr__ __rfloordiv__ __rlshift__ __rmod__ __rmul__ __ror__ __round__ __rpow__ __rrshift__ __rshift__ __rsub__ __rtruediv__ __rxor__ __setattr__ __sizeof__ __str__ __sub__ __subclasshook__ __truediv__ __trunc__ __xor__ as_integer_ratio bit_count bit_length conjugate denominator from_bytes imag numerator real to_bytes',
+  float: '__abs__ __add__ __bool__ __ceil__ __class__ __delattr__ __dir__ __divmod__ __doc__ __eq__ __float__ __floor__ __floordiv__ __format__ __ge__ __getattribute__ __getformat__ __getnewargs__ __gt__ __hash__ __init__ __init_subclass__ __int__ __le__ __lt__ __mod__ __mul__ __ne__ __neg__ __new__ __pos__ __pow__ __radd__ __rdivmod__ __reduce__ __reduce_ex__ __repr__ __rfloordiv__ __rmod__ __rmul__ __round__ __rpow__ __rsub__ __rtruediv__ __setattr__ __setformat__ __sizeof__ __str__ __sub__ __subclasshook__ __truediv__ __trunc__ as_integer_ratio conjugate fromhex hex imag is_integer real',
+  bool: '__abs__ __add__ __and__ __bool__ __ceil__ __class__ __delattr__ __dir__ __divmod__ __doc__ __eq__ __float__ __floor__ __floordiv__ __format__ __ge__ __getattribute__ __getnewargs__ __gt__ __hash__ __index__ __init__ __init_subclass__ __int__ __invert__ __le__ __lshift__ __lt__ __mod__ __mul__ __ne__ __neg__ __new__ __or__ __pos__ __pow__ __radd__ __rand__ __rdivmod__ __reduce__ __reduce_ex__ __repr__ __rfloordiv__ __rlshift__ __rmod__ __rmul__ __ror__ __round__ __rpow__ __rrshift__ __rshift__ __rsub__ __rtruediv__ __rxor__ __setattr__ __sizeof__ __str__ __sub__ __subclasshook__ __truediv__ __trunc__ __xor__ as_integer_ratio bit_count bit_length conjugate denominator from_bytes imag numerator real to_bytes',
+}
+
 export abstract class PyObj {
   /** type(x).__name__, used in error messages */
   abstract readonly cls: string
@@ -1343,6 +1355,10 @@ export abstract class PyObj {
   isa?(name: string): boolean
   /** a richer rendering for the output pane (a table, a figure …) when this is the cell's last value */
   display?(): Display | null
+  /** __mro_entries__: what this stands for in a class's bases; [] = nothing at run time (Generic[T], Protocol) */
+  mroEntries?(): Value[]
+  /** a class statement with this among its bases makes this value instead (typing.NamedTuple) */
+  classFromBody?(name: string, ns: Map<string, Value>, h: Host): Value
 }
 
 /** 5j: only np.mgrid and friends can use one */
@@ -1612,13 +1628,13 @@ export const repr = (v: Value): string => {
       if (v.frozen) return items ? `frozenset({${items}})` : 'frozenset()'
       return items ? `{${items}}` : 'set()'
     }
-    case 'iter': return v.name === 'generator' ? '<generator object>' : `<${v.name} object>`
+    case 'iter': return v.shown?.() ?? (v.name === 'generator' ? '<generator object>' : `<${v.name} object>`)
     case 'descr': return `<${typeName(v)} object>`
     case 'range': return v.step === 1 ? `range(${v.start}, ${v.stop})` : `range(${v.start}, ${v.stop}, ${v.step})`
     case 'slice': return `slice(${repr(v.start)}, ${repr(v.stop)}, ${repr(v.step)})`
     case 'ellipsis': return 'Ellipsis'
     case 'array': return arrayRepr(v.a)
-    case 'fn': return `<built-in function ${v.name}>`
+    case 'fn': return v.shown ?? `<built-in function ${v.name}>`
     case 'type': return `<class '${v.name}'>`
     case 'module': return `<module '${v.name}'>`
     case 'dtype': return `dtype('${v.d}')`
@@ -2674,7 +2690,9 @@ class Interp implements Host {
   }
 
   equal(a: Value, b: Value): boolean {
-    return a === b || this.truthy(this.binop('==', a, b))
+    // identity first, as Python's containers do: pd.NA or a tensor need not have a truth value
+    if (a === b || (a.k === 'obj' && b.k === 'obj' && a.o === b.o)) return true
+    return this.truthy(this.binop('==', a, b))
   }
 
   /** the lexicographic order of two strings, lists or tuples */
@@ -2923,6 +2941,12 @@ class Interp implements Host {
       if (f) return this.call(f, [obj, idx])
     }
     if (obj.k === 'class' && obj.meta?.getItem) return obj.meta.getItem(obj, idx, this)
+    if (obj.k === 'class') {
+      const f = this.classAttr(obj, '__class_getitem__')
+      if (f) return f.k === 'func' ? this.call(f, [obj, idx]) : this.call(f, [idx])
+      if (obj.generic) return obj
+      throw this.err('TypeError', `type '${obj.name}' is not subscriptable`)
+    }
     if (obj.k === 'range') {
       const n = rangeLen(obj)
       const items = Array.from({ length: Math.min(n, this.maxSize) }, (_, i) => int(obj.start + i * obj.step))
@@ -3829,7 +3853,9 @@ class Interp implements Host {
         return
       }
       case 'class': {
-        const bases = st.bases.map((b) => this.eval(b))
+        const written = st.bases.map((b) => this.eval(b))
+        const maker = written.find((b) => b.k === 'obj' && b.o.classFromBody) as (Value & { k: 'obj' }) | undefined
+        const bases = written.flatMap((b) => (b.k === 'obj' && b.o.mroEntries ? b.o.mroEntries() : [b]))
         const meta = bases.flatMap((b) => (b.k === 'class' && b.meta ? [b.meta] : []))[0]
         for (const b of bases) {
           if (b.k !== 'class' && b.k !== 'type') throw this.err('TypeError', `bases must be classes, not '${typeName(b)}'`)
@@ -3850,7 +3876,9 @@ class Interp implements Host {
           else if (v.k === 'descr' && v.f.k === 'func') v.f.owner = cls
         }
         meta?.created?.(cls, this)
-        let c: Value = cls
+        // a base that vanished was Generic[T] or Protocol: X[int] is X
+        if (written.length !== bases.length || bases.some((b) => b.k === 'class' && b.generic)) cls.generic = true
+        let c: Value = maker ? maker.o.classFromBody!(st.name, cls.ns, this) : cls
         for (const d of st.decorators.map((x) => this.eval(x)).reverse()) c = this.call(d, [c])
         this.bind(st.name, c)
         return
@@ -4421,6 +4449,7 @@ class Interp implements Host {
         }
         // str.lower, list.append …: the method, taking the object as its first argument
         if (['str', 'list', 'dict', 'tuple', 'set', 'int', 'float'].includes(obj.name)) {
+          if (!BUILTIN_DIR[obj.name].split(' ').includes(name)) throw this.err('AttributeError', `type object '${obj.name}' has no attribute '${name}'`)
           return fn((args, kw) => {
             if (!args.length) throw this.err('TypeError', `unbound method ${obj.name}.${name}() needs an argument`)
             return this.call(this.getAttr(args[0], name), args.slice(1), kw)
@@ -4616,7 +4645,7 @@ class Interp implements Host {
 
   listMethod(l: Value & { k: 'list' }, name: string): Fn | null {
     const it = l.items
-    const idxOf = (x: Value) => it.findIndex((y) => y === x || this.truthy(this.binop('==', y, x)))
+    const idxOf = (x: Value) => it.findIndex((y) => this.equal(y, x))
     switch (name) {
       case 'append': return (args) => { it.push(args[0]); return NONE }
       case 'extend': return (args) => { it.push(...this.iterate(args[0])); return NONE }
@@ -4629,7 +4658,7 @@ class Interp implements Host {
         return it.splice(i < 0 ? i + n : i, 1)[0]
       }
       case 'index': return (args) => { const i = idxOf(args[0]); if (i < 0) throw this.err('ValueError', `${repr(args[0])} is not in list`); return int(i) }
-      case 'count': return (args) => int(it.filter((y) => this.truthy(this.binop('==', y, args[0]))).length)
+      case 'count': return (args) => int(it.filter((y) => this.equal(y, args[0])).length)
       case 'remove': return (args) => { const i = idxOf(args[0]); if (i < 0) throw this.err('ValueError', 'list.remove(x): x not in list'); it.splice(i, 1); return NONE }
       case 'reverse': return () => { it.reverse(); return NONE }
       case 'copy': return () => ({ k: 'list', items: [...it] })
@@ -4971,6 +5000,7 @@ class Interp implements Host {
       return toArray(v)
     }
     const seq = (v: Value | undefined, name: string): NDArray[] => {
+      if (v?.k === 'array') return this.iterate(v).map((x) => toArray(x))
       if (!v || (v.k !== 'list' && v.k !== 'tuple')) throw this.err('TypeError', `${name}() expects a sequence of arrays, e.g. ${name}([a, b])`)
       return v.items.map((x) => toArray(x))
     }
@@ -4989,7 +5019,8 @@ class Interp implements Host {
         const a = asArr(args[0], name)
         const f = fill(args, kw)
         const dtype = this.dtypeOf(kw.dtype) ?? (name === 'full_like' ? a.dtype : a.dtype)
-        const res = arr(NDArray.create(new Array(a.size).fill(numOf(f)), a.shape, dtype))
+        const values = isNum(f) ? new Array<number>(a.size).fill(numOf(f)) : toArray(this.binop('+', arr(NDArray.create(new Array(a.size).fill(0), a.shape, 'float64')), arr(toArray(f)))).values()
+        const res = arr(NDArray.create(values, a.shape, dtype))
         return a.matrix ? toMatrix(res) : res
       }, 'create')
     const reducer = (kind: ReduceKind) => fn(kind, (args, kw) => this.reduceFn(asArr(args[0], kind), kind, args.slice(1), kw), 'reduce', { axisPos: 1, defaultAxis: null })
@@ -5038,10 +5069,12 @@ class Interp implements Host {
           return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => this.rng.normal()), shape, 'float64'))
         }, 'random'),
         randint: rnd('randint', (args, kw) => {
-          let lo = this.toInt(args[0])
+          // the legacy interface cuts floats down to whole numbers
+          const whole = (v: Value) => (v.k === 'float' ? Math.trunc(v.v) : this.toInt(v))
+          let lo = whole(args[0])
           const hi = kw.high ?? args[1]
           let hiN: number
-          if (!hi || hi.k === 'none') { hiN = lo; lo = 0 } else hiN = this.toInt(hi)
+          if (!hi || hi.k === 'none') { hiN = lo; lo = 0 } else hiN = whole(hi)
           if (hiN <= lo) throw this.err('ValueError', 'high <= low')
           const size = kw.size ?? args[2]
           const draw = () => lo + Math.floor(this.rng.next() * (hiN - lo))
@@ -5146,11 +5179,17 @@ class Interp implements Host {
         return arr(NDArray.create(vals, [n], this.dtypeOf(kw.dtype) ?? (isFloat ? 'float64' : 'int64')))
       }, 'create'),
       linspace: fn('linspace', (args, kw) => {
-        const a = numOf(args[0])
-        const b = numOf(args[1])
         const n = this.kwInt(kw, args, 2, 'num') ?? 50
         if (n > this.maxSize) throw this.err('MemoryError', `array of ${n} elements exceeds the sandbox limit of ${this.maxSize}`)
-        return arr(NDArray.create(Array.from({ length: n }, (_, i) => (n === 1 ? a : a + ((b - a) * i) / (n - 1))), [n], this.dtypeOf(kw.dtype) ?? 'float64'))
+        const endpoint = !kw.endpoint || this.truthy(kw.endpoint)
+        const start = kw.start ?? args[0]
+        const stop = kw.stop ?? args[1]
+        const axis = this.kwInt(kw, args, 5, 'axis') ?? 0
+        const out = spacedBetween(start, stop, n, endpoint, axis, (x) => x, this.dtypeOf(kw.dtype) ?? 'float64')
+        if (!kw.retstep || !this.truthy(kw.retstep)) return arr(out)
+        const div = endpoint ? n - 1 : n
+        const step = this.binop('/', this.binop('-', stop, start), float(div))
+        return tuple([arr(out), step])
       }, 'create'),
       zeros: filled('zeros', 0),
       ones: filled('ones', 1),
@@ -5328,12 +5367,28 @@ class Interp implements Host {
       }, 'reduce', { axisPos: 1, defaultAxis: null }),
       // ---- grids, differences, padding, membership
       meshgrid: fn('meshgrid', (args, kw) => {
-        if (args.length !== 2) throw this.err('NotImplementedError', 'meshgrid takes two 1-D arrays (x, y) in this sandbox')
-        if (kw.indexing && kw.indexing.k === 'str' && kw.indexing.v !== 'xy') throw this.err('NotImplementedError', "meshgrid supports indexing='xy' (the default) in this sandbox")
-        const { X, Y } = meshgrid(asArr(args[0], 'meshgrid'), asArr(args[1], 'meshgrid'))
-        checkSize(X.out.shape)
-        this.pendingGroups = { groups: X.groups, result: X.out }
-        return tuple([arr(X.out), arr(Y.out)])
+        const ij = kw.indexing && kw.indexing.k === 'str' && kw.indexing.v === 'ij'
+        if (kw.indexing && kw.indexing.k === 'str' && !['xy', 'ij'].includes(kw.indexing.v)) throw this.err('ValueError', "Valid values for `indexing` are 'xy' and 'ij'.")
+        const sparse = !!kw.sparse && this.truthy(kw.sparse)
+        if (args.length === 2 && !ij && !sparse) {
+          const { X, Y } = meshgrid(asArr(args[0], 'meshgrid'), asArr(args[1], 'meshgrid'))
+          checkSize(X.out.shape)
+          this.pendingGroups = { groups: X.groups, result: X.out }
+          return tuple([arr(X.out), arr(Y.out)])
+        }
+        const axes = args.map((a) => toArray(a))
+        const sizes = axes.map((a) => a.size)
+        const axisOf = (k: number) => (!ij && axes.length >= 2 && k < 2 ? 1 - k : k)
+        const shape = axes.map((_, d) => sizes[axes.findIndex((__, k) => axisOf(k) === d)])
+        checkSize(shape)
+        return tuple(axes.map((a, k) => {
+          const at = axisOf(k)
+          const vals = a.values()
+          if (sparse) return arr(NDArray.create([...vals], shape.map((n, d) => (d === at ? n : 1)), a.dtype))
+          const after = shape.slice(at + 1).reduce((p, x) => p * x, 1)
+          const total = shape.reduce((p, x) => p * x, 1)
+          return arr(NDArray.create(Array.from({ length: total }, (_, i) => vals[Math.floor(i / after) % sizes[k]]), shape, a.dtype))
+        }))
       }, 'group'),
       diff: fn('diff', (args, kw) => {
         const n = kw.n ?? args[1]
@@ -5427,7 +5482,12 @@ class Interp implements Host {
       float64: dt('float64', 'float64'),
       float32: dt('float32', 'float32'),
       bool_: dt('bool', 'bool'),
-      ndarray: { k: 'type', name: 'numpy.ndarray', call: () => { throw this.err('TypeError', 'use np.array / np.zeros to create arrays') } },
+      // uninitialised in NumPy: whatever was in memory. Here that is always 0
+      ndarray: { k: 'type', name: 'numpy.ndarray', call: (args, kw) => {
+        const shape = this.toShape([kw.shape ?? args[0]])
+        checkSize(shape)
+        return arr(NDArray.create(new Array(shape.reduce((p, x) => p * x, 1)).fill(0), shape, this.dtypeOf(kw.dtype ?? args[1]) ?? 'float64'))
+      } },
     }
     addNumpy(this, attrs, (random as { attrs: Record<string, Value> }).attrs, (linalg as { attrs: Record<string, Value> }).attrs, { fn, rnd, la })
     return { k: 'module', name: 'numpy', attrs }
@@ -5444,7 +5504,6 @@ class Interp implements Host {
     }
     excs.IOError = excs.OSError
     excs.EnvironmentError = excs.OSError
-    const lazy = (v: Value) => v.k === 'iter' || v.k === 'inst' || (v.k === 'obj' && !!v.o.nextItem)
     const iterFrom = (name: string, next: () => Value | undefined): Value => ({ k: 'iter', name, next })
     const kindOf = (v: Value): Value => {
       if (v.k === 'inst') return v.cls
@@ -5599,7 +5658,8 @@ class Interp implements Host {
             c.bases.forEach(walk)
           }
           walk(x.k === 'inst' ? x.cls : x)
-        }
+        } else if (x.k === 'type' && BUILTIN_DIR[x.name]) BUILTIN_DIR[x.name].split(' ').forEach((n) => names.add(n))
+        else if (BUILTIN_DIR[x.k]) BUILTIN_DIR[x.k].split(' ').forEach((n) => names.add(n))
         return { k: 'list', items: [...names].sort().map(str_) }
       }),
       id: fn('id', (args) => {
@@ -5656,7 +5716,14 @@ class Interp implements Host {
         if (x.k === 'array') return arr(NDArray.create(x.a.values().map(Math.abs), x.a.shape, x.a.dtype === 'bool' ? 'int64' : x.a.dtype))
         return x.k === 'float' ? float(Math.abs(x.v)) : int(Math.abs(numOf(x)))
       }),
-      type: ty('type', (args) => kindOf(args[0])),
+      type: ty('type', (args) => {
+        if (args.length !== 3) return kindOf(args[0])
+        // type(name, bases, namespace) is the class statement as a call
+        if (args[0].k !== 'str' || args[2].k !== 'dict') throw this.err('TypeError', 'type() argument 1 must be str, argument 3 must be dict')
+        const bases = this.iterate(args[1])
+        const ns = new Map(args[2].d.items().map(([k, v]): [string, Value] => [(k as { v: string }).v, v]))
+        return { k: 'class', name: args[0].v, bases, ns, host: this.hostOf(bases) } as Value
+      }),
       str: { k: 'type', name: 'str', call: (args) => str_(args.length ? this.str(args[0]) : '') },
       repr: fn('repr', (args) => str_(repr(args[0]))),
       format: fn('format', (args) => {
@@ -5691,43 +5758,50 @@ class Interp implements Host {
         return { k: 'dict', d }
       } },
       object: { k: 'type', name: 'object', call: () => ({ k: 'inst', cls: { k: 'class', name: 'object', bases: [], ns: new Map(), host: null, builtin: true }, attrs: new Map(), state: {} }) },
-      enumerate: fn('enumerate', (args, kw) => {
+      enumerate: ty('enumerate', (args, kw) => {
         const start = kw.start ?? args[1]
-        const s0 = start ? this.toInt(start) : 0
-        if (lazy(args[0])) {
-          const next = this.iterOf(args[0])
-          let i = s0
-          return iterFrom('enumerate', () => {
-            const v = next()
-            return v === undefined ? undefined : tuple([int(i++), v])
-          })
-        }
-        return { k: 'list', items: this.iterate(args[0]).map((v, i) => tuple([int(i + s0), v])) }
+        let i = start ? this.toInt(start) : 0
+        const next = this.iterOf(args[0])
+        return iterFrom('enumerate', () => {
+          const v = next()
+          return v === undefined ? undefined : tuple([int(i++), v])
+        })
       }),
-      zip: fn('zip', (args, kw) => {
+      zip: ty('zip', (args, kw) => {
         const strict = kw.strict && this.truthy(kw.strict)
-        if (args.some(lazy)) {
-          const nexts = args.map((a) => this.iterOf(a))
-          return iterFrom('zip', () => {
-            const row: Value[] = []
-            for (const next of nexts) {
-              const v = next()
-              if (v === undefined) return undefined
-              row.push(v)
+        const nexts = args.map((a) => this.iterOf(a))
+        return iterFrom('zip', () => {
+          if (!nexts.length) return undefined
+          const row: Value[] = []
+          for (let i = 0; i < nexts.length; i++) {
+            const v = nexts[i]()
+            if (v === undefined) {
+              if (strict) {
+                if (i > 0) throw this.err('ValueError', `zip() argument ${i + 1} is shorter than argument${i > 1 ? `s 1-${i}` : ' 1'}`)
+                for (let j = 1; j < nexts.length; j++) if (nexts[j]() !== undefined) throw this.err('ValueError', `zip() argument ${j + 1} is longer than argument${j > 1 ? `s 1-${j}` : ' 1'}`)
+              }
+              return undefined
             }
-            return tuple(row)
-          })
-        }
-        const its = args.map((a) => this.iterate(a))
-        if (strict && new Set(its.map((x) => x.length)).size > 1) throw this.err('ValueError', 'zip() arguments have different lengths')
-        const n = its.length ? Math.min(...its.map((x) => x.length)) : 0
-        return { k: 'list', items: Array.from({ length: n }, (_, i) => tuple(its.map((x) => x[i]))) }
+            row.push(v)
+          }
+          return tuple(row)
+        })
       }),
       sum: fn('sum', (args, kw) => this.iterate(args[0]).reduce((acc, v) => this.binop('+', acc, v), kw.start ?? args[1] ?? int(0))),
       min: fn('min', (args, kw) => this.extreme(args, kw, -1)),
       max: fn('max', (args, kw) => this.extreme(args, kw, 1)),
       sorted: fn('sorted', (args, kw) => ({ k: 'list', items: this.sorted([...this.iterate(args[0])], kw.key, kw.reverse) })),
-      reversed: fn('reversed', (args) => ({ k: 'list', items: [...this.iterate(args[0])].reverse() })),
+      reversed: ty('reversed', (args) => {
+        const x = args[0]
+        if (x.k === 'inst') {
+          const f = this.classAttr(x.cls, '__reversed__')
+          if (f) return this.call(f, [x])
+        }
+        if (x.k === 'iter' || x.k === 'set') throw this.err('TypeError', `'${typeName(x)}' object is not reversible`)
+        const items = [...this.iterate(x)]
+        let i = items.length
+        return iterFrom(x.k === 'list' ? 'list_reverseiterator' : x.k === 'range' ? 'range_iterator' : x.k === 'dict' ? 'dict_reversekeyiterator' : 'reversed', () => (i > 0 ? items[--i] : undefined))
+      }),
       any: fn('any', (args) => {
         const next = this.iterOf(args[0])
         for (let v = next(); v !== undefined; v = next()) if (this.truthy(v)) return bool(true)
@@ -5738,34 +5812,26 @@ class Interp implements Host {
         for (let v = next(); v !== undefined; v = next()) if (!this.truthy(v)) return bool(false)
         return bool(true)
       }),
-      map: fn('map', (args) => {
-        const srcs = args.slice(1)
-        if (srcs.some(lazy)) {
-          const nexts = srcs.map((a) => this.iterOf(a))
-          return iterFrom('map', () => {
-            const row: Value[] = []
-            for (const next of nexts) {
-              const v = next()
-              if (v === undefined) return undefined
-              row.push(v)
-            }
-            return this.call(args[0], row)
-          })
-        }
-        const its = srcs.map((a) => this.iterate(a))
-        const n = its.length ? Math.min(...its.map((x) => x.length)) : 0
-        return { k: 'list', items: Array.from({ length: n }, (_, i) => this.call(args[0], its.map((x) => x[i]))) }
+      map: ty('map', (args) => {
+        const nexts = args.slice(1).map((a) => this.iterOf(a))
+        return iterFrom('map', () => {
+          if (!nexts.length) return undefined
+          const row: Value[] = []
+          for (const next of nexts) {
+            const v = next()
+            if (v === undefined) return undefined
+            row.push(v)
+          }
+          return this.call(args[0], row)
+        })
       }),
-      filter: fn('filter', (args) => {
+      filter: ty('filter', (args) => {
         const keep = (v: Value) => this.truthy(args[0].k === 'none' ? v : this.call(args[0], [v]))
-        if (lazy(args[1])) {
-          const next = this.iterOf(args[1])
-          return iterFrom('filter', () => {
-            for (let v = next(); v !== undefined; v = next()) if (keep(v)) return v
-            return undefined
-          })
-        }
-        return { k: 'list', items: this.iterate(args[1]).filter(keep) }
+        const next = this.iterOf(args[1])
+        return iterFrom('filter', () => {
+          for (let v = next(); v !== undefined; v = next()) if (keep(v)) return v
+          return undefined
+        })
       }),
       round: fn('round', (args) => {
         const x = args[0]

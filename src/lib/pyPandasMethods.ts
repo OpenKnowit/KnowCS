@@ -458,6 +458,8 @@ const scalarPair = (h: Host, from: Value, to: Value): [Cell, Cell, DT] => {
 const replaceArgs = (h: Host, p: Params, fnName: string): [Cell, Cell, DT][] | null => {
   const a = p.to_replace
   const b = p.value
+  // nothing to replace: a copy
+  if (!a && !b) return []
   if (!a) throw h.err('ValueError', `${fnName}: to_replace is required`)
   if (a.k === 'dict') return null
   if (isListLike(a)) {
@@ -1038,6 +1040,14 @@ class PandasArray extends PyObj {
   iter() { return this.s.iter() }
   getItem(idx: Value, h: Host): Value { return seriesIndexer(this.s, 'iloc').getItem(idx, h) }
   toArray() { return this.s.toArray() }
+  getAttr(name: string): Value | undefined {
+    switch (name) {
+      case 'shape': return py.tuple([py.int(this.s.length)])
+      case 'ndim': return py.int(1)
+      case 'size': return py.int(this.s.length)
+    }
+    return undefined
+  }
 }
 
 class CatAccessor extends PyObj {
@@ -1911,7 +1921,9 @@ const SERIES: Record<string, Method<Series>> = {
   explode: ['ignore_index', (s, p, h) => py.obj(explodeCol(h, s, flag(h, p.ignore_index)))],
   update: ['other', (s, p, h) => {
     const o = need(h, p.other, 'update', 'other')
-    const src = o.k === 'obj' && o.o instanceof Series ? o.o : new Series(typedCells(h, o).cells, null, null, typedCells(h, o).dt)
+    // one value is a Series of one row, so it lands on label 0
+    const scalar = o.k === 'int' || o.k === 'float' || o.k === 'str' || o.k === 'bool'
+    const src = o.k === 'obj' && o.o instanceof Series ? o.o : new Series(typedCells(h, scalar ? py.list([o]) : o).cells, null, null, typedCells(h, scalar ? py.list([o]) : o).dt)
     const rs: number[] = []
     const cells: Cell[] = []
     s.index.labels.forEach((l, i) => {
@@ -2265,6 +2277,8 @@ const pipeCall = (h: Host, self: Value, p: Params): Value => {
 }
 
 const explodeCol = (h: Host, s: Series, ignore: boolean): Series => {
+  // nothing list-like: the same column, with its dtype
+  if (!s.values.some((c) => c instanceof PyCell && (c.v.k === 'list' || c.v.k === 'tuple' || c.v.k === 'array'))) return new Series([...s.values], ignore ? null : s.index, s.name, s.dtype)
   const cells: Cell[] = []
   const at: number[] = []
   s.values.forEach((c, i) => {

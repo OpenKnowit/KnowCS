@@ -502,8 +502,11 @@ export class StrAccessor extends PyObj {
         return this.each(h, (x) => py.str(q && x.endsWith(q) ? x.slice(0, -q.length) : x))
       })
       case 'normalize': return def('form', (p) => {
-        const form = h.str(need(h, p.form, name, 'form'))
-        return this.each(h, (x) => py.str(x.normalize(form)))
+        const given = need(h, p.form, name, 'form')
+        // a form that is not text fails on every row, which pandas turns into NaN
+        if (given.k !== 'str') return this.each(h, () => py.float(NaN))
+        if (!['NFC', 'NFD', 'NFKC', 'NFKD'].includes(given.v)) throw h.err('ValueError', 'invalid normalization form')
+        return this.each(h, (x) => py.str(x.normalize(given.v)))
       })
     }
     return undefined

@@ -35,7 +35,24 @@ export const normalise = (cells: Cell[], dt: DT): Cell[] => (dt === 'float64' ? 
 /** a cell as a number: booleans count, a boxed float unboxes, None is NaN */
 export const numCell = (c: Cell): number => (typeof c === 'number' ? c : c === null ? NaN : typeof c === 'boolean' ? Number(c) : c instanceof PyCell && (c.v.k === 'float' || c.v.k === 'int') ? c.v.v : NaN)
 
+/** pd.NA: missing, and any arithmetic or comparison with it stays missing */
+export class NAType extends PyObj {
+  readonly cls = 'NAType'
+  repr() { return '<NA>' }
+  asNumber() { return NaN }
+  truthy(h: Host): boolean { throw h.err('TypeError', 'boolean value of NA is ambiguous') }
+  hashKey() { return 'pd.NA' }
+  binop(op: string, other: Value, reflected: boolean): Value | undefined {
+    // the cases where the other side decides, whatever NA stood for
+    if (op === '|' && other.k === 'bool' && other.v) return other
+    if (op === '&' && other.k === 'bool' && !other.v) return other
+    if (op === '**' && (other.k === 'int' || other.k === 'float') && other.v === (reflected ? 1 : 0)) return py.int(1)
+    return { k: 'obj', o: this }
+  }
+}
+
 export const cellOf = (_h: Host, v: Value): Cell => {
+  if (v.k === 'obj' && v.o instanceof NAType) return NaN
   switch (v.k) {
     case 'int': case 'float': return v.v
     case 'bool': return v.v

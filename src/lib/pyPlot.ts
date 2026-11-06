@@ -8,7 +8,7 @@ import type { DType } from './ndarray'
 import { PyDict, PyObj, formatSpec, isNum, objId, py, repr as pyRepr, toArray } from './minipy'
 import type { Host, Kw, PyLib, Value } from './minipy'
 import type { Artist, AxesSpec, AxisSpec, BarArtist, Coord, Dash, Display, FigureSpec, ImageArtist, LegendEntry, LegendSpec, LineArtist, Marker, MeshArtist, PolyArtist, ScatterArtist, SegsArtist, SpineSpec, TextArrow, TextArtist } from './pyEvents'
-import { CSS4, LISTED, LUT6, LUT8, RAMPS, RC_DEFAULTS, SAMPLED8, SEGMENTS } from './pyPlotCmaps'
+import { CMAP_ORDER, CSS4, LISTED, LUT6, LUT8, RAMPS, RC_DEFAULTS, SAMPLED8, SEGMENTS } from './pyPlotCmaps'
 import { delaunay, gaussianKde, gridBands, gridLines, triBands, triLines } from './pyPlotGeom'
 import type { Path } from './pyPlotGeom'
 import { AUTO, MAXN_STEPS, PT, autoMinor, formatG, linearTicks, logLabels, logNonsingular, logTicks, maxNTicks, multipleTicks, nonsingular, pyRound, scalarLabels, stripMath, textHeightPx, textWidthPx, tickLabelDepth, validateSteps } from './pyPlotTicks'
@@ -476,7 +476,10 @@ const stateOf = (h: Host): PlotState => {
   }
   return s
 }
-const rcv = (h: Host, key: string): Value => stateOf(h).rc.get(key) ?? toValue(RC_DEFAULTS[key])
+/** the numeric rc parameters that stay whole numbers; matplotlib's validators turn every other one into a float */
+const RC_INTS = new Set(['agg.path.chunksize', 'animation.bitrate', 'axes.formatter.min_exponent', 'axes.formatter.offset_threshold', 'figure.max_open_warning', 'hist.bins', 'image.lut', 'legend.numpoints', 'legend.scatterpoints', 'pdf.compression', 'pdf.fonttype', 'ps.distiller.res', 'ps.fonttype', 'text.hinting_factor', 'text.kerning_factor', 'webagg.port', 'webagg.port_retries'])
+const rcValue = (key: string, v: Value): Value => (v.k === 'int' && !RC_INTS.has(key) && typeof RC_DEFAULTS[key] === 'number' ? py.float(v.v) : v)
+const rcv = (h: Host, key: string): Value => stateOf(h).rc.get(key) ?? rcValue(key, toValue(RC_DEFAULTS[key]))
 const rcn = (h: Host, key: string): number => h.num(rcv(h, key))
 const rcs = (h: Host, key: string): string => h.str(rcv(h, key))
 const rcb = (h: Host, key: string): boolean => h.truthy(rcv(h, key))
@@ -2470,6 +2473,7 @@ class LegendObj extends PyObj {
     this.fig = fig
   }
   repr() { return `<matplotlib.legend.Legend object at ${addr(this)}>` }
+  str() { return 'Legend' }
   getAttr(name: string, h: Host): Value | undefined {
     const s = this.spec
     const redraw = () => { const f = this.ax?.fig ?? this.fig; if (f) emitFig(h, f, this.ax) }
@@ -3382,7 +3386,7 @@ class Figure extends PyObj {
         emitFig(h, this, null)
         return py.NONE
       })
-      case 'clear': case 'clf': return fnv(name, () => { this.clear(); emitFig(h, this, null); return py.obj(this) })
+      case 'clear': case 'clf': return fnv(name, () => { this.clear(); emitFig(h, this, null); return py.NONE })
       case 'tight_layout': return fnv(name, (_a, kw) => { applyTight(h, this, kw); emitFig(h, this, null); return py.NONE })
       case 'set_tight_layout': return fnv(name, (a) => { this.engine = a[0] && h.truthy(a[0]) ? 'tight' : null; return py.NONE })
       case 'get_tight_layout': return fnv(name, () => py.bool(this.engine === 'tight'))
@@ -8450,7 +8454,7 @@ class RcParams extends PyObj {
   len() { return Object.keys(RC_DEFAULTS).length + 1 }
   read(k: string): Value {
     if (k === 'axes.prop_cycle') return this.store().get(k) ?? py.obj(new CyclerObj(CYCLE.map(py.str), CYCLE))
-    return this.store().get(k) ?? toValue(RC_DEFAULTS[k])
+    return this.store().get(k) ?? rcValue(k, toValue(RC_DEFAULTS[k]))
   }
   getItem(idx: Value, h: Host): Value {
     const k = h.str(idx)
@@ -8460,7 +8464,7 @@ class RcParams extends PyObj {
   setItem(idx: Value, v: Value, h: Host) {
     const k = h.str(idx)
     if (!this.has(k)) throw h.err('KeyError', `'${k} is not a valid rc parameter (see rcParams.keys() for a list of valid parameters)'`)
-    this.store().set(k, v)
+    this.store().set(k, rcValue(k, v))
   }
   contains(v: Value) { return v.k === 'str' && this.has(v.v) }
   iter(): Value[] { return [...Object.keys(RC_DEFAULTS), 'axes.prop_cycle'].map(py.str) }
@@ -8485,7 +8489,7 @@ const rcContext = (h: Host, args: Value[], kw: Kw): Value => {
   const saved = new Map(rc)
   const apply = () => {
     const d = kwOfDict(h, args[0] ?? kw.rc)
-    for (const [k, v] of Object.entries(d)) rc.set(k, v)
+    for (const [k, v] of Object.entries(d)) rc.set(k, rcValue(k, v))
   }
   apply()
   return py.obj(new (class extends PyObj {
@@ -8506,7 +8510,7 @@ const rcCall = (h: Host, args: Value[], kw: Kw): Value => {
       const name = RC_GROUP_ALIAS[k] ?? k
       const key = `${g}.${name}`
       if (!(key in RC_DEFAULTS) && !RC_OTHER.test(key)) throw h.err('KeyError', `'Unrecognized key "${key}" for group "${g}" and name "${name}"'`)
-      stateOf(h).rc.set(key, v)
+      stateOf(h).rc.set(key, rcValue(key, v))
     }
   }
   return py.NONE
@@ -8936,7 +8940,7 @@ const pyplot = (h: Host, patches: Record<string, Value>, cm: Value, colors: Reco
   attrs.interactive = fnv('interactive', (args) => { stateOf(h).interactive = h.truthy(args[0]); return py.NONE })
   attrs.get_backend = fnv('get_backend', () => py.str('agg'))
   attrs.switch_backend = fnv('switch_backend', () => py.NONE)
-  attrs.fignum_exists = fnv('fignum_exists', (args) => py.bool(stateOf(h).figs.some((f) => !f.closed && f.spec.num === h.num(args[0]))))
+  attrs.fignum_exists = fnv('fignum_exists', (args) => py.bool(isNum(args[0]) && stateOf(h).figs.some((f) => !f.closed && f.spec.num === h.num(args[0]))))
   attrs.get_fignums = fnv('get_fignums', () => py.list(stateOf(h).figs.filter((f) => !f.closed).map((f) => py.int(f.spec.num))))
   attrs.get_figlabels = fnv('get_figlabels', () => py.list(stateOf(h).figs.filter((f) => !f.closed).map((f) => py.str(f.label))))
   attrs.figaspect = fnv('figaspect', (args) => floats(figaspect(h, args[0])))
@@ -9052,6 +9056,8 @@ class ColormapRegistry extends PyObj {
   len() { return ALL_CMAPS.length }
   iter(): Value[] { return ALL_CMAPS.map(py.str) }
   contains(v: Value) { return v.k === 'str' && isCmap(v.v) }
+  /** plt.colormaps() lists the names */
+  call(): Value { return py.list(CMAP_ORDER.filter(isCmap).map(py.str)) }
   getItem(idx: Value, h: Host): Value {
     const k = h.str(idx)
     const l = getLut(k)

@@ -2,7 +2,7 @@
 import { PyDict, PyObj, isNum, py } from './minipy'
 import type { Host, Kw, Value } from './minipy'
 import { NDArray } from './ndarray'
-import { Frame, IndexObj, ObjArray, Series, cellOf, dtName, cellsOf, inferDT, inferValues, isListLike, isMissing, reindexCells, tableOfFrame, tableOfSeries, traceFrame, typedCells, unionIndex, valueOf, seriesIn } from './pyPandas'
+import { Frame, IndexObj, NAType, ObjArray, Series, cellOf, dtName, cellsOf, inferDT, inferValues, isListLike, isMissing, reindexCells, tableOfFrame, tableOfSeries, traceFrame, typedCells, unionIndex, valueOf, seriesIn } from './pyPandas'
 import type { Cell, DT, Params } from './pyPandas'
 import { DEFAULT_OPTIONS, OPTIONS } from './pyPandasFormat'
 import { jsonNormalize, readCsv, readJson, textFrom } from './pyPandasIO'
@@ -504,7 +504,7 @@ export const pandasModule = (h: Host): Record<string, Value> => {
       return py.obj(new OptionContext(args))
     }),
     NamedAgg: { k: 'type', name: 'NamedAgg', call: (args, kw) => py.tuple([args[0] ?? kw.column, args[1] ?? kw.aggfunc]) },
-    NA: py.float(NaN),
+    NA: py.obj(new NAType()),
     set_option: fn('set_option', (args) => {
       if (!args.length || args.length % 2) throw h.err('ValueError', 'Must provide an even number of non-keyword arguments')
       for (let i = 0; i < args.length; i += 2) setOption(h, h.str(args[i]), args[i + 1])

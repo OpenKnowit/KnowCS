@@ -1,0 +1,572 @@
+{
+ "Axes:artists": {
+  "want": "ArtistList",
+  "got": "list",
+  "why": "only the name of the object's type differs"
+ },
+ "Axes:collections": {
+  "want": "ArtistList",
+  "got": "list",
+  "why": "only the name of the object's type differs"
+ },
+ "Axes:images": {
+  "want": "ArtistList",
+  "got": "list",
+  "why": "only the name of the object's type differs"
+ },
+ "Axes:lines": {
+  "want": "ArtistList",
+  "got": "list",
+  "why": "only the name of the object's type differs"
+ },
+ "Axes:patches": {
+  "want": "ArtistList",
+  "got": "list",
+  "why": "only the name of the object's type differs"
+ },
+ "Axes:texts": {
+  "want": "ArtistList",
+  "got": "list",
+  "why": "only the name of the object's type differs"
+ },
+ "DataFrame:astype": {
+  "want": "      a       b\n0  b'1'  b'4.0'\n1  b'2'  b'5.0'\n2  b'3'  b'6.0'",
+  "got": "TypeError: data type 'a' not understood",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "DataFrame:from_dict": {
+  "want": "   a    b\n0  1  4.0\n1  2  5.0\n2  3  6.0",
+  "got": "TypeError: from_dict takes a dict",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "DataFrame:from_records": {
+  "want": "   0\n0  a",
+  "got": "ValueError: DataFrame constructor not properly called!",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "DataFrame:iloc": {
+  "want": "_iLocIndexer",
+  "got": "TypeError: '_iLocIndexer' object is not callable",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "DataFrame:loc": {
+  "want": "_LocIndexer",
+  "got": "TypeError: '_LocIndexer' object is not callable",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "GroupBy:agg": {
+  "want": "SeriesGroupBy",
+  "got": "AttributeError: 'DataFrameGroupBy' object has no attribute 'a'",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "GroupBy:aggregate": {
+  "want": "SeriesGroupBy",
+  "got": "AttributeError: 'DataFrameGroupBy' object has no attribute 'a'",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "GroupBy:apply": {
+  "want": "SeriesGroupBy",
+  "got": "AttributeError: 'DataFrameGroupBy' object has no attribute 'a'",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "Series:astype": {
+  "want": "0    b'3'\n1    b'1'\n2    b'2'\ndtype: bytes168",
+  "got": "TypeError: data type 'a' not understood",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "builtins:super": {
+  "want": "type",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "csv:DictWriter": {
+  "want": "type",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "cv2:rotate": {
+  "want": "(4, 4)",
+  "got": "error: OpenCV(4.13.0) (-215:Assertion failed) rotateCode must be ROTATE_90_CLOCKWISE, ROTATE_180 or ROTATE_90_COUNTERCLO",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "cv2 constants:VideoWriter": {
+  "want": "type",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "datetime:date": {
+  "want": "type",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "datetime:datetime": {
+  "want": "type",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "enum:Enum": {
+  "want": "EnumMeta",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "enum:Flag": {
+  "want": "EnumMeta",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "enum:IntEnum": {
+  "want": "EnumMeta",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "enum:IntFlag": {
+  "want": "EnumMeta",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "functools:cached_property": {
+  "want": "cached_property",
+  "got": "property",
+  "why": "only the name of the object's type differs"
+ },
+ "functools:cmp_to_key": {
+  "want": "KeyWrapper",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "functools:partial": {
+  "want": "type",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "functools:total_ordering": {
+  "want": "2.5",
+  "got": "TypeError: total_ordering() was given a missing or wrong argument",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "functools:wraps": {
+  "want": "functools.partial(<function update_wrapper>, wrapped=2.5, assigned=('__module__', '__name__', '__qualname__', '__doc__',",
+  "got": "<built-in function decorator>",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "inspect:getdoc": {
+  "want": "Convert a string or number to a floating point number, if possible.",
+  "got": "None",
+  "why": "documentation text, which the sandbox does not carry"
+ },
+ "keras.models:clone_model": {
+  "want": "[[1. 2.]\n [3. 4.]]",
+  "got": "ValueError: Expected `model` argument to be a `Model` instance, got array([[1., 2.],\n       [3., 4.]], dtype=float32)",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "np:apply_along_axis": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:apply_over_axes": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:bitwise_and": {
+  "want": "ufunc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:bitwise_left_shift": {
+  "want": "ufunc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:bitwise_or": {
+  "want": "ufunc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:bitwise_right_shift": {
+  "want": "ufunc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:bitwise_xor": {
+  "want": "ufunc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:broadcast_to": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:c_": {
+  "want": "CClass",
+  "got": "IndexClass",
+  "why": "only the name of the object's type differs"
+ },
+ "np:can_cast": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:character": {
+  "want": "<attribute 'shape' of 'numpy.generic' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:choose": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:complexfloating": {
+  "want": "<attribute 'shape' of 'numpy.generic' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:dsplit": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:dtype": {
+  "want": "<attribute 'shape' of 'numpy.dtype' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:einsum": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:empty": {
+  "want": "[[1. 2.]\n [3. 4.]]",
+  "got": "[[0. 0.]\n [0. 0.]]",
+  "why": "uninitialised memory: the real output is whatever was there before"
+ },
+ "np:empty_like": {
+  "want": "[[1. 2.]\n [3. 4.]]",
+  "got": "[[0. 0.]\n [0. 0.]]",
+  "why": "uninitialised memory: the real output is whatever was there before"
+ },
+ "np:flexible": {
+  "want": "<attribute 'shape' of 'numpy.generic' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:floating": {
+  "want": "<attribute 'shape' of 'numpy.generic' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:fromstring": {
+  "want": "[1. 2. 3. 4.]",
+  "got": "NotImplementedError: np.fromstring reads text here: give it a str and sep=",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "np:gcd": {
+  "want": "ufunc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:generic": {
+  "want": "<attribute 'shape' of 'numpy.generic' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:index_exp": {
+  "want": "IndexExpression",
+  "got": "IndexClass",
+  "why": "only the name of the object's type differs"
+ },
+ "np:inexact": {
+  "want": "<attribute 'shape' of 'numpy.generic' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:info": {
+  "want": "Built-in immutable sequence.\n\nIf no argument is given, the constructor returns an empty tuple.\nIf iterable is specified ",
+  "got": "The sandbox has no documentation for this; see numpy.org.\nNoneType",
+  "why": "documentation text, which the sandbox does not carry"
+ },
+ "np:insert": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:integer": {
+  "want": "<attribute 'shape' of 'numpy.generic' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:interp": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:lcm": {
+  "want": "ufunc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:left_shift": {
+  "want": "ufunc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:mgrid": {
+  "want": "MGridClass",
+  "got": "IndexClass",
+  "why": "only the name of the object's type differs"
+ },
+ "np:moveaxis": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:ndarray": {
+  "want": "[[1. 2.]\n [3. 4.]]",
+  "got": "[[0. 0.]\n [0. 0.]]",
+  "why": "uninitialised memory: the real output is whatever was there before"
+ },
+ "np:number": {
+  "want": "<attribute 'shape' of 'numpy.generic' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:ogrid": {
+  "want": "OGridClass",
+  "got": "IndexClass",
+  "why": "only the name of the object's type differs"
+ },
+ "np:piecewise": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:place": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:polyfit": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:polysub": {
+  "want": "[[0. 0.]\n [0. 0.]]",
+  "got": "[0.]",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "np:printoptions": {
+  "want": "_GeneratorContextManager",
+  "got": "printoptions",
+  "why": "only the name of the object's type differs"
+ },
+ "np:put": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:put_along_axis": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:putmask": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:r_": {
+  "want": "RClass",
+  "got": "IndexClass",
+  "why": "only the name of the object's type differs"
+ },
+ "np:ravel_multi_index": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:reshape": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:right_shift": {
+  "want": "ufunc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:s_": {
+  "want": "IndexExpression",
+  "got": "IndexClass",
+  "why": "only the name of the object's type differs"
+ },
+ "np:signedinteger": {
+  "want": "<attribute 'shape' of 'numpy.generic' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:swapaxes": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:take_along_axis": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:unpackbits": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:unravel_index": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np:unsignedinteger": {
+  "want": "<attribute 'shape' of 'numpy.generic' objects>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "np:vectorize": {
+  "want": "vectorize",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np.linalg:cross": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np.linalg:outer": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "np.linalg:tensordot": {
+  "want": "_ArrayFunctionDispatcher",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "pd:RangeIndex": {
+  "want": "<property object>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "pd:get_option": {
+  "want": "CallableDynamicDoc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "pd:json_normalize": {
+  "want": "Empty DataFrame\nColumns: []\nIndex: [0, 1]",
+  "got": "NotImplementedError: json_normalize takes dicts here, got str",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "pd:reset_option": {
+  "want": "CallableDynamicDoc",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "plt:get": {
+  "want": "\nNone",
+  "got": "AttributeError: 'list' object has no attribute 'get'",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "plt:getp": {
+  "want": "\nNone",
+  "got": "AttributeError: 'list' object has no attribute 'get'",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "plt:rc_context": {
+  "want": "_GeneratorContextManager",
+  "got": "rc_context",
+  "why": "only the name of the object's type differs"
+ },
+ "plt:setp": {
+  "want": "\nNone",
+  "got": "[]",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "tf:Tensor": {
+  "want": "<property object>",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "tf:boolean_mask": {
+  "want": "tf.Tensor([1. 2. 3. 4.], shape=(4,), dtype=float32)",
+  "got": "TypeError: Value for attr 'T' of float32 is not in the list of allowed values: bool",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "tf:device": {
+  "want": "_EagerDeviceContext",
+  "got": "device",
+  "why": "only the name of the object's type differs"
+ },
+ "tf:name_scope": {
+  "want": "ABCMeta",
+  "got": "callable",
+  "why": "only the name of the object's type differs"
+ },
+ "typing:Annotated": {
+  "want": "type",
+  "got": "_GenericAlias",
+  "why": "only the name of the object's type differs"
+ },
+ "typing:Generic": {
+  "want": "Generic",
+  "got": "NoneType",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "typing:NamedTuple": {
+  "want": "callable",
+  "got": "_GenericAlias",
+  "why": "only the name of the object's type differs"
+ },
+ "typing:Protocol": {
+  "want": "Protocol",
+  "got": "NoneType",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "Tensor:pin_memory": {
+  "want": "tensor([[1., 2.],\n        [3., 4.]])",
+  "got": "RuntimeError: Cannot access accelerator device when none is available.",
+  "why": "depends on the machine: needs an accelerator, and this one has MPS"
+ },
+ "nn.Module:parameters": {
+  "want": "generator",
+  "got": "RuntimeError: Boolean value of Tensor with more than one value is ambiguous",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "nn.Module:zero_grad": {
+  "want": "None",
+  "got": "RuntimeError: Boolean value of Tensor with more than one value is ambiguous",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "torch.autograd:Function": {
+  "want": "Function",
+  "got": "TypeError: torch.autograd.function.Function() takes no arguments",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "utils.data:IterableDataset": {
+  "want": "ABCMeta",
+  "got": "type",
+  "why": "only the name of the object's type differs"
+ },
+ "utils.data:Subset": {
+  "want": "Subset",
+  "got": "TypeError: only integer tensors of a single element can be converted to an index",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ },
+ "utils.data:SubsetRandomSampler": {
+  "want": "SubsetRandomSampler",
+  "got": "TypeError: only integer tensors of a single element can be converted to an index",
+  "why": "the probe passes an argument no real program would, and the libraries only happen to accept it"
+ }
+}

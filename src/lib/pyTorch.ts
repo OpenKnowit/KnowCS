@@ -1582,7 +1582,7 @@ const cumExtreme = (c: TCall, min: boolean): Value => {
 const histogramOf = (c: TCall): Value => {
   const { t, h } = c
   if (!isFloatT(t.dtype)) throw h.err('NotImplementedError', `"histogramdd" not implemented for '${C.typeLabel(t.dtype)}'`)
-  const binsV = c.a.bins!
+  const binsV = c.a.bins ?? py.int(100)
   const vals = t.values()
   const R = t.dtype === 'float64' ? (v: number) => v : Math.fround
   let edges: number[]
@@ -2451,7 +2451,7 @@ const METHODS: Record<string, TMethod> = {
     return wrap(C.sortT(c.E, c.t, 0, false).values)
   }],
   argwhere: ['', (c) => c.h.call(c.h.getAttr(c.self, 'nonzero'), [])],
-  histogram: ['bins! range weight density', (c) => histogramOf(c)],
+  histogram: ['bins range weight density', (c) => histogramOf(c)],
   trapezoid: ['x * dx dim', (c) => trapezoidOf(c, false)],
   trapz: ['x * dx dim', (c) => trapezoidOf(c, false)],
   cumulative_trapezoid: ['x * dx dim', (c) => trapezoidOf(c, true)],
@@ -7066,8 +7066,9 @@ const build = (h: Host): Record<string, Value> => {
   }
   const marginRanking = (x1: TT, x2: TT, y: TT, m: number, red: C.Reduction) => reduced(clamp0(addT(mulT(C.unary(E, 'neg', y), subT(x1, x2)), one(x1, m))), red)
   const hingeEmbedding = (x: TT, y: TT, m: number, red: C.Reduction): TT => {
-    const pos = C.whereT(E, C.compare(y, one(y, 1), '=='), x, one(x, 0), x.dtype)
-    const neg = C.whereT(E, C.compare(y, one(y, -1), '=='), clamp0(subT(one(x, m), x)), one(x, 0), x.dtype)
+    // the source's two terms: a target that is neither 1 nor -1 gets both
+    const pos = C.whereT(E, C.compare(y, one(y, -1), '=='), one(x, 0), x, x.dtype)
+    const neg = C.whereT(E, C.compare(y, one(y, 1), '=='), one(x, 0), clamp0(subT(one(x, m), x)), x.dtype)
     return reduced(addT(pos, neg), red)
   }
   const cosineEmbedding = (x1: TT, x2: TT, y: TT, m: number, red: C.Reduction): TT => {
@@ -7440,7 +7441,7 @@ const build = (h: Host): Record<string, Value> => {
       if (t.requiresGrad && !isFloatT(t.dtype)) throw h.err('RuntimeError', 'Only Tensors of floating point and complex dtype can require gradients')
       return wrap(t)
     } },
-    Buffer: { k: 'type', name: 'Buffer', call: (args, kw) => py.obj(new BufferMark(tensorArg(h, args[0] ?? kw.data, 'Buffer', 'data'), flagOf(h, kw.persistent, true))) },
+    Buffer: { k: 'type', name: 'Buffer', call: (args, kw) => py.obj(new BufferMark(args[0] ?? kw.data ? tensorArg(h, args[0] ?? kw.data, 'Buffer', 'data') : TT.of([], [0], 'float32'), flagOf(h, kw.persistent, true))) },
   }
   /** what TransformerEncoderLayer builds its children from */
   for (const v of Object.values(nnAttrs)) {
@@ -7510,8 +7511,8 @@ const build = (h: Host): Record<string, Value> => {
     const a = bindPy(h, name, `${first} ${second} ${params}`, args, kw)
     return wrap(run(tensorArg(h, a[first], name), tensorArg(h, a[second], name, second, 2), a))
   })
-  const dropF = (name: string, f: (x: TT, p: number, training: boolean) => TT) => Ff(name, 'p=0.5 training=True inplace=False', (x, a) => {
-    const g = (t: TT) => f(t, h.num(a.p!), bool(a.training, true))
+  const dropF = (name: string, f: (x: TT, p: number, training: boolean) => TT, training = true) => Ff(name, `p=0.5 training=${training ? 'True' : 'False'} inplace=False`, (x, a) => {
+    const g = (t: TT) => f(t, h.num(a.p!), bool(a.training, training))
     return bool(a.inplace, false) ? asTT(objOf(x).rebase(h, g))! : g(x)
   }, 'random')
   const checkedP = (f: (E: Engine, x: TT, p: number, t: boolean) => TT) => (x: TT, p: number, t: boolean) => {
@@ -7561,7 +7562,7 @@ const build = (h: Host): Record<string, Value> => {
       const hard = C.scatterT({ grad: false } as Engine, TT.of(new Array<number>(x.size).fill(0), x.shape, x.dtype), d, C.maxAlong({ grad: false } as Engine, soft, d, true).indices, 1, false)
       return wrap(addT(subT(hard, C.detach(soft)), soft))
     }),
-    dropout: dropF('dropout', checkedP(C.dropout)), alpha_dropout: dropF('alpha_dropout', alphaDropout),
+    dropout: dropF('dropout', checkedP(C.dropout)), alpha_dropout: dropF('alpha_dropout', alphaDropout, false),
     dropout1d: dropF('dropout1d', checkedP(C.dropoutChannels)), dropout2d: dropF('dropout2d', checkedP(C.dropoutChannels)), dropout3d: dropF('dropout3d', checkedP(C.dropoutChannels)),
     max_pool1d: maxPoolF('max_pool1d', 1), max_pool2d: maxPoolF('max_pool2d', 2), max_pool3d: maxPoolF('max_pool3d', 3),
     max_pool1d_with_indices: maxPoolF('max_pool1d_with_indices', 1, true), max_pool2d_with_indices: maxPoolF('max_pool2d_with_indices', 2, true), max_pool3d_with_indices: maxPoolF('max_pool3d_with_indices', 3, true),
@@ -7598,7 +7599,7 @@ const build = (h: Host): Record<string, Value> => {
       const a = bindPy(h, 'max_unpool3d', 'input indices kernel_size stride=None padding=0 output_size=None', args, kw)
       return wrap(maxUnpool(h, tensorArg(h, a.input, 'max_unpool3d'), tensorArg(h, a.indices, 'max_unpool3d', 'indices', 2), 3, ntuple(a.kernel_size, 3, 2), ntuple(isNone(a.stride) ? a.kernel_size : a.stride, 3, 1), ntuple(a.padding, 3, 0), a.output_size))
     }),
-    feature_alpha_dropout: dropF('feature_alpha_dropout', featureAlphaDropout),
+    feature_alpha_dropout: dropF('feature_alpha_dropout', featureAlphaDropout, false),
     group_norm: fnv('group_norm', (args, kw) => {
       const a = bindPy(h, 'group_norm', 'input num_groups weight=None bias=None eps=1e-05', args, kw)
       const x = tensorArg(h, a.input, 'group_norm')
@@ -9830,8 +9831,14 @@ const build = (h: Host): Record<string, Value> => {
     }),
     bernoulli: fnv('bernoulli', (args, kw) => {
       const t = T(args[0] ?? kw.input, 'bernoulli')
-      if (t.values().some((p) => !(p >= 0 && p <= 1))) throw h.err('RuntimeError', 'Expected p_in >= 0 && p_in <= 1 to be true')
+      if (!(args[1] ?? kw.p) && t.values().some((p) => !(p >= 0 && p <= 1))) throw h.err('RuntimeError', 'Expected p_in >= 0 && p_in <= 1 to be true')
       const rng = rngOf(h, kw.generator)
+      // with a p, the tensor gives only the shape
+      const pv = args[1] ?? kw.p
+      if (pv) {
+        const q = h.num(pv)
+        return finish(TT.of(t.values().map(() => (rng.next() < q ? 1 : 0)), t.shape, t.dtype), {}, 'bernoulli')
+      }
       return finish(TT.of(t.values().map((p) => (rng.next() < p ? 1 : 0)), t.shape, isFloatT(t.dtype) ? t.dtype : 'float32'), {}, 'bernoulli')
     }),
     multinomial: fnv('multinomial', (args, kw) => {
@@ -10098,8 +10105,17 @@ const build = (h: Host): Record<string, Value> => {
     }),
     cholesky_inverse: fnv('cholesky_inverse', (args, kw) => {
       const a = bindPy(h, 'cholesky_inverse', 'L upper=False', args, kw)
-      const L0 = T(a.L, 'cholesky_inverse')
-      const U = bool(a.upper, false) ? C.transposeT(E, L0, -2, -1) : L0
+      const L1 = T(a.L, 'cholesky_inverse')
+      // only the named triangle is read
+      const upper = bool(a.upper, false)
+      const [R, W] = L1.shape.slice(-2)
+      const keep = TT.of(L1.values().map((_, i) => {
+        const at = i % (R * W)
+        const [r, c] = [Math.floor(at / W), at % W]
+        return (upper ? r <= c : r >= c) ? 1 : 0
+      }), L1.shape, L1.dtype)
+      const L0 = C.binary(E, '*', L1, keep)
+      const U = upper ? C.transposeT(E, L0, -2, -1) : L0
       return wrap(renameErr(() => C.invT(E, C.matmul(E, U, C.transposeT(E, U, -2, -1)))))
     }),
     triangular_solve: fnv('triangular_solve', (args, kw) => {
@@ -10131,6 +10147,10 @@ const build = (h: Host): Record<string, Value> => {
     }),
     ...Object.fromEntries(['conv1d', 'conv2d', 'conv3d', 'conv_transpose1d', 'conv_transpose2d', 'conv_transpose3d', 'avg_pool1d', 'max_pool1d', 'max_pool2d', 'max_pool3d', 'max_pool1d_with_indices', 'adaptive_avg_pool1d', 'bilinear', 'pixel_shuffle', 'pixel_unshuffle', 'channel_shuffle', 'dropout', 'alpha_dropout', 'feature_alpha_dropout', 'binary_cross_entropy_with_logits', 'cosine_embedding_loss', 'hinge_embedding_loss', 'margin_ranking_loss', 'poisson_nll_loss', 'triplet_margin_loss', 'layer_norm', 'group_norm', 'instance_norm', 'batch_norm', 'rms_norm', 'embedding_bag', 'relu_', 'selu_', 'celu_', 'rrelu_', 'threshold_'].map((n) => [n, Fattrs[n] ?? fnv(n, () => { throw h.err('NotImplementedError', `torch.${n} is not available in this sandbox`) })])),
     ...Object.fromEntries([...INPLACE].filter((n) => !['eq', 'ne', 'ge', 'gt', 'le', 'lt'].includes(n)).map((n) => [`${n}_`, viaMethod(`${n}_`)])),
+    rrelu_: fnv('rrelu_', (args, { input, ...kw }) => h.call(Fattrs.rrelu, [args[0] ?? input], { ...kw, inplace: py.bool(true) })),
+    // these two are the C++ ops, with no reduction unless asked; F.* defaults to the mean
+    hinge_embedding_loss: fnv('hinge_embedding_loss', (args, kw) => h.call(Fattrs.hinge_embedding_loss, args, { reduction: py.str('none'), ...kw })),
+    binary_cross_entropy_with_logits: fnv('binary_cross_entropy_with_logits', (args, kw) => h.call(Fattrs.binary_cross_entropy_with_logits, args, { reduction: py.str('none'), ...kw })),
     zero_: viaMethod('zero_'), fill_: viaMethod('fill_'), detach_: viaMethod('detach_'),
     is_complex: fnv('is_complex', (args) => py.bool(args[0]?.k === 'obj' && args[0].o instanceof ComplexTensor)),
     polygamma: (special as { attrs: Record<string, Value> }).attrs.polygamma,

@@ -536,7 +536,13 @@ export class GroupBy extends PyObj {
         return { k: 'dict', d }
       }
       case 'ndim': return py.int(this.single ? 1 : 2)
-      case 'dtypes': return py.obj(new Series(this.valueCols().map((k) => this.f.data[k].dtype), this.f.columns.pick(this.valueCols(), true), null, 'object'))
+      case 'dtypes': {
+        // one row per group, one column per column of the frame, keys included
+        const gr = this.groups()
+        const index = this.keyIndex(gr)
+        if (this.single) return py.obj(new Series(gr.keys.map(() => this.f.data[this.valueCols()[0]].dtype), index, this.f.columns.labels[this.valueCols()[0]], 'object'))
+        return py.obj(new Frame(this.f.columns, this.f.data.map((c) => new Series(gr.keys.map(() => c.dtype), index, null, 'object')), index))
+      }
     }
     if (METHODS[name]) {
       return { k: 'fn', name, call: (args, kw) => {
@@ -625,6 +631,48 @@ const cumKernel = (h: Host, how: string, skipna: boolean) => (s: Series) => {
   if (s.dtype === 'object') throw h.err('NotImplementedError', `function is not implemented for this dtype: [how->${how},dtype->object]`)
   const res = seriesIn(h.call(s.getAttr(how, h)!, [], { skipna: py.bool(skipna) }))
   return { cells: res.values, dt: res.dtype }
+}
+
+/** DataFrameGroupBy.value_counts: how often each row of the other columns occurs in each group */
+const frameValueCounts = (g: GroupBy, p: Params, h: Host): Value => {
+  // in this form the first positional argument is subset
+  const first = p.normalize
+  const positional = first && (first.k === 'str' || first.k === 'list' || first.k === 'tuple') ? first : undefined
+  const subset = positional ?? (given(p.subset) ? p.subset : undefined)
+  const names = subset ? (subset.k === 'str' ? [subset] : h.iterate(subset)) : null
+  const cols = names ? names.map((n) => {
+    const at = g.f.columns.locate(n.k === 'str' ? n.v : h.str(n))
+    if (!at.length) throw h.err('ValueError', `Keys ${h.str(n)} in subset do not exist in the DataFrame.`)
+    return at[0]
+  }) : g.valueCols()
+  const norm = positional ? false : flag(h, p.normalize)
+  const sort = flag(h, p.sort, true)
+  const asc = flag(h, p.ascending)
+  const dropna = flag(h, p.dropna, true)
+  const gr = g.groups()
+  const arrays: Cell[][] = [...g.gkeys.map(() => [] as Cell[]), ...cols.map(() => [] as Cell[])]
+  const vals: number[] = []
+  gr.members.forEach((rows, i) => {
+    const present = rows.filter((r) => !dropna || cols.every((c) => !isMissing(g.f.data[c].values[r])))
+    const counts = new Map<string, { cells: Cell[]; n: number }>()
+    for (const r of present) {
+      const cells = cols.map((c) => g.f.data[c].values[r])
+      const key = cells.map(cellStr).join('\u0000')
+      const e = counts.get(key)
+      if (e) e.n++
+      else counts.set(key, { cells, n: 1 })
+    }
+    let entries = [...counts.values()]
+    entries = sortOrder(cols.map((_, c) => entries.map((e) => e.cells[c])), cols.map(() => true)).map((x) => entries[x])
+    if (sort) entries = sortOrder([entries.map((e) => e.n)], [asc]).map((x) => entries[x])
+    for (const e of entries) {
+      g.gkeys.forEach((_, j) => arrays[j].push(gr.keys[i][j]))
+      e.cells.forEach((c, j) => arrays[g.gkeys.length + j].push(c))
+      vals.push(norm ? e.n / present.length : e.n)
+    }
+  })
+  const index = IndexObj.fromArrays(arrays, [...g.gkeys.map((x) => x.name), ...cols.map((c) => g.f.columns.labels[c])], [...g.gkeys.map((x) => x.dt), ...cols.map((c) => g.f.data[c].dtype)])
+  return py.obj(new Series(vals, index, norm ? 'proportion' : 'count', norm ? 'float64' : 'int64'))
 }
 
 const METHODS: Record<string, GM> = {
@@ -820,9 +868,9 @@ const METHODS: Record<string, GM> = {
     const data = cols.flatMap((_, ci) => labels.map((_l, j) => new Series(stats[ci].map((d) => d.values[j]), groupIdx, null, stats[ci][0].dtype)))
     return py.obj(new Frame(mi, data, groupIdx))
   }],
-  value_counts: ['normalize sort ascending dropna bins', (g, p, h) => {
+  value_counts: ['normalize sort ascending dropna bins subset', (g, p, h) => {
     if (given(p.bins)) throw h.err('NotImplementedError', 'groupby.value_counts(bins=...) is not available in this sandbox')
-    if (!g.single) throw h.err('NotImplementedError', 'value_counts after grouping a whole DataFrame is not available in this sandbox: select a column first')
+    if (!g.single) return frameValueCounts(g, p, h)
     const gr = g.groups()
     const k = g.valueCols()[0]
     const s = g.f.data[k]

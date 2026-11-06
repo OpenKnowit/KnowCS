@@ -13,6 +13,34 @@ import type { SandboxRandom } from './ndops'
 
 type Api = (name: string, call: Fn, kind?: ApiKind, extra?: Partial<ApiMeta>) => Value
 
+const LINE = '---------------------------------------------------------------'
+const FINFO_64 = `Machine parameters for float64\n${LINE}\nprecision =  15   resolution = 1.0000000000000001e-15\nmachep =    -52   eps =        2.2204460492503131e-16\nnegep =     -53   epsneg =     1.1102230246251565e-16\nminexp =  -1022   tiny =       2.2250738585072014e-308\nmaxexp =   1024   max =        1.7976931348623157e+308\nnexp =       11   min =        -max\nsmallest_normal = 2.2250738585072014e-308   smallest_subnormal = 4.9406564584124654e-324\n${LINE}\n`
+const FINFO_32 = `Machine parameters for float32\n${LINE}\nprecision =   6   resolution = 1.0000000e-06\nmachep =    -23   eps =        1.1920929e-07\nnegep =     -24   epsneg =     5.9604645e-08\nminexp =   -126   tiny =       1.1754944e-38\nmaxexp =    128   max =        3.4028235e+38\nnexp =        8   min =        -max\nsmallest_normal = 1.1754944e-38   smallest_subnormal = 1.4012985e-45\n${LINE}\n`
+
+/** np.linspace's points, for scalar or array ends: the new axis comes first unless axis says otherwise */
+export const spacedBetween = (start: Value, stop: Value, n: number, endpoint: boolean, axis: number, f: (x: number) => number, dtype: DType): NDArray => {
+  const a0 = toArray(start, 'float64')
+  const b0 = toArray(stop, 'float64')
+  const shape = broadcastShapes([a0.shape, b0.shape])
+  const a = broadcastTo(a0, shape).values()
+  const b = broadcastTo(b0, shape).values()
+  const size = prod(shape)
+  const div = endpoint ? n - 1 : n
+  const out = new Array<number>(n * size)
+  for (let i = 0; i < n; i++) {
+    for (let k = 0; k < size; k++) {
+      const v = div > 0 ? a[k] + i * ((b[k] - a[k]) / div) : a[k]
+      out[i * size + k] = f(endpoint && n > 1 && i === n - 1 ? b[k] : v)
+    }
+  }
+  const res = NDArray.create(out, [n, ...shape], dtype)
+  const at = axis < 0 ? axis + shape.length + 1 : axis
+  if (at === 0) return res
+  const order = shape.map((_, d) => d + 1)
+  order.splice(at, 0, 0)
+  return transpose(res, order)
+}
+
 export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<string, Value>, linalg: Record<string, Value>, api: { fn: Api; rnd: Api; la: Api }): void => {
   const { NONE, int, float, bool, tuple, str: S, list: L } = py
   // (a local name: vitest's module transform loses an imported base class inside a function)
@@ -272,19 +300,23 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   Object.assign(np, {
     empty: np.zeros, empty_like: np.zeros_like, asanyarray: np.asarray, asfortranarray: np.asarray, ascontiguousarray: np.asarray, require: np.asarray, asarray_chkfinite: np.asarray,
     geomspace: fn('geomspace', (args, kw) => {
-      const a = h.num(args[0])
-      const b = h.num(args[1])
       const num = optInt(args, kw, 2, 'num') ?? 50
       const end = !kw.endpoint || h.truthy(kw.endpoint)
-      const res = lineFrom(Math.log10(Math.abs(a)), Math.log10(Math.abs(b)), num, end).map((x) => Math.sign(a) * 10 ** x)
-      if (num) res[0] = a
-      if (num > 1 && end) res[num - 1] = b
-      return mk(res, [num])
+      if ((args[0].k !== 'array' && args[0].k !== 'list') && (args[1].k !== 'array' && args[1].k !== 'list')) {
+        const a = h.num(args[0])
+        const b = h.num(args[1])
+        const res = lineFrom(Math.log10(Math.abs(a)), Math.log10(Math.abs(b)), num, end).map((x) => Math.sign(a) * 10 ** x)
+        if (num) res[0] = a
+        if (num > 1 && end) res[num - 1] = b
+        return mk(res, [num])
+      }
+      const logged = (v: Value) => wrap(NDArray.create(toArray(v).values().map((x) => Math.log10(x)), toArray(v).shape, 'float64'))
+      return wrap(spacedBetween(logged(args[0]), logged(args[1]), num, end, 0, (x) => 10 ** x, 'float64'))
     }, 'create'),
     logspace: fn('logspace', (args, kw) => {
       const num = optInt(args, kw, 2, 'num') ?? 50
       const base = kw.base ? h.num(kw.base) : 10
-      return mk(lineFrom(h.num(args[0]), h.num(args[1]), num, !kw.endpoint || h.truthy(kw.endpoint)).map((x) => base ** x), [num])
+      return wrap(spacedBetween(args[0], args[1], num, !kw.endpoint || h.truthy(kw.endpoint), 0, (x) => base ** x, 'float64'))
     }, 'create'),
     tri: fn('tri', (args, kw) => {
       const n = h.toInt(args[0])
@@ -367,8 +399,9 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
       return mk(out, [out.length], dtypeArg(kw.dtype ?? args[1]) ?? 'float64')
     }, 'create'),
     fromstring: fn('fromstring', (args, kw) => {
+      if (args[0]?.k !== 'str') throw h.err('NotImplementedError', 'np.fromstring reads text here: give it a str and sep=')
       const sep = kw.sep?.k === 'str' ? kw.sep.v : ' '
-      const parts = (args[0] as { v: string }).v.split(sep === ' ' ? /\s+/ : sep).filter((p) => p.trim() !== '')
+      const parts = args[0].v.split(sep === ' ' ? /\s+/ : sep).filter((p) => p.trim() !== '')
       return mk(parts.map(Number), [parts.length], dtypeArg(kw.dtype ?? args[1]) ?? 'float64')
     }, 'create'),
     hamming: windowFn('hamming', (i, m) => 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (m - 1))),
@@ -681,7 +714,10 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
       if (a.ndim < 2) throw h.err('ValueError', `Input array must be at least 2-dimensional, but it is ${a.ndim}`)
       return wrap(moveAxes(a, [-1], [-2]))
     }, 'move'),
-    permute_dims: fn('permute_dims', (args, kw) => wrap(transpose(A(args[0]), h.iterate(kw.axes ?? args[1]).map((x) => h.toInt(x)))), 'move'),
+    permute_dims: fn('permute_dims', (args, kw) => {
+      const given = kw.axes ?? args[1]
+      return wrap(transpose(A(args[0]), given ? h.iterate(given).map((x) => h.toInt(x)) : undefined as unknown as number[]))
+    }, 'move'),
     trim_zeros: fn('trim_zeros', (args, kw) => {
       const a = A(args[0], 'filt')
       const trim = (kw.trim ?? args[1])?.k === 'str' ? ((kw.trim ?? args[1]) as { v: string }).v.toLowerCase() : 'fb'
@@ -1077,6 +1113,31 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   // ---------- statistics and calculus ----------
 
   const nanSafe = (xs: number[]) => xs.filter((x) => !Number.isNaN(x))
+  /** np.nanpercentile and np.nanquantile: one q or several, over everything or along an axis */
+  const nanQuantiles = (args: Value[], kw: Kw, scale: number): Value => {
+    const a = A(args[0])
+    const qv = kw.q ?? args[1]
+    const axisV = kw.axis ?? args[2]
+    const axis = axisV && axisV.k !== 'none' ? normAxis(h.toInt(axisV), a.ndim) : null
+    const one = (q: number): Value => {
+      if (axis === null) return float(quantileOf(nanSafe(a.values()), q))
+      const rest = a.shape.filter((_, d) => d !== axis)
+      const after = a.shape.slice(axis + 1).reduce((p, x) => p * x, 1)
+      const groups = new Map<number, number[]>()
+      a.values().forEach((v, i) => {
+        const key = Math.floor(i / (after * a.shape[axis])) * after + (i % after)
+        const g = groups.get(key)
+        if (g) g.push(v)
+        else groups.set(key, [v])
+      })
+      return wrap(NDArray.create([...groups.keys()].sort((p, q2) => p - q2).map((k) => quantileOf(nanSafe(groups.get(k)!), q)), rest, 'float64'))
+    }
+    if (qv && (qv.k === 'list' || qv.k === 'tuple' || qv.k === 'array')) {
+      const parts = Array.from(toArray(qv, 'float64').values(), (q) => one(q / scale))
+      return axis === null ? wrap(NDArray.create(parts.map((p) => (p as { v: number }).v), [parts.length], 'float64')) : h.call(np.stack, [py.list(parts)])
+    }
+    return one(h.num(qv) / scale)
+  }
   const toFloat = (a: NDArray): DType => (a.dtype === 'float32' ? 'float32' : 'float64')
   const sameOr = (a: NDArray) => (a.dtype === 'bool' ? 'int64' : a.dtype) as DType
   const meanOf = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length
@@ -1239,8 +1300,8 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     nanmedian: reduceWith('nanmedian', (xs) => medianOf(nanSafe(xs)), toFloat),
     nanargmax: reduceWith('nanargmax', (xs) => argBest(xs, (a, b) => a > b, 'nanargmax'), () => 'int64'),
     nanargmin: reduceWith('nanargmin', (xs) => argBest(xs, (a, b) => a < b, 'nanargmin'), () => 'int64'),
-    nanpercentile: fn('nanpercentile', (args, kw) => float(quantileOf(nanSafe(A(args[0]).values()), h.num(kw.q ?? args[1]) / 100)), 'reduce'),
-    nanquantile: fn('nanquantile', (args, kw) => float(quantileOf(nanSafe(A(args[0]).values()), h.num(kw.q ?? args[1]))), 'reduce'),
+    nanpercentile: fn('nanpercentile', (args, kw) => nanQuantiles(args, kw, 100), 'reduce'),
+    nanquantile: fn('nanquantile', (args, kw) => nanQuantiles(args, kw, 1), 'reduce'),
     cumprod: scan('cumprod', (acc, x) => acc * x, (x) => x, false), cumulative_prod: scan('cumulative_prod', (acc, x) => acc * x, (x) => x, false),
     cumulative_sum: scan('cumulative_sum', (acc, x) => acc + x, (x) => x, false),
     nancumsum: scan('nancumsum', (acc, x) => acc + x, () => 0, true), nancumprod: scan('nancumprod', (acc, x) => acc * x, () => 1, true),
@@ -1515,13 +1576,17 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     readonly cls: string
     attrs: Record<string, Value>
     text: string
-    constructor(cls: string, attrs: Record<string, Value>, text: string) {
+    /** what print() shows, where that is not the repr */
+    printed: string | undefined
+    constructor(cls: string, attrs: Record<string, Value>, text: string, printed?: string) {
       super()
       this.cls = cls
       this.attrs = attrs
       this.text = text
+      this.printed = printed
     }
     repr() { return this.text }
+    str() { return this.printed ?? this.text }
     getAttr(name: string) { return this.attrs[name] }
   }
   class Opts extends Base {
@@ -1645,16 +1710,16 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     finfo: fn('finfo', (args) => {
       const isSingle = /float32|single|float16|half/.test(h.repr(args[0]))
       const [eps, max, tiny, digits] = isSingle ? [1.1920929e-7, 3.4028235e38, 1.1754944e-38, 6] : [2 ** -52, Number.MAX_VALUE, 2.2250738585072014e-308, 15]
-      return py.obj(new Limits('finfo', { eps: float(eps), max: float(max), min: float(-max), tiny: float(tiny), smallest_normal: float(tiny), precision: int(digits), resolution: float(10 ** -digits), bits: int(isSingle ? 32 : 64), dtype: { k: 'dtype', d: 'float64' } }, `finfo(resolution=${10 ** -digits}, min=${-max}, max=${max}, dtype=float64)`))
+      return py.obj(new Limits('finfo', { eps: float(eps), max: float(max), min: float(-max), tiny: float(tiny), smallest_normal: float(tiny), precision: int(digits), resolution: float(10 ** -digits), bits: int(isSingle ? 32 : 64), dtype: { k: 'dtype', d: 'float64' } }, `finfo(resolution=${10 ** -digits}, min=${-max}, max=${max}, dtype=float64)`, isSingle ? FINFO_32 : FINFO_64))
     }),
     iinfo: fn('iinfo', (args) => {
-      const name = /(u?int\d+)/.exec(h.repr(args[0]))?.[1] ?? (args[0].k === 'type' && args[0].name === 'int' ? 'int64' : null)
+      const name = /(u?int\d+)/.exec(h.repr(args[0]))?.[1] ?? ((args[0].k === 'type' && args[0].name === 'int') || args[0].k === 'int' ? 'int64' : null)
       if (!name) throw h.err('ValueError', `Invalid integer data type ${repr(args[0])}`)
       const bits = Number(/\d+/.exec(name)![0])
       const unsigned = name.startsWith('u')
       const min = unsigned ? 0 : -(2 ** (bits - 1))
       const max = unsigned ? 2 ** bits - 1 : 2 ** (bits - 1) - 1
-      return py.obj(new Limits('iinfo', { min: int(min), max: int(max), bits: int(bits) }, `iinfo(min=${min}, max=${max}, dtype=${name})`))
+      return py.obj(new Limits('iinfo', { min: int(min), max: int(max), bits: int(bits) }, `iinfo(min=${min}, max=${max}, dtype=${name})`, `Machine parameters for ${name}\n${LINE}\nmin = ${name === 'int64' ? '-9223372036854775808' : min}\nmax = ${name === 'int64' ? '9223372036854775807' : name === 'uint64' ? '18446744073709551615' : max}\n${LINE}\n`))
     }),
     result_type: fn('result_type', (args) => ({ k: 'dtype', d: commonDType(args.map((v) => {
       const d = dtypeArg(v)
@@ -2522,9 +2587,10 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     shuffle: rnd('shuffle', (args) => shuffleIn(h.rng, args[0])),
     permutation: rnd('permutation', (args) => permuted(h.rng, args[0]), 'random'),
     random_integers: rnd('random_integers', (args, kw) => {
-      const lo = h.toInt(args[0])
+      // (the old function truncated floats)
+      const lo = Math.trunc(h.num(args[0]))
       const hi = opt(args, kw, 1, 'high')
-      return hi ? integers(h.rng, lo, h.toInt(hi) + 1, kw.size ?? args[2], 'int64') : integers(h.rng, 1, lo + 1, kw.size ?? args[2], 'int64')
+      return hi ? integers(h.rng, lo, Math.trunc(h.num(hi)) + 1, kw.size ?? args[2], 'int64') : integers(h.rng, 1, lo + 1, kw.size ?? args[2], 'int64')
     }, 'random'),
     get_state: rnd('get_state', () => tuple([S('sandbox'), int((h.rng as unknown as { s: number }).s)])),
     set_state: rnd('set_state', (args) => {
@@ -2548,7 +2614,19 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     getAttr(name: string) { return this.table[name] }
   }
   const Rng = h.rng.constructor as new (seed?: number) => SandboxRandom
-  const seedOf = (v: Value | undefined) => {
+  /** PCG64(5), MT19937(5), SeedSequence(5): only the seed matters here, as the sandbox has one generator */
+  class SeedHolder extends Base {
+    readonly cls: string
+    seed: Value | undefined
+    constructor(cls: string, seed: Value | undefined) {
+      super()
+      this.cls = cls
+      this.seed = seed
+    }
+    repr() { return this.cls === 'SeedSequence' ? `SeedSequence(\n    entropy=${this.seed ? repr(this.seed) : 'None'},\n)` : `<numpy.random._${this.cls.toLowerCase()}.${this.cls} object>` }
+  }
+  const seedOf = (v0: Value | undefined) => {
+    const v = v0?.k === 'obj' && v0.o instanceof SeedHolder ? v0.o.seed : v0
     if (!v || v.k === 'none') return Math.floor(h.rng.next() * 2 ** 32)
     return isNum(v) ? h.toInt(v) : toArray(v).values().reduce((s, x) => (s * 31 + x) >>> 0, 7)
   }
@@ -2608,7 +2686,9 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     default_rng: rnd('default_rng', (args, kw) => generator(kw.seed ?? args[0])),
     Generator: { k: 'type', name: 'numpy.random.Generator', call: (args: Value[]) => generator(args[0]) },
     RandomState: { k: 'type', name: 'numpy.random.RandomState', call: (args: Value[], kw: Kw) => randomState(kw.seed ?? args[0]) },
-    PCG64: rnd('PCG64', (args) => args[0] ?? NONE), MT19937: rnd('MT19937', (args) => args[0] ?? NONE), SeedSequence: rnd('SeedSequence', (args) => args[0] ?? NONE),
+    PCG64: { k: 'type', name: 'PCG64', call: (args: Value[], kw: Kw) => py.obj(new SeedHolder('PCG64', kw.seed ?? args[0])) },
+    MT19937: { k: 'type', name: 'MT19937', call: (args: Value[], kw: Kw) => py.obj(new SeedHolder('MT19937', kw.seed ?? args[0])) },
+    SeedSequence: { k: 'type', name: 'SeedSequence', call: (args: Value[], kw: Kw) => py.obj(new SeedHolder('SeedSequence', kw.entropy ?? args[0])) },
   })
 }
 

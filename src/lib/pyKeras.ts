@@ -11,6 +11,7 @@ import { PyDict, PyObj, formatSpec, py, repr, toArray } from './minipy'
 import type { ApiKind, ClassValue, FuncValue, Host, HostClass, InstValue, Kw, PyLib, Value } from './minipy'
 import { SandboxRandom } from './ndops'
 import type { FlowRow } from './pyEvents'
+import { spacedBetween } from './npMore'
 import * as C from './tensorCore'
 import { Engine, TT, isFloatT } from './tensorCore'
 import type { GradNode, TDType } from './tensorCore'
@@ -4895,6 +4896,10 @@ class KModel extends KLayer {
       })
       case 'summary': return fn(() => { this.summary(h); return py.NONE })
       case 'build': return fn((args, kw) => {
+        if (!(args[0] ?? kw.input_shape)) {
+          if (this.built || this.inShape) return py.NONE
+          throw h.err('ValueError', 'You must provide an `input_shape` argument.')
+        }
         const s: KShape = h.iterate(args[0] ?? kw.input_shape).map((v) => (v.k === 'none' ? null : h.toInt(v)))
         if (this.mode === 'subclass') {
           const dims = s.map((d) => d ?? 1)
@@ -7301,10 +7306,11 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       if (ix !== 'xy' && ix !== 'ij') throw h.err('ValueError', `Value of argument \`indexing\` must be one of 'xy' or 'ij'. Received: indexing=${ix}`)
       const ts = args.map((a) => T(a, 'meshgrid'))
       const sizes = ts.map((t) => t.size)
-      const shape = ix === 'xy' && sizes.length >= 2 ? [sizes[1], sizes[0], ...sizes.slice(2)] : sizes
+      const swap = ix === 'xy' && sizes.length >= 2
+      const shape = swap ? [sizes[1], sizes[0], ...sizes.slice(2)] : sizes
       return py.list(ts.map((t, k) => {
         const flat = C.reshapeT(E, t, [t.size], false)
-        const axis = ix === 'xy' && k < 2 ? 1 - k : k
+        const axis = swap && k < 2 ? 1 - k : k
         const src = C.crossSrc(shape.map((n, d) => (d === axis ? n : 1)), shape.map((n, d) => (d === axis ? allOf(n) : new Array<number>(n).fill(0))))
         return tfWrap(C.takeT(E, flat, src, shape, 'TakeBackward'))
       }))
@@ -7379,11 +7385,44 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
 
   // keras.ops: the same operations under NumPy-style names
   const aliases: Record<string, string> = { add: 'add', subtract: 'subtract', multiply: 'multiply', divide: 'divide', matmul: 'matmul', sum: 'reduce_sum', mean: 'reduce_mean', max: 'reduce_max', min: 'reduce_min', prod: 'reduce_prod', std: 'reduce_std', var: 'reduce_variance', sqrt: 'sqrt', square: 'square', exp: 'exp', log: 'log', abs: 'abs', absolute: 'abs', sin: 'sin', cos: 'cos', tanh: 'tanh', sigmoid: 'sigmoid', reshape: 'reshape', transpose: 'transpose', concatenate: 'concat', stack: 'stack', expand_dims: 'expand_dims', squeeze: 'squeeze', zeros: 'zeros', ones: 'ones', zeros_like: 'zeros_like', ones_like: 'ones_like', cast: 'cast', convert_to_tensor: 'convert_to_tensor', argmax: 'argmax', argmin: 'argmin', where: 'where', power: 'pow', maximum: 'maximum', minimum: 'minimum', sign: 'sign', floor: 'floor', ceil: 'ceil', round: 'round', one_hot: 'one_hot', tile: 'tile', equal: 'equal', not_equal: 'not_equal', greater: 'greater', less: 'less', tensordot: 'tensordot', sort: 'sort', argsort: 'argsort', eye: 'eye', linspace: 'linspace', arange: 'range', stop_gradient: 'stop_gradient', norm: 'norm' }
+  const opsArg = (name: string, min: boolean) => fnv(name, (args, kw) => {
+    const P = bindArgs(h, name, 'x axis=None keepdims=False', args, kw, null)
+    const t0 = T(P.x, name)
+    const whole = isNone(P.axis)
+    const t = whole ? C.reshapeT(E, t0, [t0.size], false) : t0
+    const out = C.argmax(t, whole ? 0 : h.toInt(P.axis), h.truthy(P.keepdims) && !whole, min)
+    return tfWrap(TT.of(out.values(), out.shape, 'int32'))
+  })
   const ops: Value = {
     k: 'module', name: 'keras.ops', attrs: {
       ...Object.fromEntries(Object.entries(aliases).map(([k, v]) => [k, tf[v]])),
       relu: nnFns.relu, softmax: nnFns.softmax, leaky_relu: nnFns.leaky_relu, gelu: nnFns.gelu, elu: nnFns.elu,
       clip: clipByValue,
+      // keras.ops is NumPy's API: no axis means the whole array, and positions are int32
+      argmax: opsArg('argmax', false),
+      argmin: opsArg('argmin', true),
+      where: fnv('where', (args, kw) => {
+        const cond = args[0] ?? kw.condition
+        const rest = [args[1] ?? kw.x1 ?? kw.x, args[2] ?? kw.x2 ?? kw.y]
+        if (rest[0]) return h.call(tf.where, [cond, rest[0], rest[1]])
+        const t = T(cond, 'where')
+        const hits = t.values().flatMap((v, i) => (v ? [i] : []))
+        const steps = t.shape.map((_, d) => t.shape.slice(d + 1).reduce((p, x) => p * x, 1))
+        return py.list(t.shape.map((n, d) => tfWrap(TT.of(hits.map((i) => Math.floor(i / steps[d]) % n), [hits.length], 'int32'))))
+      }),
+      linspace: fnv('linspace', (args, kw) => {
+        const P = bindArgs(h, 'linspace', 'start stop num=50 endpoint=True !retstep=False dtype=None axis=0', args, kw, null)
+        const nd = spacedBetween(P.start.k === 'obj' ? py.arr(ndFor(T(P.start, 'linspace'))) : P.start, P.stop.k === 'obj' ? py.arr(ndFor(T(P.stop, 'linspace'))) : P.stop, h.toInt(P.num), h.truthy(P.endpoint), h.toInt(P.axis), (x) => x, 'float32')
+        return tfWrap(TT.of(nd.values(), nd.shape, dt(P.dtype) ?? 'float32'))
+      }),
+      tile: fnv('tile', (args, kw) => {
+        const t = T(args[0] ?? kw.x, 'tile')
+        const r = args[1] ?? kw.repeats
+        const counts = r && (r.k === 'int' || r.k === 'float') ? [h.toInt(r)] : h.iterate(r!).map((v) => h.toInt(v))
+        const full = [...new Array<number>(Math.max(0, t.ndim - counts.length)).fill(1), ...counts]
+        const x = counts.length > t.ndim ? C.reshapeT(E, t, [...new Array<number>(counts.length - t.ndim).fill(1), ...t.shape], false) : t
+        return h.call(tf.tile, [tfWrap(x), py.list(full.map(py.int))])
+      }),
       shape: fnv('shape', (args) => {
         const k = kerasOf(args[0])
         return shapeTuple(k ? k.shape : T(args[0], 'shape').shape)

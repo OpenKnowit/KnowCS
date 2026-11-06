@@ -1311,9 +1311,11 @@ const build = (h: Host): Record<string, Value> => {
     const im = readImg(h, a.m, 'm')
     return py.tuple(Array.from({ length: im.c }, (_, c) => toValue({ h: im.h, w: im.w, c: 1, v: im.v.filter((_v, i) => i % im.c === c) }, im.dp)))
   })
+  /** a 1-D array is a Mat of one column */
+  const columnIf1D = (p: NDArray) => (p.ndim === 1 ? NDArray.create(p.values(), [p.size, 1], p.dtype) : p)
   def('merge', 'mv dst', 'move', (a) => {
     required(h, a, 'merge', 'mv')
-    const parts = h.iterate(a.mv!).map((v) => asMat(h, v, 'mv'))
+    const parts = h.iterate(a.mv!).map((v) => asMat(h, v, 'mv')).map(columnIf1D)
     if (!parts.length) throw cvErr(h, '-215:Assertion failed', 'mv && n > 0')
     const [H, W] = parts[0].shape
     if (parts.some((p) => p.shape[0] !== H || p.shape[1] !== W)) throw cvErr(h, '-215:Assertion failed', 'mv[i].size == mv[0].size && mv[i].depth() == depth')
@@ -1326,7 +1328,7 @@ const build = (h: Host): Record<string, Value> => {
   })
   const concat = (name: string, vertical: boolean) => def(name, 'src dst', 'move', (a) => {
     required(h, a, name, 'src')
-    const parts = h.iterate(a.src!).map((v) => asMat(h, v, 'src'))
+    const parts = h.iterate(a.src!).map((v) => asMat(h, v, 'src')).map(columnIf1D)
     const [H0, W0] = parts[0].shape
     const C = parts[0].ndim === 3 ? parts[0].shape[2] : 1
     if (parts.some((p) => (vertical ? p.shape[1] !== W0 : p.shape[0] !== H0) || (p.ndim === 3 ? p.shape[2] : 1) !== C)) throw cvErr(h, '-215:Assertion failed', vertical ? 'src[i].dims <= 2 && src[i].cols == src[0].cols && src[i].type() == src[0].type()' : 'src[i].dims <= 2 && src[i].rows == src[0].rows && src[i].type() == src[0].type()')
