@@ -43,6 +43,8 @@ export interface BenchEntry {
   /** step to open first (api name or event type); default = the last step */
   focus?: string[]
   focusFirst?: boolean
+  /** an entry of the API index: which name it shows, and whether its output was compared with the real library */
+  api?: { module: string; name: string; checked: boolean }
 }
 
 /** What the workbench needs from a library: its examples, where their strings live, and how to run code. */
@@ -114,9 +116,30 @@ function buildSpec(id: LibId): Promise<LibSpec> {
   }))
 }
 
+// One program for each name the sandbox has, from src/data/apiCoverage.json's generator. They come after the written
+// examples, in a group per module, so the sidebar's search finds any API.
+const API_INDEX = import.meta.glob<{ programs: string[]; entries: Record<string, Record<string, [number, number]>> }>('../../data/apiExamples/*.json', { import: 'default' })
+export const API_CAT = 'api '
+export const apiEntryId = (module: string, name: string) => `api.${module}.${name}`
+
+const withApi = async (id: LibId, spec: LibSpec): Promise<LibSpec> => {
+  const load = API_INDEX[`../../data/apiExamples/${id}.json`]
+  if (!load) return spec
+  const { programs, entries } = await load()
+  const api: BenchEntry[] = []
+  const cats: string[] = []
+  for (const [module, names] of Object.entries(entries)) {
+    const list = Object.entries(names)
+    if (!list.length) continue
+    cats.push(API_CAT + module)
+    for (const [name, [at, checked]] of list) api.push({ id: apiEntryId(module, name), cat: API_CAT + module, label: name, code: programs[at], api: { module, name, checked: !!checked } })
+  }
+  return { ...spec, entries: [...spec.entries, ...api], cats: [...spec.cats, ...cats] }
+}
+
 const specs = new Map<LibId, Promise<LibSpec>>()
 /** a library's examples, strings and runner (loaded once per page) */
 export const loadSpec = (id: LibId): Promise<LibSpec> => {
-  if (!specs.has(id)) specs.set(id, buildSpec(id))
+  if (!specs.has(id)) specs.set(id, buildSpec(id).then((s) => withApi(id, s)))
   return specs.get(id)!
 }

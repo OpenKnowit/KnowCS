@@ -1159,6 +1159,37 @@
         "not_found": "That resource no longer exists: reload the page.",
         "server_error": "Something went wrong on the server."
       }
+    },
+    "coverage": {
+      "title": "Playground API coverage",
+      "link": "API coverage",
+      "loading": "Loading…",
+      "lead": "How much of each real library the Playground has. The list of names is taken from the real libraries themselves, so nothing is left out to make the numbers look better. Open a library to see every name; a filled name opens a program that uses it.",
+      "stat_total": "Public names",
+      "stat_has": "Available here",
+      "stat_checked": "Compared with real",
+      "of_has": "of those available",
+      "stat_differs": "Known to differ",
+      "stat_differs_d": "a call printed something else",
+      "legend": "What the colours mean",
+      "search": "Search any name, e.g. nn.LSTM",
+      "filter": "Show",
+      "f_all": "All",
+      "f_has": "Available",
+      "f_missing": "Missing",
+      "f_differs": "Differs",
+      "found_one": "{{n}} match",
+      "found_other": "{{n}} matches",
+      "none": "Nothing here for this filter.",
+      "status": {
+        "c": "Same output as the real library",
+        "e": "Has an example, not compared",
+        "y": "Available, no example yet",
+        "d": "Available, one call printed something else",
+        "x": "Available, one call printed something else",
+        "n": "Not available"
+      },
+      "method": "“Public names” are a module’s __all__, or else every attribute without a leading underscore, leaving out submodules. They include deprecated and internal-looking names, so 100% is not the goal. “Available” means the name exists here: some of its arguments may still be refused, with a message saying so. “Same output” means at least one program using it printed what the real library printed, within rounding; it does not cover every argument. os, shutil and sys are never called automatically, so most of their names show no example."
     }
   },
   "lab": {
@@ -4374,7 +4405,9 @@
       },
       "result": "Result",
       "result_note": "The finished figure, as plt.show() draws it.",
-      "nothing_prints": "What this program draws or builds appears here. This one only prints, so its results are under Output."
+      "nothing_prints": "What this program draws or builds appears here. This one only prints, so its results are under Output.",
+      "api_checked": "From the API index: a short program that uses this name. Its output was compared with the real library.",
+      "api_unchecked": "From the API index: a short program from the test suite that uses this name. Its output has not been compared with the real library."
     },
     "view": {
       "figure_label": "Figure with {{n}} axes",

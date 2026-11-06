@@ -1,0 +1,1284 @@
+{
+ "Axes": [
+  {
+   "name": "artists",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = ax.artists\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ArtistList",
+   "got": "list"
+  },
+  {
+   "name": "barbs",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = ax.barbs([1, 2], [3, 4])\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "Barbs",
+   "got": "NotImplementedError: barbs is not drawn in this sandbox: use quiver"
+  },
+  {
+   "name": "collections",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = ax.collections\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ArtistList",
+   "got": "list"
+  },
+  {
+   "name": "images",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = ax.images\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ArtistList",
+   "got": "list"
+  },
+  {
+   "name": "legend",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(ax.legend())\n",
+   "want": "Legend",
+   "got": "No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.\n<matplotlib.legend.Legend object>"
+  },
+  {
+   "name": "lines",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = ax.lines\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ArtistList",
+   "got": "list"
+  },
+  {
+   "name": "patches",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = ax.patches\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ArtistList",
+   "got": "list"
+  },
+  {
+   "name": "table",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = ax.table(\"a\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "Table",
+   "got": "NotImplementedError: ax.table is not drawn in this sandbox"
+  },
+  {
+   "name": "texts",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = ax.texts\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ArtistList",
+   "got": "list"
+  }
+ ],
+ "DataFrame": [
+  {
+   "name": "astype",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(D.astype(\"a\"))\n",
+   "want": "      a       b\n0  b'1'  b'4.0'\n1  b'2'  b'5.0'\n2  b'3'  b'6.0'",
+   "got": "TypeError: data type 'a' not understood"
+  },
+  {
+   "name": "from_dict",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(D.from_dict(D))\n",
+   "want": "   a    b\n0  1  4.0\n1  2  5.0\n2  3  6.0",
+   "got": "TypeError: from_dict takes a dict"
+  },
+  {
+   "name": "from_records",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(D.from_records(\"a\"))\n",
+   "want": "   0\n0  a",
+   "got": "ValueError: DataFrame constructor not properly called!"
+  },
+  {
+   "name": "iloc",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nr = D.iloc()\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_iLocIndexer",
+   "got": "TypeError: '_iLocIndexer' object is not callable"
+  },
+  {
+   "name": "loc",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nr = D.loc()\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_LocIndexer",
+   "got": "TypeError: '_LocIndexer' object is not callable"
+  },
+  {
+   "name": "replace",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(D.replace())\n",
+   "want": "   a    b\n0  1  4.0\n1  2  5.0\n2  3  6.0",
+   "got": "ValueError: replace: to_replace is required"
+  }
+ ],
+ "Figure": [
+  {
+   "name": "clear",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(fig.clear())\n",
+   "want": "None",
+   "got": "Figure(640x480)"
+  },
+  {
+   "name": "clf",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(fig.clf())\n",
+   "want": "None",
+   "got": "Figure(640x480)"
+  },
+  {
+   "name": "legend",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(fig.legend())\n",
+   "want": "Legend",
+   "got": "No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.\n<matplotlib.legend.Legend object>"
+  }
+ ],
+ "GroupBy": [
+  {
+   "name": "agg",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nr = G.agg(\"a\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "SeriesGroupBy",
+   "got": "AttributeError: 'DataFrameGroupBy' object has no attribute 'a'"
+  },
+  {
+   "name": "aggregate",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nr = G.aggregate(\"a\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "SeriesGroupBy",
+   "got": "AttributeError: 'DataFrameGroupBy' object has no attribute 'a'"
+  },
+  {
+   "name": "apply",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nr = G.apply(\"a\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "SeriesGroupBy",
+   "got": "AttributeError: 'DataFrameGroupBy' object has no attribute 'a'"
+  },
+  {
+   "name": "dtypes",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(G.dtypes)\n",
+   "want": "       a        b\na\n1  int64  float64\n2  int64  float64\n3  int64  float64",
+   "got": "b    float64\ndtype: object"
+  },
+  {
+   "name": "value_counts",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(G.value_counts())\n",
+   "want": "a  b\n1  4.0    1\n2  5.0    1\n3  6.0    1\nName: count, dtype: int64",
+   "got": "NotImplementedError: value_counts after grouping a whole DataFrame is not available in this sandbox: select a column first"
+  }
+ ],
+ "Series": [
+  {
+   "name": "array",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nr = s.array\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "(3,)",
+   "got": "NumpyExtensionArray"
+  },
+  {
+   "name": "astype",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(s.astype(\"a\"))\n",
+   "want": "0    b'3'\n1    b'1'\n2    b'2'\ndtype: bytes168",
+   "got": "TypeError: data type 'a' not understood"
+  },
+  {
+   "name": "explode",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(s.explode())\n",
+   "want": "0    3\n1    1\n2    2\ndtype: int64",
+   "got": "0    3\n1    1\n2    2\ndtype: object"
+  },
+  {
+   "name": "replace",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(s.replace())\n",
+   "want": "0    3\n1    1\n2    2\ndtype: int64",
+   "got": "ValueError: replace: to_replace is required"
+  },
+  {
+   "name": "update",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(s.update(1))\n",
+   "want": "None",
+   "got": "TypeError: expected a list, array or Series, got int"
+  }
+ ],
+ "Series.str": [
+  {
+   "name": "normalize",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(t.str.normalize(1))\n",
+   "want": "0   NaN\n1   NaN\ndtype: float64",
+   "got": "RecursionError: expression too deeply nested"
+  }
+ ],
+ "Tensor": [
+  {
+   "name": "bernoulli",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(t.bernoulli(1))\n",
+   "want": "tensor([[1., 1.],\n        [1., 1.]])",
+   "got": "RuntimeError: Expected p_in >= 0 && p_in <= 1 to be true"
+  },
+  {
+   "name": "pin_memory",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(t.pin_memory())\n",
+   "want": "tensor([[1., 2.],\n        [3., 4.]])",
+   "got": "RuntimeError: Cannot access accelerator device when none is available."
+  }
+ ],
+ "builtins": [
+  {
+   "name": "dir",
+   "src": "print(dir([1, 2, 3]))\n",
+   "want": "['__add__', '__class__', '__class_getitem__', '__contains__', '__delattr__', '__delitem__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__iadd__', '__imul__', '__init__', '__init_subclass__', '__iter__', '__le__', '__len__', '__lt",
+   "got": "[]"
+  },
+  {
+   "name": "enumerate",
+   "src": "r = enumerate([1, 2, 3])\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "enumerate",
+   "got": "list"
+  },
+  {
+   "name": "filter",
+   "src": "r = filter\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "type",
+   "got": "callable"
+  },
+  {
+   "name": "hash",
+   "src": "print(hash(-1.5))\n",
+   "want": "-1152921504606846977",
+   "got": "303380530"
+  },
+  {
+   "name": "map",
+   "src": "r = map\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "type",
+   "got": "callable"
+  },
+  {
+   "name": "reversed",
+   "src": "r = reversed([1, 2, 3])\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "list_reverseiterator",
+   "got": "list"
+  },
+  {
+   "name": "super",
+   "src": "r = super\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "type",
+   "got": "callable"
+  },
+  {
+   "name": "type",
+   "src": "r = type([1, 2, 3])\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "type",
+   "got": "<built-in function shape>"
+  },
+  {
+   "name": "zip",
+   "src": "r = zip([1, 2, 3])\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "zip",
+   "got": "list"
+  }
+ ],
+ "csv": [
+  {
+   "name": "DictWriter",
+   "src": "import csv as M\nr = M.DictWriter\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "type",
+   "got": "callable"
+  }
+ ],
+ "cv2": [
+  {
+   "name": "hconcat",
+   "src": "import numpy as np\nimport cv2\nimg = np.array([[10, 20, 30, 40], [50, 60, 70, 80], [90, 100, 110, 120], [130, 140, 150, 160]], np.uint8)\nf = img.astype(np.float32)\nc = np.stack([img, img, img], axis=2)\nprint(cv2.hconcat(img))\n",
+   "want": "[[ 10  50  90 130]\n [ 20  60 100 140]\n [ 30  70 110 150]\n [ 40  80 120 160]]",
+   "got": "[[]\n []\n []\n []]"
+  },
+  {
+   "name": "merge",
+   "src": "import numpy as np\nimport cv2\nimg = np.array([[10, 20, 30, 40], [50, 60, 70, 80], [90, 100, 110, 120], [130, 140, 150, 160]], np.uint8)\nf = img.astype(np.float32)\nc = np.stack([img, img, img], axis=2)\nprint(cv2.merge(img))\n",
+   "want": "[[[ 10  50  90 130]]\n\n [[ 20  60 100 140]]\n\n [[ 30  70 110 150]]\n\n [[ 40  80 120 160]]]",
+   "got": "RecursionError: expression too deeply nested"
+  },
+  {
+   "name": "rotate",
+   "src": "import numpy as np\nimport cv2\nimg = np.array([[10, 20, 30, 40], [50, 60, 70, 80], [90, 100, 110, 120], [130, 140, 150, 160]], np.uint8)\nf = img.astype(np.float32)\nc = np.stack([img, img, img], axis=2)\nr = cv2.rotate(img, 3)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "(4, 4)",
+   "got": "error: OpenCV(4.13.0) (-215:Assertion failed) rotateCode must be ROTATE_90_CLOCKWISE, ROTATE_180 or ROTATE_90_COUNTERCLOCKWISE"
+  },
+  {
+   "name": "vconcat",
+   "src": "import numpy as np\nimport cv2\nimg = np.array([[10, 20, 30, 40], [50, 60, 70, 80], [90, 100, 110, 120], [130, 140, 150, 160]], np.uint8)\nf = img.astype(np.float32)\nc = np.stack([img, img, img], axis=2)\nprint(cv2.vconcat(img))\n",
+   "want": "[[ 10]\n [ 20]\n [ 30]\n [ 40]\n [ 50]\n [ 60]\n [ 70]\n [ 80]\n [ 90]\n [100]\n [110]\n [120]\n [130]\n [140]\n [150]\n [160]]",
+   "got": "[[]\n []\n []\n []\n []\n []\n []\n []\n []\n []\n []\n []\n []\n []\n []\n []]"
+  }
+ ],
+ "cv2 constants": [
+  {
+   "name": "VideoWriter",
+   "src": "import numpy as np\nimport cv2\nimg = np.array([[10, 20, 30, 40], [50, 60, 70, 80], [90, 100, 110, 120], [130, 140, 150, 160]], np.uint8)\nf = img.astype(np.float32)\nc = np.stack([img, img, img], axis=2)\nr = cv2.VideoWriter\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "type",
+   "got": "callable"
+  }
+ ],
+ "datetime": [
+  {
+   "name": "date",
+   "src": "import datetime as M\nr = M.date\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "type",
+   "got": "callable"
+  },
+  {
+   "name": "datetime",
+   "src": "import datetime as M\nr = M.datetime\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "type",
+   "got": "callable"
+  }
+ ],
+ "enum": [
+  {
+   "name": "Enum",
+   "src": "import enum as M\nr = M.Enum(\"a\", \"a b\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "EnumMeta",
+   "got": "type"
+  },
+  {
+   "name": "Flag",
+   "src": "import enum as M\nr = M.Flag(\"a\", \"a b\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "EnumMeta",
+   "got": "type"
+  },
+  {
+   "name": "IntEnum",
+   "src": "import enum as M\nr = M.IntEnum(\"a\", \"a b\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "EnumMeta",
+   "got": "type"
+  },
+  {
+   "name": "IntFlag",
+   "src": "import enum as M\nr = M.IntFlag(\"a\", \"a b\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "EnumMeta",
+   "got": "type"
+  }
+ ],
+ "functools": [
+  {
+   "name": "cached_property",
+   "src": "import functools as M\nr = M.cached_property(2.5)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "cached_property",
+   "got": "property"
+  },
+  {
+   "name": "cmp_to_key",
+   "src": "import functools as M\nr = M.cmp_to_key(2.5)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "KeyWrapper",
+   "got": "callable"
+  },
+  {
+   "name": "partial",
+   "src": "import functools as M\nr = M.partial\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "type",
+   "got": "callable"
+  },
+  {
+   "name": "total_ordering",
+   "src": "import functools as M\nprint(M.total_ordering(2.5))\n",
+   "want": "2.5",
+   "got": "TypeError: total_ordering() was given a missing or wrong argument"
+  },
+  {
+   "name": "wraps",
+   "src": "import functools as M\nprint(M.wraps(2.5))\n",
+   "want": "functools.partial(<function update_wrapper>, wrapped=2.5, assigned=('__module__', '__name__', '__qualname__', '__doc__', '__annotations__'), updated=('__dict__',))",
+   "got": "<built-in function decorator>"
+  }
+ ],
+ "inspect": [
+  {
+   "name": "Signature",
+   "src": "import inspect as M\nprint(M.Signature(\"\"))\n",
+   "want": "()",
+   "got": "NotImplementedError: inspect.Signature cannot be built in this sandbox: use inspect.signature"
+  },
+  {
+   "name": "getdoc",
+   "src": "import inspect as M\nprint(M.getdoc(2.5))\n",
+   "want": "Convert a string or number to a floating point number, if possible.",
+   "got": "None"
+  }
+ ],
+ "itertools": [
+  {
+   "name": "count",
+   "src": "import itertools as M\nprint(M.count(2.5))\n",
+   "want": "count(2.5)",
+   "got": "<count object>"
+  },
+  {
+   "name": "repeat",
+   "src": "import itertools as M\nprint(M.repeat(2.5))\n",
+   "want": "repeat(2.5)",
+   "got": "<repeat object>"
+  }
+ ],
+ "keras.Model": [
+  {
+   "name": "build",
+   "src": "import numpy as np\nimport keras\nfrom keras import layers\nx = np.array([[1., 2.], [3., 4.]], dtype=\"float32\")\nm = keras.Sequential([layers.Input((2,)), layers.Dense(1)])\nprint(m.build())\n",
+   "want": "None",
+   "got": "InternalError: Cannot read properties of undefined (reading 'k')"
+  }
+ ],
+ "keras.models": [
+  {
+   "name": "clone_model",
+   "src": "import numpy as np\nimport keras\nfrom keras import layers\nx = np.array([[1., 2.], [3., 4.]], dtype=\"float32\")\nprint(keras.models.clone_model(x))\n",
+   "want": "[[1. 2.]\n [3. 4.]]",
+   "got": "ValueError: Expected `model` argument to be a `Model` instance, got array([[1., 2.],\n       [3., 4.]], dtype=float32)"
+  }
+ ],
+ "keras.ops": [
+  {
+   "name": "argmax",
+   "src": "import numpy as np\nimport keras\nfrom keras import layers\nx = np.array([[1., 2.], [3., 4.]], dtype=\"float32\")\nprint(keras.ops.argmax(x))\n",
+   "want": "tf.Tensor(3, shape=(), dtype=int32)",
+   "got": "tf.Tensor([1 1], shape=(2,), dtype=int64)"
+  },
+  {
+   "name": "argmin",
+   "src": "import numpy as np\nimport keras\nfrom keras import layers\nx = np.array([[1., 2.], [3., 4.]], dtype=\"float32\")\nprint(keras.ops.argmin(x))\n",
+   "want": "tf.Tensor(0, shape=(), dtype=int32)",
+   "got": "tf.Tensor([0 0], shape=(2,), dtype=int64)"
+  },
+  {
+   "name": "linspace",
+   "src": "import numpy as np\nimport keras\nfrom keras import layers\nx = np.array([[1., 2.], [3., 4.]], dtype=\"float32\")\nprint(keras.ops.linspace(x, x))\n",
+   "want": "tf.Tensor(\n[[[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[",
+   "got": "TypeError: linspace() missing 1 required positional argument: 'num'"
+  },
+  {
+   "name": "tile",
+   "src": "import numpy as np\nimport keras\nfrom keras import layers\nx = np.array([[1., 2.], [3., 4.]], dtype=\"float32\")\nprint(keras.ops.tile(x, x))\n",
+   "want": "tf.Tensor(\n[[[[1. 2. 1. 2. 1. 2. 1. 2.]\n   [3. 4. 3. 4. 3. 4. 3. 4.]\n   [1. 2. 1. 2. 1. 2. 1. 2.]\n   [3. 4. 3. 4. 3. 4. 3. 4.]\n   [1. 2. 1. 2. 1. 2. 1. 2.]\n   [3. 4. 3. 4. 3. 4. 3. 4.]]\n\n  [[1. 2. 1. 2. 1. 2. 1. 2.]\n   [3. 4. 3. 4. 3. 4. 3. 4.]\n   [1. 2. 1. 2. 1. 2. 1. 2.]\n   [3. 4. 3. 4. 3. 4. 3. 4",
+   "got": "TypeError: 'numpy.ndarray' object cannot be interpreted as an integer"
+  },
+  {
+   "name": "where",
+   "src": "import numpy as np\nimport keras\nfrom keras import layers\nx = np.array([[1., 2.], [3., 4.]], dtype=\"float32\")\nprint(keras.ops.where(x))\n",
+   "want": "[<tf.Tensor: shape=(4,), dtype=int32, numpy=array([0, 0, 1, 1], dtype=int32)>, <tf.Tensor: shape=(4,), dtype=int32, numpy=array([0, 1, 0, 1], dtype=int32)>]",
+   "got": "tf.Tensor(\n[[0 0]\n [0 1]\n [1 0]\n [1 1]], shape=(4, 2), dtype=int64)"
+  }
+ ],
+ "nn.Module": [
+  {
+   "name": "parameters",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nr = nn.Linear(2, 1).parameters(t)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "generator",
+   "got": "RuntimeError: Boolean value of Tensor with more than one value is ambiguous"
+  },
+  {
+   "name": "zero_grad",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(nn.Linear(2, 1).zero_grad(t))\n",
+   "want": "None",
+   "got": "RuntimeError: Boolean value of Tensor with more than one value is ambiguous"
+  }
+ ],
+ "nn.functional": [
+  {
+   "name": "alpha_dropout",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(F.alpha_dropout(t))\n",
+   "want": "tensor([[1., 2.],\n        [3., 4.]])",
+   "got": "tensor([[-2.3495,  0.9756],\n        [ 1.8550, -2.3495]])"
+  },
+  {
+   "name": "feature_alpha_dropout",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(F.feature_alpha_dropout(t))\n",
+   "want": "tensor([[1., 2.],\n        [3., 4.]])",
+   "got": "tensor([[-2.3495,  0.9756],\n        [ 1.8550, -2.3495]])"
+  },
+  {
+   "name": "hinge_embedding_loss",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(F.hinge_embedding_loss(t, t))\n",
+   "want": "tensor(2.5000)",
+   "got": "tensor(0.2500)"
+  }
+ ],
+ "np": [
+  {
+   "name": "apply_along_axis",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.apply_along_axis\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "apply_over_axes",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.apply_over_axes\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "bitwise_and",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.bitwise_and\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ufunc",
+   "got": "callable"
+  },
+  {
+   "name": "bitwise_left_shift",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.bitwise_left_shift\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ufunc",
+   "got": "callable"
+  },
+  {
+   "name": "bitwise_or",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.bitwise_or\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ufunc",
+   "got": "callable"
+  },
+  {
+   "name": "bitwise_right_shift",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.bitwise_right_shift\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ufunc",
+   "got": "callable"
+  },
+  {
+   "name": "bitwise_xor",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.bitwise_xor\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ufunc",
+   "got": "callable"
+  },
+  {
+   "name": "broadcast_to",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.broadcast_to\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "c_",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.c_\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "CClass",
+   "got": "IndexClass"
+  },
+  {
+   "name": "can_cast",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.can_cast\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "character",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.character\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.generic' objects>",
+   "got": "type"
+  },
+  {
+   "name": "choose",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.choose\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "complexfloating",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.complexfloating\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.generic' objects>",
+   "got": "type"
+  },
+  {
+   "name": "dsplit",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.dsplit\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "dtype",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.dtype\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.dtype' objects>",
+   "got": "type"
+  },
+  {
+   "name": "einsum",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.einsum\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "empty",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.empty((2, 2)))\n",
+   "want": "[[1. 2.]\n [3. 4.]]",
+   "got": "[[0. 0.]\n [0. 0.]]"
+  },
+  {
+   "name": "empty_like",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.empty_like(x))\n",
+   "want": "[[1. 2.]\n [3. 4.]]",
+   "got": "[[0. 0.]\n [0. 0.]]"
+  },
+  {
+   "name": "finfo",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.finfo(0.5))\n",
+   "want": "Machine parameters for float64\n---------------------------------------------------------------\nprecision =  15   resolution = 1.0000000000000001e-15\nmachep =    -52   eps =        2.2204460492503131e-16\nnegep =     -53   epsneg =     1.1102230246251565e-16\nminexp =  -1022   tiny =       2.2250738585",
+   "got": "finfo(resolution=1e-15, min=-1.7976931348623157e+308, max=1.7976931348623157e+308, dtype=float64)"
+  },
+  {
+   "name": "flexible",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.flexible\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.generic' objects>",
+   "got": "type"
+  },
+  {
+   "name": "floating",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.floating\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.generic' objects>",
+   "got": "type"
+  },
+  {
+   "name": "frexp",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.frexp(x))\n",
+   "want": "(array([[0.5 , 0.5 ],\n       [0.75, 0.5 ]]), array([[1, 2],\n       [2, 3]], dtype=int32))",
+   "got": "(array([[0.5 , 0.5 ],\n       [0.75, 0.5 ]]), array([[1, 2],\n       [2, 3]]))"
+  },
+  {
+   "name": "fromstring",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.fromstring(x))\n",
+   "want": "[1. 2. 3. 4.]",
+   "got": "InternalError: Cannot read properties of undefined (reading 'split')"
+  },
+  {
+   "name": "full_like",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.full_like(x, x))\n",
+   "want": "[[1. 2.]\n [3. 4.]]",
+   "got": "[[nan nan]\n [nan nan]]"
+  },
+  {
+   "name": "gcd",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.gcd\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ufunc",
+   "got": "callable"
+  },
+  {
+   "name": "generic",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.generic\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.generic' objects>",
+   "got": "type"
+  },
+  {
+   "name": "geomspace",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.geomspace(x, x))\n",
+   "want": "[[[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3",
+   "got": "TypeError: expected a number, got 'numpy.ndarray'"
+  },
+  {
+   "name": "hstack",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.hstack(x))\n",
+   "want": "[1. 2. 3. 4.]",
+   "got": "TypeError: hstack() expects a sequence of arrays, e.g. hstack([a, b])"
+  },
+  {
+   "name": "iinfo",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.iinfo(3))\n",
+   "want": "Machine parameters for int64\n---------------------------------------------------------------\nmin = -9223372036854775808\nmax = 9223372036854775807\n---------------------------------------------------------------",
+   "got": "ValueError: Invalid integer data type 3"
+  },
+  {
+   "name": "index_exp",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.index_exp\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "IndexExpression",
+   "got": "IndexClass"
+  },
+  {
+   "name": "inexact",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.inexact\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.generic' objects>",
+   "got": "type"
+  },
+  {
+   "name": "info",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.info((2, 2))\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "Built-in immutable sequence.\n\nIf no argument is given, the constructor returns an empty tuple.\nIf iterable is specified the tuple is initialized from iterable's items.\n\nIf the argument is a tuple, the return value is the same object.\nNoneType",
+   "got": "The sandbox has no documentation for this; see numpy.org.\nNoneType"
+  },
+  {
+   "name": "insert",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.insert\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "integer",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.integer\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.generic' objects>",
+   "got": "type"
+  },
+  {
+   "name": "interp",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.interp\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "lcm",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.lcm\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ufunc",
+   "got": "callable"
+  },
+  {
+   "name": "left_shift",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.left_shift\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ufunc",
+   "got": "callable"
+  },
+  {
+   "name": "linspace",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.linspace(x, x))\n",
+   "want": "[[[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3. 4.]]\n\n [[1. 2.]\n  [3",
+   "got": "[nan nan nan nan nan nan nan nan nan nan nan nan nan nan nan nan nan nan\n nan nan nan nan nan nan nan nan nan nan nan nan nan nan nan nan nan nan\n nan nan nan nan nan nan nan nan nan nan nan nan nan nan]"
+  },
+  {
+   "name": "logspace",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.logspace(x, x))\n",
+   "want": "[[[   10.   100.]\n  [ 1000. 10000.]]\n\n [[   10.   100.]\n  [ 1000. 10000.]]\n\n [[   10.   100.]\n  [ 1000. 10000.]]\n\n [[   10.   100.]\n  [ 1000. 10000.]]\n\n [[   10.   100.]\n  [ 1000. 10000.]]\n\n [[   10.   100.]\n  [ 1000. 10000.]]\n\n [[   10.   100.]\n  [ 1000. 10000.]]\n\n [[   10.   100.]\n  [ 1000. 10000.",
+   "got": "TypeError: expected a number, got 'numpy.ndarray'"
+  },
+  {
+   "name": "meshgrid",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.meshgrid(x))\n",
+   "want": "(array([1., 2., 3., 4.]),)",
+   "got": "NotImplementedError: meshgrid takes two 1-D arrays (x, y) in this sandbox"
+  },
+  {
+   "name": "mgrid",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.mgrid\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "MGridClass",
+   "got": "IndexClass"
+  },
+  {
+   "name": "moveaxis",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.moveaxis\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "nanpercentile",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.nanpercentile(x, x))\n",
+   "want": "[[1.03 1.06]\n [1.09 1.12]]",
+   "got": "TypeError: expected a number, got 'numpy.ndarray'"
+  },
+  {
+   "name": "ndarray",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.ndarray((2, 2)))\n",
+   "want": "[[1. 2.]\n [3. 4.]]",
+   "got": "TypeError: use np.array / np.zeros to create arrays"
+  },
+  {
+   "name": "number",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.number\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.generic' objects>",
+   "got": "type"
+  },
+  {
+   "name": "ogrid",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.ogrid\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "OGridClass",
+   "got": "IndexClass"
+  },
+  {
+   "name": "permute_dims",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.permute_dims(x))\n",
+   "want": "[[1. 3.]\n [2. 4.]]",
+   "got": "InternalError: Cannot read properties of undefined (reading 'k')"
+  },
+  {
+   "name": "piecewise",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.piecewise\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "place",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.place\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "polyfit",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.polyfit\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "polysub",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.polysub(x, x))\n",
+   "want": "[[0. 0.]\n [0. 0.]]",
+   "got": "[0.]"
+  },
+  {
+   "name": "printoptions",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.printoptions(x)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_GeneratorContextManager",
+   "got": "printoptions"
+  },
+  {
+   "name": "put",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.put\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "put_along_axis",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.put_along_axis\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "putmask",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.putmask\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "r_",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.r_\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "RClass",
+   "got": "IndexClass"
+  },
+  {
+   "name": "ravel_multi_index",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.ravel_multi_index\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "reshape",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.reshape\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "right_shift",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.right_shift\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ufunc",
+   "got": "callable"
+  },
+  {
+   "name": "row_stack",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.row_stack(x))\n",
+   "want": "[[1. 2.]\n [3. 4.]]",
+   "got": "TypeError: vstack() expects a sequence of arrays, e.g. vstack([a, b])"
+  },
+  {
+   "name": "s_",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.s_\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "IndexExpression",
+   "got": "IndexClass"
+  },
+  {
+   "name": "signedinteger",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.signedinteger\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.generic' objects>",
+   "got": "type"
+  },
+  {
+   "name": "stack",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.stack(x))\n",
+   "want": "[[1. 2.]\n [3. 4.]]",
+   "got": "TypeError: stack() expects a sequence of arrays, e.g. stack([a, b])"
+  },
+  {
+   "name": "swapaxes",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.swapaxes\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "take_along_axis",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.take_along_axis\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "unpackbits",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.unpackbits\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "unravel_index",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.unravel_index\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "unsignedinteger",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.unsignedinteger\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<attribute 'shape' of 'numpy.generic' objects>",
+   "got": "type"
+  },
+  {
+   "name": "vectorize",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.vectorize()\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "vectorize",
+   "got": "callable"
+  },
+  {
+   "name": "vstack",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.vstack(x))\n",
+   "want": "[[1. 2.]\n [3. 4.]]",
+   "got": "TypeError: vstack() expects a sequence of arrays, e.g. vstack([a, b])"
+  }
+ ],
+ "np.linalg": [
+  {
+   "name": "cross",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.linalg.cross\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "outer",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.linalg.outer\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  },
+  {
+   "name": "tensordot",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.linalg.tensordot\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_ArrayFunctionDispatcher",
+   "got": "callable"
+  }
+ ],
+ "np.random": [
+  {
+   "name": "MT19937",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.random.MT19937(5)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "MT19937",
+   "got": "int"
+  },
+  {
+   "name": "PCG64",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nr = np.random.PCG64(5)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "PCG64",
+   "got": "int"
+  },
+  {
+   "name": "SeedSequence",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.random.SeedSequence(5))\n",
+   "want": "SeedSequence(\n    entropy=5,\n)",
+   "got": "5"
+  },
+  {
+   "name": "randint",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.random.randint(1., size=3))\n",
+   "want": "[0 0 0]",
+   "got": "TypeError: 'float' object cannot be interpreted as an integer"
+  },
+  {
+   "name": "random_integers",
+   "src": "import numpy as np\nx = np.array([[1., 2.], [3., 4.]])\nv = np.array([1., 2., 3.])\nprint(np.random.random_integers(1., size=3))\n",
+   "want": "[1 1 1]",
+   "got": "TypeError: 'float' object cannot be interpreted as an integer"
+  }
+ ],
+ "operator": [
+  {
+   "name": "attrgetter",
+   "src": "import operator as M\nprint(M.attrgetter(\"a b\"))\n",
+   "want": "operator.attrgetter('a b')",
+   "got": "<built-in function attrgetter>"
+  },
+  {
+   "name": "itemgetter",
+   "src": "import operator as M\nprint(M.itemgetter(2.5))\n",
+   "want": "operator.itemgetter(2.5)",
+   "got": "<built-in function itemgetter>"
+  },
+  {
+   "name": "methodcaller",
+   "src": "import operator as M\nprint(M.methodcaller(\"a b\"))\n",
+   "want": "operator.methodcaller('a b')",
+   "got": "<built-in function methodcaller>"
+  }
+ ],
+ "pd": [
+  {
+   "name": "NA",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nr = pd.NA\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "NAType",
+   "got": "float"
+  },
+  {
+   "name": "RangeIndex",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nr = pd.RangeIndex\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<property object>",
+   "got": "type"
+  },
+  {
+   "name": "get_option",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nr = pd.get_option\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "CallableDynamicDoc",
+   "got": "callable"
+  },
+  {
+   "name": "json_normalize",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nprint(pd.json_normalize(D))\n",
+   "want": "Empty DataFrame\nColumns: []\nIndex: [0, 1]",
+   "got": "NotImplementedError: json_normalize takes dicts here, got str"
+  },
+  {
+   "name": "reset_option",
+   "src": "import pandas as pd\nimport numpy as np\nD = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ns = pd.Series([3, 1, 2])\nt = pd.Series(['Ab c', 'de'])\nG = D.groupby('a')\nr = pd.reset_option\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "CallableDynamicDoc",
+   "got": "callable"
+  }
+ ],
+ "plt": [
+  {
+   "name": "barbs",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = plt.barbs([1, 2], [3, 4])\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "Barbs",
+   "got": "NotImplementedError: barbs is not drawn in this sandbox: use quiver"
+  },
+  {
+   "name": "colormaps",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.colormaps())\n",
+   "want": "['magma', 'inferno', 'plasma', 'viridis', 'cividis', 'twilight', 'twilight_shifted', 'turbo', 'berlin', 'managua', 'vanimo', 'Blues', 'BrBG', 'BuGn', 'BuPu', 'CMRmap', 'GnBu', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn', 'PiYG', 'PuBu', 'PuBuGn', 'PuOr', 'PuRd', 'Purples', 'RdBu', 'RdGy', 'RdPu', '",
+   "got": "TypeError: 'ColormapRegistry' object is not callable"
+  },
+  {
+   "name": "figlegend",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.figlegend())\n",
+   "want": "Legend",
+   "got": "No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.\n<matplotlib.legend.Legend object>"
+  },
+  {
+   "name": "fignum_exists",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.fignum_exists([1, 2, 3]))\n",
+   "want": "False",
+   "got": "TypeError: expected a number, got 'list'"
+  },
+  {
+   "name": "get",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.get([1, 2, 3]))\n",
+   "want": "\nNone",
+   "got": "AttributeError: 'list' object has no attribute 'get'"
+  },
+  {
+   "name": "getp",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.getp([1, 2, 3]))\n",
+   "want": "\nNone",
+   "got": "AttributeError: 'list' object has no attribute 'get'"
+  },
+  {
+   "name": "legend",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.legend())\n",
+   "want": "Legend",
+   "got": "No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.\n<matplotlib.legend.Legend object>"
+  },
+  {
+   "name": "polar",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.polar())\n",
+   "want": "[]",
+   "got": "NotImplementedError: polar axes are not drawn in this sandbox"
+  },
+  {
+   "name": "rcParams",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.rcParams)\n",
+   "want": "_internal.classic_mode: False\nagg.path.chunksize: 0\nanimation.bitrate: -1\nanimation.codec: h264\nanimation.convert_args: ['-layers', 'OptimizePlus']\nanimation.convert_path: convert\nanimation.embed_limit: 20.0\nanimation.ffmpeg_args: []\nanimation.ffmpeg_path: ffmpeg\nanimation.frame_format: png\nanimatio",
+   "got": "RcParams({...})"
+  },
+  {
+   "name": "rcParamsDefault",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.rcParamsDefault)\n",
+   "want": "_internal.classic_mode: False\nagg.path.chunksize: 0\nanimation.bitrate: -1\nanimation.codec: h264\nanimation.convert_args: ['-layers', 'OptimizePlus']\nanimation.convert_path: convert\nanimation.embed_limit: 20.0\nanimation.ffmpeg_args: []\nanimation.ffmpeg_path: ffmpeg\nanimation.frame_format: png\nanimatio",
+   "got": "RcParams({...})"
+  },
+  {
+   "name": "rc_context",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = plt.rc_context()\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_GeneratorContextManager",
+   "got": "rc_context"
+  },
+  {
+   "name": "setp",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.setp([1, 2, 3]))\n",
+   "want": "\nNone",
+   "got": "[]"
+  },
+  {
+   "name": "table",
+   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = plt.table(\"a\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "Table",
+   "got": "NotImplementedError: ax.table is not drawn in this sandbox"
+  }
+ ],
+ "re": [
+  {
+   "name": "DOTALL",
+   "src": "import re as M\nprint(M.DOTALL)\n",
+   "want": "re.DOTALL",
+   "got": "16"
+  },
+  {
+   "name": "I",
+   "src": "import re as M\nprint(M.I)\n",
+   "want": "re.IGNORECASE",
+   "got": "2"
+  },
+  {
+   "name": "IGNORECASE",
+   "src": "import re as M\nprint(M.IGNORECASE)\n",
+   "want": "re.IGNORECASE",
+   "got": "2"
+  },
+  {
+   "name": "M",
+   "src": "import re as M\nprint(M.M)\n",
+   "want": "re.MULTILINE",
+   "got": "8"
+  },
+  {
+   "name": "MULTILINE",
+   "src": "import re as M\nprint(M.MULTILINE)\n",
+   "want": "re.MULTILINE",
+   "got": "8"
+  },
+  {
+   "name": "S",
+   "src": "import re as M\nprint(M.S)\n",
+   "want": "re.DOTALL",
+   "got": "16"
+  },
+  {
+   "name": "VERBOSE",
+   "src": "import re as M\nprint(M.VERBOSE)\n",
+   "want": "re.VERBOSE",
+   "got": "64"
+  },
+  {
+   "name": "X",
+   "src": "import re as M\nprint(M.X)\n",
+   "want": "re.VERBOSE",
+   "got": "64"
+  }
+ ],
+ "tf": [
+  {
+   "name": "Tensor",
+   "src": "import numpy as np\nimport tensorflow as tf\nx = tf.constant([[1., 2.], [3., 4.]])\nv = tf.constant([1., 2., 3.])\nd = tf.data.Dataset.range(4)\nr = tf.Tensor\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "<property object>",
+   "got": "type"
+  },
+  {
+   "name": "boolean_mask",
+   "src": "import numpy as np\nimport tensorflow as tf\nx = tf.constant([[1., 2.], [3., 4.]])\nv = tf.constant([1., 2., 3.])\nd = tf.data.Dataset.range(4)\nprint(tf.boolean_mask(x, x))\n",
+   "want": "tf.Tensor([1. 2. 3. 4.], shape=(4,), dtype=float32)",
+   "got": "TypeError: Value for attr 'T' of float32 is not in the list of allowed values: bool"
+  },
+  {
+   "name": "device",
+   "src": "import numpy as np\nimport tensorflow as tf\nx = tf.constant([[1., 2.], [3., 4.]])\nv = tf.constant([1., 2., 3.])\nd = tf.data.Dataset.range(4)\nr = tf.device(x)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "_EagerDeviceContext",
+   "got": "device"
+  },
+  {
+   "name": "meshgrid",
+   "src": "import numpy as np\nimport tensorflow as tf\nx = tf.constant([[1., 2.], [3., 4.]])\nv = tf.constant([1., 2., 3.])\nd = tf.data.Dataset.range(4)\nprint(tf.meshgrid(x))\n",
+   "want": "[<tf.Tensor: shape=(4,), dtype=float32, numpy=array([1., 2., 3., 4.], dtype=float32)>]",
+   "got": "[<tf.Tensor: shape=(4,), dtype=float32, numpy=array([1., 1., 1., 1.], dtype=float32)>]"
+  },
+  {
+   "name": "name_scope",
+   "src": "import numpy as np\nimport tensorflow as tf\nx = tf.constant([[1., 2.], [3., 4.]])\nv = tf.constant([1., 2., 3.])\nd = tf.data.Dataset.range(4)\nr = tf.name_scope\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ABCMeta",
+   "got": "callable"
+  }
+ ],
+ "tf.linalg": [
+  {
+   "name": "det",
+   "src": "import numpy as np\nimport tensorflow as tf\nx = tf.constant([[1., 2.], [3., 4.]])\nv = tf.constant([1., 2., 3.])\nd = tf.data.Dataset.range(4)\nprint(tf.linalg.det(x))\n",
+   "want": "tf.Tensor(-2.0, shape=(), dtype=float32)",
+   "got": "tf.Tensor(-1.9999999, shape=(), dtype=float32)"
+  }
+ ],
+ "torch": [
+  {
+   "name": "bernoulli",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(torch.bernoulli(t, 1))\n",
+   "want": "tensor([[1., 1.],\n        [1., 1.]])",
+   "got": "RuntimeError: Expected p_in >= 0 && p_in <= 1 to be true"
+  },
+  {
+   "name": "binary_cross_entropy_with_logits",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(torch.binary_cross_entropy_with_logits(t, t))\n",
+   "want": "tensor([[  0.3133,  -1.8731],\n        [ -5.9514, -11.9818]])",
+   "got": "tensor(-4.8733)"
+  },
+  {
+   "name": "cholesky_inverse",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(torch.cholesky_inverse(t))\n",
+   "want": "tensor([[ 1.5625, -0.1875],\n        [-0.1875,  0.0625]])",
+   "got": "tensor([[ 6.2500, -2.7500],\n        [-2.7500,  1.2500]])"
+  },
+  {
+   "name": "hinge_embedding_loss",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(torch.hinge_embedding_loss(t, t))\n",
+   "want": "tensor([[1., 2.],\n        [3., 4.]])",
+   "got": "tensor(0.2500)"
+  },
+  {
+   "name": "histogram",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(torch.histogram(t))\n",
+   "want": "torch.return_types.histogram(\nhist=tensor([1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,\n        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n        0., 0., 0., 0., 0",
+   "got": "TypeError: histogram() missing 1 required positional arguments: \"bins\""
+  },
+  {
+   "name": "rrelu_",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(torch.rrelu_(t))\n",
+   "want": "tensor([[1., 2.],\n        [3., 4.]])",
+   "got": "NotImplementedError: torch.rrelu_ is not available in this sandbox"
+  }
+ ],
+ "torch.autograd": [
+  {
+   "name": "Function",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nr = torch.autograd.Function(t)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "Function",
+   "got": "TypeError: torch.autograd.function.Function() takes no arguments"
+  }
+ ],
+ "torch.nn": [
+  {
+   "name": "Buffer",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nprint(nn.Buffer())\n",
+   "want": "tensor([])",
+   "got": "TypeError: Buffer(): argument 'data' (position 1) must be Tensor, not NoneType"
+  }
+ ],
+ "typing": [
+  {
+   "name": "Annotated",
+   "src": "import typing as M\nr = M.Annotated\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "type",
+   "got": "_GenericAlias"
+  },
+  {
+   "name": "Generic",
+   "src": "import typing as M\nr = M.Generic()\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "Generic",
+   "got": "NoneType"
+  },
+  {
+   "name": "NamedTuple",
+   "src": "import typing as M\nr = M.NamedTuple\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "callable",
+   "got": "_GenericAlias"
+  },
+  {
+   "name": "Protocol",
+   "src": "import typing as M\nr = M.Protocol()\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "Protocol",
+   "got": "NoneType"
+  },
+  {
+   "name": "TypeVar",
+   "src": "import typing as M\nprint(M.TypeVar(\"a b\"))\n",
+   "want": "~a b",
+   "got": "a b"
+  }
+ ],
+ "utils.data": [
+  {
+   "name": "IterableDataset",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nr = torch.utils.data.IterableDataset\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "ABCMeta",
+   "got": "type"
+  },
+  {
+   "name": "Subset",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nr = torch.utils.data.Subset(t, t)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "Subset",
+   "got": "TypeError: only integer tensors of a single element can be converted to an index"
+  },
+  {
+   "name": "SubsetRandomSampler",
+   "src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.utils.data\nimport torch.distributions\nt = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 2., 3.])\nr = torch.utils.data.SubsetRandomSampler(t)\nprint(getattr(r, \"shape\", type(r).__name__))\n",
+   "want": "SubsetRandomSampler",
+   "got": "TypeError: only integer tensors of a single element can be converted to an index"
+  }
+ ]
+}

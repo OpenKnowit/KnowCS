@@ -11,7 +11,7 @@ import { KIND } from './kinds'
 import type { StepKind } from './kinds'
 import { RealConsole, RealFigures } from './RealOutput'
 import { realErrorLine, useEngineChoice, useEngineState, useRealRun, useWarmEngine } from './useEngine'
-import { LIBS } from './libs'
+import { API_CAT, LIBS } from './libs'
 import { useLazyLibs } from './useLazyLibs'
 import type { BenchEntry, BenchProps, LibId, LibSpec } from './libs'
 
@@ -130,10 +130,11 @@ export function ExamplesSidebar({ lib, entryId, specs, onPick, onCollapse }: Sid
           <PanelLeftClose size={16} aria-hidden />
         </button>
       </div>
+      <a href="/playground/coverage/" className="mx-3 mb-1.5 block text-[11.5px] font-semibold text-blue-700 underline-offset-2 hover:underline">{t('site.coverage.link')}</a>
       <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
         {LIBS.map((l) => {
           const s = specs[l.id]
-          const hit = (e: BenchEntry) => !q || e.label.toLowerCase().includes(q) || (s ? t(s.explainKey(e.id)).toLowerCase().includes(q) : false)
+          const hit = (e: BenchEntry) => !q || e.label.toLowerCase().includes(q) || (e.api ? `${e.api.module}.${e.api.name}`.toLowerCase().includes(q) : s ? t(s.explainKey(e.id)).toLowerCase().includes(q) : false)
           const matches = s ? s.entries.filter(hit) : []
           if (q && !matches.length) return null
           const open = q !== '' || openLibs.has(l.id)
@@ -157,7 +158,7 @@ export function ExamplesSidebar({ lib, entryId, specs, onPick, onCollapse }: Sid
                         <div key={c}>
                           <button type="button" onClick={() => flip(setOpenCats, key)} aria-expanded={expanded} className="flex w-full items-center gap-1.5 rounded-md py-1.5 pl-7 pr-2 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500 hover:text-slate-800">
                             <ChevronRight size={12} className={`shrink-0 transition-transform duration-150 ${expanded ? 'rotate-90' : ''}`} aria-hidden />
-                            <span className="flex-1 truncate">{t(s.catKey(c))}</span>
+                            <span className="flex-1 truncate">{c.startsWith(API_CAT) ? <><span className="font-normal text-slate-400">API</span> {c.slice(API_CAT.length)}</> : t(s.catKey(c))}</span>
                             <span className="font-mono font-normal">{list.length}</span>
                           </button>
                           {expanded &&
@@ -221,6 +222,7 @@ export function Gallery({ lib, specs, onPick, onClose }: GalleryProps) {
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
             <LayoutGrid size={18} className="text-blue-600" aria-hidden /> {t('site.playground.gallery')}
+            <a href="/playground/coverage/" className="ml-2 text-[13px] font-semibold text-blue-700 underline-offset-2 hover:underline">{t('site.coverage.link')}</a>
           </h2>
           <button ref={closeRef} type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-[9px] border border-slate-200 text-slate-600 hover:text-slate-900" aria-label={t('site.ui.close')}>
             <X size={18} aria-hidden />
@@ -240,7 +242,14 @@ export function Gallery({ lib, specs, onPick, onClose }: GalleryProps) {
                 {s ? (
                   s.cats.map((c) => (
                     <section key={c} className="mb-4 mt-2">
-                      <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">{t(s.catKey(c))}</h3>
+                      <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">{c.startsWith(API_CAT) ? `API · ${c.slice(API_CAT.length)}` : t(s.catKey(c))}</h3>
+                      {c.startsWith(API_CAT) ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {s.entries.filter((e) => e.cat === c).map((e) => (
+                            <button key={e.id} type="button" onClick={() => onPick(l.id, e.id)} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11.5px] text-slate-700 hover:border-blue-300 hover:text-blue-700">{e.label}</button>
+                          ))}
+                        </div>
+                      ) : (
                       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                         {s.entries
                           .filter((e) => e.cat === c)
@@ -265,6 +274,7 @@ export function Gallery({ lib, specs, onPick, onClose }: GalleryProps) {
                             )
                           })}
                       </div>
+                      )}
                     </section>
                   ))
                 ) : (
@@ -567,7 +577,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
   const explain = (
     <div className={`space-y-2.5 text-sm leading-relaxed ${realOn ? 'text-slate-300' : 'text-slate-700'}`}>
       <p>
-        <b className={`font-mono ${realOn ? 'text-white' : 'text-slate-900'}`}>{entry.label}</b> — {t(spec.explainKey(entry.id))}
+        <b className={`font-mono ${realOn ? 'text-white' : 'text-slate-900'}`}>{entry.api ? `${entry.api.module}.${entry.label}` : entry.label}</b> — {entry.api ? t(entry.api.checked ? 'playground.ui.api_checked' : 'playground.ui.api_unchecked') : t(spec.explainKey(entry.id))}
       </p>
       {!realOn &&
         notes.map((n) => (
