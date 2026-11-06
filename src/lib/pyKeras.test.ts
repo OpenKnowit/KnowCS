@@ -32,22 +32,6 @@ describe('model.summary() matches Keras 3.12', () => {
     expect(flow && flow.type === 'flow' && flow.rows.map((x) => x.note)).toEqual(['⌊(28 − 3) / 1⌋ + 1 = 26 · params (3·3·1 + 1)·32', '⌊(26 − 2) / 2⌋ + 1 = 13', '13 × 13 × 32 = 5408', null, '(5408 + 1) × 10 = 54,090'])
   })
 
-  it('model.add with input_shape, and the Functional API', () => {
-    const r = run(`${H}m2 = Sequential()\nm2.add(Dense(64, activation='relu', input_shape=(784,)))\nm2.add(Dense(10, activation='softmax'))\nprint(m2.count_params())
-inputs = keras.Input(shape=(784,))
-x = layers.Dense(64, activation='relu')(inputs)
-outputs = layers.Dense(10, activation='softmax')(x)
-f = keras.Model(inputs=inputs, outputs=outputs, name='mnist_mlp')
-f.summary()
-print(x.shape)`)
-    expect(r.error).toBeNull()
-    expect(r.stdout).toContain('50890\nModel: "mnist_mlp"')
-    expect(r.stdout).toContain('│ input_layer (InputLayer)        │ (None, 784)            │             0 │')
-    expect(r.stdout).toContain('│ dense_2 (Dense)                 │ (None, 64)             │        50,240 │')
-    expect(r.stdout).toContain(' Total params: 50,890 (198.79 KB)')
-    expect(r.stdout.endsWith('(None, 64)\n')).toBe(true)
-  })
-
   it('Dense on an image without Flatten keeps the spatial axes (and warns)', () => {
     const r = run(`${H}m = Sequential([Input(shape=(28, 28, 1)), Dense(10)])\nm.summary()`)
     expect(r.stdout).toContain('│ dense (Dense)                   │ (None, 28, 28, 10)     │            20 │')
@@ -72,16 +56,6 @@ h2 = m.fit(X, y, epochs=2, batch_size=2)`)
     expect(r.events.filter((e) => e.type === 'history').length).toBe(2)
   })
 
-  it('categorical_crossentropy with integer labels: the shape error; sparse works', () => {
-    const src = `${H}X = np.array([[0., 0.], [0., 1.], [1., 0.], [1., 1.]])
-mc = Sequential([Input(shape=(2,)), Dense(3, activation='softmax')])
-mc.compile(optimizer='adam', loss='LOSS', metrics=['accuracy'])
-mc.fit(X, np.array([0, 1, 2, 1]), epochs=1, verbose=0)`
-    expect(run(src.replace('LOSS', 'categorical_crossentropy')).error?.message).toBe('Arguments `target` and `output` must have the same shape. Received: target.shape=(None,), output.shape=(None, 3)')
-    expect(run(src.replace('LOSS', 'sparse_categorical_crossentropy')).error).toBeNull()
-    expect(run(`${H}from keras.utils import to_categorical\nprint(to_categorical([0, 2, 1], 3))`).stdout).toBe('[[1. 0. 0.]\n [0. 0. 1.]\n [0. 1. 0.]]\n')
-  })
-
   it('validation data and EarlyStopping', () => {
     const r = run(`${H}keras.utils.set_random_seed(1)
 X = np.random.rand(40, 3)
@@ -98,22 +72,6 @@ print(sorted(h.history.keys()), len(h.history['loss']) <= 50)`)
 
 describe('tensorflow', () => {
   const T = 'import tensorflow as tf\n'
-  it('prints tensors as TensorFlow does', () => {
-    const r = run(`${T}print(tf.constant([[1., 2.], [3., 4.]]))\nprint(tf.constant([1, 2, 3]))\nprint(repr(tf.constant([1, 2, 3])))\nprint(repr(tf.constant(0.1)))\nx = tf.constant([[1., 2.], [3., 4.]])\nprint(x.shape, x.dtype)`)
-    expect(r.error).toBeNull()
-    expect(r.stdout).toBe(`tf.Tensor(
-[[1. 2.]
- [3. 4.]], shape=(2, 2), dtype=float32)
-tf.Tensor([1 2 3], shape=(3,), dtype=int32)
-<tf.Tensor: shape=(3,), dtype=int32, numpy=array([1, 2, 3], dtype=int32)>
-<tf.Tensor: shape=(), dtype=float32, numpy=0.1>
-(2, 2) tf.float32
-`)
-  })
-  it('no automatic dtype promotion', () => {
-    expect(run(`${T}tf.constant(1.0) + tf.constant(1)`).error).toMatchObject({ type: 'InvalidArgumentError', message: 'cannot compute AddV2 as input #1(zero-based) was expected to be a float tensor but is a int32 tensor [Op:AddV2]' })
-    expect(run(`${T}print(tf.reduce_mean(tf.constant([1, 2])))`).stdout).toBe('tf.Tensor(1, shape=(), dtype=int32)\n')
-  })
   it('GradientTape and Variable.assign_sub: one gradient-descent step', () => {
     const r = run(`${T}w = tf.Variable(3.0)
 with tf.GradientTape() as tape:

@@ -4442,7 +4442,7 @@
     "keras": {
       "title": "Keras 实验台",
       "subtitle": "{{n}} 个出自第 6、8 讲的示例：搭建模型、读懂 model.summary()，再用代码里生成的数据 compile、fit、evaluate、predict。",
-      "sandbox_note": "在浏览器中运行，基于重写的 Keras 3：包括 Sequential 与 Functional 模型，以及大多数层、优化器、损失函数、指标和回调。summary() 和报错信息参照 Keras 3 编写，但未与真实 Keras 比对；训练是真实进行的，但只用小数据。不能下载 MNIST，随机初始权重也与真实 Keras 不同。",
+      "sandbox_note": "在浏览器中运行，基于重写的 Keras 3：包括 Sequential 与 Functional 模型，以及大多数层、优化器、损失函数、指标和回调。打印、形状、数值和报错信息已用约 570 段程序与 Keras 3.12 对照；训练是真实进行的，但只用小数据。不能下载 MNIST，随机初始权重也与真实 Keras 不同。",
       "cat": {
         "build": "搭建",
         "train": "训练",
@@ -4468,7 +4468,7 @@
     "tensorflow": {
       "title": "TensorFlow 实验台",
       "subtitle": "{{n}} 个示例：张量及其严格的数据类型、Variable 与 GradientTape，以及 TensorFlow 里的 Keras（tf.keras）。",
-      "sandbox_note": "在浏览器中运行，基于重写的 TensorFlow 2：包括 tf.constant、tf.Variable、GradientTape、tf.math、tf.nn、tf.linalg、tf.random 和 tf.keras。打印格式和 dtype 报错参照 TensorFlow 编写，但未与它比对。没有 GPU，也没有图模式。",
+      "sandbox_note": "在浏览器中运行，基于重写的 TensorFlow 2：包括 tf.constant、tf.Variable、GradientTape、tf.math、tf.nn、tf.linalg、tf.random 和 tf.keras。打印、数值和报错信息已用约 570 段程序与 TensorFlow 2.21 对照。整数张量转成 NumPy 时这里是 int64（真实是 int32）。没有 GPU，也没有图模式。",
       "cat": {
         "tensors": "张量",
         "autograd": "GradientTape",

@@ -4442,7 +4442,7 @@
     "keras": {
       "title": "Keras playground",
       "subtitle": "{{n}} examples from lectures 6 and 8: build a model, read model.summary(), then compile, fit, evaluate and predict on data generated in the code.",
-      "sandbox_note": "Runs in your browser on a re-implementation of Keras 3: Sequential and Functional models, most layers, optimisers, losses, metrics and callbacks. summary() and the error messages are modelled on Keras 3 but have not been compared with real Keras; training is real but on small data. There is no MNIST download and random weights differ from real Keras.",
+      "sandbox_note": "Runs in your browser on a re-implementation of Keras 3: Sequential and Functional models, most layers, optimisers, losses, metrics and callbacks. Printing, shapes, values and error messages are checked against Keras 3.12 on about 570 programs; training is real but on small data. There is no MNIST download and random weights differ from real Keras.",
       "cat": {
         "build": "Build",
         "train": "Train",
@@ -4468,7 +4468,7 @@
     "tensorflow": {
       "title": "TensorFlow playground",
       "subtitle": "{{n}} examples: tensors and their strict dtypes, Variables and GradientTape, and Keras inside TensorFlow (tf.keras).",
-      "sandbox_note": "Runs in your browser on a re-implementation of TensorFlow 2: tf.constant, tf.Variable, GradientTape, tf.math, tf.nn, tf.linalg, tf.random and tf.keras. Printing and dtype errors are modelled on TensorFlow but have not been compared with it. There is no GPU and no graph mode.",
+      "sandbox_note": "Runs in your browser on a re-implementation of TensorFlow 2: tf.constant, tf.Variable, GradientTape, tf.math, tf.nn, tf.linalg, tf.random and tf.keras. Printing, values and errors are checked against TensorFlow 2.21 on about 570 programs. Integer tensors turn into int64 NumPy arrays here (real ones stay int32). There is no GPU and no graph mode.",
       "cat": {
         "tensors": "Tensors",
         "autograd": "GradientTape",

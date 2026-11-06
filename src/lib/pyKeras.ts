@@ -24,6 +24,8 @@ interface KerasState {
   E: Engine
   counters: Map<string, number>
   files: Map<string, SavedFile>
+  /** GradientTape blocks now open */
+  tapes: number
   notes: Set<string>
   /** the training flag of the enclosing model or layer call (null: called from the top level) */
   training: boolean | null
@@ -39,7 +41,7 @@ interface KerasState {
 const stateOf = (h: Host): KerasState => {
   let s = h.state.get('keras') as KerasState | undefined
   if (!s) {
-    s = { E: new Engine(h.rng), counters: new Map(), files: new Map(), notes: new Set(), training: null, losses: [], make: () => { throw new PyError('RuntimeError', 'keras is not loaded') }, traced: false, errors: null }
+    s = { E: new Engine(h.rng), counters: new Map(), files: new Map(), tapes: 0, notes: new Set(), training: null, losses: [], make: () => { throw new PyError('RuntimeError', 'keras is not loaded') }, traced: false, errors: null }
     h.state.set('keras', s)
   }
   return s
@@ -65,7 +67,65 @@ const tfErrorClasses = (h: Host): Record<string, ClassValue> => {
   return S.errors
 }
 
-const tfErr = (h: Host, message: string): PyError => {
+const kind2D = (l: { kind: string }) => l.kind.endsWith('2D')
+/** the shortest number that reads back as this float32, as a tensor or np.float32 prints it (float(x) and Keras's logs show the double instead) */
+const f32short = (v: number): number => {
+  if (!Number.isFinite(v) || v === 0) return v
+  for (let p = 1; p <= 9; p++) {
+    const x = Number(v.toPrecision(p))
+    if (Math.fround(x) === v) return x
+  }
+  return v
+}
+/** Adam() is named 'adam', but SGD() is named 'SGD' */
+const optName = (cls: string) => (cls === 'SGD' ? cls : cls.toLowerCase())
+const RAN_OUT = 'UserWarning: Your input ran out of data; interrupting training. Make sure that your dataset or generator can generate at least `steps_per_epoch * epochs` batches.\n'
+/** a saved model stays in memory; this puts its name among the run's files, for os.path and pathlib to see */
+const touchFile = (h: Host, path: string) => {
+  const f = h.call(h.getAttr(h.module('builtins'), 'open'), [py.str(path), py.str('w')])
+  h.call(h.getAttr(f, 'close'), [])
+}
+const NO_SHAPE_IN_SUBCLASS = /Pooling[12]D$|^(Dropout|SpatialDropout[12]D|GaussianNoise|GaussianDropout|AlphaDropout|Activation|ReLU|LeakyReLU|ELU|Softmax|UnitNormalization|Reshape|Identity|ActivityRegularization)$/
+
+/** the first Python number or string in a nested list: Keras takes no such thing where it wants a tensor */
+const plainLeaf = (v: Value): Value | null => {
+  if (v.k === 'int' || v.k === 'float' || v.k === 'bool' || v.k === 'str') return v
+  if (v.k === 'list' || v.k === 'tuple') {
+    for (const x of v.items) {
+      const leaf = plainLeaf(x)
+      if (leaf) return leaf
+    }
+  }
+  return null
+}
+/** preprocessing layers convert what they are given */
+const TAKES_PLAIN = /^(Random|Rescaling|Resizing|CenterCrop|TextVectorization|StringLookup|IntegerLookup|Hashing|Discretization|Normalization)/
+const refusePlainInput = (h: Host, kind: string, x: Value) => {
+  const leaf = TAKES_PLAIN.test(kind) ? null : plainLeaf(x)
+  if (leaf) throw h.err('ValueError', `Only input tensors may be passed as positional arguments. The following argument value should be passed as a keyword argument: ${repr(leaf)} (of type <class '${leaf.k}'>)`)
+}
+const refusePlainData = (h: Host, x: Value, y: Value | undefined) => {
+  const lists = (v: Value | undefined) => !!v && (v.k === 'list' || v.k === 'tuple') && plainLeaf(v) !== null
+  if (!lists(x) && !lists(y)) return
+  const of = x.k === 'array' ? 'numpy.ndarray' : x.k === 'obj' ? x.o.cls : x.k
+  throw h.err('ValueError', `Unrecognized data type: x=${h.str(x)} (of type <class '${of}'>)`)
+}
+
+/** the ops whose errors do not end in " name: " */
+const OP_ERROR_UNNAMED = new Set(['GatherV2', 'Tile', 'BroadcastTo', 'MirrorPad', 'Reshape'])
+/** as TensorFlow words an op's error: a dtype mismatch is caught before the kernel, anything else names the kernel that ran */
+const opErrorText = (message: string): string => {
+  const op = /\[Op:(\w+)\]$/.exec(message)?.[1]
+  if (!op) return message
+  if (message.startsWith('cannot compute')) return `${message} name: `
+  const split = op === 'Split' ? /num_split (\d+)/.exec(message)?.[1] : undefined
+  const kernel = split ? `Split_num_split_${split}` : op === 'ConcatV2' ? 'ConcatV2_N_2' : op
+  const named: Record<string, string> = { Split: 'split', ConcatV2: 'concat', StridedSlice: 'strided_slice/' }
+  return `{{function_node __wrapped__${kernel}_device_/job:localhost/replica:0/task:0/device:CPU:0}} ${message}${OP_ERROR_UNNAMED.has(op) ? '' : ` name: ${named[op] ?? ''}`}`
+}
+
+const tfErr = (h: Host, text: string): PyError => {
+  const message = opErrorText(text)
   const e = h.err('InvalidArgumentError', message)
   const inst = h.call(tfErrorClasses(h).InvalidArgumentError, [py.str(message)])
   if (inst.k === 'inst') inst.attrs.set('message', py.str(message))
@@ -140,7 +200,7 @@ const bindArgs = (h: Host, cls: string, sig: string, args: Value[], kw: Kw, comm
       if (e.unsupported && !isDefault) throw h.err('NotImplementedError', `${cls}: ${e.name}=${repr(given)} is not implemented in this sandbox`)
       P[e.name] = given
     } else if (e.def !== undefined) P[e.name] = e.def
-    else throw h.err('TypeError', `${cls}() missing 1 required positional argument: '${e.name}'`)
+    else throw h.err('TypeError', `${cls}${common ? '.__init__' : ''}() missing 1 required positional argument: '${e.name}'`)
   })
   for (const k of Object.keys(kw)) {
     if (entries.some((e) => e.name === k) || common?.has(k)) continue
@@ -153,14 +213,6 @@ const bindArgs = (h: Host, cls: string, sig: string, args: Value[], kw: Kw, comm
 // ---------------------------------------------------------------- printing (NumPy style, as TensorFlow prints)
 
 /** the shortest decimal that is the same float32, so 0.1 prints as 0.1 and not 0.10000000149 */
-const f32clean = (v: number): number => {
-  if (!Number.isFinite(v) || v === 0) return v
-  for (let p = 1; p <= 9; p++) {
-    const x = Number(v.toPrecision(p))
-    if (Math.fround(x) === v) return x
-  }
-  return v
-}
 
 const ndFor = (t: TT): NDArray => NDArray.create(t.values(), t.shape, t.dtype === 'int32' ? 'int64' : (t.dtype as DType))
 
@@ -175,7 +227,7 @@ const scalarStr = (t: TT) => {
   if (t.dtype === 'bool') return v ? 'True' : 'False'
   if (!isFloatT(t.dtype)) return String(v)
   if (!Number.isFinite(v)) return Number.isNaN(v) ? 'nan' : v > 0 ? 'inf' : '-inf'
-  const c = t.dtype === 'float32' ? f32clean(v) : v
+  const c = t.dtype === 'float32' ? f32short(v) : v
   return Number.isInteger(c) ? `${c}.0` : String(c)
 }
 
@@ -191,6 +243,7 @@ class TFDtype extends PyObj {
     this.d = d
   }
   repr() { return `tf.${this.d}` }
+  str() { return `<dtype: '${this.d}'>` }
   binop(op: string, other: Value) {
     if (op !== '==' && op !== '!=') return undefined
     const same = other.k === 'obj' && other.o instanceof TFDtype ? other.o.d === this.d : other.k === 'str' && other.v === this.d
@@ -243,7 +296,7 @@ class TensorShape extends PyObj {
 
 const tfWrap = (t: TT): Value => py.obj(new TFTensor(t))
 
-const traceSnap = (t: TT) => ({ shape: [...t.shape], values: t.dtype === 'float32' ? t.values().map(f32clean) : t.values(), dtype: t.a.dtype })
+const traceSnap = (t: TT) => ({ shape: [...t.shape], values: t.dtype === 'float32' ? t.values().map(f32short) : t.values(), dtype: t.a.dtype })
 
 /** a small TF op for the element-provenance view (the same view as NumPy's) */
 const traceTF = (h: Host, api: string, kind: ApiKind, ops: { label: string; t: TT }[], out: TT, axis: number | null = null, groups?: [number, number][][]) => {
@@ -265,7 +318,7 @@ const tfOperand = (h: Host, v: Value, like: TT | null): TT | null => {
   if (v.k === 'int' || v.k === 'float' || v.k === 'bool') {
     const d: TDType = like ? like.dtype : v.k === 'float' ? 'float32' : v.k === 'bool' ? 'bool' : 'int32'
     if (like && v.k === 'float' && !isFloatT(like.dtype) && !Number.isInteger(v.v)) {
-      throw h.err('TypeError', `Cannot convert ${repr(v)} to EagerTensor of dtype ${like.dtype}`)
+      return TT.scalar(h.num(v), 'float32')
     }
     return TT.scalar(v.k === 'bool' ? (v.v ? 1 : 0) : v.v, d)
   }
@@ -288,6 +341,7 @@ const toTF = (h: Host, v: Value, dtype: TDType | null): TT => {
   try {
     a = toArray(v)
   } catch (e) {
+    if (/inhomogeneous/.test((e as Error).message)) throw h.err('ValueError', "Can't convert non-rectangular Python sequence to Tensor.")
     throw h.err('ValueError', `Can't convert to a Tensor: ${(e as Error).message}`)
   }
   return TT.of(a.values(), a.shape, dtype ?? (a.dtype === 'float64' || a.dtype === 'float32' ? 'float32' : a.dtype === 'bool' ? 'bool' : 'int32'))
@@ -309,12 +363,12 @@ class TFTensor extends PyObj {
   }
   str() {
     const b = this.body()
-    return `tf.Tensor(${this.t.ndim > 1 ? '\n' : ''}${b}, shape=${shapeStr(this.t.shape)}, dtype=${this.t.dtype})`
+    return `tf.Tensor(${b.includes('\n') ? '\n' : ''}${b}, shape=${shapeStr(this.t.shape)}, dtype=${this.t.dtype})`
   }
   format(spec: string) {
     if (this.t.size !== 1) return undefined
     const v = this.t.values()[0]
-    return formatSpec(isFloatT(this.t.dtype) ? py.float(f32clean(v)) : py.int(v), spec)
+    return formatSpec(isFloatT(this.t.dtype) ? py.float(f32short(v)) : py.int(v), spec)
   }
   toArray() { return ndFor(this.t) }
   isa(name: string): boolean { return name === 'Tensor' }
@@ -331,6 +385,15 @@ class TFTensor extends PyObj {
     return this.t.values()[0] !== 0
   }
   getItem(idx: Value, h: Host) {
+    try {
+      return this.item(idx, h)
+    } catch (e) {
+      const m = e instanceof PyError ? /index (-?\d+) is out of bounds for (?:axis|dimension) (\d+)/.exec(e.message) : null
+      if (m) throw tfErr(h, `slice index ${m[1]} of dimension ${m[2]} out of bounds. [Op:StridedSlice]`)
+      throw e
+    }
+  }
+  private item(idx: Value, h: Host) {
     const E = stateOf(h).E
     // x[mask] is tf.boolean_mask
     const maskT = tfOf(idx)
@@ -392,7 +455,7 @@ class TFTensor extends PyObj {
       case 'dtype': return py.obj(new TFDtype(t.dtype))
       case 'ndim': return py.int(t.ndim)
       case 'device': return py.str('/job:localhost/replica:0/task:0/device:CPU:0')
-      case 'numpy': return fnv(name, () => (t.ndim ? py.arr(ndFor(t)) : isFloatT(t.dtype) ? py.float(f32clean(t.values()[0])) : t.dtype === 'bool' ? py.bool(t.values()[0] !== 0) : py.int(t.values()[0])))
+      case 'numpy': return fnv(name, () => (t.ndim ? py.arr(ndFor(t)) : isFloatT(t.dtype) ? py.float(f32short(t.values()[0])) : t.dtype === 'bool' ? py.bool(t.values()[0] !== 0) : py.int(t.values()[0])))
       case 'T': return tfWrap(C.permuteT(stateOf(h).E, t, t.shape.map((_, i) => t.ndim - 1 - i)))
     }
     return undefined
@@ -446,7 +509,7 @@ class TFVariable extends TFTensor {
       const v = tfOperand(h, args[0] ?? kw.value, this.t)
       if (!v) throw h.err('TypeError', `${name}() needs a tensor or a number`)
       if (v.dtype !== this.t.dtype) throw tfErr(h, `Cannot update variable with shape [${this.t.shape.join(',')}] using a Tensor of dtype ${v.dtype}`)
-      if (v.size !== this.t.size && v.size !== 1) throw h.err('ValueError', `Cannot assign value to variable ' ${this.name}:0': Shape mismatch.The variable shape (${this.t.shape.join(', ')}), and the assigned value shape (${v.shape.join(', ')}) are incompatible.`)
+      if (v.size !== this.t.size && v.size !== 1) throw h.err('ValueError', `Cannot assign value to variable ' ${this.name}:0': Shape mismatch.The variable shape ${shapeStr(this.t.shape)}, and the assigned value shape ${shapeStr(v.shape)} are incompatible.`)
       const old = this.t.values()
       const nv = v.values()
       C.writeInto(this.t, old.map((x, i) => op(x, nv[v.size === 1 ? 0 : i])))
@@ -477,6 +540,7 @@ class KVariable extends TFVariable {
   repr() { return `<Variable path=${this.path}, shape=${shapeStr(this.t.shape)}, dtype=${this.t.dtype}, value=${this.body()}>` }
   getAttr(name: string, h: Host): Value | undefined {
     if (name === 'name') return py.str(this.name)
+    if (name === 'dtype') return py.str(this.t.dtype)
     if (name === 'path') return py.str(this.path)
     return super.getAttr(name, h)
   }
@@ -489,6 +553,7 @@ class GradientTape extends PyObj {
   used = false
   watched: TT[] = []
   prev = true
+  open = false
   constructor(persistent: boolean) {
     super()
     this.persistent = persistent
@@ -498,10 +563,16 @@ class GradientTape extends PyObj {
     const E = stateOf(h).E
     this.prev = E.grad
     E.grad = true
+    this.open = true
+    stateOf(h).tapes++
     return py.obj(this)
   }
   exit(h: Host) {
-    stateOf(h).E.grad = this.prev
+    const S = stateOf(h)
+    S.E.grad = this.prev
+    S.tapes--
+    this.open = false
+    for (const t of this.watched) t.requiresGrad = false
   }
   getAttr(name: string, h: Host): Value | undefined {
     if (name === 'watch') return fnv(name, (args) => {
@@ -526,11 +597,18 @@ class GradientTape extends PyObj {
       const saved = sources.map((s) => s?.grad ?? null)
       sources.forEach((s) => s && (s.grad = null))
       let grads: (TT | null)[] = sources.map(() => null)
-      if (target.requiresGrad) {
+      // what it watched counts while the gradient is taken, though the block is over
+      for (const t of this.watched) t.requiresGrad = true
+      if (target.requiresGrad && stateOf(h).tapes > 0) {
+        // another tape is recording: the gradient must keep its graph
+        const m = C.backwardGraph(E, target, target.size === 1 ? null : TT.of(target.values().map(() => 1), target.shape, target.dtype))
+        grads = sources.map((s) => (s && m.get(s)) ?? null)
+      } else if (target.requiresGrad) {
         const g = target.size === 1 ? null : target.values().map(() => 1)
         C.backward(E, target, g, this.persistent)
         grads = sources.map((s) => s?.grad ?? null)
       }
+      if (!this.open) for (const t of this.watched) t.requiresGrad = false
       sources.forEach((s, i) => s && (s.grad = saved[i]))
       const out = grads.map((g) => (g ? tfWrap(g) : py.NONE))
       return list ? py.list(out) : out[0]
@@ -776,7 +854,7 @@ class Initializer extends PyObj {
     this.seed = seed
     this.fn = fn
   }
-  repr() { return `<keras.src.initializers.${this.cls} object>` }
+  repr() { return `<keras.src.initializers.${/^(Zeros|Ones|Constant|Identity)$/.test(this.cls) ? 'constant_initializers' : 'random_initializers'}.${this.cls} object>` }
   sample(h: Host, shape: number[]): number[] {
     const r: SandboxRandom = this.seed === null ? h.rng : new SandboxRandom(this.seed)
     const n = prod(shape)
@@ -949,7 +1027,7 @@ const pyJson = (j: Json): string => {
 
 const objConfig = (module: string, cls: string, config: Json): { [k: string]: Json } => ({ module, class_name: cls, config, registered_name: null })
 
-const initConfig = (i: Initializer, h: Host): { [k: string]: Json } => objConfig('keras.initializers', i.cls, Object.fromEntries(Object.entries(i.P).map(([k, x]) => [k, pyToJs(h, x)])))
+const initConfig = (i: Initializer, h: Host): { [k: string]: Json } => objConfig('keras.initializers', i.cls, Object.fromEntries(Object.entries(i.cls === 'Identity' ? {} : i.P).sort(([a], [b]) => Number(b === 'seed') - Number(a === 'seed')).map(([k, x]) => [k, pyToJs(h, x)])))
 
 // ---------------------------------------------------------------- regularizers
 
@@ -1001,7 +1079,7 @@ const regArg = (h: Host, v: Value | undefined): Regularizer | null => {
     return new Regularizer(cls, n('l1'), n('l2'))
   }
   if (v!.k === 'func' || v!.k === 'bound' || v!.k === 'inst' || v!.k === 'fn') return new Regularizer('custom', 0, 0, v!)
-  throw h.err('ValueError', `Could not interpret regularizer identifier: ${repr(v!)}`)
+  throw h.err('ValueError', `Could not interpret regularizer identifier: ${v!.k === 'str' ? v!.v : repr(v!)}`)
 }
 
 // ---------------------------------------------------------------- keras: symbolic tensors and layers
@@ -1106,6 +1184,11 @@ const userMethod = (cls: ClassValue, name: string): FuncValue | null => {
 const unique = <T,>(xs: T[]): T[] => [...new Set(xs)]
 
 /** a NumPy array / list / tensor as a float32 tensor (Keras casts inputs to float32) */
+/** data for a plain function such as keras.activations.relu: float64 stays float64, where a layer would cast it */
+const asData = (h: Host, v: Value | undefined): TT => {
+  if (v?.k === 'array' && v.a.dtype === 'float64') return TT.of(v.a.values(), v.a.shape, 'float64')
+  return asFloat(h, v)
+}
 const asFloat = (h: Host, v: Value | undefined): TT => {
   if (!v) throw h.err('TypeError', 'expected input data')
   if (kerasOf(v)) throw h.err('ValueError', 'A KerasTensor is symbolic: it can only be passed to a Keras layer, not computed with directly')
@@ -1149,6 +1232,11 @@ abstract class KLayer extends PyObj {
   outShape: KShape | null = null
   /** set by input_shape= on the first layer of a Sequential */
   declaredInput: KShape | null = null
+  /** the layer or model that built this one: its name starts the paths of this layer's weights */
+  owner: KLayer | null = null
+  scopePath(): string { return `${this.owner ? `${this.owner.scopePath()}/` : ''}${this.name}` }
+  /** the batch size of its first call, which a subclassed model's summary shows */
+  firstBatch: number | null | undefined
   /** the constructor arguments, for get_config and rebuilding */
   P: Params
   trainableFlag = true
@@ -1167,6 +1255,10 @@ abstract class KLayer extends PyObj {
     this.kind = kind
     this.P = P
     this.name = kw.name && kw.name.k === 'str' ? kw.name.v : autoName(h, base ?? snake(kind))
+    for (const k in P) {
+      if (k.endsWith('_initializer')) initArg(h, P[k], 'Zeros')
+      if (k.endsWith('_regularizer')) regArg(h, P[k])
+    }
     const is = kw.input_shape ?? (kw.input_dim && !('input_dim' in P) ? py.tuple([kw.input_dim]) : undefined)
     if (is && is.k !== 'none') this.declaredInput = [null, ...h.iterate(is).map((v) => (v.k === 'none' ? null : h.toInt(v)))]
     if (kw.batch_input_shape && kw.batch_input_shape.k !== 'none') this.declaredInput = h.iterate(kw.batch_input_shape).map((v) => (v.k === 'none' ? null : h.toInt(v)))
@@ -1201,6 +1293,7 @@ abstract class KLayer extends PyObj {
     const trainable = declared && this.trainableFlag
     t.requiresGrad = trainable
     this.ws.push({ name, t, declared, trainable, bytes: opts.bytes ?? 4, layer: this })
+    if (opts.reg?.fn && opts.reg.fn.k !== 'inst') throw h.err('ValueError', `Invalid value for attribute \`regularizer\`. Expected an instance of \`keras.regularizers.Regularizer\`, or \`None\`. Received: regularizer=${repr(opts.reg.fn)}`)
     if (opts.reg) this.regs.push([t, opts.reg])
     return t
   }
@@ -1224,6 +1317,7 @@ abstract class KLayer extends PyObj {
   outShapes(h: Host, shapes: KShape[], _kw: Kw): KShape[] { return [this.ensureBuilt(h, shapes[0])] }
   /** run with this layer's training flag in force for what it calls, and collect its activity penalty; null = nobody said, so each layer's default decides */
   invoke(E: Engine, xs: TT[], training: boolean | null, h: Host, kw: Kw = {}): TT[] {
+    this.firstBatch ??= xs[0]?.shape[0]
     const S = stateOf(h)
     const prev = S.training
     S.training = training
@@ -1275,6 +1369,7 @@ abstract class KLayer extends PyObj {
   call(args: Value[], kw: Kw, h: Host): Value {
     const x = args[0] ?? kw.inputs
     if (!x) throw h.err('TypeError', `${this.kind}.call() missing 1 required positional argument: 'inputs'`)
+    refusePlainInput(h, this.kind, x)
     if (!isNone(kw.mask)) throw h.err('NotImplementedError', 'mask= is not implemented in this sandbox')
     const multi = isSeq(x) && x.items.length > 0 && x.items.every((v) => kerasOf(v) || tfOf(v) || v.k === 'array')
     const items = multi ? h.iterate(x) : [x]
@@ -1284,6 +1379,7 @@ abstract class KLayer extends PyObj {
     this.eagerBuild(h, xs.map((t) => [null, ...t.shape.slice(1)]), kw)
     const training = !isNone(kw.training) ? h.truthy(kw.training!) : S.training
     const out = this.invoke(S.E, this.withState(h, xs, kw), training, h, kw)
+    if (out.length > 1 && /^(SimpleRNN|LSTM|GRU)$/.test(this.kind)) return py.tuple(out.map(tfWrap))
     return out.length === 1 ? tfWrap(out[0]) : py.list(out.map(tfWrap))
   }
   eagerBuild(h: Host, shapes: KShape[], kw: Kw) { this.outShapes(h, shapes, kw) }
@@ -1294,7 +1390,7 @@ abstract class KLayer extends PyObj {
   }
 
   kvars(list: KWeight[]): Value {
-    return py.list(list.map((w) => py.obj(new KVariable(w.t, `${w.layer.name}/${w.name}`, w.trainable))))
+    return py.list(list.map((w) => py.obj(new KVariable(w.t, `${w.layer.scopePath()}/${w.name}`, w.trainable))))
   }
   getWeightsPy(): Value { return py.list(this.weights().map((w) => py.arr(ndFor(w.t)))) }
   setWeightsPy(h: Host, v: Value) {
@@ -1303,7 +1399,7 @@ abstract class KLayer extends PyObj {
     if (ws.length !== mine.length) throw h.err('ValueError', `You called \`set_weights(weights)\` on layer '${this.name}' with a weight list of length ${ws.length}, but the layer was expecting ${mine.length} weights.`)
     mine.forEach((w, i) => {
       const a = toArray(tfOf(ws[i]) ? py.arr(ndFor(tfOf(ws[i])!)) : ws[i])
-      if (a.shape.join() !== w.t.shape.join()) throw h.err('ValueError', `Layer ${w.layer.name} weight shape ${shapeStr(w.t.shape)} is not compatible with provided weight shape ${shapeStr(a.shape)}.`)
+      if (a.shape.join() !== w.t.shape.join()) throw h.err('ValueError', `Layer ${this.name} weight shape ${shapeStr(w.t.shape)} is not compatible with provided weight shape ${shapeStr(a.shape)}.`)
       C.writeInto(w.t, a.values())
     })
   }
@@ -1341,14 +1437,10 @@ abstract class KLayer extends PyObj {
         if (!this.built) throw h.err('ValueError', `You tried to call \`count_params\` on layer '${this.name}', but the layer isn't built. You can build it manually via: \`layer.build(input_shape)\`.`)
         return py.int(this.params())
       })
-      case 'input_shape': case 'output_shape': {
-        const s = name === 'input_shape' ? this.inShape : this.outShape
-        if (!s) throw h.err('AttributeError', `The layer "${this.name}" has never been called and thus has no defined ${name}.`)
-        return shapeTuple(s)
-      }
+      case 'input_shape': case 'output_shape': throw h.err('AttributeError', `'${this.kind}' object has no attribute '${name}'`)
       case 'input': case 'output': {
         const n = this.nodes[this.nodes.length - 1]
-        if (!n) throw h.err('AttributeError', `The layer "${this.name}" has never been called and thus has no defined ${name}.`)
+        if (!n) throw h.err('AttributeError', `The layer ${this.name} has never been called and thus has no defined ${name}.`)
         const list = name === 'input' ? n.inputs : n.outputs
         return list.length === 1 ? py.obj(list[0]) : py.list(list.map((t) => py.obj(t)))
       }
@@ -1367,12 +1459,13 @@ abstract class KLayer extends PyObj {
         const dtype = P.dtype.k === 'none' ? 'float32' : (P.dtype.k === 'obj' && P.dtype.o instanceof TFDtype ? P.dtype.o.d : h.str(P.dtype)) as TDType
         const trainable = h.truthy(P.trainable)
         const t = this.addWeight(h, wn, shape, initArg(h, P.initializer, 'GlorotUniform'), { trainable, reg: regArg(h, P.regularizer), dtype })
-        return py.obj(new KVariable(t, `${this.name}/${wn}`, trainable && this.trainableFlag))
+        return py.obj(new KVariable(t, `${this.scopePath()}/${wn}`, trainable && this.trainableFlag))
       })
       case '__class__': return { k: 'type', name: this.kind, call: () => { throw h.err('TypeError', 'call the layer class itself') } }
     }
     const w = this.ws.find((x) => x.name === name)
-    if (w) return py.obj(new KVariable(w.t, `${this.name}/${w.name}`, w.trainable))
+    if (w) return py.obj(new KVariable(w.t, `${this.scopePath()}/${w.name}`, w.trainable))
+    if (name === 'kernel' && !this.built && /^(Dense|Conv[12]D|Conv2DTranspose|DepthwiseConv2D)$/.test(this.kind)) throw h.err('AttributeError', 'You must build the layer before accessing `kernel`.')
     return this.extra.get(name) ?? this.attr(name, h)
   }
   attr(name: string, _h: Host): Value | undefined { return this.P[name] }
@@ -1427,7 +1520,7 @@ type PadMode = 'valid' | 'same' | 'causal'
 
 const padMode = (h: Host, v: Value | undefined, causal = false): PadMode => {
   const s = v && v.k === 'str' ? v.v.toLowerCase() : 'valid'
-  if (s !== 'valid' && s !== 'same' && !(causal && s === 'causal')) throw h.err('ValueError', `The \`padding\` argument must be a string, one of "valid", "same"${causal ? ', "causal"' : ''}. Received: padding=${v ? repr(v) : 'None'}`)
+  if (s !== 'valid' && s !== 'same' && !(causal && s === 'causal')) throw h.err('ValueError', `The \`padding\` argument must be a list/tuple or one of {'same', 'valid'${causal ? ", 'causal'" : ''}}. Received: ${s}`)
   return s as PadMode
 }
 
@@ -1479,7 +1572,6 @@ class Dense extends KLayer {
   constructor(h: Host, P: Params, kw: Kw) {
     super(h, 'Dense', kw, P)
     const units = isNaN(h.num(P.units)) ? 0 : h.toInt(P.units)
-    if (!Number.isInteger(units) || units < 1) throw h.err('ValueError', `Received an invalid value for \`units\`, expected a positive integer. Received: units=${units}`)
     this.units = units
     this.act = actArg(h, P.activation)
     this.useBias = h.truthy(P.use_bias)
@@ -1498,7 +1590,7 @@ class Dense extends KLayer {
   note(i: KShape) { return `(${i[i.length - 1]} + ${this.useBias ? 1 : 0}) × ${this.units} = ${this.params().toLocaleString('en-US')}` }
   forward(E: Engine, x: TT) {
     const inF = this.w!.shape[0]
-    if (x.shape[x.ndim - 1] !== inF) throw new PyError('ValueError', `Input 0 of layer "${this.name}" is incompatible with the layer: expected axis -1 of input shape to have value ${inF}, but received input with shape ${shapeStr([null, ...x.shape.slice(1)])}`)
+    if (x.shape[x.ndim - 1] !== inF) throw new PyError('ValueError', `Input 0 of layer "${this.name}" is incompatible with the layer: expected axis -1 of input shape to have value ${inF}, but received input with shape ${shapeStr(x.shape)}`)
     // Dense acts on the last axis: x @ kernel + bias
     let y = C.matmul(E, x, this.w!)
     if (this.b) y = C.binary(E, '+', y, this.b)
@@ -1514,6 +1606,10 @@ const actValue = (a: ActSpec, h: Host): Value => fnv(a.name, (args) => tfWrap(a.
 
 /** Conv1D and Conv2D: Conv1D is a Conv2D of height 1, with a kernel that has no height axis */
 class Conv extends KLayer {
+  getAttr(name: string, h: Host): Value | undefined {
+    if (name === 'data_format') return py.str('channels_last')
+    return super.getAttr(name, h)
+  }
   rank: 1 | 2
   filters: number
   k: [number, number]
@@ -1541,7 +1637,7 @@ class Conv extends KLayer {
       P.kernel_size = py.tuple(this.k.map(py.int))
       P.strides = py.tuple(this.strides.map(py.int))
     }
-    if ((this.dil[0] > 1 || this.dil[1] > 1) && (this.strides[0] > 1 || this.strides[1] > 1)) throw h.err('ValueError', `\`strides > 1\` not supported in conjunction with \`dilation_rate > 1\`. Received: strides=${repr(P.strides)} and dilation_rate=${repr(P.dilation_rate)}`)
+    if ((this.dil[0] > 1 || this.dil[1] > 1) && (this.strides[0] > 1 || this.strides[1] > 1)) throw h.err('ValueError', `\`strides > 1\` not supported in conjunction with \`dilation_rate > 1\`. Received: strides=${repr(P.strides)} and dilation_rate=(${(kind2D(this) ? this.dil : this.dil.slice(1)).join(', ')}${kind2D(this) ? '' : ','})`)
     this.padding = padMode(h, P.padding, this.rank === 1)
     this.act = actArg(h, P.activation)
     this.useBias = h.truthy(P.use_bias)
@@ -1565,7 +1661,7 @@ class Conv extends KLayer {
     const Ho = kOutN(H, ek[0], this.strides[0], this.padding)
     const Wo = kOutN(W, ek[1], this.strides[1], this.padding)
     const shape = this.rank === 2 ? [this.k[0], this.k[1], s[3], this.filters] : [this.k[1], s[2], this.filters]
-    if ((Ho !== null && Ho < 1) || (Wo !== null && Wo < 1)) throw h.err('ValueError', `Computed output size would be negative. Received \`inputs shape=${shapeStr(s)}\`, \`kernel shape=(${shape.join(', ')})\`, \`dilation_rate=[${this.rank === 2 ? this.dil.join(' ') : this.dil[1]}]\`.`)
+    if ((Ho !== null && Ho < 0) || (Wo !== null && Wo < 0)) throw h.err('ValueError', `Computed output size would be negative. Received \`inputs shape=${shapeStr(s)}\`, \`kernel shape=(${shape.join(', ')})\`, \`dilation_rate=[${this.rank === 2 ? this.dil.join(' ') : this.dil[1]}]\`.`)
     return this.rank === 2 ? [s[0], Ho, Wo, this.filters] : [s[0], Wo, this.filters]
   }
   describe() {
@@ -1761,6 +1857,12 @@ class Pool extends KLayer {
   rank: 1 | 2
   k: [number, number]
   s: [number, number]
+  getAttr(name: string, h: Host): Value | undefined {
+    if (name === 'pool_size') return py.tuple((this.rank === 2 ? this.k : this.k.slice(1)).map(py.int))
+    if (name === 'strides') return py.tuple((this.rank === 2 ? this.s : this.s.slice(1)).map(py.int))
+    if (name === 'data_format') return py.str('channels_last')
+    return super.getAttr(name, h)
+  }
   padding: PadMode
   mode: 'max' | 'avg'
   constructor(h: Host, kind: string, rank: 1 | 2, mode: 'max' | 'avg', P: Params, kw: Kw) {
@@ -1783,8 +1885,7 @@ class Pool extends KLayer {
     if (s.length !== nd) throw h.err('ValueError', `Input 0 of layer "${this.name}" is incompatible with the layer: expected ndim=${nd}, found ndim=${s.length}. Full shape received: ${shapeStr(s)}`)
     const dim = (n: number | null, a: 0 | 1) => {
       const d = kOutN(n, this.k[a], this.s[a], this.padding)
-      if (d !== null && d < 1) throw h.err('ValueError', `Computed output size would be negative. Received: \`inputs.shape=${shapeStr(s)}\` and \`pool_size=(${this.rank === 2 ? this.k.join(', ') : `${this.k[1]},`})\`.`)
-      return d
+      return d === null ? d : Math.max(d, 0)
     }
     return this.rank === 2 ? [s[0], dim(s[1], 0), dim(s[2], 1), s[3]] : [s[0], dim(s[1], 1), s[2]]
   }
@@ -1851,7 +1952,7 @@ class Merge extends KLayer {
   forward(E: Engine, x: TT) { return this.f(E, [x]) }
   run(E: Engine, xs: TT[]) { return [this.f(E, xs)] }
   outShapes(h: Host, shapes: KShape[]): KShape[] {
-    if (shapes.length < 2 && !this.single) throw h.err('ValueError', `A merge layer should be called on a list of at least 2 inputs. Received ${shapes.length} input${shapes.length === 1 ? '' : 's'}.`)
+    if (shapes.length < 2 && this.kind === 'Subtract' && !this.single) throw h.err('ValueError', `A \`Subtract\` layer should be called on exactly 2 inputs. Received: input_shape=[${shapes.map(shapeStr).join(', ')}]`)
     const out = this.shapes ? this.shapes(h, shapes) : [shapes[0][0], ...shapes.map((s) => s.slice(1)).reduce((a, b) => mergeShape(h, a, b))]
     this.inShape = shapes[0]
     this.outShape = out
@@ -2090,14 +2191,21 @@ class InstLayer extends KLayer {
     return flatTensors(h, callUser(h, this.inst!, xs.length > 1 ? py.list(xs.map(tfWrap)) : tfWrap(xs[0]), training, kw), `${this.kind}.call()`)
   }
   outShapes(h: Host, shapes: KShape[], _kw: Kw): KShape[] { return [this.ensureBuilt(h, shapes[0])] }
-  call(args: Value[], kw: Kw, h: Host): Value { return userEagerCall(this, h, args, kw) }
+  call(args: Value[], kw: Kw, h: Host): Value {
+    if (args[0]) refusePlainInput(h, this.kind, args[0])
+    return userEagerCall(this, h, args, kw)
+  }
   repr() { return `<${this.kind} name=${this.name}, built=${this.built ? 'True' : 'False'}>` }
 }
 
 /** self.call(x, training=…), passing training only if the user's call() takes it */
 const callUser = (h: Host, inst: InstValue, x: Value, training: boolean | null, kw: Kw, more: Value[] = []): Value => {
   const f = userMethod(inst.cls, 'call')
-  if (!f) throw h.err('NotImplementedError', `Layer ${inst.cls.name} does not have a \`call()\` method implemented.`)
+  if (!f) {
+    const n = inst.cls.name
+    const t = tfOf(x)
+    throw h.err('NotImplementedError', `Exception encountered when calling ${n}.call().\n\nLayer ${n} does not have a \`call\` method implemented.\n\nArguments received by ${n}.call():\n  • args=('tf.Tensor(shape=${t ? shapeStr(t.shape) : '?'}, dtype=${t?.dtype ?? 'float32'})',)\n  • kwargs=<class 'inspect._empty'>`)
+  }
   const pass: Kw = { ...kw }
   if (training !== null && acceptsArg(f, 'training')) pass.training = py.bool(training)
   return h.call({ k: 'bound', self: inst, f }, [x, ...more], pass)
@@ -2105,6 +2213,10 @@ const callUser = (h: Host, inst: InstValue, x: Value, training: boolean | null, 
 
 /** SimpleRNN, LSTM, GRU: the cells of keras.src.layers.rnn, one time step at a time */
 class RNN extends KLayer {
+  getAttr(name: string, h: Host): Value | undefined {
+    if ((name === 'activation' || name === 'recurrent_activation') && name in this.P) return h.call(h.getAttr(h.module('keras.activations'), 'get'), [this.P[name]])
+    return super.getAttr(name, h)
+  }
   units: number
   cell: 'simple' | 'lstm' | 'gru'
   act: ActSpec
@@ -2140,8 +2252,7 @@ class RNN extends KLayer {
     this.w = this.addWeight(h, 'kernel', [F, n], initArg(h, this.P.kernel_initializer, 'GlorotUniform'), { reg: regArg(h, this.P.kernel_regularizer) })
     this.r = this.addWeight(h, 'recurrent_kernel', [this.units, n], initArg(h, this.P.recurrent_initializer, 'Orthogonal'), { reg: regArg(h, this.P.recurrent_regularizer) })
     if (this.useBias) {
-      const size = this.resetAfter ? 2 * n : n
-      this.b = this.addWeight(h, 'bias', [size], initArg(h, this.P.bias_initializer, 'Zeros'), { reg: regArg(h, this.P.bias_regularizer) })
+      this.b = this.addWeight(h, 'bias', this.resetAfter ? [2, n] : [n], initArg(h, this.P.bias_initializer, 'Zeros'), { reg: regArg(h, this.P.bias_regularizer) })
       if (this.cell === 'lstm' && h.truthy(this.P.unit_forget_bias)) {
         const v = this.b.values()
         C.writeInto(this.b, v.map((x, i) => (i >= this.units && i < 2 * this.units ? 1 : x)))
@@ -2200,9 +2311,9 @@ class RNN extends KLayer {
         outs.push(hState)
       } else {
         let mx = C.matmul(E, xt, this.w!)
-        if (this.b) mx = add(mx, this.resetAfter ? sliceAxis(E, this.b, 0, 0, 3 * U) : this.b)
+        if (this.b) mx = add(mx, this.resetAfter ? sliceAxis(E, this.b, 0, 0, 1) : this.b)
         let inner = C.matmul(E, hPrev, this.r!)
-        if (this.resetAfter && this.b) inner = add(inner, sliceAxis(E, this.b, 0, 3 * U, 6 * U))
+        if (this.resetAfter && this.b) inner = add(inner, sliceAxis(E, this.b, 0, 1, 2))
         const z = this.recAct.f(E, add(part(mx, 0), part(inner, 0)))
         const r = this.recAct.f(E, add(part(mx, 1), part(inner, 1)))
         // reset_after applies the reset gate to the recurrent term, not to the state before it
@@ -2433,7 +2544,7 @@ class TextVectorization extends KLayer {
     const V = this.maxTokens ?? this.vocab.length
     const out = new Array<number>(rows.length * V).fill(0)
     rows.forEach((r, n) => { for (const c of r) if (c < V) out[n * V + c] = this.mode === 'count' ? out[n * V + c] + 1 : 1 })
-    return TT.of(out, [rows.length, V], 'float32')
+    return TT.of(out, [rows.length, V], 'int64')
   }
   attr(name: string, h: Host): Value | undefined {
     if (name === 'adapt') return fnv(name, (args, kw) => { this.adapt(h, args[0] ?? kw.data); return py.NONE })
@@ -2578,7 +2689,7 @@ const LOSS_ALIASES: Record<string, string> = {
   log_cosh: 'log_cosh', logcosh: 'log_cosh', LogCosh: 'log_cosh', cosine_similarity: 'cosine_similarity', CosineSimilarity: 'cosine_similarity',
 }
 
-const shapeMismatch = (y: TT, p: TT) => new PyError('ValueError', `Arguments \`target\` and \`output\` must have the same shape. Received: target.shape=${shapeStr([null, ...y.shape.slice(1)])}, output.shape=${shapeStr([null, ...p.shape.slice(1)])}`)
+const shapeMismatch = (y: TT, p: TT) => new PyError('ValueError', `Arguments \`target\` and \`output\` must have the same ${y.ndim === p.ndim ? 'shape' : 'rank (ndim)'}. Received: target.shape=${shapeStr([null, ...y.shape.slice(1)])}, output.shape=${shapeStr([null, ...p.shape.slice(1)])}`)
 
 /** keras.src.losses.loss.squeeze_or_expand_to_same_rank */
 const sameRank = (E: Engine, y: TT, p: TT): TT => (y.ndim === p.ndim - 1 && p.shape[p.ndim - 1] === 1 ? C.unsqueezeT(E, y, -1) : y.ndim === p.ndim + 1 && y.shape[y.ndim - 1] === 1 ? C.squeezeT(E, y, -1) : y)
@@ -2600,7 +2711,7 @@ function perSample(E: Engine, h: Host, spec: LossSpec, yTrue: TT, yPred: TT, tra
     case 'sparse_categorical_crossentropy': {
       const C2 = yPred.shape[yPred.ndim - 1]
       const labels = yTrue.values().map(Math.round)
-      if (labels.length !== yPred.size / C2) throw new PyError('ValueError', `Arguments \`target\` and \`output\` must have the same rank (ndim) or the target must have one dimension less. Received: target.shape=${shapeStr([null, ...yTrue.shape.slice(1)])}, output.shape=${shapeStr([null, ...yPred.shape.slice(1)])}`)
+      if (labels.length !== yPred.size / C2) throw new PyError('ValueError', `Argument \`output\` must have rank (ndim) \`target.ndim - 1\`. Received: target.shape=${shapeStr([null, ...yTrue.shape.slice(1)])}, output.shape=${shapeStr([null, ...yPred.shape.slice(1)])}`)
       for (const l of labels) if (l < 0 || l >= C2) throw tfErr(h, `Received a label value of ${l} which is outside the valid range of [0, ${C2}). (One-hot targets need loss='categorical_crossentropy'.)`)
       const target = TT.of(labels, [labels.length], 'int64')
       const logp = spec.fromLogits ? C.softmax(E, yPred, -1, true) : clipLog(E, normalise(E, yPred))
@@ -2634,7 +2745,8 @@ function perSample(E: Engine, h: Host, spec: LossSpec, yTrue: TT, yPred: TT, tra
   const y = sameRank(E, yTrue, yPred)
   for (let i = 1; i <= Math.min(y.ndim, yPred.ndim); i++) {
     const [a, b] = [yPred.shape[yPred.ndim - i], y.shape[y.ndim - i]]
-    if (a !== b && a !== 1 && b !== 1) throw h.err('ValueError', `Dimensions must be equal, but are ${a} and ${b} for 'sub' with input shapes: [?,${yPred.shape.slice(1).join(',')}], [?${y.shape.slice(1).map((v) => `,${v}`).join('')}].`)
+    if (a !== b && a !== 1 && b !== 1 && y.ndim === 1) throw h.err('InvalidArgumentError', `Graph execution error:\n\nIncompatible shapes: [${y.shape.join(',')}] vs. [${yPred.shape.join(',')}]`)
+    if (a !== b && a !== 1 && b !== 1) throw h.err('ValueError', `Dimensions must be equal, but are ${b} and ${a} for '{{node compile_loss/${spec.name}/sub}}' with input shapes: [?${y.shape.slice(1).map((v) => `,${v}`).join('')}].`)
   }
   const d = C.binary(E, '-', yPred, y)
   switch (spec.name) {
@@ -2718,6 +2830,8 @@ class LossObj extends PyObj {
   call(args: Value[], kw: Kw, h: Host): Value {
     const E = stateOf(h).E
     const w = kw.sample_weight ?? args[2]
+    const nest = (v: Value | undefined): string => (v && (v.k === 'list' || v.k === 'tuple') ? `[${v.items.map(nest).join()}]` : '*')
+    if (nest(args[0] ?? kw.y_true) !== nest(args[1] ?? kw.y_pred)) throw h.err('ValueError', "Structures don't have the same nested structure.")
     return tfWrap(reduceLossT(E, perSample(E, h, this.spec, asFloat(h, args[0] ?? kw.y_true), asFloat(h, args[1] ?? kw.y_pred), false), isNone(w) ? null : asFloat(h, w), this.reduction))
   }
   getAttr(name: string): Value | undefined {
@@ -3266,8 +3380,8 @@ class KOptimizer extends PyObj {
   getAttr(name: string, h: Host): Value | undefined {
     switch (name) {
       case 'learning_rate': case 'lr': return py.obj(new LRVariable(this, TT.scalar(this.currentLr(h), 'float32')))
-      case 'iterations': return py.obj(new KVariable(TT.scalar(this.t, 'int64'), `${this.cls.toLowerCase()}/iteration`, false))
-      case 'name': return py.str(this.P.name.k === 'str' ? this.P.name.v : snake(this.cls))
+      case 'iterations': return py.obj(new KVariable(TT.scalar(this.t, 'int64'), `${optName(this.cls)}/iteration`, false))
+      case 'name': return py.str(this.P.name.k === 'str' ? this.P.name.v : optName(this.cls))
       case 'apply_gradients': return fnv(name, (args, kw) => {
         const pairs = h.iterate(args[0] ?? kw.grads_and_vars).map((x) => h.iterate(x))
         const live = pairs.filter(([g]) => g.k !== 'none')
@@ -3288,8 +3402,10 @@ class KOptimizer extends PyObj {
     return undefined
   }
   config(h: Host): { [k: string]: Json } {
-    const out: { [k: string]: Json } = { name: this.P.name.k === 'str' ? this.P.name.v : snake(this.cls), learning_rate: typeof this.lr === 'number' ? jf(f32clean(Math.fround(this.lr))) : objConfig('keras.optimizers.schedules', this.lr.cls, Object.fromEntries(Object.entries(this.lr.P).map(([k, v]) => [k, pyToJs(h, v)]))) }
-    for (const [k, v] of Object.entries(this.P)) if (k !== 'name' && k !== 'learning_rate') out[k] = pyToJs(h, v)
+    const out: { [k: string]: Json } = { name: this.P.name.k === 'str' ? this.P.name.v : optName(this.cls), learning_rate: typeof this.lr === 'number' ? jf(Math.fround(this.lr)) : objConfig('keras.optimizers.schedules', this.lr.cls, Object.fromEntries(Object.entries(this.lr.P).map(([k, v]) => [k, pyToJs(h, v)]))) }
+    const first = ['weight_decay', 'clipnorm', 'global_clipnorm', 'clipvalue', 'use_ema', 'ema_momentum', 'ema_overwrite_frequency', 'loss_scale_factor', 'gradient_accumulation_steps']
+    for (const k of first) if (k in this.P) out[k] = pyToJs(h, this.P[k])
+    for (const [k, v] of Object.entries(this.P)) if (k !== 'name' && k !== 'learning_rate' && !first.includes(k)) out[k] = pyToJs(h, v)
     return out
   }
   setAttr(name: string, v: Value, h: Host): boolean {
@@ -3309,7 +3425,7 @@ class KOptimizer extends PyObj {
 class LRVariable extends KVariable {
   opt: KOptimizer
   constructor(opt: KOptimizer, t: TT) {
-    super(t, `${opt.cls.toLowerCase()}/learning_rate`, false)
+    super(t, `${optName(opt.cls)}/learning_rate`, false)
     this.opt = opt
   }
   getAttr(name: string, h: Host): Value | undefined {
@@ -3326,7 +3442,7 @@ const optimizerArg = (h: Host, v: Value | undefined): KOptimizer => {
   if (v && v.k === 'obj' && v.o instanceof KOptimizer) return v.o
   const name = v && v.k === 'str' ? v.v.toLowerCase() : isNone(v) ? 'rmsprop' : ''
   const cls = Object.keys(OPT_SIG).find((c) => c.toLowerCase() === name)
-  if (!cls) throw h.err('ValueError', `Could not interpret optimizer identifier: ${v ? repr(v) : 'None'}`)
+  if (!cls) throw h.err('ValueError', `Could not interpret optimizer identifier: ${!v ? 'None' : v.k === 'str' ? v.v : repr(v)}`)
   return new KOptimizer(h, cls, bindArgs(h, cls, OPT_SIG[cls], [], {}, null))
 }
 
@@ -3349,7 +3465,7 @@ interface CallbackHooks {
   onPredictEnd?(h: Host, logs: Logs): void
 }
 
-const logsDict = (logs: Logs): Value => ({ k: 'dict', d: PyDict.from(Object.entries(logs).map(([k, v]) => [py.str(k), py.float(f32clean(Math.fround(v)))])) })
+const logsDict = (logs: Logs): Value => ({ k: 'dict', d: PyDict.from(Object.entries(logs).map(([k, v]) => [py.str(k), py.float(Math.fround(v))])) })
 
 class KCallback extends PyObj implements CallbackHooks {
   readonly cls: string
@@ -3545,6 +3661,10 @@ class LearningRateScheduler extends KCallback {
 
 /** keeps the weights in memory under the file's name, so load_model / load_weights find them */
 class ModelCheckpoint extends MonitorCallback {
+  getAttr(name: string): Value | undefined {
+    if (name === 'best') return this.best === null ? py.float(this.mode === 'max' ? -Infinity : Infinity) : py.float(this.best)
+    return undefined
+  }
   filepath: string
   verbose: number
   bestOnly: boolean
@@ -3579,6 +3699,7 @@ class ModelCheckpoint extends MonitorCallback {
     } else if (this.verbose > 0) h.print(`\nEpoch ${epoch + 1}: saving model to ${path}\n`)
     const m = this.model!
     stateOf(h).files.set(path, this.weightsOnly ? { kind: 'weights', values: m.weightValues() } : m.saved())
+    touchFile(h, path)
   }
 }
 
@@ -3672,7 +3793,7 @@ class History extends PyObj {
   }
   repr() { return '<keras.src.callbacks.history.History object>' }
   getAttr(name: string) {
-    if (name === 'history') return { k: 'dict' as const, d: PyDict.from(Object.entries(this.history).map(([k, v]) => [py.str(k), py.list(v.map((x) => py.float(f32clean(Math.fround(x)))))])) }
+    if (name === 'history') return { k: 'dict' as const, d: PyDict.from(Object.entries(this.history).map(([k, v]) => [py.str(k), py.list(v.map((x) => py.float(Math.fround(x))))])) }
     if (name === 'epoch') return py.list(this.epochs.map((i) => py.int(i)))
     if (name === 'params') return { k: 'dict' as const, d: PyDict.from([[py.str('verbose'), py.int(this.params.verbose)], [py.str('epochs'), py.int(this.params.epochs)], [py.str('steps'), py.int(this.params.steps)]]) }
     if (name === 'model') return this.model.self()
@@ -3839,7 +3960,7 @@ class TFDataset extends PyObj {
           }
         }, this.spec, count < 0 || this.infinite, count < 0 || this.size === null ? null : this.size * count))
       })
-      case 'prefetch': case 'cache': return fn(() => py.obj(new TFDataset(name === 'cache' ? '_CacheDataset' : '_PrefetchDataset', parent, this.spec, this.infinite, this.size)))
+      case 'prefetch': case 'cache': return fn(() => py.obj(new TFDataset(name === 'cache' ? 'CacheDataset' : '_PrefetchDataset', parent, this.spec, this.infinite, this.size)))
       case 'unbatch': return fn(() => py.obj(new TFDataset('_UnbatchDataset', function* (hh) {
         const E = stateOf(hh).E
         for (const x of parent(hh)) {
@@ -3883,7 +4004,7 @@ class TensorSpec extends PyObj {
   }
 }
 
-const tfNumpyScalar = (t: TT): Value => (isFloatT(t.dtype) ? py.float(f32clean(t.values()[0])) : t.dtype === 'bool' ? py.bool(t.values()[0] !== 0) : py.int(t.values()[0]))
+const tfNumpyScalar = (t: TT): Value => (isFloatT(t.dtype) ? py.float(f32short(t.values()[0])) : t.dtype === 'bool' ? py.bool(t.values()[0] !== 0) : py.int(t.values()[0]))
 
 // ---------------------------------------------------------------- models
 
@@ -3920,6 +4041,32 @@ const sliceRows = (t: TT, a: number, b: number) => rowsOf(column(t), allOf(b - a
 interface Batch { xs: TT[]; ys: TT[]; sw: TT | null }
 
 /** the data fit and evaluate go through */
+/** steps_per_epoch over arrays: the batches carry on across epochs until they run out, then the next epoch starts them again */
+const limitSteps = (h: Host, inner: Source, n: number): Source => {
+  let live: Iterator<Batch> | null = null
+  let warned = false
+  return {
+    ...inner,
+    steps: n,
+    whole: null,
+    epoch: (shuffle) => ({
+      * [Symbol.iterator]() {
+        for (let i = 0; i < n; i++) {
+          live ??= inner.epoch(shuffle)[Symbol.iterator]()
+          const next = live.next()
+          if (next.done) {
+            live = null
+            if (!warned) h.print(RAN_OUT)
+            warned = true
+            return
+          }
+          yield next.value
+        }
+      },
+    }),
+  }
+}
+
 interface Source {
   /** the batches of one epoch */
   epoch(shuffle: boolean): Iterable<Batch>
@@ -3988,10 +4135,10 @@ class KModel extends KLayer {
   listed(): KLayer[] { return this.mode === 'subclass' ? attrLayers(this.inst!) : this.layers }
 
   // ---- building
-  setInput(h: Host, s: KShape, name?: Value) {
-    const inp = new InputLayer(h, s, { name: name ?? py.str('input_layer') })
+  setInput(h: Host, s: KShape, name?: Value, tensorName?: string) {
+    const inp = new InputLayer(h, s, name ? { name } : {})
     const node = new KNode(inp, [], {})
-    node.outputs = [new KerasTensor(s, node, 0, 'keras_tensor')]
+    node.outputs = [new KerasTensor(s, node, 0, tensorName ?? autoName(h, 'keras_tensor'))]
     this.inputsK = [node.outputs[0]]
     this.outputsK = [node.outputs[0]]
     this.inShape = s
@@ -4001,13 +4148,14 @@ class KModel extends KLayer {
     const given = kt && kt.layer instanceof InputLayer ? kt.layer : v.k === 'obj' && v.o instanceof InputLayer ? v.o : null
     if (given) {
       if (this.layers.length) throw h.err('ValueError', 'Sequential model has already been configured to use input shape; a further Input cannot be added.')
-      this.setInput(h, given.shape, py.str(given.name))
+      this.setInput(h, given.shape, py.str(given.name), kt?.name)
       this.outShape = given.shape
       this.built = true
       return
     }
     const l = layerOf(v)
     if (!l) throw h.err('TypeError', `The added layer must be an instance of class Layer. Received: layer=${repr(v)} of type ${v.k === 'obj' ? v.o.cls : v.k}.`)
+    if (!l.built) l.owner = this
     if (this.layers.some((x) => x.name === l.name)) throw h.err('ValueError', `All layers added to a Sequential model should have unique names. Name '${l.name}' is already the name of a layer in this model. Update the \`name\` argument to pass a unique name.`)
     if (!this.inShape && !this.layers.length && l.declaredInput) this.setInput(h, l.declaredInput)
     this.layers.push(l)
@@ -4116,7 +4264,6 @@ class KModel extends KLayer {
       if (!opIndex.has(node.layer)) opIndex.set(node.layer, opIndex.size)
       progress.add(node)
       if (!inputs.has(t)) {
-        if (node.layer instanceof InputLayer) throw h.err('ValueError', `Graph disconnected: cannot find parent for tensor ${t.name} (the output of the InputLayer '${node.layer.name}'), which is not among the model's inputs.`)
         node.inputs.forEach(visit)
       }
       finished.add(node)
@@ -4163,7 +4310,12 @@ class KModel extends KLayer {
       done.set(n, out)
       return out
     }
-    const value = (t: KerasTensor): TT => known.get(t) ?? evalNode(t.node)[t.outIndex]
+    const value = (t: KerasTensor): TT => {
+      const got = known.get(t)
+      if (got) return got
+      if (t.node.layer instanceof InputLayer) throw h.err('KeyError', `Exception encountered when calling Functional.call().\n\n${t.name}`)
+      return evalNode(t.node)[t.outIndex]
+    }
     return this.outputsK.map(value)
   }
 
@@ -4186,6 +4338,7 @@ class KModel extends KLayer {
     if (this.mode === 'subclass') return userEagerCall(this, h, args, kw)
     const x = args[0] ?? kw.inputs
     if (!x) throw h.err('TypeError', `${this.kind}.call() missing 1 required positional argument: 'inputs'`)
+    refusePlainInput(h, this.kind, x)
     if (kerasOf(x) || (isSeq(x) && x.items.some((v) => kerasOf(v)))) return super.call(args, kw, h)
     const S = stateOf(h)
     const training = !isNone(kw.training) ? h.truthy(kw.training!) : S.training
@@ -4202,6 +4355,8 @@ class KModel extends KLayer {
   rowShape(l: KLayer): string {
     const n = l.nodes[l.nodes.length - 1]
     if (n && n.outputs.length > 1) return `[${n.outputs.map((t) => shapeStr(t.shape)).join(', ')}]`
+    // in a subclassed model only layers that record their build know a shape, and they know the first call's batch size
+    if (this.mode === 'subclass' && !n) return l.outShape && !NO_SHAPE_IN_SUBCLASS.test(l.kind) ? shapeStr([l.firstBatch ?? l.outShape[0], ...l.outShape.slice(1)]) : '?'
     return l.outShape ? shapeStr(l.outShape) : '?'
   }
   connected(l: KLayer): string {
@@ -4289,16 +4444,17 @@ class KModel extends KLayer {
         parts.push(0)
         return
       }
-      if (ys[i] === undefined) throw h.err('ValueError', 'No loss found: the model has a compiled loss but fit() received no targets (y).')
+      if (ys[i] === undefined) throw h.err('ValueError', 'None values not supported.')
       let l = reduceLossT(E, perSample(E, h, spec, ys[i], outs[i], train), sw, spec.reduction)
-      if (c.weights[i] !== 1) l = mulS(E, l, c.weights[i])
+      // each output's own entry in the logs is before its loss weight
       parts.push(l.values()[0])
+      if (c.weights[i] !== 1) l = mulS(E, l, c.weights[i])
       total = total ? C.binary(E, '+', total, l) : l
     })
     const S = stateOf(h)
     const extras = [...this.allLayers().flatMap((l) => l.penalties(E, h)), ...S.losses]
     for (const p of extras) total = total ? C.binary(E, '+', total, p) : p
-    if (!total) throw h.err('ValueError', 'No loss found. You may have forgotten to provide a `loss` argument in the `compile()` method.')
+    if (!total) throw h.err('ValueError', 'No loss to compute. Provide a `loss` argument in `compile()`.')
     return { total, parts }
   }
   updateTrackers(h: Host, total: TT, parts: number[], n: number, ys: TT[], outs: TT[]) {
@@ -4417,9 +4573,11 @@ class KModel extends KLayer {
   datasetSource(h: Host, ds: TFDataset, stepsLimit: number | null): Source {
     let live: Generator<Value> | null = null
     const batch = (el: Value) => this.batchFrom(h, el)
+    let warned = false
     const ranOut = () => {
-      this.stopTraining = true
-      h.print('UserWarning: Your input ran out of data; interrupting training. Make sure that your dataset or generator can generate at least `steps_per_epoch * epochs` batches.\n')
+      live = null
+      if (!warned) h.print(RAN_OUT)
+      warned = true
     }
     const steps = stepsLimit ?? ds.size ?? 0
     return {
@@ -4453,8 +4611,10 @@ class KModel extends KLayer {
   }
 
   fit(h: Host, args: Value[], kw: Kw): Value {
-    const P = bindArgs(h, 'fit', 'x=None y=None batch_size=None epochs=1 verbose=auto callbacks=None validation_split=0.0 validation_data=None shuffle=True class_weight=None sample_weight=None initial_epoch=0 steps_per_epoch=None validation_steps=None validation_batch_size=None validation_freq=1', args, kw, null)
-    if (!this.compiled) throw h.err('RuntimeError', 'You must call `compile()` before using the model.')
+    const P = bindArgs(h, 'TensorFlowTrainer.fit', 'x=None y=None batch_size=None epochs=1 verbose=auto callbacks=None validation_split=0.0 validation_data=None shuffle=True class_weight=None sample_weight=None initial_epoch=0 steps_per_epoch=None validation_steps=None validation_batch_size=None validation_freq=1', args, kw, null)
+    refusePlainData(h, P.x, P.y)
+    if (!this.compiled) throw h.err('ValueError', 'You must call `compile()` before using the model.')
+    const buildsHere = !this.built
     if (this.inst && userMethod(this.inst.cls, 'train_step')) throw h.err('NotImplementedError', 'a custom train_step() is not implemented in this sandbox: write the loop yourself with tf.GradientTape')
     const S = stateOf(h)
     const E = S.E
@@ -4471,7 +4631,11 @@ class KModel extends KLayer {
     let dataset = xv.k === 'obj' && xv.o instanceof TFDataset ? xv.o : null
     if (xv.k === 'iter') {
       const next = h.iterOf(xv)
+      // Keras peeks at a generator's first batch and keeps it: starting again gives that batch and whatever is left
+      let first: Value | undefined
       dataset = new TFDataset('generator', function* () {
+        first ??= next()
+        if (first !== undefined) yield first
         for (let el = next(); el !== undefined; el = next()) yield el
       }, () => 'generator', true, null)
     }
@@ -4486,9 +4650,8 @@ class KModel extends KLayer {
       return this.arraySource(h, vx, vy, parts[2] && parts[2].k !== 'none' ? asFloat(h, parts[2]) : null, vbs)
     }
     if (dataset) {
-      if (!isNone(P.batch_size)) throw h.err('ValueError', `The \`batch_size\` argument must not be specified for the given input type. Received input: ${repr(xv)}, batch_size: ${repr(P.batch_size)}`)
       if (xv.k === 'iter' && stepsLimit === null) throw h.err('NotImplementedError', 'model.fit(generator) without steps_per_epoch is not implemented in this sandbox: a generator may never end')
-      if (split > 0) throw h.err('ValueError', '`validation_split` is only supported for Tensors or NumPy arrays')
+      if (split > 0) throw h.err('ValueError', `Argument \`validation_split\` is only supported for tensors or NumPy arrays.Found incompatible type in the input: [<class 'tensorflow.python.data.ops.${dataset.cls.slice(1).replace(/Dataset$/, '').toLowerCase()}_op.${dataset.cls}'>]`)
       if (!isNone(P.y)) throw h.err('ValueError', 'When providing `x` as a tf.data.Dataset, `y` should not be passed. Instead, the targets should be included as part of the tf.data.Dataset.')
       if (!isNone(P.sample_weight)) throw h.err('ValueError', '`sample_weight` argument is not supported when using a tf.data.Dataset as input.')
       // a generator is walked once: its first batch must not be lost to building the model, so only a dataset is peeked at
@@ -4500,11 +4663,10 @@ class KModel extends KLayer {
       src = this.datasetSource(h, dataset, stepsLimit)
       if (!src.steps) src.steps = dataset.infinite ? 0 : dataset.items(h).length
     } else {
-      if (stepsLimit !== null) throw h.err('NotImplementedError', 'steps_per_epoch with arrays is not implemented in this sandbox: pass a tf.data.Dataset with .repeat()')
       let xs = this.prepare(h, this.inputsOf(h, xv))
       const nOut = this.nOutputs(h, xs)
       let ys = this.targetsOf(h, P.y, nOut)
-      for (const c of ys) if (xs[0].shape[0] !== c.shape[0]) throw h.err('ValueError', `Data cardinality is ambiguous. Make sure all arrays contain the same number of samples.'x' sizes: ${xs[0].shape[0]}\n'y' sizes: ${c.shape[0]}`)
+      for (const c of ys) if (xs[0].shape[0] !== c.shape[0]) throw h.err('ValueError', `Data cardinality is ambiguous. Make sure all arrays contain the same number of samples.'x' sizes: ${xs[0].shape[0]}\n'y' sizes: ${c.shape[0]}\n`)
       let sw = isNone(P.sample_weight) ? null : asFloat(h, P.sample_weight)
       if (!isNone(P.class_weight)) {
         if (P.class_weight.k !== 'dict') throw h.err('TypeError', 'class_weight must be a dict {class index: weight}')
@@ -4530,6 +4692,7 @@ class KModel extends KLayer {
         sw = sw ? sliceRows(sw, 0, cut) : null
       }
       src = this.arraySource(h, xs, ys, sw, bs)
+      if (stepsLimit !== null) src = limitSteps(h, src, stepsLimit)
     }
     if (!isNone(P.validation_data)) val = valFrom(P.validation_data)
     const freq = h.toInt(P.validation_freq)
@@ -4542,6 +4705,8 @@ class KModel extends KLayer {
     const epochsRun: number[] = []
     let last: Logs = {}
     for (const c of cbs) c.onTrainBegin?.(h, {})
+    // building looked at one sample: what the layers remember is the first real batch
+    if (buildsHere) for (const l of this.allLayers()) l.firstBatch = undefined
     for (let ep = start; ep < epochs; ep++) {
       this.resetMetrics(h)
       for (const c of cbs) c.onEpochBegin?.(h, ep, {})
@@ -4565,10 +4730,10 @@ class KModel extends KLayer {
         for (const c of cbs) c.onTestEnd?.(h, vl)
         for (const [k, v] of Object.entries(vl)) logs[`val_${k}`] = v
       }
+      last = { ...logs }
       for (const c of cbs) c.onEpochEnd?.(h, ep, logs)
       for (const [k, v] of Object.entries(logs)) (hist[k] ??= []).push(v)
       epochsRun.push(ep)
-      last = logs
       if (verbose) {
         const text = Object.entries(logs).map(([k, v]) => `${k}: ${kfmt(v)}`).join(' - ')
         h.print(`${params.steps}/${params.steps} ${verbose === 1 ? '━━━━━━━━━━━━━━━━━━━━ ' : ''}- ${text}\n`)
@@ -4589,16 +4754,17 @@ class KModel extends KLayer {
   }
 
   /** the numbers evaluate and *_on_batch return: loss, then each output's loss, then the metrics in compile order */
-  flatLogs(logs: Logs, dict: boolean): Value {
-    const f = (x: number) => py.float(f32clean(Math.fround(x)))
+  flatLogs(logs: Logs, dict: boolean, arrays = false): Value {
+    const f = (x: number) => (arrays ? py.arr(ndFor(TT.scalar(Math.fround(x), 'float32'))) : py.float(Math.fround(x)))
     if (dict) return { k: 'dict', d: PyDict.from(Object.entries(logs).map(([k, v]) => [py.str(k), f(v)])) }
     const names = ['loss', ...(this.outLossT.length > 1 ? this.outputNames(this.outLossT.length).map((n) => `${n}_loss`) : []), ...this.metricSlots().map((s) => s.key)]
     const vals = names.filter((n) => n in logs).map((n) => f(logs[n]))
     return vals.length === 1 ? vals[0] : py.list(vals)
   }
   evaluate(h: Host, args: Value[], kw: Kw): Value {
-    if (!this.compiled) throw h.err('RuntimeError', 'You must call `compile()` before using the model.')
-    const P = bindArgs(h, 'evaluate', 'x=None y=None batch_size=None verbose=auto sample_weight=None steps=None callbacks=None return_dict=False', args, kw, null)
+    if (!this.compiled) throw h.err('ValueError', 'You must call `compile()` before using the model.')
+    const P = bindArgs(h, 'TensorFlowTrainer.evaluate', 'x=None y=None batch_size=None verbose=auto sample_weight=None steps=None callbacks=None return_dict=False', args, kw, null)
+    refusePlainData(h, P.x, P.y)
     const verbose = P.verbose.k === 'str' ? 1 : h.toInt(P.verbose)
     let src: Source
     if (P.x.k === 'obj' && P.x.o instanceof TFDataset) {
@@ -4609,7 +4775,7 @@ class KModel extends KLayer {
       const xs = this.prepare(h, this.inputsOf(h, P.x))
       const ys = this.targetsOf(h, P.y, this.nOutputs(h, xs))
       if (!ys.length) throw h.err('ValueError', 'evaluate() needs targets: pass y')
-      for (const c of ys) if (xs[0].shape[0] !== c.shape[0]) throw h.err('ValueError', `Data cardinality is ambiguous. Make sure all arrays contain the same number of samples.'x' sizes: ${xs[0].shape[0]}\n'y' sizes: ${c.shape[0]}`)
+      for (const c of ys) if (xs[0].shape[0] !== c.shape[0]) throw h.err('ValueError', `Data cardinality is ambiguous. Make sure all arrays contain the same number of samples.'x' sizes: ${xs[0].shape[0]}\n'y' sizes: ${c.shape[0]}\n`)
       src = this.arraySource(h, xs, ys, isNone(P.sample_weight) ? null : asFloat(h, P.sample_weight), isNone(P.batch_size) ? 32 : h.toInt(P.batch_size))
     }
     const cbs = hooksOf(h, P.callbacks)
@@ -4619,7 +4785,7 @@ class KModel extends KLayer {
     }
     const logs = this.testLogs(h, src)
     for (const c of cbs) c.onTestEnd?.(h, logs)
-    if (verbose) h.print(`${src.steps}/${src.steps} ━━━━━━━━━━━━━━━━━━━━ - ${Object.entries(logs).map(([k, v]) => `${k}: ${kfmt(v)}`).join(' - ')}\n`)
+    if (verbose) h.print(`${src.steps}/${src.steps} ${verbose === 2 ? '' : '━━━━━━━━━━━━━━━━━━━━ '}- ${Object.entries(logs).map(([k, v]) => `${k}: ${kfmt(v)}`).join(' - ')}\n`)
     return this.flatLogs(logs, h.truthy(P.return_dict))
   }
   outsToPy(outs: TT[]): Value {
@@ -4639,7 +4805,8 @@ class KModel extends KLayer {
     }
   }
   predict(h: Host, args: Value[], kw: Kw): Value {
-    const P = bindArgs(h, 'predict', 'x batch_size=None verbose=auto steps=None callbacks=None', args, kw, null)
+    const P = bindArgs(h, 'TensorFlowTrainer.predict', 'x batch_size=None verbose=auto steps=None callbacks=None', args, kw, null)
+    refusePlainData(h, P.x, undefined)
     const verbose = P.verbose.k === 'str' ? 1 : h.toInt(P.verbose)
     const cbs = hooksOf(h, P.callbacks)
     for (const c of cbs) c.onPredictBegin?.(h, {})
@@ -4660,7 +4827,7 @@ class KModel extends KLayer {
       steps = Math.ceil(xs[0].shape[0] / (isNone(P.batch_size) ? 32 : h.toInt(P.batch_size)))
     }
     for (const c of cbs) c.onPredictEnd?.(h, {})
-    if (verbose) h.print(`${steps}/${steps} ━━━━━━━━━━━━━━━━━━━━\n`)
+    if (verbose) h.print(verbose === 2 ? `${steps}/${steps}\n` : `${steps}/${steps} ━━━━━━━━━━━━━━━━━━━━\n`)
     return this.outsToPy(outs)
   }
 
@@ -4705,6 +4872,7 @@ class KModel extends KLayer {
   // ---- attributes
   getAttr(name: string, h: Host): Value | undefined {
     const fn = (call: (args: Value[], kw: Kw) => Value): Value => fnv(name, call)
+    if ((name === 'input' || name === 'output') && this.mode === 'sequential') throw h.err('AttributeError', `The layer ${this.name} has never been called and thus has no defined ${name}.`)
     switch (name) {
       case 'layers': return py.list(this.listed().map((l) => l.self()))
       case 'add': return fn((args, kw) => {
@@ -4738,7 +4906,6 @@ class KModel extends KLayer {
         const P = bindArgs(h, 'compile', 'optimizer=rmsprop loss=None loss_weights=None metrics=None !weighted_metrics=None run_eagerly=False steps_per_execution=1 jit_compile=auto auto_scale_loss=True', args, kw, null)
         this.compiled = { opt: optimizerArg(h, P.optimizer), lossArg: P.loss, metricsArg: P.metrics, lossWeights: P.loss_weights, specs: null, slots: null, weights: [] }
         // an unknown loss or metric name fails at compile time, as in Keras
-        if (P.loss.k === 'str') lossSpec(h, P.loss)
         this.outLossT = []
         return py.NONE
       })
@@ -4748,14 +4915,14 @@ class KModel extends KLayer {
       case 'predict': return fn((args, kw) => this.predict(h, args, kw))
       case 'predict_on_batch': return fn((args, kw) => this.outsToPy(this.infer(h, this.prepare(h, this.inputsOf(h, args[0] ?? kw.x)))))
       case 'train_on_batch': case 'test_on_batch': return fn((args, kw) => {
-        if (!this.compiled) throw h.err('RuntimeError', 'You must call `compile()` before using the model.')
+        if (!this.compiled) throw h.err('ValueError', 'You must call `compile()` before using the model.')
         const P = bindArgs(h, name, name === 'train_on_batch' ? 'x y=None sample_weight=None !class_weight=None return_dict=False' : 'x y=None sample_weight=None return_dict=False', args, kw, null)
         const xs = this.prepare(h, this.inputsOf(h, P.x))
         const ys = this.targetsOf(h, P.y, this.nOutputs(h, xs))
         const b: Batch = { xs, ys, sw: isNone(P.sample_weight) ? null : asFloat(h, P.sample_weight) }
         if (name === 'train_on_batch') this.trainStep(h, b, this.trainableTs())
         else this.testStep(h, b)
-        return this.flatLogs(this.logs(h), h.truthy(P.return_dict))
+        return this.flatLogs(this.logs(h), h.truthy(P.return_dict), true)
       })
       case 'reset_metrics': return fn(() => { this.resetMetrics(h); return py.NONE })
       case 'get_layer': return fn((args, kw) => {
@@ -4783,7 +4950,7 @@ class KModel extends KLayer {
         return this.inputsK.length > 1 ? py.list(this.inputsK.map((t) => shapeTuple(t.shape))) : shapeTuple(this.inShape)
       }
       case 'output_shape': {
-        if (!this.outShape) throw h.err('AttributeError', `The model '${this.name}' has never been called and thus has no defined output shape.`)
+        if (!this.outShape) throw h.err('AttributeError', `Sequential model '${this.name}' has no defined output shape yet.`)
         return this.outputsK.length > 1 ? py.list(this.outputsK.map((t) => shapeTuple(t.shape))) : shapeTuple(this.outShape)
       }
       case 'inputs': case 'outputs': {
@@ -4816,20 +4983,20 @@ class KModel extends KLayer {
         const path = h.str(args[0] ?? kw.filepath)
         if (!/\.(keras|h5)$/.test(path)) throw h.err('ValueError', `Invalid filepath extension for saving. Please add either a \`.keras\` extension for the native Keras format (recommended) or a \`.h5\` extension. Use \`model.export(filepath)\` if you want to export a SavedModel for use with TFLite/TFServing/etc. Received: filepath=${path}.`)
         stateOf(h).files.set(path, this.saved())
-        h.print(`(sandbox) model kept in memory as ${path}: there is no disk here\n`)
+        touchFile(h, path)
         return py.NONE
       })
       case 'save_weights': return fn((args, kw) => {
         const path = h.str(args[0] ?? kw.filepath)
         if (!path.endsWith('.weights.h5')) throw h.err('ValueError', `The filename must end in \`.weights.h5\`. Received: filepath=${path}`)
         stateOf(h).files.set(path, { kind: 'weights', values: this.weightValues() })
-        h.print(`(sandbox) weights kept in memory as ${path}: there is no disk here\n`)
+        touchFile(h, path)
         return py.NONE
       })
       case 'load_weights': return fn((args, kw) => {
         const path = h.str(args[0] ?? kw.filepath)
         const f = stateOf(h).files.get(path)
-        if (!f) throw h.err('FileNotFoundError', `[Errno 2] Unable to synchronously open file (unable to open file: name = '${path}', errno = 2, error message = 'No such file or directory') (the sandbox only knows files saved in this run)`)
+        if (!f) throw h.err('FileNotFoundError', `[Errno 2] Unable to synchronously open file (unable to open file: name = '${path}', errno = 2, error message = 'No such file or directory', flags = 0, o_flags = 0) (the sandbox only knows files saved in this run)`)
         const ws = this.weights()
         if (f.values.length !== ws.length) throw h.err('ValueError', `A total of ${f.values.length} objects could not be loaded: the file holds ${f.values.length} weights, this model has ${ws.length}.`)
         ws.forEach((w, i) => {
@@ -4937,7 +5104,7 @@ const cloneLayer = (h: Host, l: KLayer, seen: Map<KLayer, KLayer>): KLayer => {
 }
 
 const cloneModel = (h: Host, m: KModel, seen: Map<KLayer, KLayer> = new Map()): KModel => {
-  if (m.mode === 'subclass') throw h.err('ValueError', `Expected \`model\` argument to be a functional \`Model\` instance, but got a subclassed model instead: ${m.repr()}`)
+  if (m.mode === 'subclass') throw h.err('NotImplementedError', 'clone_model of a subclassed model is not implemented in this sandbox')
   const kw: Kw = { name: py.str(m.name), trainable: py.bool(m.trainableFlag) }
   if (m.mode === 'sequential') {
     const c = new KModel(h, 'sequential', kw)
@@ -5013,9 +5180,9 @@ const LAYER_SIG: Record<string, string> = {
   DepthwiseConv2D: `kernel_size strides=(1,1) padding=valid depth_multiplier=1 ${CHANNELS_LAST} dilation_rate=(1,1) activation=None use_bias=True depthwise_initializer=glorot_uniform bias_initializer=zeros depthwise_regularizer=None bias_regularizer=None activity_regularizer=None !depthwise_constraint=None !bias_constraint=None`,
   SeparableConv2D: `filters kernel_size strides=(1,1) padding=valid ${CHANNELS_LAST} dilation_rate=(1,1) depth_multiplier=1 activation=None use_bias=True depthwise_initializer=glorot_uniform pointwise_initializer=glorot_uniform bias_initializer=zeros depthwise_regularizer=None pointwise_regularizer=None bias_regularizer=None activity_regularizer=None !depthwise_constraint=None !pointwise_constraint=None !bias_constraint=None`,
   MaxPooling2D: `pool_size=(2,2) strides=None padding=valid ${CHANNELS_LAST}`,
-  AveragePooling2D: `pool_size=(2,2) strides=None padding=valid ${CHANNELS_LAST}`,
+  AveragePooling2D: `pool_size strides=None padding=valid ${CHANNELS_LAST}`,
   MaxPooling1D: `pool_size=2 strides=None padding=valid ${CHANNELS_LAST}`,
-  AveragePooling1D: `pool_size=2 strides=None padding=valid ${CHANNELS_LAST}`,
+  AveragePooling1D: `pool_size strides=None padding=valid ${CHANNELS_LAST}`,
   GlobalAveragePooling2D: GLOBAL_POOL, GlobalMaxPooling2D: GLOBAL_POOL, GlobalAveragePooling1D: GLOBAL_POOL, GlobalMaxPooling1D: GLOBAL_POOL,
   Flatten: CHANNELS_LAST,
   Dropout: 'rate !noise_shape=None seed=None',
@@ -5094,7 +5261,7 @@ const build = (h: Host): Record<string, Value> => {
     Flatten: (P, kw) => new Simple(h, 'Flatten', kw, P, flattenShape, (e, x) => (x.ndim === 1 ? C.unsqueezeT(e, x, -1) : C.flattenT(e, x, 1, -1)), 'Flatten()'),
     Dropout: (P, kw) => {
       const rate = num(P.rate)
-      if (rate < 0 || rate > 1) throw h.err('ValueError', `Invalid value received for argument \`rate\`. Expected a float value between 0 and 1. Received: rate=${rate}`)
+      if (rate < 0 || rate > 1) throw h.err('ValueError', `Invalid value received for argument \`rate\`. Expected a float value between 0 and 1. Received: rate=${repr(P.rate)}`)
       return new Simple(h, 'Dropout', kw, P, same, (e, x, training) => C.dropout(e, x, rate, training), `Dropout(${rate})`)
     },
     SpatialDropout1D: (P, kw) => spatialDropout(P, kw, 'SpatialDropout1D', 3),
@@ -5328,7 +5495,8 @@ const build = (h: Host): Record<string, Value> => {
       const l = new Simple(h, 'RandomCrop', kw, P, (s) => [s[0], Ho, Wo, s[3]], (e, x, training) => {
         const H = x.shape[x.ndim - 3]
         const W = x.shape[x.ndim - 2]
-        if (!training || H < Ho || W < Wo) return resizeT(e, centerCropAspect(e, x, Ho, Wo), Ho, Wo, 'bilinear')
+        if (!training) return x
+        if (H < Ho || W < Wo) return resizeT(e, centerCropAspect(e, x, Ho, Wo), Ho, Wo, 'bilinear')
         const top = Math.floor(r.next() * (H - Ho + 1))
         const left = Math.floor(r.next() * (W - Wo + 1))
         const nd = x.ndim
@@ -5395,7 +5563,7 @@ const build = (h: Host): Record<string, Value> => {
     const dt = P.dtype.k === 'none' ? 'float32' : P.dtype.k === 'obj' && P.dtype.o instanceof TFDtype ? String(P.dtype.o.d) : h.str(P.dtype)
     const layer = new InputLayer(h, shape, kw, dt)
     const node = new KNode(layer, [], {})
-    node.outputs = [new KerasTensor(shape, node, 0, autoName(h, 'keras_tensor'), dt)]
+    node.outputs = [new KerasTensor(shape, node, 0, isNone(kw.name) ? autoName(h, 'keras_tensor') : h.str(kw.name!), dt)]
     return py.obj(node.outputs[0])
   })
   const layers: Record<string, Value> = {
@@ -5422,12 +5590,13 @@ const build = (h: Host): Record<string, Value> => {
     l.inst = inst
     inst.state[LAYER_STATE] = l
   }
-  const hostCommon = (what: string): Omit<HostClass, 'init'> => ({
+  const hostCommon = (): Omit<HostClass, 'init'> => ({
     setAttr(inst, name, v, hh) {
       const l = inst.state[LAYER_STATE] as KLayer | undefined
-      if (!l) {
-        if (layerOf(v)) throw hh.err('RuntimeError', `It looks like you are subclassing \`${what}\` and you forgot to call \`super().__init__()\`. Always start with this line.`)
-        return
+      if (!l) return
+      for (const child of v.k === 'list' || v.k === 'tuple' ? v.items : [v]) {
+        const c = layerOf(child)
+        if (c && !c.built) c.owner = l
       }
       if (name === 'trainable') l.setTrainable(hh.truthy(v))
       if (name === 'stop_training' && l instanceof KModel) l.stopTraining = hh.truthy(v)
@@ -5436,14 +5605,14 @@ const build = (h: Host): Record<string, Value> => {
     getAttr(inst, name, hh) {
       const l = inst.state[LAYER_STATE] as KLayer | undefined
       if (!l) {
-        if (name === 'add_weight' || name === 'compile' || name === 'fit') throw hh.err('RuntimeError', `It looks like you are subclassing \`${what}\` and you forgot to call \`super().__init__()\`. Always start with this line.`)
+        if (name === 'add_weight' || name === 'compile' || name === 'fit') throw hh.err('RuntimeError', `In layer '${inst.cls.name}', you forgot to call \`super().__init__()\` as the first statement in the \`__init__()\` method. Go add it!`)
         return undefined
       }
       return l.getAttr(name, hh)
     },
     call(inst, args, kw, hh) {
       const l = inst.state[LAYER_STATE] as KLayer | undefined
-      if (!l) throw hh.err('RuntimeError', `It looks like you are subclassing \`${what}\` and you forgot to call \`super().__init__()\`. Always start with this line.`)
+      if (!l) throw hh.err('RuntimeError', `In layer '${inst.cls.name}', you forgot to call \`super().__init__()\` as the first statement in the \`__init__()\` method. Go add it!`)
       return l.call(args, kw, hh)
     },
     repr(inst) {
@@ -5452,7 +5621,7 @@ const build = (h: Host): Record<string, Value> => {
     },
   })
   const layerHost: HostClass = {
-    ...hostCommon('Layer'),
+    ...hostCommon(),
     init(inst, _args, kw, hh) {
       hostInit(inst, new InstLayer(hh, inst, kw))
     },
@@ -5463,7 +5632,13 @@ const build = (h: Host): Record<string, Value> => {
     const flat = (v: Value): Value[] => (isSeq(v) ? h.iterate(v) : v.k === 'dict' ? v.d.values() : [v])
     const ins = flat(inV).map(kerasOf)
     const outs = flat(outV).map(kerasOf)
-    if (ins.some((i) => !i) || outs.some((o) => !o)) throw h.err('ValueError', 'Model(inputs, outputs) expects KerasTensors from keras.Input(...) and layer calls')
+    if (ins.some((i) => !i) || outs.some((o) => !o)) {
+      const bad = ins.some((i) => !i)
+      const raw = bad ? inV : outV
+      const what = bad ? 'inputs' : 'outputs'
+      const item = raw && (raw.k === 'list' || raw.k === 'tuple') ? raw.items.find((x: Value) => !kerasOf(x)) ?? raw : raw
+      throw h.err('ValueError', `All \`${what}\` values must be KerasTensors. Received: ${what}=${raw ? repr(raw) : 'None'} including invalid value ${item ? repr(item) : 'None'} of type <class '${item?.k ?? 'NoneType'}'>`)
+    }
     const m = new KModel(h, 'functional', kw, kind)
     m.inputsK = ins as KerasTensor[]
     m.outputsK = outs as KerasTensor[]
@@ -5471,7 +5646,7 @@ const build = (h: Host): Record<string, Value> => {
     return m
   }
   const modelHost: HostClass = {
-    ...hostCommon('Model'),
+    ...hostCommon(),
     init(inst, args, kw, hh) {
       const inV = kw.inputs ?? args[0]
       const outV = kw.outputs ?? args[1]
@@ -5482,7 +5657,7 @@ const build = (h: Host): Record<string, Value> => {
     },
   }
   const sequentialHost: HostClass = {
-    ...hostCommon('Sequential'),
+    ...hostCommon(),
     init(inst, args, kw, hh) {
       const m = new KModel(hh, 'sequential', kw, inst.cls.name)
       hostInit(inst, m)
@@ -5499,7 +5674,7 @@ const build = (h: Host): Record<string, Value> => {
     },
   }
   const Model: Value = {
-    k: 'type', name: 'Model', host: modelHost, call: (args, kw) => {
+    k: 'type', name: 'Model', parents: ['Layer'], host: modelHost, call: (args, kw) => {
       const inV = kw.inputs ?? args[0]
       const outV = kw.outputs ?? args[1]
       if (!inV || !outV) throw h.err('TypeError', 'Model(inputs, outputs): both are needed for the Functional API; or subclass keras.Model and define call()')
@@ -5515,7 +5690,7 @@ const build = (h: Host): Record<string, Value> => {
     if (P.from_logits) s.fromLogits = h.truthy(P.from_logits)
     if (P.label_smoothing) s.smoothing = num(P.label_smoothing)
     if (P.delta) s.delta = num(P.delta)
-    return tfWrap(perSample(E, h, s, asFloat(h, P.y_true), asFloat(h, P.y_pred), false))
+    return tfWrap(perSample(E, h, s, asData(h, P.y_true), asData(h, P.y_pred), false))
   })
   const lossClass = (cls: string, spec: string): Value => ({
     k: 'type', name: cls, call: (args, kw) => {
@@ -5525,7 +5700,7 @@ const build = (h: Host): Record<string, Value> => {
       if (P.label_smoothing) s.smoothing = num(P.label_smoothing)
       if (P.delta) s.delta = num(P.delta)
       const red = P.reduction.k === 'none' ? 'none' : h.str(P.reduction)
-      if (!['sum_over_batch_size', 'mean', 'sum', 'none', 'mean_with_sample_weight'].includes(red)) throw h.err('ValueError', `Invalid value for argument \`reduction\`. Expected one of ['sum', 'sum_over_batch_size', 'mean', 'mean_with_sample_weight', 'none', None]. Received: reduction=${repr(P.reduction)}`)
+      if (!['sum_over_batch_size', 'mean', 'sum', 'none', 'mean_with_sample_weight'].includes(red)) throw h.err('ValueError', `Invalid value for argument \`reduction\`. Expected one of {'mean', 'mean_with_sample_weight', 'sum', 'none', 'sum_over_batch_size', None}. Received: reduction=${red}`)
       return py.obj(new LossObj(cls, s, (red === 'mean_with_sample_weight' ? 'mean' : red) as ReductionK, P.name.k === 'none' ? spec : h.str(P.name)))
     },
   })
@@ -5539,8 +5714,17 @@ const build = (h: Host): Record<string, Value> => {
   }
   for (const [n, spec] of Object.entries({ mean_squared_error: 'mean_squared_error', mse: 'mean_squared_error', mean_absolute_error: 'mean_absolute_error', mae: 'mean_absolute_error', mean_absolute_percentage_error: 'mean_absolute_percentage_error', mape: 'mean_absolute_percentage_error', mean_squared_logarithmic_error: 'mean_squared_logarithmic_error', msle: 'mean_squared_logarithmic_error', hinge: 'hinge', squared_hinge: 'squared_hinge', categorical_hinge: 'categorical_hinge', kl_divergence: 'kl_divergence', kld: 'kl_divergence', poisson: 'poisson', log_cosh: 'log_cosh', logcosh: 'log_cosh' })) lossFns[n] = lossFn(spec, spec)
   const losses: Record<string, Value> = { ...lossFns }
+  // these spellings work as compile('mse'), not as keras.losses.mse
+  for (const n of ['kld', 'logcosh', 'mae', 'mape', 'mse', 'msle']) delete losses[n]
   for (const [cls, spec] of Object.entries({ CategoricalCrossentropy: 'categorical_crossentropy', SparseCategoricalCrossentropy: 'sparse_categorical_crossentropy', BinaryCrossentropy: 'binary_crossentropy', MeanSquaredError: 'mean_squared_error', MeanAbsoluteError: 'mean_absolute_error', MeanAbsolutePercentageError: 'mean_absolute_percentage_error', MeanSquaredLogarithmicError: 'mean_squared_logarithmic_error', Huber: 'huber', Hinge: 'hinge', SquaredHinge: 'squared_hinge', CategoricalHinge: 'categorical_hinge', KLDivergence: 'kl_divergence', Poisson: 'poisson', LogCosh: 'log_cosh', CosineSimilarity: 'cosine_similarity' })) losses[cls] = lossClass(cls, spec)
-  losses.get = fnv('get', (args) => (args[0].k === 'str' && losses[args[0].v] ? (LOSS_ALIASES[args[0].v] && /^[A-Z]/.test(args[0].v) ? h.call(losses[args[0].v], []) : losses[args[0].v]) : args[0]))
+  losses.get = fnv('get', (args) => {
+    const v = args[0]
+    if (v.k !== 'str') return v
+    if (/^[A-Z]/.test(v.v) && losses[v.v]) return h.call(losses[v.v], [])
+    const f = lossFns[LOSS_ALIASES[v.v] ?? v.v]
+    if (!f) throw h.err('ValueError', `Could not interpret loss identifier: ${v.v}`)
+    return f
+  })
   const lossHost: HostClass = {
     init(inst, args, kw, hh) {
       const P = bindArgs(hh, 'Loss', 'name=None reduction=sum_over_batch_size dtype=None', args, kw, null)
@@ -5570,6 +5754,7 @@ const build = (h: Host): Record<string, Value> => {
     },
   })
   const metricAttrs: Record<string, Value> = { ...lossFns }
+  for (const n of ['kld', 'logcosh', 'mae', 'mape', 'mse', 'msle', 'cosine_similarity']) delete metricAttrs[n]
   for (const cls of ['Accuracy', 'BinaryAccuracy', 'CategoricalAccuracy', 'SparseCategoricalAccuracy', 'TopKCategoricalAccuracy', 'SparseTopKCategoricalAccuracy', 'MeanSquaredError', 'MeanAbsoluteError', 'MeanAbsolutePercentageError', 'MeanSquaredLogarithmicError', 'RootMeanSquaredError', 'Precision', 'Recall', 'AUC', 'TruePositives', 'FalsePositives', 'TrueNegatives', 'FalseNegatives', 'Mean', 'Sum', 'BinaryCrossentropy', 'CategoricalCrossentropy', 'SparseCategoricalCrossentropy', 'Hinge', 'SquaredHinge', 'CategoricalHinge', 'KLDivergence', 'Poisson', 'LogCoshError', 'CosineSimilarity']) metricAttrs[cls] = metricClass(cls)
   /** binary_accuracy(y_true, y_pred) and friends: the per-sample function behind each accuracy */
   const accuracyFn = (name: string, cls: string, extra = ''): Value => fnv(name, (args, kw) => {
@@ -5583,7 +5768,7 @@ const build = (h: Host): Record<string, Value> => {
       const yy = sameRank(e2, y, p)
       const yv = yy.values()
       const eq = TT.of(p.values().map((v, i) => ((v > num(P.threshold) ? 1 : 0) === yv[i] ? 1 : 0)), p.shape, 'float32')
-      return tfWrap(meanLast(e2, eq))
+      return tfWrap(eq)
     }
     const labels = cls.startsWith('Sparse') ? y.values().map(Math.round) : rowArgmax(y)
     if (P.k) {
@@ -5593,6 +5778,13 @@ const build = (h: Host): Record<string, Value> => {
       return tfWrap(TT.of(labels.map((l, n) => (pv.slice(n * d, (n + 1) * d).filter((v, _i, row2) => v > row2[l]).length < k ? 1 : 0)), [labels.length], 'float32'))
     }
     return tfWrap(TT.of(row!.map((v, i) => (v === labels[i] ? 1 : 0)), [labels.length], 'float32'))
+  })
+  metricAttrs.get = fnv('get', (args) => {
+    const m = metricArg(h, args[0])
+    // 'accuracy' waits for the shapes in compile; asked for by name it is plainly Accuracy
+    if (args[0].k === 'str' && /^acc(uracy)?$/i.test(args[0].v)) return h.call(metricAttrs.Accuracy, [])
+    if (args[0].k === 'str') m.name = snake(m.cls)
+    return py.obj(m)
   })
   metricAttrs.binary_accuracy = accuracyFn('binary_accuracy', 'BinaryAccuracy', 'threshold=0.5')
   metricAttrs.categorical_accuracy = accuracyFn('categorical_accuracy', 'CategoricalAccuracy')
@@ -5630,7 +5822,12 @@ const build = (h: Host): Record<string, Value> => {
 
   // ---- keras.optimizers
   const optim = (cls: string): Value => ({
-    k: 'type', name: cls, call: (args, kw) => py.obj(new KOptimizer(h, cls, bindArgs(h, cls, OPT_SIG[cls], args, kw, null))),
+    k: 'type', name: cls, call: (args, kw) => {
+      const known = new Set(OPT_SIG[cls].split(' ').map((e) => e.replace(/^!/, '').split('=')[0]))
+      const extra = Object.keys(kw).filter((k) => !known.has(k))
+      if (extra.length) throw h.err('ValueError', `Argument(s) not recognized: {${extra.map((k) => `'${k}': ${repr(kw[k])}`).join(', ')}}`)
+      return py.obj(new KOptimizer(h, cls, bindArgs(h, cls, OPT_SIG[cls], args, kw, null)))
+    },
   })
   const schedules: Value = {
     k: 'module', name: 'keras.optimizers.schedules', attrs: Object.fromEntries(Object.keys(SCHEDULE_SIG).map((c): [string, Value] => [c, { k: 'type', name: c, call: (args, kw) => py.obj(new LRSchedule(c, bindArgs(h, c, SCHEDULE_SIG[c], args, kw, null))) }])),
@@ -5725,7 +5922,7 @@ const build = (h: Host): Record<string, Value> => {
     let right = size(P.right_size, 'right')
     if (left === null) left = total - right!
     if (right === null) right = total - left
-    if (left + right > total) throw h.err('ValueError', `The sum of \`left_size\` and \`right_size\` is greater than the total number of samples. Received: left_size=${left}, right_size=${right}, total_size=${total}`)
+    if (left + right > total) throw h.err('ValueError', `The sum of \`left_size\` and \`right_size\` should be smaller than the ${total}. Received: left_size + right_size = ${(left + right).toFixed(1)}and total_length = ${total}`)
     if (left === 0 || right === 0) throw h.err('ValueError', `Both \`left_size\` and \`right_size\` must produce a non-empty split. With dataset of length ${total}, left_size=${left} and right_size=${right}.`)
     const order = allOf(total)
     if (h.truthy(P.shuffle)) {
@@ -5735,7 +5932,7 @@ const build = (h: Host): Record<string, Value> => {
         ;[order[i], order[j]] = [order[j], order[i]]
       }
     }
-    const of = (idx: number[]) => datasetOf('_TensorSliceDataset', idx.map((i) => elements[i]))
+    const of = (idx: number[]) => datasetOf('_PrefetchDataset', idx.map((i) => elements[i]))
     return py.tuple([of(order.slice(0, left)), of(order.slice(total - right))])
   })
   const utils: Value = {
@@ -5750,14 +5947,17 @@ const build = (h: Host): Record<string, Value> => {
         const order = num(P.order)
         const e2 = new Engine(h.rng)
         e2.grad = false
-        const norms = C.vectorNorm(e2, isFloatT(x.dtype) ? x : TT.of(x.values(), x.shape, 'float32'), order, [axis], true)
-        const out = C.binary(e2, '/', x, TT.of(norms.values().map((n) => (n === 0 ? 1 : n)), norms.shape, x.dtype))
+        const flat = C.vectorNorm(e2, isFloatT(x.dtype) ? x : TT.of(x.values(), x.shape, 'float32'), order, [axis], false)
+        const shown = flat.ndim ? flat.shape : [1]
+        const at = (axis || -1) < 0 ? shown.length + 1 + (axis || -1) : axis
+        const norms = TT.of(flat.values().map((n) => (n === 0 ? 1 : n)), [...shown.slice(0, at), 1, ...shown.slice(at)], x.dtype)
+        const out = C.binary(e2, '/', x, norms)
         return tfOf(P.x) ? tfWrap(out) : py.arr(ndFor(out))
       }),
       img_to_array: fnv('img_to_array', (args) => {
         const a = toArray(args[0])
         if (a.ndim !== 2 && a.ndim !== 3) throw h.err('ValueError', `Unsupported image shape: (${a.shape.join(', ')})`)
-        return py.arr(NDArray.create(a.values(), a.ndim === 2 ? [...a.shape, 1] : a.shape, 'float64'))
+        return py.arr(NDArray.create(a.values(), a.ndim === 2 ? [...a.shape, 1] : a.shape, 'float32'))
       }),
       set_random_seed: fnv('set_random_seed', (args) => { h.rng.seed(h.toInt(args[0])); return py.NONE }),
       plot_model: fnv('plot_model', () => {
@@ -5893,6 +6093,7 @@ const build = (h: Host): Record<string, Value> => {
       ...Object.fromEntries(Object.keys(INIT_SIG).map((c) => [c, initType(c)])),
       ...Object.fromEntries(Object.entries(INIT_ALIASES).map(([a, c]) => [a, initType(c)])),
       get: fnv('get', (args) => py.obj(initArg(h, args[0], 'Zeros'))),
+      serialize: fnv('serialize', (args) => jsToPy(initConfig(initArg(h, args[0], 'Zeros'), h))),
     },
   }
 
@@ -5916,7 +6117,9 @@ const build = (h: Host): Record<string, Value> => {
   // ---- keras.activations
   const actFn = (name: string, sig: string, f: (x: TT, P: Params) => TT): Value => fnv(name, (args, kw) => {
     const P = bindArgs(h, name, `x ${sig}`, args, kw, null)
-    return tfWrap(f(asFloat(h, P.x), P))
+    // linear gives back what it was given
+    if (name === 'linear') return P.x
+    return tfWrap(f(asData(h, P.x), P))
   })
   const activationAttrs: Record<string, Value> = {}
   for (const n of Object.keys(ACTS)) activationAttrs[n] = actFn(n, '', (x) => ACTS[n](E, x))
@@ -5926,6 +6129,8 @@ const build = (h: Host): Record<string, Value> => {
   activationAttrs.gelu = actFn('gelu', 'approximate=False', (x, P) => geluT(E, x, h.truthy(P.approximate)))
   activationAttrs.softmax = actFn('softmax', 'axis=-1', (x, P) => C.softmax(E, x, h.toInt(P.axis), false))
   activationAttrs.log_softmax = actFn('log_softmax', 'axis=-1', (x, P) => C.softmax(E, x, h.toInt(P.axis), true))
+  activationAttrs.serialize = fnv('serialize', (args) => py.str((args[0] as { name: string }).name))
+  activationAttrs.deserialize = fnv('deserialize', (args) => activationAttrs.get && h.call(activationAttrs.get, [args[0]]))
   activationAttrs.get = fnv('get', (args) => {
     if (isNone(args[0])) return activationAttrs.linear
     if (args[0].k === 'str') {
@@ -5945,16 +6150,6 @@ const build = (h: Host): Record<string, Value> => {
       floatx: fnv('floatx', () => py.str('float32')),
       image_data_format: fnv('image_data_format', () => py.str('channels_last')),
       backend: fnv('backend', () => py.str('tensorflow')),
-      get_value: fnv('get_value', (args) => {
-        const t = tfOf(args[0])
-        if (!t) return args[0]
-        return t.ndim ? py.arr(ndFor(t)) : tfNumpyScalar(t)
-      }),
-      set_value: fnv('set_value', (args) => {
-        const t = tfOf(args[0])
-        if (t) C.writeInto(t, toTF(h, args[1], t.dtype).values())
-        return py.NONE
-      }),
     },
   }
 
@@ -5968,7 +6163,7 @@ const build = (h: Host): Record<string, Value> => {
   const preprocessing: Value = { k: 'module', name: 'keras.preprocessing', attrs: { sequence: { k: 'module', name: 'keras.preprocessing.sequence', attrs: { pad_sequences: padSequences } } } }
   const keras: Value = {
     k: 'module', name: 'keras', attrs: {
-      __version__: py.str('3.12 (sandbox)'),
+      __version__: py.str('3.12.4'),
       Sequential, Model, Input, Layer: layers.Layer, Variable: kerasVariable,
       layers: { k: 'module', name: 'keras.layers', attrs: layers },
       models, optimizers, losses: { k: 'module', name: 'keras.losses', attrs: losses }, callbacks, utils, datasets, activations, metrics: { k: 'module', name: 'keras.metrics', attrs: metricAttrs }, regularizers, initializers, backend, preprocessing,
@@ -6025,16 +6220,23 @@ class NoScope extends PyObj {
 }
 
 /** tf.print's number format: absl::StrCat's six significant digits */
-const g6 = (v: number): string => {
+/** C's %.{p}g */
+const gN = (v: number, p: number): string => {
   if (!Number.isFinite(v)) return Number.isNaN(v) ? 'nan' : v > 0 ? 'inf' : '-inf'
   if (v === 0) return '0'
-  const e = Math.floor(Math.log10(Math.abs(Number(v.toPrecision(6)))))
-  if (e < -4 || e >= 6) return v.toExponential(5).replace(/\.?0+e/, 'e').replace(/e([+-])(\d)$/, 'e$10$2')
-  return String(Number(v.toPrecision(6)))
+  const e = Math.floor(Math.log10(Math.abs(Number(v.toPrecision(p)))))
+  if (e < -4 || e >= p) return v.toExponential(p - 1).replace(/\.?0+e/, 'e').replace(/e([+-])(\d)$/, 'e$10$2')
+  return String(Number(v.toPrecision(p)))
+}
+/** absl's float printing: the short form when it reads back the same, else enough digits that it does */
+const absl = (v: number, double: boolean): string => {
+  const short = gN(v, double ? 15 : 6)
+  const same = double ? Number(short) === v : Math.fround(Number(short)) === Math.fround(v)
+  return same || !Number.isFinite(v) ? short : gN(v, double ? 17 : 9)
 }
 
 const tfPrintTensor = (t: TT, summarize: number): string => {
-  const elem = (v: number) => (t.dtype === 'bool' ? (v ? 'True' : 'False') : isFloatT(t.dtype) ? g6(v) : String(v))
+  const elem = (v: number) => (t.dtype === 'bool' ? (v ? '1' : '0') : isFloatT(t.dtype) ? absl(v, t.dtype === 'float64') : String(v))
   const vals = t.values()
   if (!t.ndim) return elem(vals[0])
   const st = cStrides(t.shape)
@@ -6110,7 +6312,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
   const reduceSpread = (name: string, sqrt: boolean) => fnv(name, (args, kw) => {
     const P = bindArgs(h, name, REDUCE_SIG, args, kw, null)
     const t = T(P.input_tensor, name)
-    if (!isFloatT(t.dtype)) throw h.err('TypeError', `Input must be either real or complex. Received integer type ${t.dtype}.`)
+    if (!isFloatT(t.dtype)) throw h.err('TypeError', `Input must be either real or complex. Received integer type <dtype: '${t.dtype}'>.`)
     const axes = axisArg(P.axis)
     return traced(name, 'reduce', [{ label: label(P.input_tensor), t }], C.variance(E, t, axes, h.truthy(P.keepdims), 0, sqrt), axes && axes.length === 1 ? C.normDim(axes[0], t.ndim) : null)
   })
@@ -6145,12 +6347,12 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     floatOnly(t, tfOp)
     return traced(name, 'elementwise', [{ label: label(v), t }], make(t))
   })
-  const two = (name: string, op: string) => fnv(name, (args, kw) => {
+  const two = (name: string, op: string, firstAlone = false) => fnv(name, (args, kw) => {
     const a0 = args[0] ?? kw.x
     const b0 = args[1] ?? kw.y
     if (!a0 || !b0) throw h.err('TypeError', `${name}() missing a tensor argument`)
     const like = tfOf(b0)
-    const a = tfOf(a0) ?? tfOperand(h, a0, like) ?? T(a0, name)
+    const a = tfOf(a0) ?? (firstAlone ? null : tfOperand(h, a0, like)) ?? T(a0, name)
     return new TFTensor(a).binop(op, b0, false, h) ?? py.NONE
   })
   const logicalFn = (name: string, op: '&' | '|' | '^') => fnv(name, (args, kw) => {
@@ -6212,7 +6414,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const k = h.toInt(P.k)
     if (!t.ndim) throw h.err('ValueError', 'Shape must be at least rank 1 but is rank 0')
     const d = t.shape[t.ndim - 1]
-    if (k > d) throw tfErr(h, `input must have at least k columns. had ${d}, needed ${k} [Op:TopKV2]`)
+    if (k > d) throw tfErr(h, `input must have at least k columns. Had ${d}, needed ${k} [Op:TopKV2]`)
     const { values, indices } = C.topkT(E, t, k, -1, true)
     return named('TopKV2', ['values', 'indices'], [tfWrap(values), tfWrap(TT.of(indices.values(), indices.shape, 'int32'))])
   })
@@ -6221,6 +6423,16 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const t = T(P.input, 'count_nonzero')
     const axes = axisArg(P.axis)
     return traced('count_nonzero', 'reduce', [{ label: label(P.input), t }], C.countReduce(t, axes, !isNone(P.keepdims) && h.truthy(P.keepdims), dt(P.dtype) ?? 'int64', (nz) => nz), axes && axes.length === 1 ? C.normDim(axes[0], t.ndim) : null)
+  })
+  const cumprod = fnv('cumprod', (args, kw) => {
+    const P = bindArgs(h, 'cumprod', 'x axis=0 exclusive=False reverse=False name=None', args, kw, null)
+    if (h.truthy(P.exclusive) || h.truthy(P.reverse)) throw h.err('NotImplementedError', 'tf.math.cumprod with exclusive or reverse is not implemented in this sandbox')
+    const t = T(P.x, 'cumprod')
+    const axis = C.normDim(h.toInt(P.axis), t.ndim)
+    const st = cStrides(t.shape)
+    const out = [...t.values()]
+    for (let i = 0; i < out.length; i++) if (Math.floor(i / st[axis]) % t.shape[axis]) out[i] *= out[i - st[axis]]
+    return tfWrap(TT.of(out, t.shape, t.dtype))
   })
   const cumsum = fnv('cumsum', (args, kw) => {
     const P = bindArgs(h, 'cumsum', 'x axis=0 exclusive=False reverse=False name=None', args, kw, null)
@@ -6389,7 +6601,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       const hi = pv[d * 2 + 1]
       if (mode === 'CONSTANT') return [...new Array<number>(lo).fill(-1), ...allOf(n), ...new Array<number>(hi).fill(-1)]
       const limit = mode === 'REFLECT' ? n - 1 : n
-      if (lo > limit || hi > limit) throw tfErr(h, `paddings must be no greater than ${limit === n ? 'tensor dim' : 'tensor dim - 1'}, got ${Math.max(lo, hi)} for dim ${n} [Op:MirrorPad]`)
+      if (lo > limit || hi > limit) throw tfErr(h, `paddings must be less than the dimension size: ${lo}, ${hi} not less than ${n} [Op:MirrorPad]`)
       const shift = mode === 'REFLECT' ? 0 : 1
       const before = Array.from({ length: lo }, (_, i) => lo - i - shift)
       const after = Array.from({ length: hi }, (_, i) => n - 1 - (i + 1) + shift)
@@ -6471,12 +6683,12 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     log1p: smooth('log1p', 'Log1p', (t) => C.mapT(E, t, Math.log1p, (v) => 1 / (1 + v), 'Log1pBackward')),
     expm1: smooth('expm1', 'Expm1', (t) => C.mapT(E, t, Math.expm1, (v) => Math.exp(v), 'Expm1Backward')),
     softplus: smooth('softplus', 'Softplus', (t) => softplusT(E, t)),
-    round, floor: floorFn, ceil: ceilFn, sign: signFn,
+    round, floor: floorFn, sign: signFn,
     is_nan: plain('is_nan', null, (v) => (Number.isNaN(v) ? 1 : 0)), is_inf: plain('is_inf', null, (v) => (Math.abs(v) === Infinity ? 1 : 0)), is_finite: plain('is_finite', null, (v) => (Number.isFinite(v) ? 1 : 0)),
-    add: two('add', '+'), multiply: two('multiply', '*'), subtract: two('subtract', '-'), divide: two('divide', '/'), pow: two('pow', '**'), floordiv: two('floordiv', '//'), mod: two('mod', '%'), maximum: two('maximum', 'maximum'), minimum: two('minimum', 'minimum'),
+    add: two('add', '+', true), multiply: two('multiply', '*'), subtract: two('subtract', '-'), divide: two('divide', '/'), pow: two('pow', '**'), floordiv: two('floordiv', '//'), mod: two('mod', '%'), maximum: two('maximum', 'maximum'), minimum: two('minimum', 'minimum'),
     equal: two('equal', '=='), not_equal: two('not_equal', '!='), greater: two('greater', '>'), greater_equal: two('greater_equal', '>='), less: two('less', '<'), less_equal: two('less_equal', '<='),
     logical_and: logicalFn('logical_and', '&'), logical_or: logicalFn('logical_or', '|'), logical_xor: logicalFn('logical_xor', '^'), logical_not: logicalNot,
-    argmax: argExtreme('argmax', false), argmin: argExtreme('argmin', true), count_nonzero: countNonzero, top_k: topK, cumsum,
+    argmax: argExtreme('argmax', false), argmin: argExtreme('argmin', true), count_nonzero: countNonzero, top_k: topK, cumsum, cumprod,
     divide_no_nan: fnv('divide_no_nan', (args) => {
       const a = T(args[0], 'divide_no_nan')
       const b = tfOperand(h, args[1], a) ?? T(args[1], 'divide_no_nan')
@@ -6495,7 +6707,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       return tfWrap(TT.of(out.values(), out.shape, 'bool'))
     })
   }
-  const tfMath: Value = { k: 'module', name: 'tensorflow.math', attrs: mathFns }
+  const tfMath: Value = { k: 'module', name: 'tensorflow.math', attrs: { ...mathFns, ceil: ceilFn } }
 
   // ---- tf.nn
   const hw = (v: Value, what: string): [number, number] => {
@@ -6550,7 +6762,8 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     const w = T(P.filters, 'conv2d')
     if (x.dtype !== w.dtype) throw tfErr(h, `cannot compute Conv2D as input #1(zero-based) was expected to be a ${TF_KIND[x.dtype]} tensor but is a ${TF_KIND[w.dtype]} tensor [Op:Conv2D]`)
     if (x.ndim !== 4 || w.ndim !== 4) throw h.err('ValueError', `Shape must be rank 4 but is rank ${x.ndim !== 4 ? x.ndim : w.ndim}`)
-    if (x.shape[3] !== w.shape[2]) throw tfErr(h, `input and filter must have the same depth: ${x.shape[3]} vs ${w.shape[2]} [Op:Conv2D]`)
+    if (x.shape[3] % w.shape[2]) throw tfErr(h, `input depth must be evenly divisible by filter depth: ${x.shape[3]} vs ${w.shape[2]} [Op:Conv2D]`)
+    if (x.shape[3] !== w.shape[2]) throw h.err('NotImplementedError', 'tf.nn.conv2d with grouped filters is not implemented in this sandbox')
     return tfWrap(convNHWC(E, x, w, null, hw(P.strides, 'strides'), isNone(P.dilations) ? [1, 1] : hw(P.dilations, 'dilations'), tfPad(P.padding, 'conv2d')))
   })
   const nnFns: Record<string, Value> = {
@@ -6639,7 +6852,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       }),
       uniform: randomValues('uniform', 'shape minval=0 maxval=None dtype=float32 seed=None name=None', (P) => {
         const d = dt(P.dtype) ?? 'float32'
-        if (!isFloatT(d) && isNone(P.maxval)) throw h.err('ValueError', `Must specify maxval for integer dtype ${d}`)
+        if (!isFloatT(d) && isNone(P.maxval)) throw h.err('ValueError', `Must specify maxval for integer dtype tf.${d}`)
         const lo = h.num(P.minval)
         const hi = isNone(P.maxval) ? 1 : h.num(P.maxval)
         return isFloatT(d) ? () => lo + (hi - lo) * h.rng.next() : () => Math.floor(lo + (hi - lo) * h.rng.next())
@@ -6869,7 +7082,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
       }),
     },
   }
-  const data: Value = { k: 'module', name: 'tensorflow.data', attrs: { Dataset, AUTOTUNE: py.int(-1), experimental: { k: 'module', name: 'tensorflow.data.experimental', attrs: { AUTOTUNE: py.int(-1) } } } }
+  const data: Value = { k: 'module', name: 'tensorflow.data', attrs: { Dataset, AUTOTUNE: py.int(-1), INFINITE_CARDINALITY: py.int(-1), UNKNOWN_CARDINALITY: py.int(-2), experimental: { k: 'module', name: 'tensorflow.data.experimental', attrs: { AUTOTUNE: py.int(-1) } } } }
 
   // ---- tf.config, tf.test, tf.strings
   const none = (name: string) => fnv(name, () => py.NONE)
@@ -6944,12 +7157,13 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
   const tf: Record<string, Value> = {
     ...tfd,
     ...mathFns,
-    __version__: py.str('2.20 (sandbox)'),
+    __version__: py.str('2.21.0'),
     keras, math: tfMath, nn: tfNN, random, linalg, image, data, config, test: testMod, strings, errors,
-    losses: kerasAttrs.losses, metrics: kerasAttrs.metrics, optimizers: K.optimizers, initializers: K.initializers, layers: kerasAttrs.layers,
+    losses: kerasAttrs.losses, metrics: kerasAttrs.metrics, optimizers: K.optimizers, initializers: K.initializers,
     newaxis: py.NONE,
     constant: fnv('constant', (args, kw) => {
       const v = args[0] ?? kw.value
+      if (v && isSeq(v) && v.items.some((x) => tfOf(x)?.ndim === 0)) throw h.err('ValueError', 'TypeError: Scalar tensor has no `len()`')
       const dv = kw.dtype ?? args[1]
       const shapeV = kw.shape ?? args[2]
       const strs = v ? strsOf(v) : null
@@ -6989,8 +7203,10 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     }),
     linspace: fnv('linspace', (args, kw) => {
       const P = bindArgs(h, 'linspace', 'start stop num name=None axis=0', args, kw, null)
-      const startT = T(P.start, 'linspace')
-      if (!isFloatT(startT.dtype)) throw tfErr(h, `cannot compute AddV2 as input #1(zero-based) was expected to be a ${TF_KIND[startT.dtype]} tensor but is a double tensor [Op:AddV2]`)
+      const startT0 = T(P.start, 'linspace')
+      if (!isFloatT(startT0.dtype) && P.stop.k === 'float') throw h.err('TypeError', `Cannot convert ${repr(P.stop)} to EagerTensor of dtype ${startT0.dtype}`)
+      // whole numbers give float64
+      const startT = isFloatT(startT0.dtype) ? startT0 : TT.of(startT0.values(), startT0.shape, 'float64')
       if (startT.size !== 1) throw h.err('NotImplementedError', 'tf.linspace with non-scalar start and stop is not implemented in this sandbox')
       const lo = startT.values()[0]
       const hi = h.num(P.stop)
@@ -7002,7 +7218,7 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     eye, matmul, norm, tensordot, sort: sortFn, argsort: argsortFn, clip_by_value: clipByValue, unique: fnv('unique', (args, kw) => {
       const P = bindArgs(h, 'unique', 'x out_idx=int32 name=None', args, kw, null)
       const t = T(P.x, 'unique')
-      if (t.ndim !== 1) throw tfErr(h, 'unique expects a 1D vector. [Op:UniqueV2]')
+      if (t.ndim !== 1) throw tfErr(h, 'unique expects a 1D vector. [Op:Unique]')
       const seen = new Map<number, number>()
       const idx = t.values().map((v) => {
         let i = seen.get(v)
@@ -7039,7 +7255,14 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     concat: fnv('concat', (args, kw) => {
       const parts = h.iterate(args[0] ?? kw.values).map((v) => T(v, 'concat'))
       for (const t of parts) if (t.dtype !== parts[0].dtype) throw tfErr(h, `cannot compute ConcatV2 as input #${parts.indexOf(t)}(zero-based) was expected to be a ${TF_KIND[parts[0].dtype]} tensor but is a ${TF_KIND[t.dtype]} tensor [Op:ConcatV2]`)
-      return tfWrap(C.catT(E, parts, h.toInt(kw.axis ?? args[1] ?? py.int(0))))
+      const axis0 = h.toInt(kw.axis ?? args[1] ?? py.int(0))
+      const dims = (t: TT) => `[${t.shape.join(',')}]`
+      for (let i = 1; i < parts.length; i++) {
+        if (parts[i].ndim !== parts[0].ndim) throw tfErr(h, `ConcatOp : Ranks of all input tensors should match: shape[0] = ${dims(parts[0])} vs. shape[${i}] = ${dims(parts[i])} [Op:ConcatV2]`)
+        const at = parts[0].shape.findIndex((d, k) => k !== C.normDim(axis0, parts[0].ndim) && d !== parts[i].shape[k])
+        if (at >= 0) throw tfErr(h, `ConcatOp : Dimension ${at} in both shapes must be equal: shape[0] = ${dims(parts[0])} vs. shape[${i}] = ${dims(parts[i])} [Op:ConcatV2]`)
+      }
+      return tfWrap(C.catT(E, parts, axis0))
     }),
     stack: fnv('stack', (args, kw) => tfWrap(C.catT(E, h.iterate(args[0] ?? kw.values).map((v) => T(v, 'stack')), h.toInt(kw.axis ?? args[1] ?? py.int(0)), true))),
     unstack: fnv('unstack', (args, kw) => {
@@ -7091,8 +7314,18 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     print: tfPrint,
     // a pass-through: the sandbox runs everything eagerly, as tf.config.run_functions_eagerly(True) would
     function: fnv('function', (args, kw) => {
+      const wrap = (f: Value): Value => {
+        const out = (v: Value): Value => {
+          if (isNone(v) || tfOf(v) || (v.k === 'obj' && v.o instanceof TFString)) return v
+          if (v.k === 'list') return py.list(v.items.map(out))
+          if (v.k === 'tuple') return py.tuple(v.items.map(out))
+          if (v.k === 'dict') return { k: 'dict', d: PyDict.from(v.d.items().map(([k, x]) => [k, out(x)])) }
+          return h.call(tf.constant, [v])
+        }
+        return { k: 'fn', name: 'function', bindable: true, call: (a, k) => out(h.call(f, a, k)) }
+      }
       const f = args[0] ?? kw.func
-      return isNone(f) ? fnv('function', (a) => a[0]) : f!
+      return isNone(f) ? fnv('function', (a) => wrap(a[0])) : wrap(f!)
     }),
     device: fnv('device', () => py.obj(new NoScope('device'))),
     name_scope: fnv('name_scope', () => py.obj(new NoScope('name_scope'))),
@@ -7105,6 +7338,8 @@ const tensorflowModules = (h: Host, keras: Value, kerasAttrs: Record<string, Val
     Tensor: { k: 'type', name: 'Tensor', call: () => { throw h.err('TypeError', 'use tf.constant(...) to make a tensor') } },
   }
   // every op shows in the step-through: those that did not record a finer view appear as a plain step
+  // tf.math has these, tf itself does not
+  for (const n of ['confusion_matrix', 'count_nonzero', 'divide_no_nan', 'expm1', 'floordiv', 'is_finite', 'is_inf', 'is_nan', 'log', 'log1p', 'logical_xor', 'mod', 'reduce_std', 'reduce_variance', 'softplus', 'top_k']) delete tf[n]
   const SILENT = new Set(['print', 'function', 'device', 'name_scope', 'is_tensor', 'executing_eagerly', 'confusion_matrix'])
   const stepped = new WeakMap<object, Value>()
   const withStep = (prefix: string, attrs: Record<string, Value>) => {
