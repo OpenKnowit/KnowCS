@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { runPython } from './minipy'
 import { PANDAS } from './pyPandas'
 import { SKLEARN } from './pySklearn'
+import { STDLIB_MORE } from './pyStdlibMore'
 import { TORCH } from './pyTorch'
 import data from './pyTorchCases.json'
 
@@ -38,7 +39,7 @@ const normal = (s: string) => s.replace(NO_OVERLOAD, '$1').replace(SANDBOX_SUFFI
 
 describe(`the sandbox prints what torch ${data.torch} prints`, () => {
   it.each(data.cases.map((c) => [c.src.replace(/^(import .*\n|def fill[^]*?view\(p\.shape\)\)\n)+/, '').slice(0, 120), c] as const))('%s', (_name, c) => {
-    const r = runPython(c.src, { libs: [TORCH, PANDAS, SKLEARN], maxSize: 2_000_000, timeBudget: 20_000 })
+    const r = runPython(c.src, { libs: [TORCH, PANDAS, SKLEARN, STDLIB_MORE], maxSize: 2_000_000, timeBudget: 20_000 })
     const got = normal(r.stdout + (r.error ? `${r.error.type}: ${r.error.message}` : ''))
     const want = normal(c.out + (c.error ?? ''))
     if (!close(got, want)) expect(got).toBe(want)

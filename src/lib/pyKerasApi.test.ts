@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { runPython } from './minipy'
 import { KERAS } from './pyKeras'
+import { STDLIB_MORE } from './pyStdlibMore'
 import { PANDAS } from './pyPandas'
 
 const run = (src: string) => runPython(src, { libs: [KERAS], maxSize: 2_000_000, timeBudget: 30_000 })
@@ -1301,10 +1302,10 @@ tf.float32 tf.uint8 tf.uint8 tf.float32
   })
 
   it('the standard library is there for what the course pairs with TensorBoard', () => {
-    const r = run(`${H}import datetime
+    const r = runPython(`${H}import datetime
 log_dir = 'logs/' + datetime.datetime.now().strftime('%Y')
 cb = keras.callbacks.TensorBoard(log_dir=log_dir)
-print(len(log_dir))`)
+print(len(log_dir))`, { libs: [KERAS, STDLIB_MORE] })
     expect(r.error).toBeNull()
     expect(r.stdout.endsWith('9\n')).toBe(true)
   })

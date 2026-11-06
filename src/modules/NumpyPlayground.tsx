@@ -6,9 +6,11 @@ import { useTranslation } from 'react-i18next'
 import { prod, shapeStr, unravel } from '../lib/ndarray'
 import type { DType } from '../lib/ndarray'
 import { runPython } from '../lib/minipy'
+import { loadedLibs } from '../lib/pyLazy'
 import type { GridSnapshot, IndexTrace, RunResult } from '../lib/minipy'
 import { PyInline, PyTextarea } from '../components/PyCode'
 import { RunInPlayground } from '../components/RunInPlayground'
+import { useLazyLibs } from '../site/playground/useLazyLibs'
 
 // --- NumPy 索引实验台：浏览器内运行 Python/NumPy 子集（lib/minipy），可视化每一次下标读写 ---
 
@@ -366,16 +368,20 @@ export const NumpyPlayground = () => {
   const [selected, setSelected] = useState<number | null>(null)
 
   // 输入停顿后自动运行（解释器是纯 TS，毫秒级）
+  const libs = useLazyLibs(code, true)
   useEffect(() => {
-    const h = window.setTimeout(() => setResult(runPython(code)), 300)
+    if (libs.waiting) return
+    const h = window.setTimeout(() => setResult(runPython(code, { libs: loadedLibs() })), 300)
     return () => window.clearTimeout(h)
-  }, [code])
+  }, [code, libs.waiting, libs.tick])
 
   const edit = (next: string) => {
     setCode(next)
     setSelected(null)
   }
-  const runNow = () => setResult(runPython(code))
+  const runNow = () => {
+    if (!libs.waiting) setResult(runPython(code, { libs: loadedLibs() }))
+  }
 
   const lines = code.split('\n')
   const errLine = result.error?.line

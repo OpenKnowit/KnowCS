@@ -4,13 +4,14 @@ import { PANDAS } from './pyPandas'
 import { SKLEARN } from './pySklearn'
 import { TORCH } from './pyTorch'
 import { KERAS } from './pyKeras'
+import { STDLIB_MORE } from './pyStdlibMore'
 
 const out = (code: string) => {
-  const r = runPython(code, { libs: [PANDAS, SKLEARN] })
+  const r = runPython(code, { libs: [PANDAS, SKLEARN, STDLIB_MORE] })
   expect(r.error).toBeNull()
   return r.stdout
 }
-const failure = (code: string) => runPython(code).error
+const failure = (code: string) => runPython(code, { libs: [STDLIB_MORE] }).error
 
 // What CPython cannot be asked about: the sandbox's own limits, and programs python -c cannot run.
 describe('a parameter or feature the sandbox lacks says so', () => {
@@ -64,7 +65,7 @@ describe('a script run in the sandbox', () => {
     expect(e?.message).toBe("usage: main.py [-h] [--n N]\nmain.py: error: argument --n: invalid int value: 'x'")
   })
   it('stays quiet when argparse exits happily, or sys.exit is called', () => {
-    const r = runPython("import argparse\nargparse.ArgumentParser(prog='p').parse_args(['-h'])\nprint('never')")
+    const r = runPython("import argparse\nargparse.ArgumentParser(prog='p').parse_args(['-h'])\nprint('never')", { libs: [STDLIB_MORE] })
     expect(r.error).toBeNull()
     expect(r.stdout).toBe('usage: p [-h]\n\noptions:\n  -h, --help  show this help message and exit\n')
   })
@@ -95,7 +96,7 @@ describe('a Path reaches the libraries that read files', () => {
     expect(out("import pandas as pd\nfrom pathlib import Path\nd = Path('data'); d.mkdir()\npd.DataFrame({'a': [1, 2]}).to_csv(d / 't.csv', index=False)\nprint((d / 't.csv').read_text(), pd.read_csv(d / 't.csv').a.sum())")).toBe('a\n1\n2\n 3\n')
   })
   it('pandas says what is missing', () => {
-    const r = runPython("import pandas as pd\nfrom pathlib import Path\npd.read_csv(Path('nope.csv'))", { libs: [PANDAS] })
+    const r = runPython("import pandas as pd\nfrom pathlib import Path\npd.read_csv(Path('nope.csv'))", { libs: [PANDAS, STDLIB_MORE] })
     expect(r.error?.type).toBe('FileNotFoundError')
   })
 })

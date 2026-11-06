@@ -2,6 +2,9 @@
 // first time a program names it; a page re-runs the program once the chunk has arrived.
 import type { PyLib } from './minipy'
 
+/** the standard library modules few programs import: one chunk (pyStdlibMore.ts) */
+export const RARE_STDLIB = ['statistics', 'datetime', 'csv', 'argparse', 'pathlib', 'enum', 'contextlib', 'textwrap', 'types', 'tempfile', 'glob', 'shutil', 'fnmatch', 'inspect', 'fractions', 'uuid', 'secrets', 'platform', 'getpass']
+
 const LOADERS: Record<string, () => Promise<PyLib>> = {
   pandas: () => import('./pyPandas').then((m) => m.PANDAS),
   matplotlib: () => import('./pyPlot').then((m) => m.MATPLOTLIB),
@@ -13,19 +16,29 @@ const LOADERS: Record<string, () => Promise<PyLib>> = {
   tensorflow: () => import('./pyKeras').then((m) => m.KERAS),
   sklearn: () => import('./pySklearn').then((m) => m.SKLEARN),
   cv2: () => import('./pyCv2').then((m) => m.CV2),
+  ...Object.fromEntries(RARE_STDLIB.map((name) => [name, () => import('./pyStdlibMore').then((m) => m.STDLIB_MORE)])),
 }
+
+/** what a program can import that arrives only when its text names it */
+export const ON_DEMAND = Object.keys(LOADERS)
 
 const loaded = new Map<string, PyLib>()
 const failed = new Set<string>()
 const loading = new Map<string, Promise<void>>()
 
+// A statement starts a line, or follows ; or : (`try: import x`), or opens the string given to exec.
+const STATEMENT = String.raw`(?:^|[;:]|\bexec\(\s*["'])[ \t]*`
+const IMPORT = new RegExp(`${STATEMENT}import[ \\t]+([^#\\n;"']+)`, 'gm')
+const FROM = new RegExp(`${STATEMENT}from[ \\t]+(\\w+)`, 'gm')
+
 /** the top-level modules a program imports, as far as its text shows */
 export const importsOf = (code: string): string[] => {
+  const text = code.replace(/#[^\n]*/g, '').replace(/\\\n/g, ' ')
   const names = new Set<string>()
-  for (const m of code.matchAll(/^[ \t]*import[ \t]+([^#\n]+)/gm)) {
+  for (const m of text.matchAll(IMPORT)) {
     for (const part of m[1].split(',')) names.add(part.trim().split(/[.\s]/)[0])
   }
-  for (const m of code.matchAll(/^[ \t]*from[ \t]+(\w+)/gm)) names.add(m[1])
+  for (const m of text.matchAll(FROM)) names.add(m[1])
   return [...names]
 }
 

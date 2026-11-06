@@ -12,6 +12,7 @@ import type { Display, PyEvent, PyEventInput } from './pyEvents'
 import { DEFAULT_IV, complexRepr, convert, deriv, integ, lstsq, mapParams, polyRepr, polyStr, polyadd, polymul, polypow, polysub, polyval, roots, trim } from './poly'
 import type { Interval } from './poly'
 import { allclose, average, bincount, diff, histogram, isin, median, meshgrid, pad as padArray, padWidths, percentile } from './ndextra'
+import { ON_DEMAND } from './pyLazy'
 import { STDLIB, erf, gammaFn, gcdOf } from './pyStdlib'
 import { ARRAY_METHODS_VIA_FUNCTION, addNumpy } from './npMore'
 import { gamma as gammaDraw } from './npRandom'
@@ -2136,7 +2137,11 @@ class Interp implements Host {
     if (name === 'random') return this.builtins.__random__
     const lib = this.libs.find((l) => l.modules.includes(name))
     if (!lib) {
-      const have = ['numpy', 'math', 'random', ...this.libs.flatMap((l) => l.modules.filter((m) => !m.includes('.')))]
+      const have = ['numpy', 'math', 'random', ...this.libs.flatMap((l) => l.modules.filter((m) => !m.includes('.'))), ...ON_DEMAND]
+      // only reached when the program's text did not show the import, or the download failed
+      if (ON_DEMAND.includes(name.split('.')[0])) {
+        throw this.err('ModuleNotFoundError', `No module named '${name}': this sandbox fetches it when an import line names it, and it has not arrived`)
+      }
       if (/^(scipy|PIL|skimage|statsmodels|networkx|sympy|requests)(\.|$)/.test(name)) {
         throw this.err('ModuleNotFoundError', `No module named '${name}' in step-through mode: switch to Real Python to import it (this sandbox has ${[...new Set(have)].join(', ')})`)
       }
