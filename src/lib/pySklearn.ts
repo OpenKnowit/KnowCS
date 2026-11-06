@@ -3365,6 +3365,7 @@ const lbfgs = (f: (x: number[]) => { v: number; g: number[] }, x0: number[], gto
   const S: number[][] = []
   const Y: number[][] = []
   const R: number[] = []
+  let flat = 0
   for (let it = 0; it < maxIter; it++) {
     if (Math.max(...cur.g.map(Math.abs)) < gtol) return { x, ok: true }
     const q = [...cur.g]
@@ -3406,8 +3407,11 @@ const lbfgs = (f: (x: number[]) => { v: number; g: number[] }, x0: number[], gto
         R.shift()
       }
     }
+    // the loss has stopped moving at machine precision, so more steps only burn the page's time
+    flat = cur.v - next.v <= 1e-15 * Math.abs(cur.v) ? flat + 1 : 0
     x = xn
     cur = next
+    if (flat >= 5 && Math.max(...cur.g.map(Math.abs)) < gtol * 1e4) return { x, ok: true }
   }
   return { x, ok: Math.max(...cur.g.map(Math.abs)) < gtol * 1e4 }
 }

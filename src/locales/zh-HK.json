@@ -803,7 +803,17 @@
       "rng": "現代的隨機數寫法：一個可以傳來傳去的生成器對象。這裏的數值和真實 NumPy 不同，因為沙盒有自己的生成器。",
       "save_load": "把一個陣列存成 .npy 再讀回來，形狀和 dtype 不變。這裏的文件只保留到本次執行結束。",
       "savez": "一個文件存多個陣列，按名字取：課程數據集常用這種格式。",
-      "savetxt": "把陣列存成文本：fmt 決定寫出的格式，loadtxt 讀回來是浮點數。"
+      "savetxt": "把陣列存成文本：fmt 決定寫出的格式，loadtxt 讀回來是浮點數。",
+      "append_delete": "這些函數返回新陣列，原陣列不變，和 list.append 不同。循環裏更快的做法是先收集到列表。",
+      "copy_view": "切片只是同一塊記憶體的窗口，寫入它會改變原陣列。copy() 才是獨立的數據。",
+      "stack_more": "拼接和翻轉陣列的更多方法。column_stack 把一維陣列當成列，常用來拼出數據矩陣。",
+      "trig": "NumPy 的逐元素函數。注意 arctan2(y, x) 能正確判斷象限；+ 這樣的運算符其實就是這些函數。",
+      "linalg_more": "np.linalg 的更多函數；einsum 給每個軸起名字，幾乎所有乘積都能用一個字符串寫出來。",
+      "stats_more": "nan* 系列跳過缺失值，digitize 把數字分到各個區間，convolve 就是第 7 講卷積核的一維形式。",
+      "random_more": "最常用的隨機抽樣函數。shuffle 原地打亂，permutation 返回新陣列；choice 可以按給定概率抽取。",
+      "index_more": "索引的輔助工具。a[[0, 2]][:, [0, 1]] 和 np.ix_ 選出子網格，而 a[[0, 2], [0, 1]] 選的是單獨的點。",
+      "errstate": "數字的極限和打印方式。eps 表示浮點類型的精度；printoptions 只改變顯示的位數，不影響存儲的值。",
+      "windows": "從零寫機器學習時最常用的幾行 NumPy：sigmoid、損失、準確率、小批量和最近鄰。"
     },
     "run_block": "在 NumPy 面板中執行",
     "plot_label": "多項式曲線",
@@ -4672,7 +4682,19 @@
         "log": "對數軸讓每個數量級佔同樣的寬度，是看學習率搜索結果的自然方式。",
         "surface": "3D 曲面：和等高線同樣的數據，從側面看。",
         "scatter3": "散點圖還能多表達兩個量：c 控制顏色，s 控制面積。",
-        "seaborn": "seaborn 的 heatmap，畫帶數字的混淆矩陣的常用寫法。"
+        "seaborn": "seaborn 的 heatmap，畫帶數字的混淆矩陣的常用寫法。",
+        "line_style": "每張折線圖都會用到的選項：顏色、線型、標記、標籤、範圍、網格和圖例。",
+        "barh_stack": "水平條形圖、堆疊條形圖和並排條形圖。bar_label 把數值寫到每根柱子上。",
+        "distributions": "查看數值分佈的三種方式。箱線圖標出中位數和四分位數，小提琴圖顯示完整形狀。",
+        "pie_stack": "整體中的佔比、隨時間累積的堆疊，以及帶誤差的數據點。",
+        "stem_step": "離散信號，以及用線或色帶標出某個水平或區域。axhline 總是橫跨整個寬度，與數據無關。",
+        "annotate_more": "在圖上標出重點。xy 是箭頭指向的位置，xytext 是文字的位置。",
+        "layouts": "大小不一的子圖。subplot_mosaic 用文字畫出佈局，sharex 讓多張子圖的座標軸保持同步。",
+        "colorbar": "用顏色表示數值。沒有顏色條就讀不出具體數值。origin=\"lower\" 把第 0 行放在最下面。",
+        "hexbin": "散點堆在一起時，改成按格子計數。quiver 畫箭頭，比如梯度場。",
+        "axes_scale": "對數座標把冪函數變成直線。get_* 方法可以讀回座標軸當前的設置。",
+        "ticks_fmt": "決定刻度放在哪裏（locator）和怎麼寫（formatter），比如百分比，或者只顯示整數的 epoch。",
+        "save_state": "全局樣式、當前的畫布和座標系，以及保存到文件。用完的圖記得關掉，在循環裏尤其要注意。"
       }
     },
     "keras": {
@@ -4686,7 +4708,9 @@
         "functional": "函數式模型",
         "custom": "自定義類",
         "callbacks": "回調與保存",
-        "sequences": "文本、序列與數據"
+        "sequences": "文本、序列與數據",
+        "layers": "層",
+        "evaluate": "損失、指標與優化器"
       },
       "e": {
         "cnn_summary": "第 8 講的 CNN。summary 步驟給出每層的輸出形狀和計算公式：'valid' 的 3 × 3 卷積讓 28 → 26 → 24，池化減半為 12，Flatten 得到 12·12·64 = 9216；每個 Conv2D 有 (3·3·通道數 + 1)·filters 個參數。",
@@ -4714,7 +4738,23 @@
         "saving": "保存整個模型，再連同權重和 compile 設置一起讀回來。這裏的文件只保留到本次執行結束。",
         "rnn_summary": "從詞到向量再到序列層。return_sequences 讓每個時間步都有輸出，交給下一個循環層。",
         "text": "把文本變成整數序列：adapt 建詞表，沒見過的詞是 1，不夠長的用 0 補齊。",
-        "dataset_fit": "fit 可以接收 tf.data 數據管道：批次已經在管道里了，所以不用 batch_size。"
+        "dataset_fit": "fit 可以接收 tf.data 數據管道：批次已經在管道里了，所以不用 batch_size。",
+        "cnn_layers": "典型圖像模型用到的層。全局平均池化把每張特徵圖壓成一個數，參數因此少很多。",
+        "shape_layers": "這些層只是搬動數字，沒有可學習的參數。參數裏不寫批量維度，它總在最前面。",
+        "activation_layers": "激活函數可以用層，也可以用普通函數。Lambda 能包裝任意小函數，LeakyReLU 在負數部分保留一點斜率。",
+        "merge_layers": "合併函數式模型的分支。Add 要求形狀完全相同（殘差塊就是這樣），Concatenate 只要求其他軸相同。",
+        "rnn_layers": "處理序列的層。return_sequences=True 保留每個時間步，TimeDistributed 把同一層用在每一步上。",
+        "attention_norm": "LayerNormalization 對每個樣本單獨歸一化，Transformer 就用它。Normalization 用 adapt 從數據裏學到均值和方差。",
+        "augment": "把數據增強寫成層。它們只在訓練時起作用，training=False 時圖像原樣通過。",
+        "losses_fn": "損失對象可以直接調用，方便手動核對 fit 要最小化的值。模型沒有 softmax 時要設 from_logits=True。",
+        "metrics_fn": "指標會累積：每批用 update_state 更新，用 result 讀取，新一輪用 reset_state 清零。",
+        "optimizers": "可選的優化器。寫字符串 \"adam\" 用預設設置，要自己設學習率就建立對象。",
+        "initializers": "權重如何初始化、帶什麼懲罰。正則項的懲罰出現在 layer.losses 裏，訓練時加到損失上。",
+        "model_attrs": "查看模型內部：權重、按名字取層、配置。設 trainable = False 凍結某一層，遷移學習就用這個。",
+        "batch_api": "想自己寫循環時一批一批地訓練。save_weights 只存權重數值，加載時必須有相同的結構。",
+        "callbacks_more": "fit 在每輪之間還能做的事：降低學習率、保存最佳模型、執行你自己的函數。History 裏留着所有數值。",
+        "ops": "不依賴後端的運算，用起來像 NumPy。在自定義層裏用它，而不要直接調用 tf 或 torch。",
+        "utils": "常用的小工具。clear_session 重置層的命名並釋放舊模型，在一個筆記本里連做幾個實驗時很有用。"
       }
     },
     "tensorflow": {
@@ -4725,7 +4765,9 @@
         "tensors": "張量",
         "autograd": "GradientTape",
         "keras": "tf.keras",
-        "data": "tf.data"
+        "data": "tf.data",
+        "maths": "運算與 tf.nn",
+        "image": "圖像"
       },
       "e": {
         "constant": "tf.constant 生成不可變的張量，print 會顯示它的值、形狀和 dtype；.numpy() 把它轉回 NumPy 陣列。這裏 Python 整數會變成 int32，而 NumPy 會用 int64。",
@@ -4743,7 +4785,19 @@
         "persistent": "tape 會自動跟蹤 Variable；常量需要 watch。不加 persistent=True 只能求一次。",
         "tf_function": "真實 TensorFlow 會把函數編譯成計算圖。沙盒直接執行，結果相同。",
         "dataset": "把數據管道寫成一條鏈：map、shuffle、batch、take。遍歷時才會真正執行。",
-        "from_gen": "從 Python 生成器取數據，適合放不進記憶體的情況。output_signature 聲明產出的類型。"
+        "from_gen": "從 Python 生成器取數據，適合放不進記憶體的情況。output_signature 聲明產出的類型。",
+        "create": "建立張量的常用方法。和 NumPy 一樣，形狀放在元組裏；預設浮點類型是 float32。",
+        "shapes": "改變形狀而不改變數值。concat 沿已有的軸拼接，stack 新建一個軸。",
+        "maths": "運算逐元素進行，+ 這樣的運算符和 tf.add 是同一個調用。divide_no_nan 除以 0 時給 0，而不是 inf。",
+        "compare": "比較得到布爾張量。TensorFlow 不會把它們當數字用，要求和先 tf.cast。",
+        "accuracy": "這段程式碼會反覆寫到。argmax 返回 int64，比較前要先把兩邊的類型轉成一致。",
+        "activations": "激活函數和損失的函數形式。*_with_logits 損失要的是原始分數，不要先做 softmax。",
+        "conv_pool": "手動做卷積和池化，看看這些層在幹什麼。圖像的形狀是 (批量, 高, 寬, 通道)。",
+        "linalg": "矩陣運算，和 np.linalg 是同一類。所有輸入都必須是浮點張量。",
+        "image": "用於預處理和數據增強的圖像函數。convert_image_dtype 還會把 uint8 縮放到 0–1。",
+        "ds_more": "逐步搭建輸入流水線：過濾、變換、分批、重複。shuffle 會打亂順序，這裏排序後再比較內容。",
+        "strings": "把文本當作張量處理，分詞之前常用。不管多長，每個元素都是一個字符串。",
+        "config": "TensorFlow 在什麼設備上跑？這裏沒有 GPU，所以列表是空的，和沒有 GPU 的筆記本一樣。"
       }
     },
     "frame": {
@@ -4821,7 +4875,18 @@
         "transform": "transform 每行給一個值而不是每組一個，所以結果可以直接作為新列。",
         "strings": "對整列應用字符串方法；缺失值保持缺失，不會報錯。",
         "rolling": "滑動平均需要窗口填滿，所以開頭是 NaN。適合平滑抖動的損失曲線。",
-        "dummies": "把文本列做 one-hot 編碼，模型才能用；類別有順序時可以改用 map。"
+        "dummies": "把文本列做 one-hot 編碼，模型才能用；類別有順序時可以改用 map。",
+        "inspect": "拿到新表先跑這些：有多大、是什麼類型、哪裏有缺失值。",
+        "sorting": "給行排序、取前幾名。set_index 把某列變成行標籤，reset_index 再變回普通列。",
+        "col_ops": "增加、重命名和刪除列。大多數方法返回新表，要把結果賦值回去，否則原表不變。",
+        "query": "按條件選行。方括號裏用 & 和 |，不能用 and、or。query 更好讀，@name 可以引用 Python 變數。",
+        "stats": "按列統計。大多可以用 axis=1 改成按行計算；內置函數不合適時，用 apply 跑你自己的函數。",
+        "groupby_more": "分組後除了求平均還能做的事：計數、取第一行、在組內編號。as_index=False 讓分組鍵保留成普通列。",
+        "pivot_more": "在長表和寬表之間轉換。pivot 要求鍵組合唯一，pivot_table 用 aggfunc 合併重複的組合。",
+        "clean_more": "清理雜亂的列：把文本轉成數字，用相鄰值或插值補缺口，用 cut 把數字分箱。",
+        "str_more": "對整列用字符串方法。缺失值保持缺失；篩選時用 na=False 把它們當作不匹配。",
+        "output": "把數據從 pandas 裏取出來。只有不得已才用 iterrows 或 itertuples 循環，整列運算快得多。",
+        "plot_like": "不用 scikit-learn，從表格到陣列：切分行、縮放某一列，再把 X 和 y 交給模型。"
       }
     },
     "pytorch": {
@@ -4868,7 +4933,25 @@
         "block": "繼承容器來給重複結構起名：寫 conv-norm-activation 塊的常用方式。",
         "scheduler": "在訓練中調整學習率。調度器在優化器之後調用，通常每個 epoch 一次。",
         "save_load": "保存權重而不是模型：state_dict 就是張量組成的字典。這裏的文件只保留到本次執行結束。",
-        "skeleton": "真實訓練腳本開頭做的事：解析參數、設種子、選設備。這些語句在這裏都能執行，設備是 CPU。"
+        "skeleton": "真實訓練腳本開頭做的事：解析參數、設種子、選設備。這些語句在這裏都能執行，設備是 CPU。",
+        "create": "建立張量的常用方法。*_like 會照搬另一個張量的形狀和類型。",
+        "reduce": "指定 dim 的 max 同時返回值和下標。布爾張量要先 .float() 才能求平均。",
+        "joining": "拼接、切分和重排。cat 不改變軸數，stack 多一個軸。expand 共享記憶體，repeat 會複製。",
+        "losses": "每種損失都有模塊和函數兩種寫法。CrossEntropyLoss 和 BCEWithLogitsLoss 要原始分數；reduction=\"none\" 保留每個樣本的損失。",
+        "activations": "非線性函數的模塊和函數寫法。softmax 必須指定 dim，PyTorch 不會猜類別在哪個軸上。",
+        "layers_cnn": "典型圖像模型的層。AdaptiveAvgPool2d 不管輸入多大都輸出固定大小，最後的 Linear 總能接上。",
+        "layers_seq": "處理序列的層。batch_first=True 時形狀是 (批量, 時間, 特徵)；不設的話時間在最前面。",
+        "containers": "普通 Python 列表裏的層 PyTorch 看不到，ModuleList 才會註冊。buffer 隨模型保存，但不參與訓練。",
+        "init": "設置層的初始權重。結尾的 _ 表示原地修改，model.apply(f) 會對每個子模塊都執行一次 f。",
+        "optimizers": "可選的優化器；param_groups 能讓模型不同部分使用不同的學習率。",
+        "schedulers": "學習率在訓練中如何變化。先 optimizer.step() 再 scheduler.step()；ReduceLROnPlateau 還要傳入它監控的指標。",
+        "clip_grad": "在 backward() 和 step() 之間限制梯度大小，這是 RNN、Transformer 損失爆炸時的標準做法。",
+        "dataset_class": "寫好 __len__ 和 __getitem__，數據就能配合 DataLoader，分批和打亂都由它處理。",
+        "samplers": "Sampler 決定取樣本的順序。WeightedRandomSampler 更多地抽取稀有類別，適合類別不均衡的數據。",
+        "linalg_more": "inv、solve 之外的矩陣函數。eigh、svd 的結果帶有名字，比如 .eigenvalues。",
+        "math_ops": "張量的數學運算，有函數和方法兩種寫法。以 _ 結尾的方法（比如 add_）原地修改張量，autograd 可能不允許。",
+        "autograd_more": "求梯度和關閉梯度的其他寫法。no_grad 也能當裝飾器用，非標量輸出要給 backward() 傳一個向量。",
+        "dist_more": "把概率分佈當對象用：抽樣、用 log_prob 給數值打分、用 KL 散度比較兩個分佈。"
       }
     },
     "python": {
@@ -4899,7 +4982,23 @@
         "datetime": "日期可以加減，strftime 負責格式化。2024 是閏年，所以那個加法落在 3 月 1 日。",
         "numbers": "精確分數，以及為什麼浮點數要用 isclose 比較：0.1 + 0.2 並不嚴格等於 0.3。",
         "inspect": "把函數簽名當數據讀取，庫就是這樣檢查參數的。SimpleNamespace 是存設置的簡便對象。",
-        "eval_exec": "執行字符串裏的程式碼。寫小工具可以，但絕不要用在不是自己寫的文本上。"
+        "eval_exec": "執行字符串裏的程式碼。寫小工具可以，但絕不要用在不是自己寫的文本上。",
+        "str_methods": "最常用的字符串方法。字符串本身不會變，每個方法都返回一個新字符串。",
+        "list_methods": "列表是原地修改的：sort 和 reverse 返回 None，sorted() 和切片才給出新列表。",
+        "dict_methods": "d[key] 遇到不存在的鍵會報錯，d.get(key, default) 不會，所以計數只要兩行。",
+        "set_methods": "集合自動去重，判斷成員也很快。remove 刪除不存在的元素會報錯，discard 不會。",
+        "builtins_iter": "zip、map 和 filter 都是惰性的：每次給一項，只能走一遍。要查看或重複使用，就用 list() 包起來。",
+        "exceptions": "只捕獲能處理的異常，具體的放前面。自定義異常繼承現有的異常類，finally 總會執行。",
+        "classes": "類裏最常用的部分：__init__、只讀屬性、備用構造函數，以及 super()。",
+        "math_random": "math 處理單個數字，還有 comb、isclose 這類實用函數。random 用來產生快速模擬需要的隨機數。",
+        "iter_more": "itertools 的更多工具：補齊較短的序列、按條件停下、遍歷相鄰的兩項，或者無限循環。",
+        "functools_more": "cache 記住計算結果，wraps 保留被裝飾函數的名字，total_ordering 根據兩個比較方法補全其餘的。",
+        "regex_more": "match 只看開頭，search 找任意位置，fullmatch 要求整個字符串匹配。命名分組讓長模式更好讀。",
+        "os_paths": "操作文件和文件夾的老接口，大多數腳本里還在用。文件夾一開始是空的，只保留到這次執行結束。",
+        "sys_time": "sys 管正在執行的程序，time 管時鐘。給程式碼計時用 perf_counter。",
+        "copy_io": "切片和 copy.copy 仍然共享內層列表，只有 deepcopy 是完全獨立的副本。StringIO 就像記憶體裏的文件。",
+        "typing_abc": "類型標註用來説明函數，Python 不會強制檢查。抽象類要等方法都實現了才能建立實例。",
+        "strings_const": "f-string 的格式程式碼：寬度、對齊、小數位、千分位、百分比。{x=} 會連名字一起打印，調試時很方便。"
       }
     },
     "sklearn": {
@@ -4909,7 +5008,8 @@
       "cat": {
         "models": "模型",
         "prep": "預處理",
-        "eval": "評估"
+        "eval": "評估",
+        "data": "數據集與流程"
       },
       "e": {
         "knn": "第 3 講的 KNN，三行寫完：fit 存下數據，predict 讓鄰居投票。",
@@ -4921,7 +5021,22 @@
         "encode": "把文本變成數字；PolynomialFeatures 讓線性模型也能擬合曲線。",
         "metrics": "第 3 講混淆矩陣算出的那些數，以及按類別的完整報告。",
         "cv": "第 3 講交叉驗證的折，以及用它們嘗試每種設置的 GridSearchCV。",
-        "pca": "這些點幾乎在一條直線上，所以一個主成分就保留了幾乎全部方差。主成分的正負號是任意的。"
+        "pca": "這些點幾乎在一條直線上，所以一個主成分就保留了幾乎全部方差。主成分的正負號是任意的。",
+        "iris": "大多數例子的起點：150 朵花、4 個特徵、3 個類別，還帶着各自的名字。",
+        "make_data": "需要快速試一下時自己造數據：make_blobs 生成簇，make_classification 生成帶標籤的分類問題。",
+        "workflow": "完整流程按順序走一遍。縮放器只能在訓練集上 fit，否則測試集的資訊就漏進模型了。",
+        "logistic": "能輸出概率的線性分類器。predict_proba 每個類別一列，順序和 classes_ 相同。",
+        "ridge_perceptron": "alpha 越大，Ridge 的斜率越被壓向 0。Perceptron 就是課上講的單神經元分類器。",
+        "knn_reg": "預測數值的 KNN：結果是近鄰的平均值；weights=\"distance\" 時是加權平均。",
+        "nb_family": "處理其他類型特徵的樸素貝葉斯：計數（Multinomial）、有或沒有（Bernoulli）、類別（Categorical）。",
+        "tree_text": "把訓練好的樹打印成 if-else 規則，一眼看出它按哪個特徵、在哪裏切分。",
+        "roc": "把分數的每個閾值都試一遍。曲線下面積為 1 表示排序完美，0.5 相當於隨機。",
+        "regression_metrics": "衡量回歸偏差多少：MAE 和 RMSE 的單位與 y 相同，完美擬合時 R² 為 1。",
+        "prf": "一次給出每個類別的所有指標。average= 把它們合併，fbeta_score 裏 beta > 1 時更看重召回率。",
+        "silhouette": "沒有標籤時選 K-Means 的 k：簇越緊湊、彼此越遠，分數越接近 1。",
+        "splitters": "其他切分方式。StratifiedKFold 讓每一折保持相同的類別比例，類別不均衡時很重要。",
+        "column_transformer": "不同的列用不同的預處理：數值列縮放、類別列獨熱編碼，再拼到一起。",
+        "more_prep": "Normalizer 按行處理，縮放器按列處理。inverse_transform 可以換算回原來的單位。"
       }
     },
     "cv2": {
@@ -4931,7 +5046,8 @@
       "cat": {
         "colour": "顏色與閾值",
         "filter": "濾波",
-        "geometry": "幾何變換"
+        "geometry": "幾何變換",
+        "arith": "像素運算"
       },
       "e": {
         "colours": "OpenCV 按 BGR 存顏色，所以 plt.imshow 之前要轉成 RGB。灰度是 0.299 R + 0.587 G + 0.114 B。",
@@ -4941,7 +5057,21 @@
         "blur": "平均值會把孤立的白點抹開；中值能去掉它們，因為它們永遠不是中間值。",
         "morphology": "腐蝕縮小白色區域，膨脹擴大；依次做這兩步能去掉小噪點。",
         "resize": "注意順序：resize 接收 (寬, 高)，而 .shape 給的是 (高, 寬, 通道)。",
-        "warp": "第 7 講仿射變換的 2 × 3 矩陣：最後一列是平移。"
+        "warp": "第 7 講仿射變換的 2 × 3 矩陣：最後一列是平移。",
+        "split_merge": "把圖像拆成各個通道再拼回去。OpenCV 把藍色放在最前，按 r、g、b 合併後才是 plt.imshow 要的順序。",
+        "hsv": "挑出某種顏色：HSV 把色相和亮度分開，inRange 得到掩碼，bitwise_and 只保留這些像素。",
+        "saturate": "cv2.add 到 255 就封頂，而 NumPy 的 + 會迴繞，200 + 100 變成 44：圖像程式碼裏的經典 bug。",
+        "blend": "addWeighted 讓兩張圖按比例混合。convertScaleAbs 調對比度（alpha）和亮度（beta），結果仍是 uint8。",
+        "bitwise": "逐像素組合掩碼：255 表示開，0 表示關。",
+        "measure": "圖像的統計量。minMaxLoc 給出的位置是 (x, y)，和 NumPy 的 (行, 列) 相反；normalize 用來拉伸取值範圍。",
+        "adaptive": "Otsu 自動選一個閾值。adaptiveThreshold 按局部鄰域分別計算，光照不均也不怕。",
+        "canny": "最常用的邊緣檢測器。先模糊去噪；兩個數字是滯後閾值的低值和高值。",
+        "gradients": "圖像梯度。深度要選 CV_32F 這樣的浮點類型，因為斜率會有負值，uint8 會把它們截斷。",
+        "separable": "盒式濾波就是求平均。sepFilter2D 用一個一維核沿行、另一個沿列濾波，比二維核快得多。",
+        "morph_more": "開運算去掉小噪點，閉運算填上小孔，形態學梯度留下輪廓。",
+        "lut": "用一張 256 項的表替換每個像素值，這是做伽馬校正的快捷方法。",
+        "perspective": "四對對應點確定透視變換，三對確定仿射變換。把拍歪的文檔拉正就靠它。",
+        "stitch": "給圖加邊框、拼接圖像或旋轉。邊框類型決定邊界外填什麼，濾波時也用同樣的規則。"
       }
     }
   }

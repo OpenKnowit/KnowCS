@@ -55,6 +55,8 @@ for (const lib of LIBS) {
   })()`)
   mkdirSync(join(out, lib), { recursive: true })
   for (const id of ids) {
+    // the API index is a row of names in the gallery, with no picture
+    if (id.startsWith('api.')) continue
     if (process.env.ONLY_NEW && existsSync(join(assets, lib, `${id}.webp`))) continue
     await js(`document.querySelector('[data-entry="${lib}:${id}"]').click(); true`)
     await sleep(lib === 'numpy' ? 450 : 900)

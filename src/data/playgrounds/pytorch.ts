@@ -482,6 +482,321 @@ print(next(model.parameters()).shape, torch.get_num_threads() > 0)
 with torch.inference_mode():
     print(model(torch.zeros(1, 1, device=device)).shape, torch.is_inference_mode_enabled())`,
   },
+  // ---- the everyday APIs; each one was run on the real library
+  {
+    id: 'create', cat: 'tensors', label: 'zeros / arange / randn / like',
+    code: `import torch
+
+torch.manual_seed(0)
+print(torch.zeros(2, 3).shape, torch.ones(2), torch.full((1, 2), 7.), torch.eye(2), torch.empty(2).shape)
+print(torch.arange(0, 6, 2), torch.linspace(0, 1, 3), torch.logspace(0, 2, 3))
+print(torch.rand(2).shape, torch.randn(2, 2).shape, torch.randint(0, 5, (3,)).shape, torch.randperm(4).shape)
+x = torch.tensor([[1., 2.]])
+print(torch.zeros_like(x), torch.ones_like(x), torch.full_like(x, 3.), torch.rand_like(x).shape, x.new_zeros(2))
+print(torch.as_tensor([1, 2]), x.clone(), x.detach().requires_grad, x.tolist(), x[0, 1].item(), x.numpy())`,
+  },
+  {
+    id: 'reduce', cat: 'tensors', label: 'sum / mean / max / argmax',
+    code: `import torch
+
+x = torch.tensor([[1., 5.], [3., 2.]])
+print(x.sum(), x.sum(dim=0), x.mean(dim=1), x.mean(dim=1, keepdim=True), x.prod(), x.std(), x.var())
+print(x.max(), x.max(dim=0), x.min(dim=1).values, x.argmax(), x.argmax(dim=1), x.argmin(dim=0))
+print(x.cumsum(dim=0), x.median(), torch.topk(x.flatten(), 2), torch.sort(x, descending=True).indices)
+print(torch.unique(torch.tensor([1, 1, 2])), torch.bincount(torch.tensor([0, 1, 1])), (x > 2).sum(), (x > 2).float().mean(), (x > 0).all(), (x > 4).any())`,
+  },
+  {
+    id: 'joining', cat: 'tensors', label: 'cat / stack / chunk / split',
+    code: `import torch
+
+a = torch.arange(6).reshape(2, 3)
+print(torch.cat([a, a], dim=0).shape, torch.cat([a, a], dim=1).shape, torch.stack([a, a]).shape)
+print([p.shape for p in a.chunk(3, dim=1)], [p.shape for p in a.split([1, 2], dim=1)], [p.shape for p in a.unbind(0)])
+print(a.flatten(), a.permute(1, 0).shape, a.transpose(0, 1).shape, a.T.shape, a.squeeze().shape, a.unsqueeze(0).shape)
+print(a.repeat(2, 1).shape, a[:1].expand(3, -1).shape, a.flip(0), a.roll(1, 0), a.tril(), a.triu(), a.diag())
+print(torch.where(a > 2, a, 0), a.clamp(1, 3), a.gather(1, torch.tensor([[0], [1]])), a.index_select(1, torch.tensor([0])), a.masked_fill(a > 2, -1), a.masked_select(a > 3), a.nonzero().shape)`,
+  },
+  {
+    id: 'losses', cat: 'nn', label: 'nn.MSELoss / BCEWithLogitsLoss',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+p = torch.tensor([0.5, 2.0])
+y = torch.tensor([1.0, 0.0])
+print(nn.MSELoss()(p, y), nn.L1Loss()(p, y), nn.HuberLoss()(p, y), nn.SmoothL1Loss()(p, y))
+print(nn.BCEWithLogitsLoss()(p, y), nn.BCELoss()(torch.sigmoid(p), y))
+logits = torch.tensor([[2., 0.5], [0.1, 3.]])
+t = torch.tensor([0, 1])
+print(nn.CrossEntropyLoss()(logits, t), nn.NLLLoss()(F.log_softmax(logits, dim=1), t))
+print(F.mse_loss(p, y), F.l1_loss(p, y), F.cross_entropy(logits, t), F.binary_cross_entropy_with_logits(p, y))
+print(nn.MSELoss(reduction='none')(p, y), nn.MSELoss(reduction='sum')(p, y), nn.KLDivLoss(reduction='sum')(F.log_softmax(logits, 1), F.softmax(logits, 1)))`,
+  },
+  {
+    id: 'activations', cat: 'nn', label: 'ReLU / LeakyReLU / F.softmax',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+x = torch.tensor([-2., 0., 2.])
+for m in [nn.ReLU(), nn.LeakyReLU(0.1), nn.ELU(), nn.GELU(), nn.Sigmoid(), nn.Tanh(), nn.Softplus(), nn.Mish(), nn.Hardtanh()]:
+    print(type(m).__name__, m(x))
+print(F.relu(x), F.leaky_relu(x, 0.1), F.elu(x), F.gelu(x), F.softplus(x))
+print(nn.Softmax(dim=0)(x), F.softmax(x, dim=0), nn.LogSoftmax(dim=0)(x), F.log_softmax(x, dim=0))
+print(nn.Identity()(x), nn.Flatten()(torch.zeros(2, 3, 4)).shape, nn.Unflatten(1, (2, 2))(torch.zeros(1, 4)).shape)`,
+  },
+  {
+    id: 'layers_cnn', cat: 'nn', label: 'Conv2d / BatchNorm2d / AdaptiveAvgPool2d',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+x = torch.zeros(4, 3, 32, 32)
+net = nn.Sequential(
+    nn.Conv2d(3, 8, 3, padding=1), nn.BatchNorm2d(8), nn.ReLU(), nn.MaxPool2d(2),
+    nn.Conv2d(8, 16, 3, stride=2), nn.AvgPool2d(2), nn.Dropout2d(0.1),
+    nn.AdaptiveAvgPool2d(1), nn.Flatten(), nn.Linear(16, 10),
+)
+print(net(x).shape)
+for l in net:
+    x = l(x)
+    print(type(l).__name__, tuple(x.shape))
+print(nn.ConvTranspose2d(1, 1, 2, stride=2)(torch.zeros(1, 1, 4, 4)).shape, nn.Upsample(scale_factor=2)(torch.zeros(1, 1, 4, 4)).shape)
+print(F.interpolate(torch.zeros(1, 1, 4, 4), size=(8, 8)).shape, F.max_pool2d(torch.zeros(1, 1, 4, 4), 2).shape, F.adaptive_avg_pool2d(torch.zeros(1, 1, 4, 4), 1).shape, F.pad(torch.zeros(1, 2), (1, 1)).shape)`,
+  },
+  {
+    id: 'layers_seq', cat: 'nn', label: 'Embedding / GRU / LayerNorm',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+tokens = torch.tensor([[1, 2, 3]])
+e = nn.Embedding(10, 4, padding_idx=0)
+x = e(tokens)
+print(x.shape, e.weight.shape)
+out, h = nn.GRU(4, 5, batch_first=True)(x)
+print(out.shape, h.shape)
+out, (h, c) = nn.LSTM(4, 5, num_layers=2, bidirectional=True, batch_first=True)(x)
+print(out.shape, h.shape, c.shape)
+print(nn.LayerNorm(4)(x).shape, nn.GroupNorm(2, 4)(x.permute(0, 2, 1)).shape, nn.BatchNorm1d(4)(x.permute(0, 2, 1)).shape)
+print(nn.MultiheadAttention(4, 2, batch_first=True)(x, x, x)[0].shape, F.cosine_similarity(x[0, 0], x[0, 0], dim=0).shape, F.one_hot(tokens, 4), F.normalize(torch.tensor([3., 4.]), dim=0))`,
+  },
+  {
+    id: 'containers', cat: 'nn', label: 'ModuleList / parameters / state_dict',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.blocks = nn.ModuleList([nn.Linear(2, 2) for _ in range(2)])
+        self.head = nn.ModuleDict({'a': nn.Linear(2, 1)})
+        self.scale = nn.Parameter(torch.ones(1))
+        self.register_buffer('mean', torch.zeros(2))
+    def forward(self, x):
+        for b in self.blocks:
+            x = b(x)
+        return self.head['a'](x - self.mean) * self.scale
+
+n = Net()
+print(n(torch.zeros(1, 2)).shape)
+print([k for k, _ in n.named_parameters()])
+print(sum(p.numel() for p in n.parameters()), sum(p.numel() for p in n.parameters() if p.requires_grad))
+print([k for k, _ in n.named_children()], len(list(n.modules())), [k for k, _ in n.named_buffers()], list(n.state_dict())[:2])
+n.blocks[0].requires_grad_(False)
+print(sum(p.numel() for p in n.parameters() if p.requires_grad), n.training, n.eval().training)
+print(n.get_submodule('head.a'), n.get_parameter('scale').shape, n.apply(lambda m: None) is n)`,
+  },
+  {
+    id: 'init', cat: 'nn', label: 'nn.init',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+torch.manual_seed(0)
+l = nn.Linear(4, 4)
+nn.init.zeros_(l.bias)
+nn.init.constant_(l.weight, 0.5)
+print(l.weight[0], l.bias)
+nn.init.ones_(l.bias)
+nn.init.xavier_uniform_(l.weight)
+nn.init.xavier_normal_(l.weight)
+nn.init.kaiming_normal_(l.weight, nonlinearity='relu')
+nn.init.kaiming_uniform_(l.weight)
+nn.init.normal_(l.weight, mean=0, std=0.01)
+nn.init.uniform_(l.weight, -1, 1)
+nn.init.orthogonal_(l.weight)
+print(l.weight.shape, nn.init.calculate_gain('relu'), round(nn.init.calculate_gain('tanh'), 4))
+def init(m):
+    if isinstance(m, nn.Linear):
+        nn.init.zeros_(m.bias)
+print(nn.Sequential(nn.Linear(1, 1)).apply(init)[0].bias)`,
+  },
+  {
+    id: 'optimizers', cat: 'train', label: 'torch.optim',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+m = nn.Linear(1, 1)
+for cls in [torch.optim.SGD, torch.optim.Adam, torch.optim.AdamW, torch.optim.RMSprop, torch.optim.Adagrad, torch.optim.Adadelta, torch.optim.Adamax, torch.optim.NAdam, torch.optim.RAdam]:
+    o = cls(m.parameters(), lr=0.01)
+    print(cls.__name__, o.param_groups[0]['lr'], len(o.param_groups[0]['params']))
+o = torch.optim.SGD([{'params': [m.weight], 'lr': 0.1}, {'params': [m.bias]}], lr=0.01, momentum=0.9, weight_decay=1e-4)
+print([g['lr'] for g in o.param_groups], o.defaults['momentum'], list(o.state_dict()))
+print(torch.optim.Adam(m.parameters(), betas=(0.9, 0.99)).param_groups[0]['betas'])`,
+  },
+  {
+    id: 'schedulers', cat: 'train', label: 'CosineAnnealingLR / OneCycleLR',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+def run(make, n=4):
+    o = torch.optim.SGD(nn.Linear(1, 1).parameters(), lr=1.0)
+    s = make(o)
+    out = []
+    for _ in range(n):
+        o.step()
+        s.step()
+        out.append(round(s.get_last_lr()[0], 4))
+    return out
+
+S = torch.optim.lr_scheduler
+print(run(lambda o: S.StepLR(o, step_size=2, gamma=0.1)))
+print(run(lambda o: S.MultiStepLR(o, [1, 3], gamma=0.5)))
+print(run(lambda o: S.ExponentialLR(o, 0.5)))
+print(run(lambda o: S.CosineAnnealingLR(o, T_max=4)))
+print(run(lambda o: S.LambdaLR(o, lambda e: 1 / (e + 1))))
+print(run(lambda o: S.LinearLR(o, start_factor=0.5, total_iters=4)))
+print(run(lambda o: S.OneCycleLR(o, max_lr=1.0, total_steps=5)))
+o = torch.optim.SGD(nn.Linear(1, 1).parameters(), lr=1.0)
+p = S.ReduceLROnPlateau(o, patience=0, factor=0.5)
+for v in [1., 1., 1.]:
+    p.step(v)
+print(o.param_groups[0]['lr'])`,
+  },
+  {
+    id: 'clip_grad', cat: 'train', label: 'clip_grad_norm_ / nn.utils',
+    code: `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+m = nn.Linear(2, 1)
+(m(torch.ones(1, 2)) * 100).sum().backward()
+print(torch.nn.utils.clip_grad_norm_(m.parameters(), 1.0) > 1)
+print(round(float(torch.nn.utils.get_total_norm([p.grad for p in m.parameters()])), 4))
+torch.nn.utils.clip_grad_value_(m.parameters(), 0.1)
+print(m.weight.grad.abs().max() <= 0.1)
+v = torch.nn.utils.parameters_to_vector(m.parameters())
+print(v.shape)
+torch.nn.utils.vector_to_parameters(torch.zeros(3), m.parameters())
+print(m.weight, m.bias)`,
+  },
+  {
+    id: 'dataset_class', cat: 'train', label: 'class Dataset / random_split',
+    code: `import torch
+from torch.utils.data import ConcatDataset, DataLoader, Dataset, Subset, TensorDataset, random_split
+
+class Squares(Dataset):
+    def __init__(self, n):
+        self.n = n
+    def __len__(self):
+        return self.n
+    def __getitem__(self, i):
+        return torch.tensor([float(i)]), torch.tensor([float(i * i)])
+
+d = Squares(10)
+print(len(d), d[3])
+train, val = random_split(d, [8, 2], generator=torch.Generator().manual_seed(0))
+print(len(train), len(val), type(train).__name__)
+print(len(Subset(d, [0, 1, 2])), len(ConcatDataset([d, d])), len(TensorDataset(torch.zeros(4), torch.ones(4))))
+loader = DataLoader(train, batch_size=3, shuffle=True, drop_last=True)
+print(len(loader))
+for x, y in loader:
+    print(x.shape, y.shape)
+    break`,
+  },
+  {
+    id: 'samplers', cat: 'train', label: 'WeightedRandomSampler / default_collate',
+    code: `import torch
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler, SubsetRandomSampler, TensorDataset, WeightedRandomSampler, default_collate
+
+print(list(SequentialSampler(range(3))), sorted(RandomSampler(range(3))))
+print(list(BatchSampler(SequentialSampler(range(5)), 2, drop_last=False)))
+print(sorted(SubsetRandomSampler([1, 3])))
+w = WeightedRandomSampler([0., 0., 1.], 4, replacement=True)
+print(list(w))
+d = TensorDataset(torch.arange(4.))
+print(len(DataLoader(d, batch_size=2, sampler=SequentialSampler(d))))
+print(default_collate([(1, 'a'), (2, 'b')]))
+print(default_collate([torch.zeros(2), torch.ones(2)]).shape)`,
+  },
+  {
+    id: 'linalg_more', cat: 'maths', label: 'linalg.norm / svd / qr',
+    code: `import torch
+
+A = torch.tensor([[2., 1.], [1., 3.]])
+print(torch.linalg.norm(A), torch.linalg.vector_norm(A[0]), torch.linalg.matrix_norm(A, ord=1), A.norm(), torch.dist(A[0], A[1]))
+print(torch.linalg.det(A), torch.det(A), torch.linalg.inv(A), torch.inverse(A), A.trace(), torch.linalg.matrix_rank(A), torch.linalg.pinv(A))
+print(torch.linalg.solve(A, torch.tensor([3., 5.])), torch.linalg.lstsq(A, torch.tensor([[3.], [5.]])).solution.shape)
+print(torch.linalg.cholesky(A), torch.linalg.eigh(A).eigenvalues, torch.linalg.matrix_power(A, 2), torch.linalg.matrix_exp(torch.zeros(2, 2)))
+U, S, Vh = torch.linalg.svd(A)
+print(S, torch.allclose(U @ torch.diag(S) @ Vh, A), torch.linalg.qr(A).R.shape, torch.dot(A[0], A[1]), torch.mm(A, A).shape, torch.mv(A, A[0]), torch.outer(A[0], A[1]))`,
+  },
+  {
+    id: 'math_ops', cat: 'maths', label: 'exp / log / clamp / isnan',
+    code: `import torch
+
+x = torch.tensor([1., 4., 9.])
+print(x.sqrt(), x.exp(), x.log(), x.log2(), x.log10(), x.pow(2), x ** 2, x.abs(), x.neg(), x.reciprocal(), x.sign())
+print(x.floor(), x.ceil(), x.round(), x.trunc(), x.frac(), x.clamp(min=2), x.clamp(max=5), torch.fmod(x, 2), x % 2, x // 2)
+print(x.sin(), x.cos(), x.tan(), x.tanh(), x.sigmoid(), x.softmax(0), x.lerp(torch.zeros(3), 0.5))
+n = torch.tensor([1., float('nan'), float('inf')])
+print(n.isnan(), n.isinf(), n.isfinite(), n.nan_to_num(), torch.nansum(n[:2]), torch.nanmean(n[:2]))
+print(torch.eq(x, x), x.ne(x), x.gt(2), x.lt(2), x.ge(4), x.le(4), torch.equal(x, x), torch.isclose(x, x), torch.allclose(x, x), torch.maximum(x, x - 1), torch.minimum(x, x - 1))
+print(x.add(1), x.sub(1), x.mul(2), x.div(2), x.add_(1), x)`,
+  },
+  {
+    id: 'autograd_more', cat: 'autograd', label: 'torch.autograd.grad / requires_grad_',
+    code: `import torch
+
+x = torch.tensor([2.], requires_grad=True)
+y = x ** 3
+print(torch.autograd.grad(y, x), y.requires_grad, y.grad_fn is not None, x.is_leaf, y.is_leaf)
+z = torch.ones(1)
+print(z.requires_grad, z.requires_grad_().requires_grad, z.detach().requires_grad)
+with torch.enable_grad():
+    print((x * 2).requires_grad)
+with torch.set_grad_enabled(False):
+    print((x * 2).requires_grad)
+print(torch.is_grad_enabled())
+@torch.no_grad()
+def f(a):
+    return a * 2
+print(f(x).requires_grad)
+with torch.inference_mode():
+    print((x * 2).requires_grad)
+v = torch.tensor([1., 2.], requires_grad=True)
+(v ** 2).backward(torch.tensor([1., 1.]))
+print(v.grad)
+v.grad = None
+print(v.grad, torch.autograd.gradcheck(lambda t: t * 2, torch.tensor([1.], dtype=torch.float64, requires_grad=True)))`,
+  },
+  {
+    id: 'dist_more', cat: 'maths', label: 'Normal / Categorical / kl_divergence',
+    code: `import torch
+from torch.distributions import Bernoulli, Categorical, Normal, Uniform, kl_divergence
+
+torch.manual_seed(0)
+n = Normal(0., 1.)
+print(n.sample((2,)).shape, n.rsample().shape, n.log_prob(torch.tensor(0.)), n.mean, n.stddev, n.entropy(), n.cdf(torch.tensor(0.)))
+c = Categorical(probs=torch.tensor([0.25, 0.75]))
+print(c.sample((3,)).shape, c.log_prob(torch.tensor(1)), c.probs, c.entropy())
+print(Bernoulli(0.5).sample().shape, Bernoulli(probs=torch.tensor(0.5)).mean, Uniform(0., 2.).mean, Uniform(0., 2.).log_prob(torch.tensor(1.)))
+print(kl_divergence(Normal(0., 1.), Normal(1., 1.)), kl_divergence(Categorical(probs=torch.tensor([.5, .5])), Categorical(probs=torch.tensor([.9, .1]))))`,
+  },
 ]
 
 export const PYTORCH_PLAYGROUND: PlayConfig = {

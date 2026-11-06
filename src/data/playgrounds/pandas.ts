@@ -300,6 +300,169 @@ print(pd.get_dummies(df, columns=['colour']))
 print(df['colour'].value_counts())
 print(df['colour'].map({'red': 0, 'blue': 1}))`,
   },
+  // ---- the everyday APIs; each one was run on the real library
+  {
+    id: 'inspect', cat: 'basics', label: 'head / info / shape / dtypes',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'name': ['ann', 'bob', 'cat', 'dan'], 'age': [20, 31, 25, 40], 'score': [88.5, 72., np.nan, 91.]})
+print(df.head(2))
+print(df.tail(1))
+print(df.shape, df.ndim, df.size, len(df), df.empty, df.columns.tolist(), df.index.tolist())
+print(df.dtypes)
+df.info()
+print(df.nunique())
+print(df['age'].value_counts().head(1), df['name'].unique(), df.values[0])`,
+  },
+  {
+    id: 'sorting', cat: 'select', label: 'sort_values / nlargest / rank',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'name': ['ann', 'bob', 'cat', 'dan'], 'age': [20, 31, 25, 31], 'score': [88.5, 72., 60., 91.]})
+print(df.sort_values('score', ascending=False).head(2))
+print(df.sort_values(['age', 'score'], ascending=[False, True]))
+print(df.sort_index(ascending=False).index.tolist())
+print(df.nlargest(2, 'score')['name'].tolist(), df.nsmallest(1, 'age')['name'].tolist())
+print(df['score'].rank(ascending=False).tolist(), df['score'].idxmax(), df['score'].idxmin())
+print(df.reset_index(drop=True).shape, df.set_index('name').loc['bob', 'age'], df.set_index('name').reset_index().columns.tolist())`,
+  },
+  {
+    id: 'col_ops', cat: 'select', label: 'assign / rename / drop / insert',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})
+df['c'] = df['a'] + df['b']
+print(df.assign(d=lambda x: x.a * 2, e=0).columns.tolist())
+print(df.rename(columns={'a': 'A'}).columns.tolist(), df.drop(columns=['c']).columns.tolist(), df.drop(index=[0]).index.tolist())
+df.insert(0, 'id', [7, 8, 9])
+print(df.pop('c').tolist(), df.columns.tolist())
+print(df[['id', 'a']].shape, df.select_dtypes('number').columns.tolist(), df.select_dtypes(include='float').columns.tolist())
+print(df.astype({'a': 'float64'}).dtypes['a'], df.a.astype(str).tolist(), df.add_prefix('x_').columns.tolist(), df.T.shape)
+print(df.copy().equals(df), df.iat[0, 1], df.at[0, 'a'], df.get('nope', 'default'), df.keys().tolist())`,
+  },
+  {
+    id: 'query', cat: 'select', label: 'query / isin / between',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'city': ['HK', 'SZ', 'HK', 'GZ'], 'age': [20, 31, 25, 40], 'n': [1, 2, 3, 4]})
+print(df.query('age > 22 and city == "HK"'))
+limit = 30
+print(df.query('age > @limit')['city'].tolist())
+print(df[df.city.isin(['SZ', 'GZ'])].n.tolist(), df[df.age.between(20, 25)].n.tolist(), df[~df.city.eq('HK')].n.tolist())
+print(df[(df.age > 22) & (df.n < 4)].n.tolist(), df[(df.age < 21) | (df.n == 4)].n.tolist())
+print(df.where(df.n > 2)['n'].tolist(), df.n.mask(df.n > 2, 0).tolist(), df.n.clip(2, 3).tolist())
+print(df.sample(2, random_state=0).shape, df.duplicated('city').tolist(), df.drop_duplicates('city').n.tolist())`,
+  },
+  {
+    id: 'stats', cat: 'basics', label: 'mean / corr / quantile / apply',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'a': [1., 2., 3., 4.], 'b': [2., 4., 5., 9.]})
+print(df.sum().tolist(), df.mean().tolist(), df.median().tolist(), df.min().tolist(), df.max().tolist())
+print(df.std().round(3).tolist(), df.var().round(3).tolist(), df.count().tolist(), df.a.mode().tolist(), df.prod().tolist())
+print(df.mean(axis=1).tolist(), df.a.quantile(0.5), df.quantile([0.25, 0.75]).shape, df.skew().round(3).tolist(), df.kurt().round(3).tolist())
+print(df.corr().round(3))
+print(df.cov().round(3), df.a.corr(df.b).round(3))
+print(df.apply(np.sum).tolist(), df.apply(lambda r: r.a + r.b, axis=1).tolist(), df.a.apply(lambda v: v * 2).tolist(), df.a.map({1.: 'x'}).tolist())
+print(df.cumsum().iloc[-1].tolist(), df.a.diff().tolist(), df.a.pct_change().round(3).tolist(), df.a.shift(1).tolist(), df.abs().sum().tolist(), df.round(0).shape)`,
+  },
+  {
+    id: 'groupby_more', cat: 'group', label: 'groupby: size / first / cumcount',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'t': ['a', 'b', 'a', 'b', 'a'], 'x': [1, 2, 3, 4, 5], 'y': [5., 4., 3., 2., 1.]})
+g = df.groupby('t')
+print(g.size())
+print(g.ngroups, sorted(g.groups), g.get_group('a').x.tolist(), g.x.sum().tolist(), g.x.mean().tolist(), g.x.count().tolist())
+print(g.first(), g.last().x.tolist(), g.head(1).x.tolist(), g.nth(0).x.tolist())
+print(g.x.max().tolist(), g.x.min().tolist(), g.x.median().tolist(), g.x.std().round(3).tolist(), g.x.var().tolist(), g.x.nunique().tolist())
+print(g.x.cumsum().tolist(), g.cumcount().tolist(), g.x.shift(1).tolist(), g.x.rank().tolist(), g.x.idxmax().tolist())
+print(df.groupby('t', as_index=False).x.sum())
+print(df.groupby('t').filter(lambda d: len(d) > 2).x.tolist())
+for name, part in g:
+    print(name, len(part))`,
+  },
+  {
+    id: 'pivot_more', cat: 'combine', label: 'pivot_table / stack / join',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'y': [1, 1, 2, 2], 'k': ['a', 'b', 'a', 'b'], 'v': [1., 2., 3., 4.]})
+print(df.pivot(index='y', columns='k', values='v'))
+print(df.pivot_table(index='k', values='v', aggfunc='mean'))
+print(df.pivot_table(index='y', columns='k', values='v', aggfunc='sum', margins=True))
+w = df.pivot(index='y', columns='k', values='v')
+print(w.stack().tolist(), w.stack().unstack().shape, w.reset_index().melt(id_vars='y').shape)
+a = pd.DataFrame({'x': [1, 2]}, index=['p', 'q'])
+b = pd.DataFrame({'z': [3, 4]}, index=['q', 'r'])
+print(a.join(b), a.join(b, how='outer'), a.combine_first(pd.DataFrame({'x': [9]}, index=['z'])).x.tolist())
+print(pd.concat([a, b], axis=1).shape, a.reindex(['q', 'p', 'n']).x.tolist(), a.rename_axis('id').index.name)`,
+  },
+  {
+    id: 'clean_more', cat: 'clean', label: 'replace / to_numeric / ffill / cut',
+    code: `import pandas as pd
+import numpy as np
+
+s = pd.Series([1, 2, 3, 4, 5, 6])
+print(s.replace(1, 9).tolist(), s.replace({2: 8}).tolist())
+print(pd.to_numeric(pd.Series(['1', '2.5', 'x']), errors='coerce').tolist())
+m = pd.Series([1., np.nan, np.nan, 4.])
+print(m.ffill().tolist(), m.bfill().tolist(), m.interpolate().tolist(), m.fillna(m.mean()).tolist(), m.isna().sum(), m.notna().tolist(), m.dropna().tolist(), m.hasnans)
+print(pd.cut(s, 2, labels=['low', 'high']).tolist(), pd.cut(s, [0, 2, 6]).value_counts().tolist(), pd.qcut(s, 2, labels=False).tolist())
+print(s.astype('category').cat.categories.tolist(), pd.factorize(['b', 'a', 'b'])[0].tolist(), pd.Series(pd.Categorical(['a', 'b', 'a'])).cat.codes.tolist(), pd.unique(pd.Series([1, 1])).tolist())
+df = pd.DataFrame({'a': [1, np.nan], 'b': [np.nan, np.nan]})
+print(df.isna().sum().tolist(), df.dropna(how='all').shape, df.dropna(axis=1, how='all').shape, df.fillna({'a': 0}).a.tolist(), df.notna().sum().sum(), df.isnull().any().tolist())`,
+  },
+  {
+    id: 'str_more', cat: 'series', label: 'str.contains / extract / split',
+    code: `import pandas as pd
+import numpy as np
+
+s = pd.Series(['Ann Lee', 'bob wu', None, 'Cat Ho 12'])
+print(s.str.lower().tolist(), s.str.upper().tolist(), s.str.title().tolist(), s.str.len().tolist(), s.str.strip().tolist())
+print(s.str.contains('a', na=False).tolist(), s.str.startswith('A', na=False).tolist(), s.str.endswith('u', na=False).tolist(), s.str.match('[A-Z]', na=False).tolist())
+print(s.str.replace(' ', '_').tolist(), s.str.split().str[0].tolist(), s.str.split(' ', expand=True).shape, s.str[:2].tolist(), s.str.slice(0, 1).tolist(), s.str.get(0).tolist())
+print(s.str.extract(r'(\\d+)')[0].tolist(), s.str.findall(r'[A-Z]').tolist(), s.str.count('a').tolist(), s.str.find('b').tolist(), s.str.pad(3).str.len().tolist(), s.str.zfill(8).tolist())
+print(s.str.cat(sep='|'), s.str.isdigit().tolist(), pd.Series(['7']).str.isnumeric().tolist(), s.str.capitalize().tolist(), s.str.get_dummies(' ').shape)`,
+  },
+  {
+    id: 'output', cat: 'basics', label: 'to_csv / to_dict / iterrows',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'a': [1, 2], 'b': ['x', 'y']})
+print(df.to_csv(index=False))
+df.to_csv('t.csv', index=False)
+print(pd.read_csv('t.csv').shape, pd.read_table('t.csv', sep=',').shape)
+print(df.to_dict(), df.to_dict('records'), df.to_dict('list'))
+print(df.to_json(), df.to_numpy().shape, df.a.to_numpy(), df.a.to_list(), df.a.to_frame().shape, df.to_string(index=False))
+for i, row in df.iterrows():
+    print(i, row['a'], row.b)
+for t in df.itertuples():
+    print(t.Index, t.a, t.b)
+print(pd.DataFrame.from_dict({'a': [1]}), pd.DataFrame.from_records([{'a': 1}]).shape, pd.DataFrame([[1, 2]], columns=['x', 'y']).shape, pd.Series({'p': 1}).index.tolist(), pd.read_json('[{"a": 1}]').shape)`,
+  },
+  {
+    id: 'plot_like', cat: 'ml', label: 'train/test by hand: sample + drop',
+    code: `import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({'x': range(10), 'y': [0, 1] * 5})
+train = df.sample(frac=0.8, random_state=0)
+test = df.drop(train.index)
+print(len(train), len(test), set(train.index) & set(test.index))
+X, y = df.drop(columns='y').to_numpy(), df['y'].to_numpy()
+print(X.shape, y.shape, X.dtype, y.mean())
+norm = (df.x - df.x.mean()) / df.x.std()
+print(norm.round(2).tolist()[:3], ((df.x - df.x.min()) / (df.x.max() - df.x.min())).tolist()[:2])
+print(pd.get_dummies(pd.Series(['a', 'b']), dtype=int).to_numpy().tolist(), df.y.value_counts(normalize=True).tolist(), df.y.nunique(), pd.crosstab(df.y, df.x > 4).shape)`,
+  },
 ]
 
 export const PANDAS_PLAYGROUND: PlayConfig = {

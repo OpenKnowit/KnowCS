@@ -63,5 +63,625 @@
 "title": "type with three arguments",
 "src": "T = type('T', (), {'x': 1})\nprint(T.x, T().x, T.__name__, 'x' in dir(T), isinstance(map(str, []), map), isinstance(zip(), zip), map, zip)\nprint('append' in dir(list), hasattr(list, 'append'), hasattr(list, 'shape'))\n",
 "out": "1 1 T True True True <class 'map'> <class 'zip'>\nTrue True False\n"
+},
+{
+"title": "sklearn/iris",
+"src": "import numpy as np\nfrom sklearn.datasets import load_iris\n\niris = load_iris()\nprint(iris.data.shape, iris.target.shape)\nprint(iris.feature_names)\nprint(iris.target_names)\nprint(iris.data[:2], iris.target[:2])\nprint(np.bincount(iris.target))",
+"out": "(150, 4) (150,)\n['sepal length (cm)', 'sepal width (cm)', 'petal length (cm)', 'petal width (cm)']\n['setosa' 'versicolor' 'virginica']\n[[5.1 3.5 1.4 0.2]\n [4.9 3.  1.4 0.2]] [0 0]\n[50 50 50]\n"
+},
+{
+"title": "sklearn/make_data",
+"src": "import numpy as np\nfrom sklearn.datasets import make_blobs, make_classification\nimport matplotlib.pyplot as plt\n\nX, y = make_blobs(n_samples=90, centers=3, n_features=2, random_state=0)\nprint(X.shape, y.shape, np.bincount(y))\nA, b = make_classification(n_samples=50, n_features=4, n_informative=2, random_state=0)\nprint(A.shape, b.shape)\nplt.scatter(X[:, 0], X[:, 1], c=y)\nplt.show()",
+"out": "(90, 2) (90,) [30 30 30]\n(50, 4) (50,)\n"
+},
+{
+"title": "sklearn/workflow",
+"src": "import numpy as np\nfrom sklearn.datasets import load_iris\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nX, y = load_iris(return_X_y=True)\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=0)\nprint(X_train.shape, X_test.shape, np.bincount(y_test))\nscaler = StandardScaler().fit(X_train)\nmodel = LogisticRegression(max_iter=500).fit(scaler.transform(X_train), y_train)\npred = model.predict(scaler.transform(X_test))\nprint(pred.shape, accuracy_score(y_test, pred) > 0.8)",
+"out": "(120, 4) (30, 4) [10 10 10]\n(30,) True\n"
+},
+{
+"title": "sklearn/logistic",
+"src": "import numpy as np\nfrom sklearn.linear_model import LogisticRegression\n\nX = np.array([[1.], [2.], [3.], [4.], [5.], [6.]])\ny = np.array([0, 0, 0, 1, 1, 1])\nm = LogisticRegression().fit(X, y)\nprint(m.classes_, m.coef_.shape, m.intercept_.shape)\nprint(m.predict([[1.], [6.]]))\nprint(np.round(m.predict_proba([[3.5]]), 3))\nprint(m.score(X, y))",
+"out": "[0 1] (1, 1) (1,)\n[0 1]\n[[0.5 0.5]]\n1.0\n"
+},
+{
+"title": "sklearn/ridge_perceptron",
+"src": "import numpy as np\nfrom sklearn.linear_model import Perceptron, Ridge\n\nX = np.array([[1.], [2.], [3.], [4.]])\ny = np.array([2., 4., 6., 8.])\nfor alpha in [0.01, 1., 10.]:\n    r = Ridge(alpha=alpha).fit(X, y)\n    print(alpha, np.round(r.coef_, 3), np.round(r.intercept_, 3))\np = Perceptron(random_state=0).fit([[0, 0], [0, 1], [1, 0], [1, 1]], [0, 0, 0, 1])\nprint(p.predict([[0, 0], [1, 1]]), p.coef_.shape)",
+"out": "0.01 [1.996] 0.01\n1.0 [1.667] 0.833\n10.0 [0.667] 3.333\n[0 1] (1, 2)\n"
+},
+{
+"title": "sklearn/knn_reg",
+"src": "import numpy as np\nfrom sklearn.neighbors import KNeighborsRegressor\n\nX = np.array([[1.], [2.], [3.], [10.], [11.]])\ny = np.array([1., 2., 3., 10., 11.])\nfor k, w in [(1, 'uniform'), (3, 'uniform'), (3, 'distance')]:\n    m = KNeighborsRegressor(n_neighbors=k, weights=w).fit(X, y)\n    print(k, w, np.round(m.predict([[2.5], [9.]]), 3))",
+"out": "1 uniform [ 2. 10.]\n3 uniform [2. 8.]\n3 distance [2.286 9.6  ]\n"
+},
+{
+"title": "sklearn/nb_family",
+"src": "import numpy as np\nfrom sklearn.naive_bayes import BernoulliNB, CategoricalNB, MultinomialNB\n\n# word counts for four short messages: ham, ham, spam, spam\nX = np.array([[3, 0, 1], [2, 0, 0], [0, 4, 1], [0, 3, 2]])\ny = np.array([0, 0, 1, 1])\nm = MultinomialNB().fit(X, y)\nprint(m.predict([[1, 0, 0], [0, 2, 0]]), np.round(m.predict_proba([[1, 1, 0]]), 3))\nprint(np.round(np.exp(m.feature_log_prob_), 3))\nprint(BernoulliNB().fit(X > 0, y).predict([[True, False, False]]))\nprint(CategoricalNB().fit([[0, 1], [0, 0], [1, 1], [1, 0]], y).predict([[1, 1]]))",
+"out": "[0 1] [[0.61 0.39]]\n[[0.667 0.111 0.222]\n [0.077 0.615 0.308]]\n[0]\n[1]\n"
+},
+{
+"title": "sklearn/tree_text",
+"src": "import numpy as np\nfrom sklearn.datasets import load_iris\nfrom sklearn.tree import DecisionTreeClassifier, export_text\n\niris = load_iris()\nt = DecisionTreeClassifier(max_depth=2, random_state=0).fit(iris.data, iris.target)\nprint(export_text(t, feature_names=list(iris.feature_names)))\nprint(t.get_depth(), t.get_n_leaves(), np.round(t.feature_importances_, 3))",
+"out": "|--- petal width (cm) <= 0.80\n|   |--- class: 0\n|--- petal width (cm) >  0.80\n|   |--- petal width (cm) <= 1.75\n|   |   |--- class: 1\n|   |--- petal width (cm) >  1.75\n|   |   |--- class: 2\n\n2 3 [0. 0. 0. 1.]\n"
+},
+{
+"title": "sklearn/roc",
+"src": "import numpy as np\nfrom sklearn.metrics import auc, roc_auc_score, roc_curve\nimport matplotlib.pyplot as plt\n\ny = np.array([0, 0, 1, 1, 0, 1, 1, 0])\nscores = np.array([0.1, 0.4, 0.35, 0.8, 0.2, 0.9, 0.6, 0.5])\nfpr, tpr, thresholds = roc_curve(y, scores)\nprint(np.round(fpr, 2), np.round(tpr, 2))\nprint(auc(fpr, tpr), roc_auc_score(y, scores))\nplt.plot(fpr, tpr, marker='o')\nplt.plot([0, 1], [0, 1], '--')\nplt.xlabel('false positive rate')\nplt.ylabel('true positive rate')\nplt.show()",
+"out": "[0.  0.  0.  0.5 0.5 1. ] [0.   0.25 0.75 0.75 1.   1.  ]\n0.875 0.875\n"
+},
+{
+"title": "sklearn/regression_metrics",
+"src": "import numpy as np\nfrom sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, root_mean_squared_error\n\ny = [3., 5., 2., 7.]\np = [2.5, 5., 3., 8.]\nprint(mean_absolute_error(y, p))\nprint(mean_squared_error(y, p))\nprint(root_mean_squared_error(y, p))\nprint(round(r2_score(y, p), 4))",
+"out": "0.625\n0.5625\n0.75\n0.8475\n"
+},
+{
+"title": "sklearn/prf",
+"src": "import numpy as np\nfrom sklearn.metrics import fbeta_score, precision_recall_fscore_support\n\ny = [0, 1, 2, 0, 1, 2, 0]\np = [0, 2, 2, 0, 0, 2, 1]\nprint(precision_recall_fscore_support(y, p, zero_division=0))\nprint(precision_recall_fscore_support(y, p, average='macro', zero_division=0))\nprint(fbeta_score([1, 0, 1, 1], [1, 0, 0, 1], beta=2))",
+"out": "(array([0.66666667, 0.        , 0.66666667]), array([0.66666667, 0.        , 1.        ]), array([0.66666667, 0.        , 0.8       ]), array([3, 2, 2]))\n(0.4444444444444444, 0.5555555555555555, 0.48888888888888893, None)\n0.7142857142857143\n"
+},
+{
+"title": "sklearn/silhouette",
+"src": "import numpy as np\nfrom sklearn.cluster import KMeans\nfrom sklearn.metrics import silhouette_score\n\nX = np.array([[0., 0.], [0., 1.], [1., 0.], [9., 9.], [9., 8.], [8., 9.], [0., 9.], [1., 9.]])\nfor k in [2, 3, 4]:\n    labels = KMeans(n_clusters=k, n_init=5, random_state=0).fit_predict(X)\n    print(k, round(silhouette_score(X, labels), 3))",
+"out": "2 0.628\n3 0.868\n4 0.577\n"
+},
+{
+"title": "sklearn/splitters",
+"src": "import numpy as np\nfrom sklearn.model_selection import LeaveOneOut, ShuffleSplit, StratifiedKFold\n\nX = np.arange(12).reshape(6, 2)\ny = np.array([0, 0, 0, 1, 1, 1])\nfor train, test in StratifiedKFold(3).split(X, y):\n    print(train, test, y[test])\nprint(LeaveOneOut().get_n_splits(X), [t.tolist() for _, t in LeaveOneOut().split(X)][:2])\nprint([len(t) for _, t in ShuffleSplit(n_splits=2, test_size=2, random_state=0).split(X)])",
+"out": "[1 2 4 5] [0 3] [0 1]\n[0 2 3 5] [1 4] [0 1]\n[0 1 3 4] [2 5] [0 1]\n6 [[0], [1]]\n[2, 2]\n"
+},
+{
+"title": "sklearn/column_transformer",
+"src": "import numpy as np\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.preprocessing import MinMaxScaler, OneHotEncoder\nimport pandas as pd\n\ndf = pd.DataFrame({'age': [20, 30, 40], 'city': ['HK', 'SZ', 'HK']})\nct = ColumnTransformer([('num', MinMaxScaler(), ['age']), ('cat', OneHotEncoder(sparse_output=False), ['city'])])\nprint(ct.fit_transform(df))\nprint(ct.get_feature_names_out())",
+"out": "[[0.  1.  0. ]\n [0.5 0.  1. ]\n [1.  1.  0. ]]\n['num__age' 'cat__city_HK' 'cat__city_SZ']\n"
+},
+{
+"title": "sklearn/more_prep",
+"src": "import numpy as np\nfrom sklearn.preprocessing import FunctionTransformer, MinMaxScaler, Normalizer, OrdinalEncoder, StandardScaler\n\nprint(OrdinalEncoder().fit_transform([['low'], ['high'], ['mid']]).ravel())\nprint(np.round(Normalizer().fit_transform([[3., 4.], [1., 0.]]), 2))\nprint(FunctionTransformer(np.log1p).fit_transform(np.array([[0.], [1.]])).round(3).ravel())\nX = np.array([[1.], [2.], [3.]])\nprint(np.round(StandardScaler().fit_transform(X).ravel(), 3), MinMaxScaler().fit_transform(X).ravel())\ns = StandardScaler().fit(X)\nprint(s.mean_, np.round(s.scale_, 3), s.inverse_transform([[0.]]))",
+"out": "[1. 0. 2.]\n[[0.6 0.8]\n [1.  0. ]]\n[0.    0.693]\n[-1.225  0.     1.225] [0.  0.5 1. ]\n[2.] [0.816] [[2.]]\n"
+},
+{
+"title": "cv2/split_merge",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\nb, g, r = cv2.split(img)\nprint(b.shape, b[0, 0], g[0, 0], r[0, 0])\nswapped = cv2.merge([r, g, b])\nprint(swapped.shape, swapped[0, 0])\nprint(np.array_equal(swapped, cv2.cvtColor(img, cv2.COLOR_BGR2RGB)))\nplt.imshow(swapped)\nplt.show()",
+"out": "(60, 80) 200 120 40\n(60, 80, 3) [ 40 120 200]\nTrue\n"
+},
+{
+"title": "cv2/hsv",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\nhsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)\nprint(hsv[0, 0], hsv[20, 25])\nmask = cv2.inRange(hsv, np.array([20, 100, 100]), np.array([40, 255, 255]))\nprint(mask.shape, mask.dtype, np.unique(mask), cv2.countNonZero(mask))\nonly = cv2.bitwise_and(img, img, mask=mask)\nplt.imshow(cv2.cvtColor(only, cv2.COLOR_BGR2RGB))\nplt.show()",
+"out": "[105 204 200] [ 21 213 240]\n(60, 80) uint8 [  0 255] 1000\n"
+},
+{
+"title": "cv2/saturate",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\na = np.array([[200, 100]], np.uint8)\nb = np.array([[100, 100]], np.uint8)\nprint(cv2.add(a, b), a + b)\nprint(cv2.subtract(b, a), b - a)\nprint(cv2.absdiff(a, b))\nprint(cv2.multiply(a, 2), cv2.divide(a, 2))",
+"out": "[[255 200]] [[ 44 200]]\n[[0 0]] [[156   0]]\n[[100   0]]\n[[255 200]] [[100  50]]\n"
+},
+{
+"title": "cv2/blend",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\nflat = np.full(img.shape, 255, np.uint8)\nmixed = cv2.addWeighted(img, 0.7, flat, 0.3, 0)\nprint(img[0, 0], mixed[0, 0])\nbrighter = cv2.convertScaleAbs(img, alpha=1.2, beta=20)\nprint(brighter[0, 0], brighter.dtype)\nfig, ax = plt.subplots(1, 2, figsize=(6, 2.4))\nax[0].imshow(cv2.cvtColor(mixed, cv2.COLOR_BGR2RGB))\nax[1].imshow(cv2.cvtColor(brighter, cv2.COLOR_BGR2RGB))\nplt.show()",
+"out": "[200 120  40] [216 160 104]\n[255 164  68] uint8\n"
+},
+{
+"title": "cv2/bitwise",
+"src": "import numpy as np\nimport cv2\n\na = np.array([[0, 255, 255, 0]], np.uint8)\nb = np.array([[0, 0, 255, 255]], np.uint8)\nprint(cv2.bitwise_and(a, b))\nprint(cv2.bitwise_or(a, b))\nprint(cv2.bitwise_xor(a, b))\nprint(cv2.bitwise_not(a))",
+"out": "[[  0   0 255   0]]\n[[  0 255 255 255]]\n[[  0 255   0 255]]\n[[255   0   0 255]]\n"
+},
+{
+"title": "cv2/measure",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\nprint(cv2.mean(img))\nprint(cv2.minMaxLoc(gray))\nprint(cv2.sumElems(gray)[0], gray.sum())\nprint(cv2.norm(gray.astype(np.float32)), np.round(np.linalg.norm(gray.astype(np.float32)), 2))\nstretched = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)\nprint(gray.min(), gray.max(), stretched.min(), stretched.max())",
+"out": "(159.58333333333334, 128.75, 81.25, 0.0)\n(30.0, 182.0, (30, 25), (20, 15))\n566000.0 566000\n8543.652614660781 8543.65\n30 182 0 255\n"
+},
+{
+"title": "cv2/adaptive",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\nramp = np.tile(np.linspace(40, 220, 80, dtype=np.uint8), (60, 1))\nramp[20:40, 10:30] = ramp[20:40, 10:30] - 30\nt, otsu = cv2.threshold(ramp, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)\nprint(t)\n_, inv = cv2.threshold(ramp, 128, 255, cv2.THRESH_BINARY_INV)\nadaptive = cv2.adaptiveThreshold(ramp, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 5)\nprint(otsu.mean().round(1), inv.mean().round(1), adaptive.shape)\nfig, ax = plt.subplots(1, 3, figsize=(8, 2.2))\nfor a, im in zip(ax, [otsu, inv, adaptive]):\n    a.imshow(im, cmap='gray')\nplt.show()",
+"out": "122.0\n137.1 127.5 (60, 80)\n"
+},
+{
+"title": "cv2/canny",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\nsmooth = cv2.GaussianBlur(gray, (5, 5), 0)\nedges = cv2.Canny(smooth, 50, 150)\nprint(edges.shape, edges.dtype, np.unique(edges), cv2.countNonZero(edges))\nfig, ax = plt.subplots(1, 3, figsize=(8, 2.2))\nfor a, im in zip(ax, [gray, smooth, edges]):\n    a.imshow(im, cmap='gray')\nplt.show()",
+"out": "(60, 80) uint8 [  0 255] 192\n"
+},
+{
+"title": "cv2/gradients",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\nf = gray.astype(np.float32)\ngx = cv2.Sobel(f, cv2.CV_32F, 1, 0, ksize=3)\ngy = cv2.Sobel(f, cv2.CV_32F, 0, 1, ksize=3)\nprint(gx.shape, gx.min(), gx.max())\nprint(cv2.magnitude(gx, gy).max().round(2))\nprint(cv2.Scharr(f, cv2.CV_32F, 1, 0).max(), cv2.Laplacian(f, cv2.CV_32F).max())\nplt.imshow(cv2.convertScaleAbs(gx), cmap='gray')\nplt.show()",
+"out": "(60, 80) -608.0 608.0\n644.88\n2432.0 304.0\n"
+},
+{
+"title": "cv2/separable",
+"src": "import numpy as np\nimport cv2\n\na = np.zeros((5, 5), np.float32)\na[2, 2] = 9\nprint(cv2.boxFilter(a, -1, (3, 3)))\nk = np.array([1., 2., 1.], np.float32) / 4\nprint(cv2.sepFilter2D(a, -1, k, k))",
+"out": "[[0. 0. 0. 0. 0.]\n [0. 1. 1. 1. 0.]\n [0. 1. 1. 1. 0.]\n [0. 1. 1. 1. 0.]\n [0. 0. 0. 0. 0.]]\n[[0.     0.     0.     0.     0.    ]\n [0.     0.5625 1.125  0.5625 0.    ]\n [0.     1.125  2.25   1.125  0.    ]\n [0.     0.5625 1.125  0.5625 0.    ]\n [0.     0.     0.     0.     0.    ]]\n"
+},
+{
+"title": "cv2/morph_more",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\na = np.zeros((30, 30), np.uint8)\na[8:22, 8:22] = 255\na[3, 3] = 255        # a speck of noise\na[14, 14] = 0        # a hole\nk = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))\nprint(cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3)))\nprint(cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))\nopened = cv2.morphologyEx(a, cv2.MORPH_OPEN, k)\nclosed = cv2.morphologyEx(a, cv2.MORPH_CLOSE, k)\nedge = cv2.morphologyEx(a, cv2.MORPH_GRADIENT, k)\nprint(opened[3, 3], closed[14, 14], cv2.countNonZero(edge))\nfig, ax = plt.subplots(1, 4, figsize=(8, 2))\nfor x, im in zip(ax, [a, opened, closed, edge]):\n    x.imshow(im, cmap='gray')\nplt.show()",
+"out": "[[0 1 0]\n [1 1 1]\n [0 1 0]]\n[[0 0 1 0 0]\n [1 1 1 1 1]\n [1 1 1 1 1]\n [1 1 1 1 1]\n [0 0 1 0 0]]\n0 255 130\n"
+},
+{
+"title": "cv2/lut",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\ngamma = 0.5\ntable = np.array([255 * (i / 255) ** gamma for i in range(256)], np.uint8)\nprint(table[:5], table[-1])\nout = cv2.LUT(gray, table)\nprint(gray[0, 0], out[0, 0])\nplt.imshow(out, cmap='gray')\nplt.show()",
+"out": "[ 0 15 22 27 31] 255\n105 163\n"
+},
+{
+"title": "cv2/perspective",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\nsrc = np.float32([[0, 0], [79, 0], [79, 59], [0, 59]])\ndst = np.float32([[10, 5], [70, 0], [79, 59], [0, 50]])\nM = cv2.getPerspectiveTransform(src, dst)\nprint(M.shape, np.round(M @ np.array([0, 0, 1]), 3))\nout = cv2.warpPerspective(img, M, (80, 60))\nA = cv2.getAffineTransform(src[:3], dst[:3])\nprint(A.shape)\nplt.imshow(cv2.cvtColor(out, cv2.COLOR_BGR2RGB))\nplt.show()",
+"out": "(3, 3) [10.  5.  1.]\n(2, 3)\n"
+},
+{
+"title": "cv2/stitch",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n\nframed = cv2.copyMakeBorder(img, 5, 5, 5, 5, cv2.BORDER_CONSTANT, value=(255, 255, 255))\nprint(framed.shape)\na = np.array([[1, 2, 3]], np.uint8)\nprint(cv2.copyMakeBorder(a, 0, 0, 2, 2, cv2.BORDER_REPLICATE))\nprint(cv2.copyMakeBorder(a, 0, 0, 2, 2, cv2.BORDER_REFLECT))\nprint(cv2.hconcat([img, img]).shape, cv2.vconcat([img, img]).shape)\nprint(cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE).shape, cv2.transpose(img).shape)\nplt.imshow(cv2.cvtColor(framed, cv2.COLOR_BGR2RGB))\nplt.show()",
+"out": "(70, 90, 3)\n[[1 1 1 2 3 3 3]]\n[[2 1 1 2 3 3 2]]\n(60, 160, 3) (120, 80, 3)\n(80, 60, 3) (80, 60, 3)\n"
+},
+{
+"title": "python/str_methods",
+"src": "s = '  Hello, World  '\nprint(s.strip(), s.lstrip(), s.rstrip(), sep='|')\nprint(s.lower(), s.upper(), s.title(), s.swapcase(), sep='|')\nprint('a,b,,c'.split(','), 'a b  c'.split(), 'a.b.c'.rsplit('.', 1), 'x=1'.partition('='))\nprint('-'.join(['2026', '11', '06']), 'hello'.replace('l', 'L', 1))\nprint('hello'.startswith('he'), 'hello'.endswith(('x', 'lo')), 'hello'.find('l'), 'hello'.find('z'), 'hello'.count('l'))\nprint('42'.isdigit(), 'ab'.isalpha(), 'a1'.isalnum(), ' '.isspace(), '7'.zfill(3), 'x'.center(5, '*'), 'x'.ljust(3, '.'), 'x'.rjust(3, '.'))\nprint('report.csv'.removesuffix('.csv'), 'a\\nb\\n'.splitlines())",
+"out": "Hello, World|Hello, World  |  Hello, World\n  hello, world  |  HELLO, WORLD  |  Hello, World  |  hELLO, wORLD  \n['a', 'b', '', 'c'] ['a', 'b', 'c'] ['a.b', 'c'] ('x', '=', '1')\n2026-11-06 heLlo\nTrue True 2 -1 2\nTrue True True True 007 **x** x.. ..x\nreport ['a', 'b']\n"
+},
+{
+"title": "python/list_methods",
+"src": "a = [3, 1, 2]\na.append(5)\na.extend([4, 0])\na.insert(0, 9)\nprint(a, a.pop(), a.pop(0), a)\na.remove(1)\nprint(a, a.index(2), a.count(2))\na.sort()\nprint(a)\na.sort(key=lambda x: -x)\nprint(a)\na.reverse()\nprint(a, sorted(a, reverse=True), a[::-1], a[1:3])\nb = a.copy()\nb.clear()\nprint(a, b, [x * x for x in a if x % 2])",
+"out": "[3, 1, 2, 5, 4] 0 9 [3, 1, 2, 5, 4]\n[3, 2, 5, 4] 1 1\n[2, 3, 4, 5]\n[5, 4, 3, 2]\n[2, 3, 4, 5] [5, 4, 3, 2] [5, 4, 3, 2] [3, 4]\n[2, 3, 4, 5] [] [9, 25]\n"
+},
+{
+"title": "python/dict_methods",
+"src": "d = {'a': 1, 'b': 2}\nprint(d['a'], d.get('z'), d.get('z', 0), 'a' in d, len(d))\nprint(list(d.keys()), list(d.values()), list(d.items()))\nd.update(c=3)\nd.setdefault('e', []).append(1)\nprint(d, d.pop('a'), d)\nprint({k: v * 2 for k, v in d.items() if k != 'e'})\nprint(dict(zip('xy', [1, 2])), dict.fromkeys('ab', 0), {**d, 'b': 9}['b'])\ncounts = {}\nfor w in 'a b a'.split():\n    counts[w] = counts.get(w, 0) + 1\nprint(counts)\nfor k, v in sorted(counts.items(), key=lambda kv: -kv[1]):\n    print(k, v)",
+"out": "1 None 0 True 2\n['a', 'b'] [1, 2] [('a', 1), ('b', 2)]\n{'b': 2, 'c': 3, 'e': [1]} 1 {'b': 2, 'c': 3, 'e': [1]}\n{'b': 4, 'c': 6}\n{'x': 1, 'y': 2} {'a': 0, 'b': 0} 9\n{'a': 2, 'b': 1}\na 2\nb 1\n"
+},
+{
+"title": "python/set_methods",
+"src": "a = {1, 2, 3}\nb = {2, 3, 4}\nprint(a | b, a & b, a - b, a ^ b)\nprint(a.union(b), a.intersection(b), a.difference(b), a.symmetric_difference(b))\nprint({1, 2} <= a, a.issubset({1, 2, 3, 4}), a.issuperset({1}), a.isdisjoint({9}))\na.add(5)\na.discard(99)\na.remove(1)\nprint(a, 3 in a, len(a), sorted(set('banana')), frozenset([1]))\nprint(list(dict.fromkeys([3, 1, 3, 2])))",
+"out": "{1, 2, 3, 4} {2, 3} {1} {1, 4}\n{1, 2, 3, 4} {2, 3} {1} {1, 4}\nTrue True True True\n{2, 3, 5} True 3 ['a', 'b', 'n'] frozenset({1})\n[3, 1, 2]\n"
+},
+{
+"title": "python/builtins_iter",
+"src": "names = ['ann', 'bob', 'cat']\nmarks = [90, 72, 85]\nfor i, n in enumerate(names, start=1):\n    print(i, n)\nfor n, m in zip(names, marks):\n    print(n, m)\nprint(list(map(str.upper, names)), list(filter(lambda m: m > 80, marks)))\nprint(sum(marks), min(marks), max(marks), max(names, key=len), sorted(zip(marks, names))[0])\nprint(any(m > 89 for m in marks), all(m > 89 for m in marks), list(reversed(names)), list(range(0, 10, 3)))\nit = iter(names)\nprint(next(it), next(it), next(it), next(it, 'done'))\nprint(abs(-2), round(2.567, 1), divmod(7, 2), pow(2, 5), bin(5), hex(255), chr(65), ord('A'), int('12'), float('1.5'), len(names))",
+"out": "1 ann\n2 bob\n3 cat\nann 90\nbob 72\ncat 85\n['ANN', 'BOB', 'CAT'] [90, 85]\n247 72 90 ann (72, 'bob')\nTrue False ['cat', 'bob', 'ann'] [0, 3, 6, 9]\nann bob cat done\n2 2.6 (3, 1) 32 0b101 0xff A 65 12 1.5 3\n"
+},
+{
+"title": "python/exceptions",
+"src": "def parse(text):\n    try:\n        return int(text)\n    except ValueError as e:\n        print('bad number:', e)\n        return None\n    finally:\n        print('checked', repr(text))\n\nprint(parse('7'), parse('x'))\nfor f in [lambda: 1 / 0, lambda: [][1], lambda: {}['k'], lambda: None.x, lambda: open('nope.txt')]:\n    try:\n        f()\n    except (ZeroDivisionError, IndexError, KeyError) as e:\n        print(type(e).__name__, e)\n    except Exception as e:\n        print('other:', type(e).__name__)\n\nclass TooBig(ValueError):\n    pass\ntry:\n    raise TooBig('limit is 10')\nexcept ValueError as e:\n    print(repr(e), isinstance(e, ValueError))",
+"out": "checked '7'\nbad number: invalid literal for int() with base 10: 'x'\nchecked 'x'\n7 None\nZeroDivisionError division by zero\nIndexError list index out of range\nKeyError 'k'\nother: AttributeError\nother: FileNotFoundError\nTooBig('limit is 10') True\n"
+},
+{
+"title": "python/classes",
+"src": "class Account:\n    count = 0\n\n    def __init__(self, owner, balance=0):\n        self.owner = owner\n        self._balance = balance\n        Account.count += 1\n\n    @property\n    def balance(self):\n        return self._balance\n\n    @classmethod\n    def empty(cls, owner):\n        return cls(owner)\n\n    @staticmethod\n    def fee(n):\n        return n * 0.01\n\n    def __repr__(self):\n        return f'Account({self.owner!r}, {self._balance})'\n\nclass Savings(Account):\n    def __init__(self, owner, balance=0, rate=0.02):\n        super().__init__(owner, balance)\n        self.rate = rate\n\na = Account('ann', 10)\nb = Savings.empty('bob')\nprint(a, b, a.balance, Account.fee(100), Account.count)\nprint(isinstance(b, Account), issubclass(Savings, Account), hasattr(a, 'owner'), getattr(a, 'nope', None), callable(a))\nsetattr(a, 'tag', 1)\nprint(vars(a), type(b).__name__)",
+"out": "Account('ann', 10) Account('bob', 0) 10 1.0 2\nTrue True True None False\n{'owner': 'ann', '_balance': 10, 'tag': 1} Savings\n"
+},
+{
+"title": "python/math_random",
+"src": "import math\nimport random\n\nprint(math.pi, math.e, math.inf, math.nan)\nprint(math.sqrt(2), math.floor(2.7), math.ceil(2.1), math.trunc(-2.7), math.fabs(-1))\nprint(math.log(math.e), math.log2(8), math.log10(100), math.exp(0), math.pow(2, 3))\nprint(math.sin(0), math.cos(0), math.atan2(1, 1), math.degrees(math.pi), math.radians(180), math.hypot(3, 4))\nprint(math.factorial(5), math.comb(5, 2), math.perm(5, 2), math.gcd(12, 18), math.lcm(4, 6), math.prod([2, 3]), math.fsum([.1] * 10))\nprint(math.isnan(math.nan), math.isinf(math.inf), math.isclose(0.1 + 0.2, 0.3), math.dist([0, 0], [3, 4]))\nrandom.seed(0)\nprint(0 <= random.random() < 1, 1 <= random.randint(1, 6) <= 6, random.choice('abc') in 'abc')\nx = [1, 2, 3, 4]\nrandom.shuffle(x)\nprint(sorted(x), len(random.sample(x, 2)), 0 <= random.uniform(0, 1) <= 1)",
+"out": "3.141592653589793 2.718281828459045 inf nan\n1.4142135623730951 2 3 -2 1.0\n1.0 3.0 2.0 1.0 8.0\n0.0 1.0 0.7853981633974483 180.0 3.141592653589793 5.0\n120 10 20 6 12 6 1.0\nTrue True True 5.0\nTrue True True\n[1, 2, 3, 4] 2 True\n"
+},
+{
+"title": "python/iter_more",
+"src": "import itertools as it\n\nprint(list(it.zip_longest('ab', [1, 2, 3], fillvalue='-')))\nprint(list(it.takewhile(lambda x: x < 3, [1, 2, 5, 1])), list(it.dropwhile(lambda x: x < 3, [1, 2, 5, 1])))\nprint(list(it.filterfalse(lambda x: x % 2, range(5))), list(it.compress('abc', [1, 0, 1])))\nprint(list(it.pairwise([1, 3, 6])), list(it.starmap(pow, [(2, 3), (3, 2)])))\nprint(list(it.combinations_with_replacement('ab', 2)))\nprint(list(it.islice(it.cycle('ab'), 5)), list(it.repeat(0, 3)))\na, b = it.tee([1, 2])\nprint(list(a), list(b))",
+"out": "[('a', 1), ('b', 2), ('-', 3)]\n[1, 2] [5, 1]\n[0, 2, 4] ['a', 'c']\n[(1, 3), (3, 6)] [8, 9]\n[('a', 'a'), ('a', 'b'), ('b', 'b')]\n['a', 'b', 'a', 'b', 'a'] [0, 0, 0]\n[1, 2] [1, 2]\n"
+},
+{
+"title": "python/functools_more",
+"src": "from functools import cache, cached_property, reduce, total_ordering, wraps\n\n@cache\ndef fib(n):\n    return n if n < 2 else fib(n - 1) + fib(n - 2)\nprint(fib(50), fib.cache_info().hits > 0)\n\ndef shout(f):\n    @wraps(f)\n    def inner(*a, **k):\n        return f(*a, **k).upper()\n    return inner\n\n@shout\ndef hi(name):\n    return f'hi {name}'\nprint(hi('ann'), hi.__name__)\n\nclass Data:\n    @cached_property\n    def size(self):\n        print('computing')\n        return 3\nd = Data()\nprint(d.size, d.size)\n\n@total_ordering\nclass V:\n    def __init__(self, n):\n        self.n = n\n    def __eq__(self, o):\n        return self.n == o.n\n    def __lt__(self, o):\n        return self.n < o.n\nprint(V(1) < V(2), V(1) >= V(2), reduce(lambda a, b: a * b, [1, 2, 3, 4]))",
+"out": "12586269025 True\nHI ANN hi\ncomputing\n3 3\nTrue False 24\n"
+},
+{
+"title": "python/regex_more",
+"src": "import re\n\np = re.compile(r'(\\d{4})-(\\d{2})')\nm = p.search('due 2026-11 ok')\nprint(m.group(), m.group(1), m.groups(), m.start(), m.end(), m.span())\nprint(re.match(r'\\d+', 'a1'), re.match(r'\\d+', '1a').group(), re.fullmatch(r'\\d+', '1a'))\nfor f in re.finditer(r'\\w+', 'to be'):\n    print(f.group(), f.span())\nprint(re.findall(r'(\\w)=(\\d)', 'a=1 b=2'), re.split(r'[,;]\\s*', 'a, b;c'))\nprint(re.sub(r'\\d+', '#', 'a1 b22'), re.subn(r'\\d', '#', 'a1 b2'), re.sub(r'(\\w+)@', r'<\\1>', 'ann@x'))\nprint(re.findall('hello', 'Hello hello', re.IGNORECASE), re.findall(r'^b', 'a\\nb', re.M), re.escape('a.b'))\nm = re.search(r'(?P<y>\\d+)/(?P<m>\\d+)', '2026/11')\nprint(m.group('y'), m.groupdict())",
+"out": "2026-11 2026 ('2026', '11') 4 11 (4, 11)\nNone 1 None\nto (0, 2)\nbe (3, 5)\n[('a', '1'), ('b', '2')] ['a', 'b', 'c']\na# b# ('a# b#', 2) <ann>x\n['Hello', 'hello'] ['b'] a\\.b\n2026 {'y': '2026', 'm': '11'}\n"
+},
+{
+"title": "python/os_paths",
+"src": "import os\nimport os.path as op\n\nprint(op.join('runs', 'a.txt'), op.basename('runs/a.txt'), op.dirname('runs/a.txt'), op.splitext('a.tar.gz'), op.split('runs/a.txt'))\nos.makedirs('runs/x', exist_ok=True)\nwith open('runs/a.txt', 'w') as f:\n    f.write('hi')\nprint(os.listdir('runs'), op.exists('runs'), op.isdir('runs'), op.isfile('runs/a.txt'), op.getsize('runs/a.txt'))\nfor root, dirs, files in os.walk('runs'):\n    print(root, dirs, files)\nos.rename('runs/a.txt', 'runs/b.txt')\nos.remove('runs/b.txt')\nos.rmdir('runs/x')\nprint(os.listdir('runs'), op.normpath('a/./b/../c'), op.isabs('/x'))\nos.environ['MODE'] = 'test'\nprint(os.environ['MODE'], os.getenv('MODE'), os.getenv('NOPE', 'default'), os.sep)",
+"out": "runs/a.txt a.txt runs ('a.tar', '.gz') ('runs', 'a.txt')\n['a.txt', 'x'] True True True 2\nruns ['x'] ['a.txt']\nruns/x [] []\n[] a/c True\ntest test default /\n"
+},
+{
+"title": "python/sys_time",
+"src": "import sys\nimport time\n\nprint(sys.version_info[:2] >= (3, 8), isinstance(sys.argv, list), type(sys.modules).__name__)\nprint('to stderr', file=sys.stderr)\nsys.stdout.write('no newline ')\nprint(sys.getrecursionlimit() > 100, sys.getsizeof(1) > 0)\nstart = time.perf_counter()\ntime.sleep(0.01)\nprint(time.perf_counter() - start >= 0, time.time() > 0, time.monotonic() >= 0, time.process_time() >= 0)\ntry:\n    sys.exit(3)\nexcept SystemExit as e:\n    print('exit code', e.code)",
+"out": "True True dict\nno newline True True\nTrue True True True\nexit code 3\n"
+},
+{
+"title": "python/copy_io",
+"src": "import copy\nimport io\n\na = [[1, 2], [3]]\nb = a[:]\nc = copy.copy(a)\nd = copy.deepcopy(a)\na[0].append(9)\nprint(b, c, d)\ns = io.StringIO()\ns.write('line 1\\n')\nprint('line 2', file=s)\nprint(repr(s.getvalue()))\ns.seek(0)\nprint(s.readline(), s.read())",
+"out": "[[1, 2, 9], [3]] [[1, 2, 9], [3]] [[1, 2], [3]]\n'line 1\\nline 2\\n'\nline 1\n line 2\n\n"
+},
+{
+"title": "python/typing_abc",
+"src": "from abc import ABC, abstractmethod\nfrom typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union\n\ndef mean(xs: List[float], scale: Optional[float] = None) -> float:\n    return sum(xs) / len(xs) * (scale or 1)\n\ndef apply(f: Callable[[int], int], xs: Iterable[int]) -> Tuple[int, ...]:\n    return tuple(f(x) for x in xs)\n\ntable: Dict[str, Union[int, str]] = {'a': 1}\nprint(mean([1., 2.]), mean([1.], 2.), apply(abs, [-1]), table)\n\nclass Shape(ABC):\n    @abstractmethod\n    def area(self): ...\n\nclass Square(Shape):\n    def __init__(self, s):\n        self.s = s\n    def area(self):\n        return self.s ** 2\n\nprint(Square(2).area())\ntry:\n    Shape()\nexcept TypeError as e:\n    print('TypeError', e)",
+"out": "1.5 2.0 (1,) {'a': 1}\n4\nTypeError Can't instantiate abstract class Shape with abstract method area\n"
+},
+{
+"title": "python/strings_const",
+"src": "import string\n\nprint(string.ascii_lowercase[:3], string.ascii_uppercase[:3], string.digits[:3], string.punctuation[:3])\nx, pi, n = 'ab', 3.14159, 1234567\nprint(f'{x:>5}|{x:<5}|{x:^5}|{pi:.2f}|{pi:8.3f}|{n:,}|{0.25:.0%}|{255:x}|{5:03d}|{pi:e}')\nprint(f'{x!r} {x=} {pi=:.1f}')\nprint('{} {}'.format(1, 2), '{1} {0}'.format(1, 2), '{a}'.format(a=1), '%d %s %.2f' % (1, 'a', pi))",
+"out": "abc ABC 012 !\"#\n   ab|ab   | ab  |3.14|   3.142|1,234,567|25%|ff|005|3.141590e+00\n'ab' x='ab' pi=3.1\n1 2 2 1 1 1 a 3.14\n"
+},
+{
+"title": "tensorflow/create",
+"src": "import tensorflow as tf\n\nprint(tf.zeros((2, 2)))\nprint(tf.ones_like(tf.constant([1, 2])))\nprint(tf.fill((1, 2), 7))\nprint(tf.eye(2))\nprint(tf.range(0, 6, 2))\nprint(tf.linspace(0.0, 1.0, 3))\nprint(tf.convert_to_tensor([1.5, 2.5]))\nprint(tf.random.set_seed(0), tf.random.normal((2, 2)).shape, tf.random.uniform((1, 3), 0, 1).shape, tf.random.truncated_normal((1, 2)).shape)",
+"out": "tf.Tensor(\n[[0. 0.]\n [0. 0.]], shape=(2, 2), dtype=float32)\ntf.Tensor([1 1], shape=(2,), dtype=int32)\ntf.Tensor([[7 7]], shape=(1, 2), dtype=int32)\ntf.Tensor(\n[[1. 0.]\n [0. 1.]], shape=(2, 2), dtype=float32)\ntf.Tensor([0 2 4], shape=(3,), dtype=int32)\ntf.Tensor([0.  0.5 1. ], shape=(3,), dtype=float32)\ntf.Tensor([1.5 2.5], shape=(2,), dtype=float32)\nNone (2, 2) (1, 3) (1, 2)\n"
+},
+{
+"title": "tensorflow/shapes",
+"src": "import tensorflow as tf\n\nx = tf.reshape(tf.range(6), (2, 3))\nprint(x.shape, x.ndim, tf.rank(x), tf.size(x), tf.shape(x))\nprint(tf.reshape(x, (-1,)), tf.transpose(x).shape)\nprint(tf.expand_dims(x, 0).shape, tf.expand_dims(x, -1).shape, tf.squeeze(tf.zeros((1, 2, 1))).shape)\nprint(tf.concat([x, x], axis=0).shape, tf.stack([x, x]).shape)\nprint(tf.unstack(x)[0], [p.shape for p in tf.split(x, 3, axis=1)])\nprint(tf.tile(tf.constant([1, 2]), [2]), tf.reverse(tf.constant([1, 2]), [0]))\nprint(tf.pad(tf.constant([[1]]), [[1, 1], [0, 1]]))",
+"out": "(2, 3) 2 tf.Tensor(2, shape=(), dtype=int32) tf.Tensor(6, shape=(), dtype=int32) tf.Tensor([2 3], shape=(2,), dtype=int32)\ntf.Tensor([0 1 2 3 4 5], shape=(6,), dtype=int32) (3, 2)\n(1, 2, 3) (2, 3, 1) (2,)\n(4, 3) (2, 2, 3)\ntf.Tensor([0 1 2], shape=(3,), dtype=int32) [TensorShape([2, 1]), TensorShape([2, 1]), TensorShape([2, 1])]\ntf.Tensor([1 2 1 2], shape=(4,), dtype=int32) tf.Tensor([2 1], shape=(2,), dtype=int32)\ntf.Tensor(\n[[0 0]\n [1 0]\n [0 0]], shape=(3, 2), dtype=int32)\n"
+},
+{
+"title": "tensorflow/maths",
+"src": "import tensorflow as tf\n\na = tf.constant([1., 4., 9.])\nb = tf.constant([2., 2., 2.])\nprint(tf.add(a, b), tf.subtract(a, b), tf.multiply(a, b), tf.divide(a, b), a + b, a * b)\nprint(tf.sqrt(a), tf.square(a), tf.exp(tf.zeros(1)), tf.math.log(a), tf.pow(a, 2.), tf.abs(-a), tf.negative(a))\nprint(tf.round(tf.constant(2.5)), tf.floor(a / 2), tf.math.ceil(a / 2), tf.sign(-a))\nprint(tf.clip_by_value(a, 2., 5.), tf.maximum(a, b), tf.minimum(a, b))\nprint(tf.math.divide_no_nan(a, tf.zeros(3)), tf.math.is_nan(a), tf.math.count_nonzero(a), tf.add_n([a, b]))\nprint(tf.sin(tf.zeros(1)), tf.cos(tf.zeros(1)), tf.tanh(tf.zeros(1)), tf.sigmoid(tf.zeros(1)))",
+"out": "tf.Tensor([ 3.  6. 11.], shape=(3,), dtype=float32) tf.Tensor([-1.  2.  7.], shape=(3,), dtype=float32) tf.Tensor([ 2.  8. 18.], shape=(3,), dtype=float32) tf.Tensor([0.5 2.  4.5], shape=(3,), dtype=float32) tf.Tensor([ 3.  6. 11.], shape=(3,), dtype=float32) tf.Tensor([ 2.  8. 18.], shape=(3,), dtype=float32)\ntf.Tensor([1. 2. 3.], shape=(3,), dtype=float32) tf.Tensor([ 1. 16. 81.], shape=(3,), dtype=float32) tf.Tensor([1.], shape=(1,), dtype=float32) tf.Tensor([0.        1.3862944 2.1972246], shape=(3,), dtype=float32) tf.Tensor([ 1. 16. 81.], shape=(3,), dtype=float32) tf.Tensor([1. 4. 9.], shape=(3,), dtype=float32) tf.Tensor([-1. -4. -9.], shape=(3,), dtype=float32)\ntf.Tensor(2.0, shape=(), dtype=float32) tf.Tensor([0. 2. 4.], shape=(3,), dtype=float32) tf.Tensor([1. 2. 5.], shape=(3,), dtype=float32) tf.Tensor([-1. -1. -1.], shape=(3,), dtype=float32)\ntf.Tensor([2. 4. 5.], shape=(3,), dtype=float32) tf.Tensor([2. 4. 9.], shape=(3,), dtype=float32) tf.Tensor([1. 2. 2.], shape=(3,), dtype=float32)\ntf.Tensor([0. 0. 0.], shape=(3,), dtype=float32) tf.Tensor([False False False], shape=(3,), dtype=bool) tf.Tensor(3, shape=(), dtype=int64) tf.Tensor([ 3.  6. 11.], shape=(3,), dtype=float32)\ntf.Tensor([0.], shape=(1,), dtype=float32) tf.Tensor([1.], shape=(1,), dtype=float32) tf.Tensor([0.], shape=(1,), dtype=float32) tf.Tensor([0.5], shape=(1,), dtype=float32)\n"
+},
+{
+"title": "tensorflow/compare",
+"src": "import tensorflow as tf\n\na = tf.constant([1, 2, 3])\nb = tf.constant([3, 2, 1])\nprint(tf.equal(a, b), tf.not_equal(a, b), tf.greater(a, b), tf.less(a, b), tf.greater_equal(a, b), tf.less_equal(a, b))\nm = a > 1\nprint(tf.logical_and(m, a < 3), tf.logical_or(m, a < 1), tf.logical_not(m))\nprint(tf.reduce_any(m), tf.reduce_all(m), tf.boolean_mask(a, m))\nprint(tf.argmin(a), tf.sort(b), tf.argsort(b), tf.unique(tf.constant([1, 1, 2]))[0], tf.cumsum(a))\nprint(tf.reduce_prod(a), tf.reduce_min(a), tf.math.reduce_std(tf.cast(a, tf.float32)), tf.math.reduce_variance(tf.cast(a, tf.float32)))",
+"out": "tf.Tensor([False  True False], shape=(3,), dtype=bool) tf.Tensor([ True False  True], shape=(3,), dtype=bool) tf.Tensor([False False  True], shape=(3,), dtype=bool) tf.Tensor([ True False False], shape=(3,), dtype=bool) tf.Tensor([False  True  True], shape=(3,), dtype=bool) tf.Tensor([ True  True False], shape=(3,), dtype=bool)\ntf.Tensor([False  True False], shape=(3,), dtype=bool) tf.Tensor([False  True  True], shape=(3,), dtype=bool) tf.Tensor([ True False False], shape=(3,), dtype=bool)\ntf.Tensor(True, shape=(), dtype=bool) tf.Tensor(False, shape=(), dtype=bool) tf.Tensor([2 3], shape=(2,), dtype=int32)\ntf.Tensor(0, shape=(), dtype=int64) tf.Tensor([1 2 3], shape=(3,), dtype=int32) tf.Tensor([2 1 0], shape=(3,), dtype=int32) tf.Tensor([1 2], shape=(2,), dtype=int32) tf.Tensor([1 3 6], shape=(3,), dtype=int32)\ntf.Tensor(6, shape=(), dtype=int32) tf.Tensor(1, shape=(), dtype=int32) tf.Tensor(0.8164966, shape=(), dtype=float32) tf.Tensor(0.6666667, shape=(), dtype=float32)\n"
+},
+{
+"title": "tensorflow/accuracy",
+"src": "import tensorflow as tf\n\nprobs = tf.constant([[.7, .3], [.2, .8], [.4, .6]])\nlabels = tf.constant([0, 1, 0])\npred = tf.argmax(probs, axis=1)\nprint(pred, pred.dtype)\nhits = tf.equal(tf.cast(pred, tf.int32), labels)\nprint(hits, tf.reduce_mean(tf.cast(hits, tf.float32)))\nprint(tf.one_hot(labels, 2))",
+"out": "tf.Tensor([0 1 1], shape=(3,), dtype=int64) <dtype: 'int64'>\ntf.Tensor([ True  True False], shape=(3,), dtype=bool) tf.Tensor(0.6666667, shape=(), dtype=float32)\ntf.Tensor(\n[[1. 0.]\n [0. 1.]\n [1. 0.]], shape=(3, 2), dtype=float32)\n"
+},
+{
+"title": "tensorflow/activations",
+"src": "import tensorflow as tf\n\nx = tf.constant([[1., 2., 3.]])\nprint(tf.nn.relu(x - 2), tf.nn.leaky_relu(x - 2), tf.nn.softmax(x), tf.nn.log_softmax(x), tf.nn.sigmoid(x), tf.nn.tanh(x))\ny = tf.constant([2])\nprint(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=x))\nprint(tf.nn.softmax_cross_entropy_with_logits(labels=[[0., 0., 1.]], logits=x))\nprint(tf.nn.sigmoid_cross_entropy_with_logits(labels=[1.], logits=[0.]))\nprint(tf.nn.l2_loss(x), tf.nn.l2_normalize(x, axis=1), tf.nn.moments(x, axes=[1]))",
+"out": "tf.Tensor([[0. 0. 1.]], shape=(1, 3), dtype=float32) tf.Tensor([[-0.2  0.   1. ]], shape=(1, 3), dtype=float32) tf.Tensor([[0.09003057 0.24472848 0.66524094]], shape=(1, 3), dtype=float32) tf.Tensor([[-2.407606   -1.4076059  -0.40760595]], shape=(1, 3), dtype=float32) tf.Tensor([[0.7310586  0.8807971  0.95257413]], shape=(1, 3), dtype=float32) tf.Tensor([[0.7615942 0.9640276 0.9950548]], shape=(1, 3), dtype=float32)\ntf.Tensor([0.40760595], shape=(1,), dtype=float32)\ntf.Tensor([0.40760595], shape=(1,), dtype=float32)\ntf.Tensor([0.6931472], shape=(1,), dtype=float32)\ntf.Tensor(7.0, shape=(), dtype=float32) tf.Tensor([[0.26726124 0.5345225  0.8017837 ]], shape=(1, 3), dtype=float32) (<tf.Tensor: shape=(1,), dtype=float32, numpy=array([2.], dtype=float32)>, <tf.Tensor: shape=(1,), dtype=float32, numpy=array([0.6666667], dtype=float32)>)\n"
+},
+{
+"title": "tensorflow/conv_pool",
+"src": "import tensorflow as tf\n\nx = tf.reshape(tf.range(16, dtype=tf.float32), (1, 4, 4, 1))\nk = tf.reshape(tf.constant([[1., 0.], [0., -1.]]), (2, 2, 1, 1))\nprint(tf.nn.conv2d(x, k, strides=1, padding='VALID').shape)\nprint(tf.squeeze(tf.nn.conv2d(x, k, strides=1, padding='VALID')))\nprint(tf.squeeze(tf.nn.max_pool2d(x, 2, 2, 'VALID')))\nprint(tf.squeeze(tf.nn.avg_pool2d(x, 2, 2, 'VALID')))\nprint(tf.nn.dropout(tf.ones((1, 2)), rate=0.0))",
+"out": "(1, 3, 3, 1)\ntf.Tensor(\n[[-5. -5. -5.]\n [-5. -5. -5.]\n [-5. -5. -5.]], shape=(3, 3), dtype=float32)\ntf.Tensor(\n[[ 5.  7.]\n [13. 15.]], shape=(2, 2), dtype=float32)\ntf.Tensor(\n[[ 2.5  4.5]\n [10.5 12.5]], shape=(2, 2), dtype=float32)\ntf.Tensor([[1. 1.]], shape=(1, 2), dtype=float32)\n"
+},
+{
+"title": "tensorflow/linalg",
+"src": "import tensorflow as tf\n\nA = tf.constant([[2., 1.], [1., 3.]])\nprint(tf.linalg.det(A), tf.linalg.trace(A))\nprint(tf.linalg.inv(A))\nprint(tf.linalg.solve(A, tf.constant([[3.], [5.]])))\nprint(tf.linalg.diag(tf.constant([1., 2.])), tf.linalg.diag_part(A), tf.linalg.eye(2), tf.linalg.matrix_transpose(A))\nprint(tf.norm(A), tf.linalg.norm(tf.constant([3., 4.])), tf.tensordot(A, A, 1))",
+"out": "tf.Tensor(5.0, shape=(), dtype=float32) tf.Tensor(5.0, shape=(), dtype=float32)\ntf.Tensor(\n[[ 0.6 -0.2]\n [-0.2  0.4]], shape=(2, 2), dtype=float32)\ntf.Tensor(\n[[0.8]\n [1.4]], shape=(2, 1), dtype=float32)\ntf.Tensor(\n[[1. 0.]\n [0. 2.]], shape=(2, 2), dtype=float32) tf.Tensor([2. 3.], shape=(2,), dtype=float32) tf.Tensor(\n[[1. 0.]\n [0. 1.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[2. 1.]\n [1. 3.]], shape=(2, 2), dtype=float32)\ntf.Tensor(3.8729835, shape=(), dtype=float32) tf.Tensor(5.0, shape=(), dtype=float32) tf.Tensor(\n[[ 5.  5.]\n [ 5. 10.]], shape=(2, 2), dtype=float32)\n"
+},
+{
+"title": "tensorflow/image",
+"src": "import tensorflow as tf\n\nimg = tf.reshape(tf.range(12, dtype=tf.float32), (2, 2, 3))\nprint(tf.image.flip_left_right(img).shape, tf.image.flip_up_down(img)[0, 0])\nprint(tf.image.rot90(img).shape)\nprint(tf.image.resize(img, (4, 4)).shape, tf.image.resize(img, (4, 4), method='nearest')[0, 0])\nprint(tf.image.rgb_to_grayscale(img).shape, tf.image.grayscale_to_rgb(tf.ones((1, 1, 1))).shape)\nu8 = tf.constant([[[255]]], dtype=tf.uint8)\nprint(tf.image.convert_image_dtype(u8, tf.float32))",
+"out": "(2, 2, 3) tf.Tensor([6. 7. 8.], shape=(3,), dtype=float32)\n(2, 2, 3)\n(4, 4, 3) tf.Tensor([0. 1. 2.], shape=(3,), dtype=float32)\n(2, 2, 1) (1, 1, 3)\ntf.Tensor([[[1.]]], shape=(1, 1, 1), dtype=float32)\n"
+},
+{
+"title": "tensorflow/ds_more",
+"src": "import tensorflow as tf\n\nds = tf.data.Dataset.from_tensor_slices([1, 2, 3, 4, 5])\nprint([int(x) for x in ds.filter(lambda x: x % 2 == 1)])\nprint([int(x) for x in ds.map(lambda x: x * 2).skip(1).take(2)])\nprint([b.numpy().tolist() for b in ds.batch(2)])\nprint([int(x) for x in ds.batch(2).unbatch().take(2)])\nprint([int(x) for x in ds.take(2).repeat(2)])\nprint(sorted(int(x) for x in ds.shuffle(5, seed=0)))\nprint(ds.cache().prefetch(tf.data.AUTOTUNE).cardinality())",
+"out": "[1, 3, 5]\n[4, 6]\n[[1, 2], [3, 4], [5]]\n[1, 2]\n[1, 2, 1, 2]\n[1, 2, 3, 4, 5]\ntf.Tensor(5, shape=(), dtype=int64)\n"
+},
+{
+"title": "tensorflow/strings",
+"src": "import tensorflow as tf\n\ns = tf.constant(['Hello ', 'World'])\nprint(tf.strings.lower(s), tf.strings.upper(s), tf.strings.strip(s), tf.strings.length(s))\nprint(tf.strings.join(['a', 'b'], separator='-'))\nprint(s.dtype, s.shape)",
+"out": "tf.Tensor([b'hello ' b'world'], shape=(2,), dtype=string) tf.Tensor([b'HELLO ' b'WORLD'], shape=(2,), dtype=string) tf.Tensor([b'Hello' b'World'], shape=(2,), dtype=string) tf.Tensor([6 5], shape=(2,), dtype=int32)\ntf.Tensor(b'a-b', shape=(), dtype=string)\n<dtype: 'string'> (2,)\n"
+},
+{
+"title": "tensorflow/config",
+"src": "import tensorflow as tf\n\nprint(tf.executing_eagerly())\nprint(type(tf.config.list_physical_devices('CPU')).__name__, tf.config.list_physical_devices('GPU'))\nprint(tf.is_tensor(tf.constant(1)), tf.is_tensor(1))\nprint(tf.TensorShape([2, None]), tf.TensorShape([2, 3]).as_list())\nprint(tf.identity(tf.constant(1)), tf.stop_gradient(tf.constant(1.)))",
+"out": "True\nlist []\nTrue False\n(2, None) [2, 3]\ntf.Tensor(1, shape=(), dtype=int32) tf.Tensor(1.0, shape=(), dtype=float32)\n"
+},
+{
+"title": "keras/cnn_layers",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nm = keras.Sequential([\n    keras.Input((28, 28, 1)),\n    layers.Rescaling(1 / 255),\n    layers.Conv2D(8, 3, padding='same', activation='relu'),\n    layers.BatchNormalization(),\n    layers.MaxPooling2D(2),\n    layers.Conv2D(16, 3, activation='relu'),\n    layers.AveragePooling2D(2),\n    layers.GlobalAveragePooling2D(),\n    layers.Dropout(0.5),\n    layers.Dense(10, activation='softmax'),\n])\nm.summary()\nfor l in m.layers:\n    print(l.name, l.output.shape)",
+"out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ rescaling (Rescaling)           │ (None, 28, 28, 1)      │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ conv2d (Conv2D)                 │ (None, 28, 28, 8)      │            80 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ batch_normalization             │ (None, 28, 28, 8)      │            32 │\n│ (BatchNormalization)            │                        │               │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ max_pooling2d (MaxPooling2D)    │ (None, 14, 14, 8)      │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ conv2d_1 (Conv2D)               │ (None, 12, 12, 16)     │         1,168 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ average_pooling2d               │ (None, 6, 6, 16)       │             0 │\n│ (AveragePooling2D)              │                        │               │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ global_average_pooling2d        │ (None, 16)             │             0 │\n│ (GlobalAveragePooling2D)        │                        │               │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dropout (Dropout)               │ (None, 16)             │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 10)             │           170 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 1,450 (5.66 KB)\n Trainable params: 1,434 (5.60 KB)\n Non-trainable params: 16 (64.00 B)\nrescaling (None, 28, 28, 1)\nconv2d (None, 28, 28, 8)\nbatch_normalization (None, 28, 28, 8)\nmax_pooling2d (None, 14, 14, 8)\nconv2d_1 (None, 12, 12, 16)\naverage_pooling2d (None, 6, 6, 16)\nglobal_average_pooling2d (None, 16)\ndropout (None, 16)\ndense (None, 10)\n"
+},
+{
+"title": "keras/shape_layers",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nx = np.arange(24.).reshape(1, 2, 3, 4)\nprint(layers.Reshape((4, 6))(x).shape)\nprint(layers.Permute((3, 1, 2))(x).shape)\nprint(layers.Flatten()(x).shape)\nprint(layers.UpSampling2D(2)(x).shape)\nprint(layers.ZeroPadding2D(1)(x).shape)\nprint(layers.Cropping2D(((0, 1), (1, 1)))(x).shape)\nprint(layers.Resizing(4, 6)(x).shape)\nprint(layers.RepeatVector(3)(np.ones((1, 2))).shape)",
+"out": "(1, 4, 6)\n(1, 4, 2, 3)\n(1, 24)\n(1, 4, 6, 4)\n(1, 4, 5, 4)\n(1, 1, 1, 4)\n(1, 4, 6, 4)\n(1, 3, 2)\n"
+},
+{
+"title": "keras/activation_layers",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nx = np.array([[-2., 0., 2.]])\nprint(layers.ReLU()(x))\nprint(layers.LeakyReLU(negative_slope=0.1)(x))\nprint(layers.ELU()(x))\nprint(layers.Softmax()(x))\nprint(layers.Activation('tanh')(x))\nprint(layers.Lambda(lambda t: t * 2)(x))\nprint(keras.activations.relu(x), keras.activations.sigmoid(x), keras.activations.gelu(x))",
+"out": "tf.Tensor([[0. 0. 2.]], shape=(1, 3), dtype=float32)\ntf.Tensor([[-0.2  0.   2. ]], shape=(1, 3), dtype=float32)\ntf.Tensor([[-0.86466473  0.          2.        ]], shape=(1, 3), dtype=float32)\ntf.Tensor([[0.01587624 0.11731043 0.86681336]], shape=(1, 3), dtype=float32)\ntf.Tensor([[-0.9640276  0.         0.9640276]], shape=(1, 3), dtype=float32)\ntf.Tensor([[-4.  0.  4.]], shape=(1, 3), dtype=float32)\ntf.Tensor([[0. 0. 2.]], shape=(1, 3), dtype=float64) tf.Tensor([[0.11920292 0.5        0.88079708]], shape=(1, 3), dtype=float64) tf.Tensor([[-0.04550027  0.          1.95449973]], shape=(1, 3), dtype=float64)\n"
+},
+{
+"title": "keras/merge_layers",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\na = np.array([[1., 2.]])\nb = np.array([[3., 4.]])\nprint(layers.Add()([a, b]), layers.Subtract()([a, b]), layers.Multiply()([a, b]))\nprint(layers.Average()([a, b]), layers.Maximum()([a, b]), layers.Minimum()([a, b]))\nprint(layers.Concatenate()([a, b]), layers.Dot(axes=1)([a, b]))\nprint(layers.add([a, b]), layers.concatenate([a, b], axis=-1))",
+"out": "tf.Tensor([[4. 6.]], shape=(1, 2), dtype=float32) tf.Tensor([[-2. -2.]], shape=(1, 2), dtype=float32) tf.Tensor([[3. 8.]], shape=(1, 2), dtype=float32)\ntf.Tensor([[2. 3.]], shape=(1, 2), dtype=float32) tf.Tensor([[3. 4.]], shape=(1, 2), dtype=float32) tf.Tensor([[1. 2.]], shape=(1, 2), dtype=float32)\ntf.Tensor([[1. 2. 3. 4.]], shape=(1, 4), dtype=float32) tf.Tensor([[11.]], shape=(1, 1), dtype=float32)\ntf.Tensor([[4. 6.]], shape=(1, 2), dtype=float32) tf.Tensor([[1. 2. 3. 4.]], shape=(1, 4), dtype=float32)\n"
+},
+{
+"title": "keras/rnn_layers",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nm = keras.Sequential([\n    keras.Input((5,), dtype='int32'),\n    layers.Embedding(100, 8),\n    layers.Bidirectional(layers.SimpleRNN(4, return_sequences=True)),\n    layers.TimeDistributed(layers.Dense(2)),\n    layers.Conv1D(3, 2),\n    layers.MaxPooling1D(2),\n    layers.GlobalMaxPooling1D(),\n])\nm.summary()\nprint(m(np.zeros((2, 5), 'int32')).shape)",
+"out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ embedding (Embedding)           │ (None, 5, 8)           │           800 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ bidirectional (Bidirectional)   │ (None, 5, 8)           │           104 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ time_distributed                │ (None, 5, 2)           │            18 │\n│ (TimeDistributed)               │                        │               │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ conv1d (Conv1D)                 │ (None, 4, 3)           │            15 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ max_pooling1d (MaxPooling1D)    │ (None, 2, 3)           │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ global_max_pooling1d            │ (None, 3)              │             0 │\n│ (GlobalMaxPooling1D)            │                        │               │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 937 (3.66 KB)\n Trainable params: 937 (3.66 KB)\n Non-trainable params: 0 (0.00 B)\n(2, 3)\n"
+},
+{
+"title": "keras/attention_norm",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nx = np.ones((1, 4, 8), 'float32')\nprint(layers.LayerNormalization()(x).shape)\nprint(layers.GaussianNoise(0.1)(x).shape, layers.GaussianDropout(0.1)(x).shape, layers.SpatialDropout1D(0.5)(x).shape)\nnorm = layers.Normalization(axis=-1)\nnorm.adapt(np.array([[1.], [2.], [3.]]))\nprint(norm(np.array([[2.]])))",
+"out": "(1, 4, 8)\n(1, 4, 8) (1, 4, 8) (1, 4, 8)\ntf.Tensor([[0.]], shape=(1, 1), dtype=float32)\n"
+},
+{
+"title": "keras/augment",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\naug = keras.Sequential([layers.RandomFlip('horizontal'), layers.RandomRotation(0.1), layers.RandomZoom(0.1), layers.RandomCrop(4, 4)])\nx = np.random.rand(2, 8, 8, 3)\nprint(aug(x, training=True).shape)\nprint(layers.RandomFlip('horizontal')(x, training=False).shape)\nprint(np.allclose(layers.RandomFlip('horizontal')(x, training=False), x))",
+"out": "(2, 4, 4, 3)\n(2, 8, 8, 3)\nTrue\n"
+},
+{
+"title": "keras/losses_fn",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\ny = np.array([[1., 0.], [0., 1.]])\np = np.array([[.9, .1], [.2, .8]])\nprint(keras.losses.MeanSquaredError()(y, p))\nprint(keras.losses.MeanAbsoluteError()(y, p))\nprint(keras.losses.CategoricalCrossentropy()(y, p))\nprint(keras.losses.BinaryCrossentropy()(y, p))\nprint(keras.losses.SparseCategoricalCrossentropy()(np.array([0, 1]), p))\nprint(keras.losses.Huber()(y, p), keras.losses.Hinge()(y, p), keras.losses.KLDivergence()(y, p), keras.losses.CosineSimilarity()(y, p))\nprint(keras.losses.get('mse').__name__)",
+"out": "tf.Tensor(0.025, shape=(), dtype=float32)\ntf.Tensor(0.15, shape=(), dtype=float32)\ntf.Tensor(0.16425204, shape=(), dtype=float32)\ntf.Tensor(0.16425204, shape=(), dtype=float32)\ntf.Tensor(0.16425206, shape=(), dtype=float32)\ntf.Tensor(0.0125, shape=(), dtype=float32) tf.Tensor(0.65000004, shape=(), dtype=float32) tf.Tensor(0.16425064, shape=(), dtype=float32) tf.Tensor(-0.9820131, shape=(), dtype=float32)\nmean_squared_error\n"
+},
+{
+"title": "keras/metrics_fn",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nm = keras.metrics.BinaryAccuracy()\nm.update_state([1, 0, 1, 1], [0.9, 0.2, 0.4, 0.8])\nprint(m.result(), m.name)\nm.reset_state()\nprint(m.result())\nfor cls in [keras.metrics.Precision, keras.metrics.Recall, keras.metrics.AUC]:\n    x = cls()\n    x.update_state([1, 0, 1, 1], [0.9, 0.2, 0.4, 0.8])\n    print(x.name, np.round(float(x.result()), 3))\nc = keras.metrics.SparseCategoricalAccuracy()\nc.update_state([1, 0], [[.1, .9], [.3, .7]])\nprint(c.result())\nt = keras.metrics.TopKCategoricalAccuracy(k=2)\nt.update_state([[0, 0, 1]], [[.5, .3, .2]])\nprint(t.result())\nprint(keras.metrics.MeanSquaredError().name, keras.metrics.RootMeanSquaredError().name, keras.metrics.Mean().name)",
+"out": "tf.Tensor(0.75, shape=(), dtype=float32) binary_accuracy\ntf.Tensor(0.0, shape=(), dtype=float32)\nprecision 1.0\nrecall 0.667\nauc 1.0\ntf.Tensor(0.5, shape=(), dtype=float32)\ntf.Tensor(0.0, shape=(), dtype=float32)\nmean_squared_error root_mean_squared_error mean\n"
+},
+{
+"title": "keras/optimizers",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nfor cls in [keras.optimizers.SGD, keras.optimizers.Adam, keras.optimizers.AdamW, keras.optimizers.RMSprop, keras.optimizers.Adagrad, keras.optimizers.Adadelta, keras.optimizers.Adamax, keras.optimizers.Nadam]:\n    o = cls(learning_rate=0.01)\n    print(cls.__name__, round(float(o.learning_rate), 4))\nprint(keras.optimizers.SGD(0.1, momentum=0.9).momentum)\nprint(type(keras.optimizers.get('adam')).__name__)\nm = keras.Sequential([keras.Input((1,)), layers.Dense(1)])\nm.compile(keras.optimizers.Adam(1e-3), loss='mse', metrics=['mae'])\nprint(m.metrics_names, m.get_compile_config()['loss'])",
+"out": "SGD 0.01\nAdam 0.01\nAdamW 0.01\nRMSprop 0.01\nAdagrad 0.01\nAdadelta 0.01\nAdamax 0.01\nNadam 0.01\n0.9\nAdam\n['loss', 'compile_metrics'] mse\n"
+},
+{
+"title": "keras/initializers",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nkeras.utils.set_random_seed(0)\nprint(keras.initializers.Zeros()((2,)), keras.initializers.Ones()((2,)), keras.initializers.Constant(3.)((2,)))\nfor init in ['glorot_uniform', 'he_normal', 'he_uniform', 'lecun_normal', 'random_normal', 'orthogonal']:\n    print(init, keras.initializers.get(init)((3, 3)).shape)\nd = layers.Dense(2, kernel_initializer='he_normal', bias_initializer='zeros', kernel_regularizer=keras.regularizers.L2(0.01))\nprint(d(np.ones((1, 2))).shape, len(d.losses))\nw = np.array([1., 2.], 'float32')\nprint(keras.regularizers.L2(0.5)(w), keras.regularizers.L1(0.5)(w), keras.regularizers.L1L2(0.5, 0.5)(w))",
+"out": "tf.Tensor([0. 0.], shape=(2,), dtype=float32) tf.Tensor([1. 1.], shape=(2,), dtype=float32) tf.Tensor([3. 3.], shape=(2,), dtype=float32)\nglorot_uniform (3, 3)\nhe_normal (3, 3)\nhe_uniform (3, 3)\nlecun_normal (3, 3)\nrandom_normal (3, 3)\northogonal (3, 3)\n(1, 2) 1\ntf.Tensor(2.5, shape=(), dtype=float32) tf.Tensor(1.5, shape=(), dtype=float32) tf.Tensor(4.0, shape=(), dtype=float32)\n"
+},
+{
+"title": "keras/model_attrs",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nm = keras.Sequential([keras.Input((3,)), layers.Dense(2, name='a'), layers.Dropout(0.5), layers.BatchNormalization()])\nprint(len(m.layers), [l.name for l in m.layers], m.count_params())\nprint([w.shape for w in m.weights])\nprint(len(m.trainable_weights), len(m.non_trainable_weights), len(m.trainable_variables))\nprint(m.get_layer('a').units, m.get_layer(index=0).name, m.input_shape, m.output_shape)\nm.layers[0].trainable = False\nprint(len(m.trainable_weights), m.layers[0].trainable)\nw = m.get_layer('a').get_weights()\nm.get_layer('a').set_weights([np.ones_like(w[0]), w[1]])\nprint(m.get_layer('a').kernel.numpy())\nprint(m.get_config()['layers'][1]['class_name'], keras.models.model_from_json(m.to_json()).count_params())\nprint(keras.models.clone_model(m).count_params())",
+"out": "3 ['a', 'dropout', 'batch_normalization'] 16\n[TensorShape([3, 2]), TensorShape([2]), TensorShape([2]), TensorShape([2]), TensorShape([2]), TensorShape([2])]\n4 2 4\n2 a (None, 3) (None, 2)\n2 False\n[[1. 1.]\n [1. 1.]\n [1. 1.]]\nDense 16\n16\n"
+},
+{
+"title": "keras/batch_api",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nkeras.utils.set_random_seed(0)\nX = np.array([[0.], [1.]])\ny = np.array([[0.], [2.]])\nm = keras.Sequential([keras.Input((1,)), layers.Dense(1)])\nm.compile('sgd', 'mse')\nfirst = m.train_on_batch(X, y)\nfor _ in range(50):\n    last = m.train_on_batch(X, y)\nprint(float(last) < float(first))\nprint(m.predict_on_batch(X).shape, type(m.test_on_batch(X, y)).__name__)\nm.save_weights('w.weights.h5')\nm.load_weights('w.weights.h5')\nprint(m.predict(X, verbose=0).shape, m.evaluate(X, y, verbose=0) >= 0)",
+"out": "True\n(2, 1) ndarray\n(2, 1) True\n"
+},
+{
+"title": "keras/callbacks_more",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nkeras.utils.set_random_seed(0)\nX = np.linspace(0, 1, 8).reshape(-1, 1)\ny = 2 * X\nm = keras.Sequential([keras.Input((1,)), layers.Dense(1)])\nm.compile(keras.optimizers.SGD(0.1), 'mse')\nlog = []\ncbs = [\n    keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=1, min_lr=1e-3),\n    keras.callbacks.ModelCheckpoint('best.keras', monitor='loss', save_best_only=True),\n    keras.callbacks.TerminateOnNaN(),\n    keras.callbacks.LambdaCallback(on_epoch_end=lambda e, logs: log.append(e)),\n]\nh = m.fit(X, y, epochs=3, verbose=0, callbacks=cbs)\nprint(log, sorted(h.history), h.params['epochs'], h.epoch)\nprint(keras.models.load_model('best.keras').count_params())",
+"out": "[0, 1, 2] ['learning_rate', 'loss'] 3 [0, 1, 2]\n2\n"
+},
+{
+"title": "keras/ops",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nfrom keras import ops\nx = ops.convert_to_tensor([[1., 2.], [3., 4.]])\nprint(ops.shape(x), ops.sum(x), ops.mean(x, axis=0), ops.max(x), ops.min(x), ops.prod(x))\nprint(ops.reshape(x, (-1,)), ops.transpose(x), ops.expand_dims(x, 0).shape, ops.squeeze(ops.ones((1, 2))).shape)\nprint(ops.concatenate([x, x]).shape, ops.stack([x, x]).shape, ops.tile(x, 2).shape, ops.zeros_like(x), ops.eye(2), ops.linspace(0, 1, 3))\nprint(ops.matmul(x, x), ops.multiply(x, x), ops.subtract(x, x), ops.divide(x, x), ops.power(x, 2), ops.sqrt(x), ops.exp(ops.zeros(1)), ops.abs(-x))\nprint(ops.argmax(x), ops.argsort(x), ops.sort(-x), ops.where(x > 2, x, 0.), ops.clip(x, 2, 3), ops.one_hot(np.array([0, 1]), 2))\nprint(ops.cast(x, 'int32'), ops.equal(x, x), ops.greater(x, 2), ops.less(x, 2), ops.norm(x), ops.stop_gradient(x).shape)\nprint(ops.softmax(x), ops.relu(x - 2), ops.sigmoid(x))",
+"out": "(2, 2) tf.Tensor(10.0, shape=(), dtype=float32) tf.Tensor([2. 3.], shape=(2,), dtype=float32) tf.Tensor(4.0, shape=(), dtype=float32) tf.Tensor(1.0, shape=(), dtype=float32) tf.Tensor(24.0, shape=(), dtype=float32)\ntf.Tensor([1. 2. 3. 4.], shape=(4,), dtype=float32) tf.Tensor(\n[[1. 3.]\n [2. 4.]], shape=(2, 2), dtype=float32) (1, 2, 2) (2,)\n(4, 2) (2, 2, 2) (2, 4) tf.Tensor(\n[[0. 0.]\n [0. 0.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[1. 0.]\n [0. 1.]], shape=(2, 2), dtype=float32) tf.Tensor([0.  0.5 1. ], shape=(3,), dtype=float32)\ntf.Tensor(\n[[ 7. 10.]\n [15. 22.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[ 1.  4.]\n [ 9. 16.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[0. 0.]\n [0. 0.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[1. 1.]\n [1. 1.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[ 1.  4.]\n [ 9. 16.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[1.        1.4142135]\n [1.7320508 2.       ]], shape=(2, 2), dtype=float32) tf.Tensor([1.], shape=(1,), dtype=float32) tf.Tensor(\n[[1. 2.]\n [3. 4.]], shape=(2, 2), dtype=float32)\ntf.Tensor(3, shape=(), dtype=int32) tf.Tensor(\n[[0 1]\n [0 1]], shape=(2, 2), dtype=int32) tf.Tensor(\n[[-2. -1.]\n [-4. -3.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[0. 0.]\n [3. 4.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[2. 2.]\n [3. 3.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[1. 0.]\n [0. 1.]], shape=(2, 2), dtype=float32)\ntf.Tensor(\n[[1 2]\n [3 4]], shape=(2, 2), dtype=int32) tf.Tensor(\n[[ True  True]\n [ True  True]], shape=(2, 2), dtype=bool) tf.Tensor(\n[[False False]\n [ True  True]], shape=(2, 2), dtype=bool) tf.Tensor(\n[[ True False]\n [False False]], shape=(2, 2), dtype=bool) tf.Tensor(5.477226, shape=(), dtype=float32) (2, 2)\ntf.Tensor(\n[[0.26894143 0.7310586 ]\n [0.26894143 0.7310586 ]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[0. 0.]\n [1. 2.]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[0.73105854 0.8807971 ]\n [0.95257413 0.98201376]], shape=(2, 2), dtype=float32)\n"
+},
+{
+"title": "keras/utils",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nprint(keras.utils.to_categorical([0, 2], 3))\nprint(keras.utils.normalize(np.array([[3., 4.]])))\nkeras.utils.set_random_seed(0)\nkeras.utils.clear_session()\na, b = keras.utils.split_dataset(np.arange(10), left_size=0.8)\nprint(len(list(a)), len(list(b)))\nprint(keras.utils.img_to_array(np.zeros((2, 2, 3))).shape)",
+"out": "[[1. 0. 0.]\n [0. 0. 1.]]\n[[0.6 0.8]]\n8 2\n(2, 2, 3)\n"
+},
+{
+"title": "pytorch/create",
+"src": "import torch\n\ntorch.manual_seed(0)\nprint(torch.zeros(2, 3).shape, torch.ones(2), torch.full((1, 2), 7.), torch.eye(2), torch.empty(2).shape)\nprint(torch.arange(0, 6, 2), torch.linspace(0, 1, 3), torch.logspace(0, 2, 3))\nprint(torch.rand(2).shape, torch.randn(2, 2).shape, torch.randint(0, 5, (3,)).shape, torch.randperm(4).shape)\nx = torch.tensor([[1., 2.]])\nprint(torch.zeros_like(x), torch.ones_like(x), torch.full_like(x, 3.), torch.rand_like(x).shape, x.new_zeros(2))\nprint(torch.as_tensor([1, 2]), x.clone(), x.detach().requires_grad, x.tolist(), x[0, 1].item(), x.numpy())",
+"out": "torch.Size([2, 3]) tensor([1., 1.]) tensor([[7., 7.]]) tensor([[1., 0.],\n        [0., 1.]]) torch.Size([2])\ntensor([0, 2, 4]) tensor([0.0000, 0.5000, 1.0000]) tensor([  1.,  10., 100.])\ntorch.Size([2]) torch.Size([2, 2]) torch.Size([3]) torch.Size([4])\ntensor([[0., 0.]]) tensor([[1., 1.]]) tensor([[3., 3.]]) torch.Size([1, 2]) tensor([0., 0.])\ntensor([1, 2]) tensor([[1., 2.]]) False [[1.0, 2.0]] 2.0 [[1. 2.]]\n"
+},
+{
+"title": "pytorch/reduce",
+"src": "import torch\n\nx = torch.tensor([[1., 5.], [3., 2.]])\nprint(x.sum(), x.sum(dim=0), x.mean(dim=1), x.mean(dim=1, keepdim=True), x.prod(), x.std(), x.var())\nprint(x.max(), x.max(dim=0), x.min(dim=1).values, x.argmax(), x.argmax(dim=1), x.argmin(dim=0))\nprint(x.cumsum(dim=0), x.median(), torch.topk(x.flatten(), 2), torch.sort(x, descending=True).indices)\nprint(torch.unique(torch.tensor([1, 1, 2])), torch.bincount(torch.tensor([0, 1, 1])), (x > 2).sum(), (x > 2).float().mean(), (x > 0).all(), (x > 4).any())",
+"out": "tensor(11.) tensor([4., 7.]) tensor([3.0000, 2.5000]) tensor([[3.0000],\n        [2.5000]]) tensor(30.) tensor(1.7078) tensor(2.9167)\ntensor(5.) torch.return_types.max(\nvalues=tensor([3., 5.]),\nindices=tensor([1, 0])) tensor([1., 2.]) tensor(1) tensor([1, 0]) tensor([0, 1])\ntensor([[1., 5.],\n        [4., 7.]]) tensor(2.) torch.return_types.topk(\nvalues=tensor([5., 3.]),\nindices=tensor([1, 2])) tensor([[1, 0],\n        [0, 1]])\ntensor([1, 2]) tensor([1, 2]) tensor(2) tensor(0.5000) tensor(True) tensor(True)\n"
+},
+{
+"title": "pytorch/joining",
+"src": "import torch\n\na = torch.arange(6).reshape(2, 3)\nprint(torch.cat([a, a], dim=0).shape, torch.cat([a, a], dim=1).shape, torch.stack([a, a]).shape)\nprint([p.shape for p in a.chunk(3, dim=1)], [p.shape for p in a.split([1, 2], dim=1)], [p.shape for p in a.unbind(0)])\nprint(a.flatten(), a.permute(1, 0).shape, a.transpose(0, 1).shape, a.T.shape, a.squeeze().shape, a.unsqueeze(0).shape)\nprint(a.repeat(2, 1).shape, a[:1].expand(3, -1).shape, a.flip(0), a.roll(1, 0), a.tril(), a.triu(), a.diag())\nprint(torch.where(a > 2, a, 0), a.clamp(1, 3), a.gather(1, torch.tensor([[0], [1]])), a.index_select(1, torch.tensor([0])), a.masked_fill(a > 2, -1), a.masked_select(a > 3), a.nonzero().shape)",
+"out": "torch.Size([4, 3]) torch.Size([2, 6]) torch.Size([2, 2, 3])\n[torch.Size([2, 1]), torch.Size([2, 1]), torch.Size([2, 1])] [torch.Size([2, 1]), torch.Size([2, 2])] [torch.Size([3]), torch.Size([3])]\ntensor([0, 1, 2, 3, 4, 5]) torch.Size([3, 2]) torch.Size([3, 2]) torch.Size([3, 2]) torch.Size([2, 3]) torch.Size([1, 2, 3])\ntorch.Size([4, 3]) torch.Size([3, 3]) tensor([[3, 4, 5],\n        [0, 1, 2]]) tensor([[3, 4, 5],\n        [0, 1, 2]]) tensor([[0, 0, 0],\n        [3, 4, 0]]) tensor([[0, 1, 2],\n        [0, 4, 5]]) tensor([0, 4])\ntensor([[0, 0, 0],\n        [3, 4, 5]]) tensor([[1, 1, 2],\n        [3, 3, 3]]) tensor([[0],\n        [4]]) tensor([[0],\n        [3]]) tensor([[ 0,  1,  2],\n        [-1, -1, -1]]) tensor([4, 5]) torch.Size([5, 2])\n"
+},
+{
+"title": "pytorch/losses",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\np = torch.tensor([0.5, 2.0])\ny = torch.tensor([1.0, 0.0])\nprint(nn.MSELoss()(p, y), nn.L1Loss()(p, y), nn.HuberLoss()(p, y), nn.SmoothL1Loss()(p, y))\nprint(nn.BCEWithLogitsLoss()(p, y), nn.BCELoss()(torch.sigmoid(p), y))\nlogits = torch.tensor([[2., 0.5], [0.1, 3.]])\nt = torch.tensor([0, 1])\nprint(nn.CrossEntropyLoss()(logits, t), nn.NLLLoss()(F.log_softmax(logits, dim=1), t))\nprint(F.mse_loss(p, y), F.l1_loss(p, y), F.cross_entropy(logits, t), F.binary_cross_entropy_with_logits(p, y))\nprint(nn.MSELoss(reduction='none')(p, y), nn.MSELoss(reduction='sum')(p, y), nn.KLDivLoss(reduction='sum')(F.log_softmax(logits, 1), F.softmax(logits, 1)))",
+"out": "tensor(2.1250) tensor(1.2500) tensor(0.8125) tensor(0.8125)\ntensor(1.3005) tensor(1.3005)\ntensor(0.1275) tensor(0.1275)\ntensor(2.1250) tensor(1.2500) tensor(0.1275) tensor(1.3005)\ntensor([0.2500, 4.0000]) tensor(4.2500) tensor(2.6077e-08)\n"
+},
+{
+"title": "pytorch/activations",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nx = torch.tensor([-2., 0., 2.])\nfor m in [nn.ReLU(), nn.LeakyReLU(0.1), nn.ELU(), nn.GELU(), nn.Sigmoid(), nn.Tanh(), nn.Softplus(), nn.Mish(), nn.Hardtanh()]:\n    print(type(m).__name__, m(x))\nprint(F.relu(x), F.leaky_relu(x, 0.1), F.elu(x), F.gelu(x), F.softplus(x))\nprint(nn.Softmax(dim=0)(x), F.softmax(x, dim=0), nn.LogSoftmax(dim=0)(x), F.log_softmax(x, dim=0))\nprint(nn.Identity()(x), nn.Flatten()(torch.zeros(2, 3, 4)).shape, nn.Unflatten(1, (2, 2))(torch.zeros(1, 4)).shape)",
+"out": "ReLU tensor([0., 0., 2.])\nLeakyReLU tensor([-0.2000,  0.0000,  2.0000])\nELU tensor([-0.8647,  0.0000,  2.0000])\nGELU tensor([-0.0455,  0.0000,  1.9545])\nSigmoid tensor([0.1192, 0.5000, 0.8808])\nTanh tensor([-0.9640,  0.0000,  0.9640])\nSoftplus tensor([0.1269, 0.6931, 2.1269])\nMish tensor([-0.2525,  0.0000,  1.9440])\nHardtanh tensor([-1.,  0.,  1.])\ntensor([0., 0., 2.]) tensor([-0.2000,  0.0000,  2.0000]) tensor([-0.8647,  0.0000,  2.0000]) tensor([-0.0455,  0.0000,  1.9545]) tensor([0.1269, 0.6931, 2.1269])\ntensor([0.0159, 0.1173, 0.8668]) tensor([0.0159, 0.1173, 0.8668]) tensor([-4.1429, -2.1429, -0.1429]) tensor([-4.1429, -2.1429, -0.1429])\ntensor([-2.,  0.,  2.]) torch.Size([2, 12]) torch.Size([1, 2, 2])\n"
+},
+{
+"title": "pytorch/layers_cnn",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nx = torch.zeros(4, 3, 32, 32)\nnet = nn.Sequential(\n    nn.Conv2d(3, 8, 3, padding=1), nn.BatchNorm2d(8), nn.ReLU(), nn.MaxPool2d(2),\n    nn.Conv2d(8, 16, 3, stride=2), nn.AvgPool2d(2), nn.Dropout2d(0.1),\n    nn.AdaptiveAvgPool2d(1), nn.Flatten(), nn.Linear(16, 10),\n)\nprint(net(x).shape)\nfor l in net:\n    x = l(x)\n    print(type(l).__name__, tuple(x.shape))\nprint(nn.ConvTranspose2d(1, 1, 2, stride=2)(torch.zeros(1, 1, 4, 4)).shape, nn.Upsample(scale_factor=2)(torch.zeros(1, 1, 4, 4)).shape)\nprint(F.interpolate(torch.zeros(1, 1, 4, 4), size=(8, 8)).shape, F.max_pool2d(torch.zeros(1, 1, 4, 4), 2).shape, F.adaptive_avg_pool2d(torch.zeros(1, 1, 4, 4), 1).shape, F.pad(torch.zeros(1, 2), (1, 1)).shape)",
+"out": "torch.Size([4, 10])\nConv2d (4, 8, 32, 32)\nBatchNorm2d (4, 8, 32, 32)\nReLU (4, 8, 32, 32)\nMaxPool2d (4, 8, 16, 16)\nConv2d (4, 16, 7, 7)\nAvgPool2d (4, 16, 3, 3)\nDropout2d (4, 16, 3, 3)\nAdaptiveAvgPool2d (4, 16, 1, 1)\nFlatten (4, 16)\nLinear (4, 10)\ntorch.Size([1, 1, 8, 8]) torch.Size([1, 1, 8, 8])\ntorch.Size([1, 1, 8, 8]) torch.Size([1, 1, 2, 2]) torch.Size([1, 1, 1, 1]) torch.Size([1, 4])\n"
+},
+{
+"title": "pytorch/layers_seq",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\ntokens = torch.tensor([[1, 2, 3]])\ne = nn.Embedding(10, 4, padding_idx=0)\nx = e(tokens)\nprint(x.shape, e.weight.shape)\nout, h = nn.GRU(4, 5, batch_first=True)(x)\nprint(out.shape, h.shape)\nout, (h, c) = nn.LSTM(4, 5, num_layers=2, bidirectional=True, batch_first=True)(x)\nprint(out.shape, h.shape, c.shape)\nprint(nn.LayerNorm(4)(x).shape, nn.GroupNorm(2, 4)(x.permute(0, 2, 1)).shape, nn.BatchNorm1d(4)(x.permute(0, 2, 1)).shape)\nprint(nn.MultiheadAttention(4, 2, batch_first=True)(x, x, x)[0].shape, F.cosine_similarity(x[0, 0], x[0, 0], dim=0).shape, F.one_hot(tokens, 4), F.normalize(torch.tensor([3., 4.]), dim=0))",
+"out": "torch.Size([1, 3, 4]) torch.Size([10, 4])\ntorch.Size([1, 3, 5]) torch.Size([1, 1, 5])\ntorch.Size([1, 3, 10]) torch.Size([4, 1, 5]) torch.Size([4, 1, 5])\ntorch.Size([1, 3, 4]) torch.Size([1, 4, 3]) torch.Size([1, 4, 3])\ntorch.Size([1, 3, 4]) torch.Size([]) tensor([[[0, 1, 0, 0],\n         [0, 0, 1, 0],\n         [0, 0, 0, 1]]]) tensor([0.6000, 0.8000])\n"
+},
+{
+"title": "pytorch/containers",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass Net(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.blocks = nn.ModuleList([nn.Linear(2, 2) for _ in range(2)])\n        self.head = nn.ModuleDict({'a': nn.Linear(2, 1)})\n        self.scale = nn.Parameter(torch.ones(1))\n        self.register_buffer('mean', torch.zeros(2))\n    def forward(self, x):\n        for b in self.blocks:\n            x = b(x)\n        return self.head['a'](x - self.mean) * self.scale\n\nn = Net()\nprint(n(torch.zeros(1, 2)).shape)\nprint([k for k, _ in n.named_parameters()])\nprint(sum(p.numel() for p in n.parameters()), sum(p.numel() for p in n.parameters() if p.requires_grad))\nprint([k for k, _ in n.named_children()], len(list(n.modules())), [k for k, _ in n.named_buffers()], list(n.state_dict())[:2])\nn.blocks[0].requires_grad_(False)\nprint(sum(p.numel() for p in n.parameters() if p.requires_grad), n.training, n.eval().training)\nprint(n.get_submodule('head.a'), n.get_parameter('scale').shape, n.apply(lambda m: None) is n)",
+"out": "torch.Size([1, 1])\n['scale', 'blocks.0.weight', 'blocks.0.bias', 'blocks.1.weight', 'blocks.1.bias', 'head.a.weight', 'head.a.bias']\n16 16\n['blocks', 'head'] 6 ['mean'] ['scale', 'mean']\n10 True False\nLinear(in_features=2, out_features=1, bias=True) torch.Size([1]) True\n"
+},
+{
+"title": "pytorch/init",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\ntorch.manual_seed(0)\nl = nn.Linear(4, 4)\nnn.init.zeros_(l.bias)\nnn.init.constant_(l.weight, 0.5)\nprint(l.weight[0], l.bias)\nnn.init.ones_(l.bias)\nnn.init.xavier_uniform_(l.weight)\nnn.init.xavier_normal_(l.weight)\nnn.init.kaiming_normal_(l.weight, nonlinearity='relu')\nnn.init.kaiming_uniform_(l.weight)\nnn.init.normal_(l.weight, mean=0, std=0.01)\nnn.init.uniform_(l.weight, -1, 1)\nnn.init.orthogonal_(l.weight)\nprint(l.weight.shape, nn.init.calculate_gain('relu'), round(nn.init.calculate_gain('tanh'), 4))\ndef init(m):\n    if isinstance(m, nn.Linear):\n        nn.init.zeros_(m.bias)\nprint(nn.Sequential(nn.Linear(1, 1)).apply(init)[0].bias)",
+"out": "tensor([0.5000, 0.5000, 0.5000, 0.5000], grad_fn=<SelectBackward0>) Parameter containing:\ntensor([0., 0., 0., 0.], requires_grad=True)\ntorch.Size([4, 4]) 1.4142135623730951 1.6667\nParameter containing:\ntensor([0.], requires_grad=True)\n"
+},
+{
+"title": "pytorch/optimizers",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nm = nn.Linear(1, 1)\nfor cls in [torch.optim.SGD, torch.optim.Adam, torch.optim.AdamW, torch.optim.RMSprop, torch.optim.Adagrad, torch.optim.Adadelta, torch.optim.Adamax, torch.optim.NAdam, torch.optim.RAdam]:\n    o = cls(m.parameters(), lr=0.01)\n    print(cls.__name__, o.param_groups[0]['lr'], len(o.param_groups[0]['params']))\no = torch.optim.SGD([{'params': [m.weight], 'lr': 0.1}, {'params': [m.bias]}], lr=0.01, momentum=0.9, weight_decay=1e-4)\nprint([g['lr'] for g in o.param_groups], o.defaults['momentum'], list(o.state_dict()))\nprint(torch.optim.Adam(m.parameters(), betas=(0.9, 0.99)).param_groups[0]['betas'])",
+"out": "SGD 0.01 2\nAdam 0.01 2\nAdamW 0.01 2\nRMSprop 0.01 2\nAdagrad 0.01 2\nAdadelta 0.01 2\nAdamax 0.01 2\nNAdam 0.01 2\nRAdam 0.01 2\n[0.1, 0.01] 0.9 ['state', 'param_groups']\n(0.9, 0.99)\n"
+},
+{
+"title": "pytorch/schedulers",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\ndef run(make, n=4):\n    o = torch.optim.SGD(nn.Linear(1, 1).parameters(), lr=1.0)\n    s = make(o)\n    out = []\n    for _ in range(n):\n        o.step()\n        s.step()\n        out.append(round(s.get_last_lr()[0], 4))\n    return out\n\nS = torch.optim.lr_scheduler\nprint(run(lambda o: S.StepLR(o, step_size=2, gamma=0.1)))\nprint(run(lambda o: S.MultiStepLR(o, [1, 3], gamma=0.5)))\nprint(run(lambda o: S.ExponentialLR(o, 0.5)))\nprint(run(lambda o: S.CosineAnnealingLR(o, T_max=4)))\nprint(run(lambda o: S.LambdaLR(o, lambda e: 1 / (e + 1))))\nprint(run(lambda o: S.LinearLR(o, start_factor=0.5, total_iters=4)))\nprint(run(lambda o: S.OneCycleLR(o, max_lr=1.0, total_steps=5)))\no = torch.optim.SGD(nn.Linear(1, 1).parameters(), lr=1.0)\np = S.ReduceLROnPlateau(o, patience=0, factor=0.5)\nfor v in [1., 1., 1.]:\n    p.step(v)\nprint(o.param_groups[0]['lr'])",
+"out": "[1.0, 0.1, 0.1, 0.01]\n[0.5, 0.5, 0.25, 0.25]\n[0.5, 0.25, 0.125, 0.0625]\n[0.8536, 0.5, 0.1464, 0.0]\n[0.5, 0.3333, 0.25, 0.2]\n[0.625, 0.75, 0.875, 1.0]\n[0.9505, 0.6113, 0.1883, 0.0]\n0.25\n"
+},
+{
+"title": "pytorch/clip_grad",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nm = nn.Linear(2, 1)\n(m(torch.ones(1, 2)) * 100).sum().backward()\nprint(torch.nn.utils.clip_grad_norm_(m.parameters(), 1.0) > 1)\nprint(round(float(torch.nn.utils.get_total_norm([p.grad for p in m.parameters()])), 4))\ntorch.nn.utils.clip_grad_value_(m.parameters(), 0.1)\nprint(m.weight.grad.abs().max() <= 0.1)\nv = torch.nn.utils.parameters_to_vector(m.parameters())\nprint(v.shape)\ntorch.nn.utils.vector_to_parameters(torch.zeros(3), m.parameters())\nprint(m.weight, m.bias)",
+"out": "tensor(True)\n1.0\ntensor(True)\ntorch.Size([3])\nParameter containing:\ntensor([[0., 0.]], requires_grad=True) Parameter containing:\ntensor([0.], requires_grad=True)\n"
+},
+{
+"title": "pytorch/dataset_class",
+"src": "import torch\nfrom torch.utils.data import ConcatDataset, DataLoader, Dataset, Subset, TensorDataset, random_split\n\nclass Squares(Dataset):\n    def __init__(self, n):\n        self.n = n\n    def __len__(self):\n        return self.n\n    def __getitem__(self, i):\n        return torch.tensor([float(i)]), torch.tensor([float(i * i)])\n\nd = Squares(10)\nprint(len(d), d[3])\ntrain, val = random_split(d, [8, 2], generator=torch.Generator().manual_seed(0))\nprint(len(train), len(val), type(train).__name__)\nprint(len(Subset(d, [0, 1, 2])), len(ConcatDataset([d, d])), len(TensorDataset(torch.zeros(4), torch.ones(4))))\nloader = DataLoader(train, batch_size=3, shuffle=True, drop_last=True)\nprint(len(loader))\nfor x, y in loader:\n    print(x.shape, y.shape)\n    break",
+"out": "10 (tensor([3.]), tensor([9.]))\n8 2 Subset\n3 20 4\n2\ntorch.Size([3, 1]) torch.Size([3, 1])\n"
+},
+{
+"title": "pytorch/samplers",
+"src": "import torch\nfrom torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler, SubsetRandomSampler, TensorDataset, WeightedRandomSampler, default_collate\n\nprint(list(SequentialSampler(range(3))), sorted(RandomSampler(range(3))))\nprint(list(BatchSampler(SequentialSampler(range(5)), 2, drop_last=False)))\nprint(sorted(SubsetRandomSampler([1, 3])))\nw = WeightedRandomSampler([0., 0., 1.], 4, replacement=True)\nprint(list(w))\nd = TensorDataset(torch.arange(4.))\nprint(len(DataLoader(d, batch_size=2, sampler=SequentialSampler(d))))\nprint(default_collate([(1, 'a'), (2, 'b')]))\nprint(default_collate([torch.zeros(2), torch.ones(2)]).shape)",
+"out": "[0, 1, 2] [0, 1, 2]\n[[0, 1], [2, 3], [4]]\n[1, 3]\n[2, 2, 2, 2]\n2\n[tensor([1, 2]), ('a', 'b')]\ntorch.Size([2, 2])\n"
+},
+{
+"title": "pytorch/linalg_more",
+"src": "import torch\n\nA = torch.tensor([[2., 1.], [1., 3.]])\nprint(torch.linalg.norm(A), torch.linalg.vector_norm(A[0]), torch.linalg.matrix_norm(A, ord=1), A.norm(), torch.dist(A[0], A[1]))\nprint(torch.linalg.det(A), torch.det(A), torch.linalg.inv(A), torch.inverse(A), A.trace(), torch.linalg.matrix_rank(A), torch.linalg.pinv(A))\nprint(torch.linalg.solve(A, torch.tensor([3., 5.])), torch.linalg.lstsq(A, torch.tensor([[3.], [5.]])).solution.shape)\nprint(torch.linalg.cholesky(A), torch.linalg.eigh(A).eigenvalues, torch.linalg.matrix_power(A, 2), torch.linalg.matrix_exp(torch.zeros(2, 2)))\nU, S, Vh = torch.linalg.svd(A)\nprint(S, torch.allclose(U @ torch.diag(S) @ Vh, A), torch.linalg.qr(A).R.shape, torch.dot(A[0], A[1]), torch.mm(A, A).shape, torch.mv(A, A[0]), torch.outer(A[0], A[1]))",
+"out": "tensor(3.8730) tensor(2.2361) tensor(4.) tensor(3.8730) tensor(2.2361)\ntensor(5.) tensor(5.) tensor([[ 0.6000, -0.2000],\n        [-0.2000,  0.4000]]) tensor([[ 0.6000, -0.2000],\n        [-0.2000,  0.4000]]) tensor(5.) tensor(2) tensor([[ 0.6000, -0.2000],\n        [-0.2000,  0.4000]])\ntensor([0.8000, 1.4000]) torch.Size([2, 1])\ntensor([[1.4142, 0.0000],\n        [0.7071, 1.5811]]) tensor([1.3820, 3.6180]) tensor([[ 5.,  5.],\n        [ 5., 10.]]) tensor([[1., 0.],\n        [0., 1.]])\ntensor([3.6180, 1.3820]) True torch.Size([2, 2]) tensor(5.) torch.Size([2, 2]) tensor([5., 5.]) tensor([[2., 6.],\n        [1., 3.]])\n"
+},
+{
+"title": "pytorch/math_ops",
+"src": "import torch\n\nx = torch.tensor([1., 4., 9.])\nprint(x.sqrt(), x.exp(), x.log(), x.log2(), x.log10(), x.pow(2), x ** 2, x.abs(), x.neg(), x.reciprocal(), x.sign())\nprint(x.floor(), x.ceil(), x.round(), x.trunc(), x.frac(), x.clamp(min=2), x.clamp(max=5), torch.fmod(x, 2), x % 2, x // 2)\nprint(x.sin(), x.cos(), x.tan(), x.tanh(), x.sigmoid(), x.softmax(0), x.lerp(torch.zeros(3), 0.5))\nn = torch.tensor([1., float('nan'), float('inf')])\nprint(n.isnan(), n.isinf(), n.isfinite(), n.nan_to_num(), torch.nansum(n[:2]), torch.nanmean(n[:2]))\nprint(torch.eq(x, x), x.ne(x), x.gt(2), x.lt(2), x.ge(4), x.le(4), torch.equal(x, x), torch.isclose(x, x), torch.allclose(x, x), torch.maximum(x, x - 1), torch.minimum(x, x - 1))\nprint(x.add(1), x.sub(1), x.mul(2), x.div(2), x.add_(1), x)",
+"out": "tensor([1., 2., 3.]) tensor([2.7183e+00, 5.4598e+01, 8.1031e+03]) tensor([0.0000, 1.3863, 2.1972]) tensor([0.0000, 2.0000, 3.1699]) tensor([0.0000, 0.6021, 0.9542]) tensor([ 1., 16., 81.]) tensor([ 1., 16., 81.]) tensor([1., 4., 9.]) tensor([-1., -4., -9.]) tensor([1.0000, 0.2500, 0.1111]) tensor([1., 1., 1.])\ntensor([1., 4., 9.]) tensor([1., 4., 9.]) tensor([1., 4., 9.]) tensor([1., 4., 9.]) tensor([0., 0., 0.]) tensor([2., 4., 9.]) tensor([1., 4., 5.]) tensor([1., 0., 1.]) tensor([1., 0., 1.]) tensor([0., 2., 4.])\ntensor([ 0.8415, -0.7568,  0.4121]) tensor([ 0.5403, -0.6536, -0.9111]) tensor([ 1.5574,  1.1578, -0.4523]) tensor([0.7616, 0.9993, 1.0000]) tensor([0.7311, 0.9820, 0.9999]) tensor([3.3311e-04, 6.6906e-03, 9.9298e-01]) tensor([0.5000, 2.0000, 4.5000])\ntensor([False,  True, False]) tensor([False, False,  True]) tensor([ True, False, False]) tensor([1.0000e+00, 0.0000e+00, 3.4028e+38]) tensor(1.) tensor(1.)\ntensor([True, True, True]) tensor([False, False, False]) tensor([False,  True,  True]) tensor([ True, False, False]) tensor([False,  True,  True]) tensor([ True,  True, False]) True tensor([True, True, True]) True tensor([1., 4., 9.]) tensor([0., 3., 8.])\ntensor([ 2.,  5., 10.]) tensor([0., 3., 8.]) tensor([ 2.,  8., 18.]) tensor([0.5000, 2.0000, 4.5000]) tensor([ 2.,  5., 10.]) tensor([ 2.,  5., 10.])\n"
+},
+{
+"title": "pytorch/autograd_more",
+"src": "import torch\n\nx = torch.tensor([2.], requires_grad=True)\ny = x ** 3\nprint(torch.autograd.grad(y, x), y.requires_grad, y.grad_fn is not None, x.is_leaf, y.is_leaf)\nz = torch.ones(1)\nprint(z.requires_grad, z.requires_grad_().requires_grad, z.detach().requires_grad)\nwith torch.enable_grad():\n    print((x * 2).requires_grad)\nwith torch.set_grad_enabled(False):\n    print((x * 2).requires_grad)\nprint(torch.is_grad_enabled())\n@torch.no_grad()\ndef f(a):\n    return a * 2\nprint(f(x).requires_grad)\nwith torch.inference_mode():\n    print((x * 2).requires_grad)\nv = torch.tensor([1., 2.], requires_grad=True)\n(v ** 2).backward(torch.tensor([1., 1.]))\nprint(v.grad)\nv.grad = None\nprint(v.grad, torch.autograd.gradcheck(lambda t: t * 2, torch.tensor([1.], dtype=torch.float64, requires_grad=True)))",
+"out": "(tensor([12.]),) True True True False\nFalse True False\nTrue\nFalse\nTrue\nFalse\nFalse\ntensor([2., 4.])\nNone True\n"
+},
+{
+"title": "pytorch/dist_more",
+"src": "import torch\nfrom torch.distributions import Bernoulli, Categorical, Normal, Uniform, kl_divergence\n\ntorch.manual_seed(0)\nn = Normal(0., 1.)\nprint(n.sample((2,)).shape, n.rsample().shape, n.log_prob(torch.tensor(0.)), n.mean, n.stddev, n.entropy(), n.cdf(torch.tensor(0.)))\nc = Categorical(probs=torch.tensor([0.25, 0.75]))\nprint(c.sample((3,)).shape, c.log_prob(torch.tensor(1)), c.probs, c.entropy())\nprint(Bernoulli(0.5).sample().shape, Bernoulli(probs=torch.tensor(0.5)).mean, Uniform(0., 2.).mean, Uniform(0., 2.).log_prob(torch.tensor(1.)))\nprint(kl_divergence(Normal(0., 1.), Normal(1., 1.)), kl_divergence(Categorical(probs=torch.tensor([.5, .5])), Categorical(probs=torch.tensor([.9, .1]))))",
+"out": "torch.Size([2]) torch.Size([]) tensor(-0.9189) tensor(0.) tensor(1.) tensor(1.4189) tensor(0.5000)\ntorch.Size([3]) tensor(-0.2877) tensor([0.2500, 0.7500]) tensor(0.5623)\ntorch.Size([]) tensor(0.5000) tensor(1.) tensor(-0.6931)\ntensor(0.5000) tensor(0.5108)\n"
+},
+{
+"title": "pandas/inspect",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'name': ['ann', 'bob', 'cat', 'dan'], 'age': [20, 31, 25, 40], 'score': [88.5, 72., np.nan, 91.]})\nprint(df.head(2))\nprint(df.tail(1))\nprint(df.shape, df.ndim, df.size, len(df), df.empty, df.columns.tolist(), df.index.tolist())\nprint(df.dtypes)\ndf.info()\nprint(df.nunique())\nprint(df['age'].value_counts().head(1), df['name'].unique(), df.values[0])",
+"out": "  name  age  score\n0  ann   20   88.5\n1  bob   31   72.0\n  name  age  score\n3  dan   40   91.0\n(4, 3) 2 12 4 False ['name', 'age', 'score'] [0, 1, 2, 3]\nname      object\nage        int64\nscore    float64\ndtype: object\n<class 'pandas.core.frame.DataFrame'>\nRangeIndex: 4 entries, 0 to 3\nData columns (total 3 columns):\n #   Column  Non-Null Count  Dtype  \n---  ------  --------------  -----  \n 0   name    4 non-null      object \n 1   age     4 non-null      int64  \n 2   score   3 non-null      float64\ndtypes: float64(1), int64(1), object(1)\nmemory usage: 224.0+ bytes\nname     4\nage      4\nscore    3\ndtype: int64\nage\n20    1\nName: count, dtype: int64 ['ann' 'bob' 'cat' 'dan'] ['ann' 20 88.5]\n"
+},
+{
+"title": "pandas/sorting",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'name': ['ann', 'bob', 'cat', 'dan'], 'age': [20, 31, 25, 31], 'score': [88.5, 72., 60., 91.]})\nprint(df.sort_values('score', ascending=False).head(2))\nprint(df.sort_values(['age', 'score'], ascending=[False, True]))\nprint(df.sort_index(ascending=False).index.tolist())\nprint(df.nlargest(2, 'score')['name'].tolist(), df.nsmallest(1, 'age')['name'].tolist())\nprint(df['score'].rank(ascending=False).tolist(), df['score'].idxmax(), df['score'].idxmin())\nprint(df.reset_index(drop=True).shape, df.set_index('name').loc['bob', 'age'], df.set_index('name').reset_index().columns.tolist())",
+"out": "  name  age  score\n3  dan   31   91.0\n0  ann   20   88.5\n  name  age  score\n1  bob   31   72.0\n3  dan   31   91.0\n2  cat   25   60.0\n0  ann   20   88.5\n[3, 2, 1, 0]\n['dan', 'ann'] ['ann']\n[2.0, 3.0, 4.0, 1.0] 3 2\n(4, 3) 31 ['name', 'age', 'score']\n"
+},
+{
+"title": "pandas/col_ops",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'a': [1, 2, 3], 'b': [4., 5., 6.]})\ndf['c'] = df['a'] + df['b']\nprint(df.assign(d=lambda x: x.a * 2, e=0).columns.tolist())\nprint(df.rename(columns={'a': 'A'}).columns.tolist(), df.drop(columns=['c']).columns.tolist(), df.drop(index=[0]).index.tolist())\ndf.insert(0, 'id', [7, 8, 9])\nprint(df.pop('c').tolist(), df.columns.tolist())\nprint(df[['id', 'a']].shape, df.select_dtypes('number').columns.tolist(), df.select_dtypes(include='float').columns.tolist())\nprint(df.astype({'a': 'float64'}).dtypes['a'], df.a.astype(str).tolist(), df.add_prefix('x_').columns.tolist(), df.T.shape)\nprint(df.copy().equals(df), df.iat[0, 1], df.at[0, 'a'], df.get('nope', 'default'), df.keys().tolist())",
+"out": "['a', 'b', 'c', 'd', 'e']\n['A', 'b', 'c'] ['a', 'b'] [1, 2]\n[5.0, 7.0, 9.0] ['id', 'a', 'b']\n(3, 2) ['id', 'a', 'b'] ['b']\nfloat64 ['1', '2', '3'] ['x_id', 'x_a', 'x_b'] (3, 3)\nTrue 1 1 default ['id', 'a', 'b']\n"
+},
+{
+"title": "pandas/query",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'city': ['HK', 'SZ', 'HK', 'GZ'], 'age': [20, 31, 25, 40], 'n': [1, 2, 3, 4]})\nprint(df.query('age > 22 and city == \"HK\"'))\nlimit = 30\nprint(df.query('age > @limit')['city'].tolist())\nprint(df[df.city.isin(['SZ', 'GZ'])].n.tolist(), df[df.age.between(20, 25)].n.tolist(), df[~df.city.eq('HK')].n.tolist())\nprint(df[(df.age > 22) & (df.n < 4)].n.tolist(), df[(df.age < 21) | (df.n == 4)].n.tolist())\nprint(df.where(df.n > 2)['n'].tolist(), df.n.mask(df.n > 2, 0).tolist(), df.n.clip(2, 3).tolist())\nprint(df.sample(2, random_state=0).shape, df.duplicated('city').tolist(), df.drop_duplicates('city').n.tolist())",
+"out": "  city  age  n\n2   HK   25  3\n['SZ', 'GZ']\n[2, 4] [1, 3] [2, 4]\n[2, 3] [1, 4]\n[nan, nan, 3.0, 4.0] [1, 2, 0, 0] [2, 2, 3, 3]\n(2, 3) [False, False, True, False] [1, 2, 4]\n"
+},
+{
+"title": "pandas/stats",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'a': [1., 2., 3., 4.], 'b': [2., 4., 5., 9.]})\nprint(df.sum().tolist(), df.mean().tolist(), df.median().tolist(), df.min().tolist(), df.max().tolist())\nprint(df.std().round(3).tolist(), df.var().round(3).tolist(), df.count().tolist(), df.a.mode().tolist(), df.prod().tolist())\nprint(df.mean(axis=1).tolist(), df.a.quantile(0.5), df.quantile([0.25, 0.75]).shape, df.skew().round(3).tolist(), df.kurt().round(3).tolist())\nprint(df.corr().round(3))\nprint(df.cov().round(3), df.a.corr(df.b).round(3))\nprint(df.apply(np.sum).tolist(), df.apply(lambda r: r.a + r.b, axis=1).tolist(), df.a.apply(lambda v: v * 2).tolist(), df.a.map({1.: 'x'}).tolist())\nprint(df.cumsum().iloc[-1].tolist(), df.a.diff().tolist(), df.a.pct_change().round(3).tolist(), df.a.shift(1).tolist(), df.abs().sum().tolist(), df.round(0).shape)",
+"out": "[10.0, 20.0] [2.5, 5.0] [2.5, 4.5] [1.0, 2.0] [4.0, 9.0]\n[1.291, 2.944] [1.667, 8.667] [4, 4] [1.0, 2.0, 3.0, 4.0] [24.0, 360.0]\n[1.5, 3.0, 4.0, 6.5] 2.5 (2, 2) [0.0, 0.941] [-1.2, 1.5]\n       a      b\na  1.000  0.965\nb  0.965  1.000\n       a      b\na  1.667  3.667\nb  3.667  8.667 0.965\n[10.0, 20.0] [3.0, 6.0, 8.0, 13.0] [2.0, 4.0, 6.0, 8.0] ['x', nan, nan, nan]\n[10.0, 20.0] [nan, 1.0, 1.0, 1.0] [nan, 1.0, 0.5, 0.333] [nan, 1.0, 2.0, 3.0] [10.0, 20.0] (4, 2)\n"
+},
+{
+"title": "pandas/groupby_more",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'t': ['a', 'b', 'a', 'b', 'a'], 'x': [1, 2, 3, 4, 5], 'y': [5., 4., 3., 2., 1.]})\ng = df.groupby('t')\nprint(g.size())\nprint(g.ngroups, sorted(g.groups), g.get_group('a').x.tolist(), g.x.sum().tolist(), g.x.mean().tolist(), g.x.count().tolist())\nprint(g.first(), g.last().x.tolist(), g.head(1).x.tolist(), g.nth(0).x.tolist())\nprint(g.x.max().tolist(), g.x.min().tolist(), g.x.median().tolist(), g.x.std().round(3).tolist(), g.x.var().tolist(), g.x.nunique().tolist())\nprint(g.x.cumsum().tolist(), g.cumcount().tolist(), g.x.shift(1).tolist(), g.x.rank().tolist(), g.x.idxmax().tolist())\nprint(df.groupby('t', as_index=False).x.sum())\nprint(df.groupby('t').filter(lambda d: len(d) > 2).x.tolist())\nfor name, part in g:\n    print(name, len(part))",
+"out": "t\na    3\nb    2\ndtype: int64\n2 ['a', 'b'] [1, 3, 5] [9, 6] [3.0, 3.0] [3, 2]\n   x    y\nt        \na  1  5.0\nb  2  4.0 [5, 4] [1, 2] [1, 2]\n[5, 4] [1, 2] [3.0, 3.0] [2.0, 1.414] [4.0, 2.0] [3, 2]\n[1, 2, 4, 6, 9] [0, 0, 1, 1, 2] [nan, nan, 1.0, 2.0, 3.0] [1.0, 1.0, 2.0, 2.0, 3.0] [4, 3]\n   t  x\n0  a  9\n1  b  6\n[1, 3, 5]\na 3\nb 2\n"
+},
+{
+"title": "pandas/pivot_more",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'y': [1, 1, 2, 2], 'k': ['a', 'b', 'a', 'b'], 'v': [1., 2., 3., 4.]})\nprint(df.pivot(index='y', columns='k', values='v'))\nprint(df.pivot_table(index='k', values='v', aggfunc='mean'))\nprint(df.pivot_table(index='y', columns='k', values='v', aggfunc='sum', margins=True))\nw = df.pivot(index='y', columns='k', values='v')\nprint(w.stack().tolist(), w.stack().unstack().shape, w.reset_index().melt(id_vars='y').shape)\na = pd.DataFrame({'x': [1, 2]}, index=['p', 'q'])\nb = pd.DataFrame({'z': [3, 4]}, index=['q', 'r'])\nprint(a.join(b), a.join(b, how='outer'), a.combine_first(pd.DataFrame({'x': [9]}, index=['z'])).x.tolist())\nprint(pd.concat([a, b], axis=1).shape, a.reindex(['q', 'p', 'n']).x.tolist(), a.rename_axis('id').index.name)",
+"out": "k    a    b\ny          \n1  1.0  2.0\n2  3.0  4.0\n     v\nk     \na  2.0\nb  3.0\nk      a    b   All\ny                  \n1    1.0  2.0   3.0\n2    3.0  4.0   7.0\nAll  4.0  6.0  10.0\n[1.0, 2.0, 3.0, 4.0] (2, 2) (4, 3)\n   x    z\np  1  NaN\nq  2  3.0      x    z\np  1.0  NaN\nq  2.0  3.0\nr  NaN  4.0 [1, 2, 9]\n(3, 2) [2.0, 1.0, nan] id\n"
+},
+{
+"title": "pandas/clean_more",
+"src": "import pandas as pd\nimport numpy as np\n\ns = pd.Series([1, 2, 3, 4, 5, 6])\nprint(s.replace(1, 9).tolist(), s.replace({2: 8}).tolist())\nprint(pd.to_numeric(pd.Series(['1', '2.5', 'x']), errors='coerce').tolist())\nm = pd.Series([1., np.nan, np.nan, 4.])\nprint(m.ffill().tolist(), m.bfill().tolist(), m.interpolate().tolist(), m.fillna(m.mean()).tolist(), m.isna().sum(), m.notna().tolist(), m.dropna().tolist(), m.hasnans)\nprint(pd.cut(s, 2, labels=['low', 'high']).tolist(), pd.cut(s, [0, 2, 6]).value_counts().tolist(), pd.qcut(s, 2, labels=False).tolist())\nprint(s.astype('category').cat.categories.tolist(), pd.factorize(['b', 'a', 'b'])[0].tolist(), pd.Series(pd.Categorical(['a', 'b', 'a'])).cat.codes.tolist(), pd.unique(pd.Series([1, 1])).tolist())\ndf = pd.DataFrame({'a': [1, np.nan], 'b': [np.nan, np.nan]})\nprint(df.isna().sum().tolist(), df.dropna(how='all').shape, df.dropna(axis=1, how='all').shape, df.fillna({'a': 0}).a.tolist(), df.notna().sum().sum(), df.isnull().any().tolist())",
+"out": "[9, 2, 3, 4, 5, 6] [1, 8, 3, 4, 5, 6]\n[1.0, 2.5, nan]\n[1.0, 1.0, 1.0, 4.0] [1.0, 4.0, 4.0, 4.0] [1.0, 2.0, 3.0, 4.0] [1.0, 2.5, 2.5, 4.0] 2 [True, False, False, True] [1.0, 4.0] True\n['low', 'low', 'low', 'high', 'high', 'high'] [4, 2] [0, 0, 0, 1, 1, 1]\n[1, 2, 3, 4, 5, 6] [0, 1, 0] [0, 1, 0] [1]\n[1, 2] (1, 2) (2, 1) [1.0, 0.0] 1 [True, True]\n"
+},
+{
+"title": "pandas/str_more",
+"src": "import pandas as pd\nimport numpy as np\n\ns = pd.Series(['Ann Lee', 'bob wu', None, 'Cat Ho 12'])\nprint(s.str.lower().tolist(), s.str.upper().tolist(), s.str.title().tolist(), s.str.len().tolist(), s.str.strip().tolist())\nprint(s.str.contains('a', na=False).tolist(), s.str.startswith('A', na=False).tolist(), s.str.endswith('u', na=False).tolist(), s.str.match('[A-Z]', na=False).tolist())\nprint(s.str.replace(' ', '_').tolist(), s.str.split().str[0].tolist(), s.str.split(' ', expand=True).shape, s.str[:2].tolist(), s.str.slice(0, 1).tolist(), s.str.get(0).tolist())\nprint(s.str.extract(r'(\\d+)')[0].tolist(), s.str.findall(r'[A-Z]').tolist(), s.str.count('a').tolist(), s.str.find('b').tolist(), s.str.pad(3).str.len().tolist(), s.str.zfill(8).tolist())\nprint(s.str.cat(sep='|'), s.str.isdigit().tolist(), pd.Series(['7']).str.isnumeric().tolist(), s.str.capitalize().tolist(), s.str.get_dummies(' ').shape)",
+"out": "['ann lee', 'bob wu', None, 'cat ho 12'] ['ANN LEE', 'BOB WU', None, 'CAT HO 12'] ['Ann Lee', 'Bob Wu', None, 'Cat Ho 12'] [7.0, 6.0, nan, 9.0] ['Ann Lee', 'bob wu', None, 'Cat Ho 12']\n[False, False, False, True] [True, False, False, False] [False, True, False, False] [True, False, False, True]\n['Ann_Lee', 'bob_wu', None, 'Cat_Ho_12'] ['Ann', 'bob', None, 'Cat'] (4, 3) ['An', 'bo', None, 'Ca'] ['A', 'b', None, 'C'] ['A', 'b', None, 'C']\n[nan, nan, nan, '12'] [['A', 'L'], [], None, ['C', 'H']] [0.0, 0.0, nan, 1.0] [-1.0, 0.0, nan, -1.0] [7.0, 6.0, nan, 9.0] ['0Ann Lee', '00bob wu', None, 'Cat Ho 12']\nAnn Lee|bob wu|Cat Ho 12 [False, False, None, False] [True] ['Ann lee', 'Bob wu', None, 'Cat ho 12'] (4, 7)\n"
+},
+{
+"title": "pandas/output",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'a': [1, 2], 'b': ['x', 'y']})\nprint(df.to_csv(index=False))\ndf.to_csv('t.csv', index=False)\nprint(pd.read_csv('t.csv').shape, pd.read_table('t.csv', sep=',').shape)\nprint(df.to_dict(), df.to_dict('records'), df.to_dict('list'))\nprint(df.to_json(), df.to_numpy().shape, df.a.to_numpy(), df.a.to_list(), df.a.to_frame().shape, df.to_string(index=False))\nfor i, row in df.iterrows():\n    print(i, row['a'], row.b)\nfor t in df.itertuples():\n    print(t.Index, t.a, t.b)\nprint(pd.DataFrame.from_dict({'a': [1]}), pd.DataFrame.from_records([{'a': 1}]).shape, pd.DataFrame([[1, 2]], columns=['x', 'y']).shape, pd.Series({'p': 1}).index.tolist(), pd.read_json('[{\"a\": 1}]').shape)",
+"out": "a,b\n1,x\n2,y\n\n(2, 2) (2, 2)\n{'a': {0: 1, 1: 2}, 'b': {0: 'x', 1: 'y'}} [{'a': 1, 'b': 'x'}, {'a': 2, 'b': 'y'}] {'a': [1, 2], 'b': ['x', 'y']}\n{\"a\":{\"0\":1,\"1\":2},\"b\":{\"0\":\"x\",\"1\":\"y\"}} (2, 2) [1 2] [1, 2] (2, 1)  a b\n 1 x\n 2 y\n0 1 x\n1 2 y\n0 1 x\n1 2 y\n   a\n0  1 (1, 1) (1, 2) ['p'] (1, 1)\n"
+},
+{
+"title": "pandas/plot_like",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'x': range(10), 'y': [0, 1] * 5})\ntrain = df.sample(frac=0.8, random_state=0)\ntest = df.drop(train.index)\nprint(len(train), len(test), set(train.index) & set(test.index))\nX, y = df.drop(columns='y').to_numpy(), df['y'].to_numpy()\nprint(X.shape, y.shape, X.dtype, y.mean())\nnorm = (df.x - df.x.mean()) / df.x.std()\nprint(norm.round(2).tolist()[:3], ((df.x - df.x.min()) / (df.x.max() - df.x.min())).tolist()[:2])\nprint(pd.get_dummies(pd.Series(['a', 'b']), dtype=int).to_numpy().tolist(), df.y.value_counts(normalize=True).tolist(), df.y.nunique(), pd.crosstab(df.y, df.x > 4).shape)",
+"out": "8 2 set()\n(10, 1) (10,) int64 0.5\n[-1.49, -1.16, -0.83] [0.0, 0.1111111111111111]\n[[1, 0], [0, 1]] [0.5, 0.5] 2 (2, 2)\n"
+},
+{
+"title": "matplotlib/line_style",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nx = np.linspace(0, 6, 40)\nplt.figure(figsize=(6, 3.2))\nplt.plot(x, np.sin(x), 'r--', label='sin', linewidth=2)\nplt.plot(x, np.cos(x), color='tab:blue', linestyle=':', marker='o', markersize=3, label='cos', alpha=0.7)\nplt.title('Two waves')\nplt.xlabel('x')\nplt.ylabel('y')\nplt.xlim(0, 6)\nplt.ylim(-1.2, 1.2)\nplt.xticks([0, 3, 6], ['start', 'mid', 'end'])\nplt.grid(True, alpha=0.3)\nplt.legend(loc='upper right')\nplt.tight_layout()\nplt.show()",
+"out": ""
+},
+{
+"title": "matplotlib/barh_stack",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nnames = ['a', 'b', 'c']\nx = np.arange(3)\np = [3, 5, 2]\nq = [1, 2, 4]\nfig, ax = plt.subplots(1, 3, figsize=(9, 2.8))\nbars = ax[0].barh(names, p, color='tab:green')\nax[0].bar_label(bars)\nax[1].bar(names, p, label='p')\nax[1].bar(names, q, bottom=p, label='q')\nax[1].legend()\nax[2].bar(x - 0.2, p, width=0.4, label='p')\nax[2].bar(x + 0.2, q, width=0.4, label='q')\nax[2].set_xticks(x, names)\nax[2].legend()\nfig.tight_layout()\nplt.show()",
+"out": ""
+},
+{
+"title": "matplotlib/distributions",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nnp.random.seed(0)\na = np.random.normal(0, 1, 300)\nb = np.random.normal(1, 0.5, 300)\nfig, ax = plt.subplots(1, 3, figsize=(9, 2.8))\nax[0].hist(a, bins=20, alpha=0.6, label='a')\nax[0].hist(b, bins=20, alpha=0.6, label='b')\nax[0].legend()\nax[1].boxplot([a, b])\nax[1].set_xticks([1, 2], ['a', 'b'])\nax[2].violinplot([a, b])\nfig.tight_layout()\nplt.show()",
+"out": ""
+},
+{
+"title": "matplotlib/pie_stack",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nfig, ax = plt.subplots(1, 3, figsize=(9, 2.8))\nax[0].pie([40, 35, 25], labels=['a', 'b', 'c'], autopct='%1.0f%%')\nx = np.arange(5)\nax[1].stackplot(x, [1, 2, 3, 2, 1], [2, 2, 1, 1, 3], labels=['p', 'q'])\nax[1].legend(loc='upper left')\nax[2].errorbar(x, x * 2, yerr=0.5 + 0.2 * x, fmt='o-', capsize=3)\nfig.tight_layout()\nplt.show()",
+"out": ""
+},
+{
+"title": "matplotlib/stem_step",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nx = np.arange(8)\ny = np.sin(x)\nfig, ax = plt.subplots(1, 3, figsize=(9, 2.6))\nax[0].stem(x, y)\nax[1].step(x, y, where='mid')\nax[1].axhline(0, color='gray', linestyle='--')\nax[1].axvline(3, color='red')\nax[1].axvspan(5, 6, alpha=0.2)\nax[1].axhspan(-0.5, -0.2, alpha=0.2, color='green')\nax[2].hlines([0, 0.5], 0, 7, colors='gray')\nax[2].vlines(x, 0, y)\nfig.tight_layout()\nplt.show()",
+"out": ""
+},
+{
+"title": "matplotlib/annotate_more",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nx = np.linspace(-2, 2, 40)\ny = x ** 2\nfig, ax = plt.subplots(figsize=(5, 3))\nax.plot(x, y)\nax.annotate('minimum', xy=(0, 0), xytext=(0.8, 2), arrowprops=dict(arrowstyle='->'))\nax.text(-1.9, 3.4, 'y = x²', fontsize=12, color='tab:red')\nax.scatter([0], [0], s=60, c='k', zorder=3)\nax.arrow(-1.5, 1, 0.5, -0.5, head_width=0.1)\nax.set(title='Parabola', xlabel='x', ylabel='y')\nplt.show()",
+"out": ""
+},
+{
+"title": "matplotlib/layouts",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nfrom matplotlib.gridspec import GridSpec\nx = np.arange(5)\nfig = plt.figure(figsize=(7, 3.2))\ngs = GridSpec(2, 3, figure=fig)\na = fig.add_subplot(gs[:, 0])\nb = fig.add_subplot(gs[0, 1:])\nc = fig.add_subplot(gs[1, 1:], sharex=b)\nfor ax, t in zip([a, b, c], 'abc'):\n    ax.plot(x, x)\n    ax.set_title(t)\nfig.suptitle('GridSpec')\nfig.tight_layout()\nfig2, axs = plt.subplot_mosaic('AAB;CCB', figsize=(6, 3))\nfor k, ax in axs.items():\n    ax.set_title(k)\nfig2.subplots_adjust(hspace=0.6)\nplt.show()",
+"out": ""
+},
+{
+"title": "matplotlib/colorbar",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nx, y = np.meshgrid(np.linspace(-2, 2, 40), np.linspace(-2, 2, 40))\nz = np.exp(-x ** 2 - y ** 2)\nfig, ax = plt.subplots(1, 3, figsize=(10, 2.8))\nm = ax[0].pcolormesh(x, y, z, cmap='viridis', shading='auto')\nfig.colorbar(m, ax=ax[0])\nn = ax[1].imshow(z, cmap='magma', origin='lower', extent=(-2, 2, -2, 2))\nfig.colorbar(n, ax=ax[1], label='height')\nax[2].matshow(np.arange(16).reshape(4, 4), cmap='Blues')\nfig.tight_layout()\nplt.show()",
+"out": ""
+},
+{
+"title": "matplotlib/hexbin",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nnp.random.seed(0)\nx = np.random.normal(size=500)\ny = x + np.random.normal(size=500) * 0.5\nfig, ax = plt.subplots(1, 3, figsize=(10, 2.8))\nax[0].hexbin(x, y, gridsize=15, cmap='Blues')\nax[1].hist2d(x, y, bins=15, cmap='Greens')\ngx, gy = np.meshgrid(np.linspace(-2, 2, 8), np.linspace(-2, 2, 8))\nax[2].quiver(gx, gy, -gy, gx)\nfig.tight_layout()\nplt.show()",
+"out": ""
+},
+{
+"title": "matplotlib/axes_scale",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nx = np.logspace(0, 3, 20)\nfig, ax = plt.subplots(1, 3, figsize=(9, 2.8))\nax[0].loglog(x, x ** 2)\nax[0].grid(True, which='both', alpha=0.3)\nax[1].semilogy(x, x ** 2)\nax[1].semilogx(x, x ** 2)\nax[2].plot([1, 2, 3], [3, 1, 2])\nax[2].invert_yaxis()\nax[2].margins(0.2)\nax[2].tick_params(axis='x', labelrotation=45, labelsize=8)\nax[2].minorticks_on()\nprint(ax[2].get_ylim(), ax[2].get_xlabel(), ax[2].get_xscale(), ax[0].get_xscale(), ax[2].get_title() == '')\nfig.tight_layout()\nplt.show()",
+"out": "(np.float64(3.4), np.float64(0.6))  linear log True\n"
+},
+{
+"title": "matplotlib/ticks_fmt",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nfrom matplotlib.ticker import FuncFormatter, MaxNLocator, MultipleLocator, PercentFormatter\nfig, ax = plt.subplots(1, 3, figsize=(9, 2.6))\nax[0].plot([0, 10], [0, 1])\nax[0].xaxis.set_major_locator(MultipleLocator(2))\nax[0].yaxis.set_major_formatter(PercentFormatter(1.0))\nax[1].plot([0, 3000], [0, 2])\nax[1].xaxis.set_major_formatter(FuncFormatter(lambda v, p: f'{v / 1000:.0f}k'))\nax[2].plot([0, 7], [0, 3])\nax[2].xaxis.set_major_locator(MaxNLocator(integer=True))\nfig.tight_layout()\nplt.show()",
+"out": ""
+},
+{
+"title": "matplotlib/save_state",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nplt.rcParams['font.size'] = 11\nprint(plt.rcParams['font.size'], plt.rcParams['figure.figsize'])\nwith plt.rc_context({'lines.linewidth': 3}):\n    plt.plot([1, 2], [1, 2])\nprint(plt.gca().get_lines()[0].get_linewidth(), plt.gcf().number, plt.get_fignums())\nfig = plt.gcf()\nprint(fig.get_size_inches(), fig.dpi, len(fig.axes))\nfig.set_size_inches(5, 2)\nfig.savefig('out.png', dpi=100, bbox_inches='tight')\nplt.close(fig)\nprint(plt.get_fignums())\nprint(plt.cm.viridis(0.5), plt.get_cmap('jet').name, len(plt.colormaps()) > 50)\nplt.show()",
+"out": "11.0 [6.4, 4.8]\n3.0 1 [1]\n[6.4 4.8] 100.0 1\n[]\n(np.float64(0.127568), np.float64(0.566949), np.float64(0.550556), np.float64(1.0)) jet True\n"
+},
+{
+"title": "numpy/append_delete",
+"src": "import numpy as np\n\na = np.array([1, 2, 3])\nprint(np.append(a, 4), np.append(a, [4, 5]), np.insert(a, 1, 9), np.delete(a, 0), np.delete(a, [0, 2]))\nm = np.array([[1, 2], [3, 4]])\nprint(np.append(m, [[5, 6]], axis=0))\nprint(np.delete(m, 0, axis=1), np.insert(m, 1, 0, axis=0))\nprint(a)",
+"out": "[1 2 3 4] [1 2 3 4 5] [1 9 2 3] [2 3] [2]\n[[1 2]\n [3 4]\n [5 6]]\n[[2]\n [4]] [[1 2]\n [0 0]\n [3 4]]\n[1 2 3]\n"
+},
+{
+"title": "numpy/copy_view",
+"src": "import numpy as np\n\na = np.arange(4)\nv = a[1:3]\nc = a[1:3].copy()\nv[0] = 99\nprint(a, c, v.base is a, c.base is None, np.shares_memory(a, v))\nb = a.astype(float)\nprint(b.dtype, a.dtype, np.array([1.9, -1.9]).astype(int), np.array([1, 0]).astype(bool))\nprint(a.ndim, a.size, a.shape, a.dtype, a.itemsize, a.nbytes)\nprint(np.array_equal(a, a.copy()), a.tolist(), a[0].item(), a.fill(0), a)",
+"out": "[ 0 99  2  3] [1 2] True True True\nfloat64 int64 [ 1 -1] [ True False]\n1 4 (4,) int64 8 32\nTrue [0, 99, 2, 3] 0 None [0 0 0 0]\n"
+},
+{
+"title": "numpy/stack_more",
+"src": "import numpy as np\n\na = np.array([1, 2])\nb = np.array([3, 4])\nprint(np.column_stack([a, b]), np.dstack([a, b]).shape, np.hstack([a, b]), np.vstack([a, b]).shape, np.block([[a], [b]]).shape)\nprint(np.atleast_1d(1), np.atleast_2d(a).shape, np.atleast_3d(a).shape)\nm = np.arange(4).reshape(2, 2)\nprint(np.fliplr(m), np.flipud(m), np.rot90(m), np.roll(m, 1), np.diag(m), np.diag([1, 2]), np.tril(m), np.triu(m))\nprint(np.broadcast_to(a, (2, 2)), np.broadcast_shapes((2, 1), (3,)), [x.shape for x in np.array_split(np.arange(5), 2)], [x.shape for x in np.hsplit(m, 2)], [x.shape for x in np.vsplit(m, 2)])",
+"out": "[[1 3]\n [2 4]] (1, 2, 2) [1 2 3 4] (2, 2) (2, 2)\n[1] (1, 2) (1, 2, 1)\n[[1 0]\n [3 2]] [[2 3]\n [0 1]] [[1 3]\n [0 2]] [[3 0]\n [1 2]] [0 3] [[1 0]\n [0 2]] [[0 0]\n [2 3]] [[0 1]\n [0 3]]\n[[1 2]\n [1 2]] (2, 3) [(3,), (2,)] [(2, 1), (2, 1)] [(1, 2), (1, 2)]\n"
+},
+{
+"title": "numpy/trig",
+"src": "import numpy as np\n\nx = np.array([-1.5, 0.5, 2.5])\nprint(np.floor(x), np.ceil(x), np.trunc(x), np.rint(x), np.round(x), np.fix(x), np.sign(x))\nprint(np.sin(0), np.cos(0), np.tan(0), np.arcsin(1), np.arccos(1), np.arctan(1), np.arctan2(1, 1), np.sinh(0), np.cosh(0), np.pi, np.e)\nprint(np.degrees(np.pi), np.radians(180), np.deg2rad(90), np.rad2deg(np.pi / 2), np.hypot(3, 4))\nprint(np.exp(1), np.expm1(0), np.log1p(0), np.log10(100), np.power(2, 3), np.cbrt(8), np.floor_divide(7, 2), np.mod(7, 2), np.remainder(-7, 2), np.fmod(-7, 2), np.divmod(7, 2))\nprint(np.add(1, 2), np.subtract(1, 2), np.multiply(2, 3), np.divide(1, 2), np.negative(1), np.reciprocal(2.), np.minimum(1, 2), np.fmax(1, np.nan), np.nan_to_num(np.nan), np.isfinite(1.), np.isinf(1.), np.inf, np.nan)",
+"out": "[-2.  0.  2.] [-1.  1.  3.] [-1.  0.  2.] [-2.  0.  2.] [-2.  0.  2.] [-1.  0.  2.] [-1.  1.  1.]\n0.0 1.0 0.0 1.5707963267948966 0.0 0.7853981633974483 0.7853981633974483 0.0 1.0 3.141592653589793 2.718281828459045\n180.0 3.141592653589793 1.5707963267948966 90.0 5.0\n2.718281828459045 0.0 0.0 2.0 8 2.0 3 1 1 -1 (np.int64(3), np.int64(1))\n3 -1 6 0.5 -1 0.5 1 1.0 0.0 True False inf nan\n"
+},
+{
+"title": "numpy/linalg_more",
+"src": "import numpy as np\n\nA = np.array([[2., 1.], [1., 3.]])\nv, w = np.linalg.eig(A)\nprint(np.round(np.sort(v), 4), w.shape, np.linalg.eigvals(A).shape)\nprint(np.round(np.linalg.cholesky(A), 4))\nQ, R = np.linalg.qr(A)\nprint(np.allclose(Q @ R, A), np.round(np.linalg.pinv(A), 4), np.linalg.matrix_rank(A), np.linalg.matrix_power(A, 2))\nprint(np.round(np.linalg.cond(A), 4), np.linalg.slogdet(A), np.linalg.multi_dot([A, A, A]).shape)\nprint(np.dot([1, 2], [3, 4]), np.inner([1, 2], [3, 4]), np.vdot([1, 2], [3, 4]), np.cross([1, 0, 0], [0, 1, 0]), np.kron([1, 2], [1, 1]))\nprint(np.einsum('ij,ij->', A, A), np.einsum('ii', A), np.einsum('ij,j->i', A, [1, 1]), np.tensordot(A, A, axes=1).shape)\ntry:\n    np.linalg.inv(np.zeros((2, 2)))\nexcept np.linalg.LinAlgError as e:\n    print('LinAlgError', e)",
+"out": "[1.382 3.618] (2, 2) (2,)\n[[1.4142 0.    ]\n [0.7071 1.5811]]\nTrue [[ 0.6 -0.2]\n [-0.2  0.4]] 2 [[ 5.  5.]\n [ 5. 10.]]\n2.618 SlogdetResult(sign=np.float64(1.0), logabsdet=np.float64(1.6094379124341005)) (2, 2)\n11 11 11 [0 0 1] [1 1 2 2]\n15.0 5.0 [3. 4.] (2, 2)\nLinAlgError Singular matrix\n"
+},
+{
+"title": "numpy/stats_more",
+"src": "import numpy as np\n\nx = np.array([1., 2., np.nan, 4.])\nprint(np.nanmean(x), np.nansum(x), np.nanmax(x), np.nanmin(x), np.nanstd(x), np.nanmedian(x), np.nanargmax(x), np.nanpercentile(x, 50))\nprint(np.mean([1, 2]), np.sum([1, 2]), np.min([1, 2]), np.max([1, 2]), np.amax([1, 2]), np.amin([1, 2]), np.ptp([1, 5]), np.std([1, 3]), np.var([1, 3]), np.cumprod([1, 2, 3]))\nprint(np.digitize([0.5, 1.5, 3.], [1, 2]), np.searchsorted([1, 3, 5], 4), np.convolve([1, 2, 3], [1, 1]), np.convolve([1, 2, 3], [1, 1], 'same'), np.correlate([1, 2], [1, 1]), np.interp(1.5, [1, 2], [10, 20]), np.trapezoid([1, 2, 3]), np.gradient([1, 2, 4]))\nprint(np.unique([3, 1, 3], return_counts=True), np.unique([3, 1, 3], return_index=True), np.intersect1d([1, 2], [2, 3]), np.union1d([1, 2], [2, 3]), np.setdiff1d([1, 2], [2]), np.flatnonzero([0, 1, 1]), np.partition([3, 1, 2], 1)[1], np.argpartition([3, 1, 2], 0)[0], np.lexsort(([1, 2], [2, 1])))",
+"out": "2.3333333333333335 7.0 4.0 1.0 1.247219128924647 2.0 3 2.0\n1.5 3 1 2 2 1 4 1.0 1.0 [1 2 6]\n[0 1 2] 2 [1 3 5 3] [1 3 5] [3] 15.0 4.0 [1.  1.5 2. ]\n(array([1, 3]), array([1, 2])) (array([1, 3]), array([1, 0])) [2] [1 2 3] [1] [1 2] 2 1 [1 0]\n"
+},
+{
+"title": "numpy/random_more",
+"src": "import numpy as np\n\nnp.random.seed(0)\nprint(np.random.random(2).shape, np.random.random_sample(2).shape, np.random.uniform(0, 1, 2).shape, np.random.normal(0, 1, (2, 2)).shape, np.random.standard_normal(2).shape)\nprint(np.random.choice(5, 2).shape, np.random.choice([7, 8], 3, p=[1., 0.]), np.random.choice(4, 4, replace=False).shape, sorted(np.random.permutation(3).tolist()))\na = np.arange(4)\nnp.random.shuffle(a)\nprint(sorted(a.tolist()))\nprint(np.random.binomial(1, 1., 2), np.random.poisson(1., 2).shape, np.random.exponential(1., 2).shape, np.random.beta(1, 1, 2).shape, np.random.gamma(1., 1., 2).shape, np.random.multinomial(4, [1., 0.]), np.random.laplace(0, 1, 2).shape, np.random.multivariate_normal([0, 0], np.eye(2), 3).shape, np.random.dirichlet([1, 1]).shape)\nr = np.random.RandomState(0)\nprint(r.randint(0, 5, 2).shape, r.rand(2).shape)\ng = np.random.default_rng(0)\nprint(g.normal(size=2).shape, g.choice(3, 2, replace=False).shape, g.permutation(3).shape, g.uniform(size=1).shape)",
+"out": "(2,) (2,) (2,) (2, 2) (2,)\n(2,) [7 7 7] (4,) [0, 1, 2]\n[0, 1, 2, 3]\n[1 1] (2,) (2,) (2,) (2,) [4 0] (2,) (3, 2) (2,)\n(2,) (2,)\n(2,) (2,) (3,) (1,)\n"
+},
+{
+"title": "numpy/index_more",
+"src": "import numpy as np\n\na = np.arange(9).reshape(3, 3)\nprint(a[np.ix_([0, 2], [0, 1])], a[:, [0, 2]], a[[0, 2]], a[1, ...], a[..., 1], a[::2, ::-1], a[-1], a[a[:, 0] > 2])\nprint(np.c_[[1, 2], [3, 4]], np.r_[[1, 2], [3]], np.s_[1:2], np.mgrid[0:2, 0:2].shape, np.ogrid[0:2, 0:2][1].shape, np.indices((2, 2)).shape)\nprint(np.take(a, [0, 8]), np.put(b := a.copy(), 0, 9), b[0, 0], np.diag_indices(2), np.tril_indices(2), np.triu_indices(2), np.unravel_index(5, (3, 3)), np.ravel_multi_index((1, 2), (3, 3)))\nprint(np.select([a[0] > 1], [1], default=0), np.choose([0, 1], [[1, 2], [3, 4]]), np.extract(a[0] > 0, a[0]), np.compress([0, 1], [5, 6]), np.argwhere(a > 7), np.nonzero(a[0]))\nprint(np.apply_along_axis(np.sum, 1, a), np.vectorize(lambda v: v + 1)([1]), np.fromfunction(lambda i, j: i + j, (2, 2)), np.copyto(c := np.zeros(1), 5), c, np.fill_diagonal(d := np.zeros((2, 2)), 1), d)",
+"out": "[[0 1]\n [6 7]] [[0 2]\n [3 5]\n [6 8]] [[0 1 2]\n [6 7 8]] [3 4 5] [1 4 7] [[2 1 0]\n [8 7 6]] [6 7 8] [[3 4 5]\n [6 7 8]]\n[[1 3]\n [2 4]] [1 2 3] slice(1, 2, None) (2, 2, 2) (1, 2) (2, 2, 2)\n[0 8] None 9 (array([0, 1]), array([0, 1])) (array([0, 1, 1]), array([0, 0, 1])) (array([0, 0, 1]), array([0, 1, 1])) (np.int64(1), np.int64(2)) 5\n[0 0 1] [1 4] [1 2] [6] [[2 2]] (array([1, 2]),)\n[ 3 12 21] [2] [[0. 1.]\n [1. 2.]] None [5.] None [[1. 0.]\n [0. 1.]]\n"
+},
+{
+"title": "numpy/errstate",
+"src": "import numpy as np\n\nwith np.errstate(divide='ignore', invalid='ignore'):\n    print(np.array([1., 0.]) / 0)\nprint(np.finfo(np.float64).eps, np.finfo(np.float32).max, np.iinfo(np.int32).max, np.iinfo(np.uint8).max)\nwith np.printoptions(precision=2, suppress=True):\n    print(np.array([1.23456, 1e-9]))\nnp.set_printoptions(precision=3)\nprint(np.array([1.23456]), np.array2string(np.array([1, 2]), separator=','), np.array_str(np.array([1])), np.array_repr(np.array([1])))\nnp.set_printoptions(precision=8)\nprint(np.result_type(np.int64, np.float32), np.can_cast(np.int64, np.float64), np.issubdtype(np.int64, np.integer), np.dtype('float32').name)\nprint(np.isclose(0.1 + 0.2, 0.3), np.allclose([1.], [1.0000001]), np.array_equiv([1, 1], 1), np.binary_repr(5), np.base_repr(10, 16), np.isscalar(1), np.ndim([1]), np.shape([1]), np.size([1]))",
+"out": "[inf nan]\n2.220446049250313e-16 3.4028235e+38 2147483647 255\n[1.23 0.  ]\n[1.235] [1,2] [1] array([1])\nfloat64 True True float32\nTrue True True 101 A True 1 (1,) 1\n"
+},
+{
+"title": "numpy/windows",
+"src": "import numpy as np\n\nsigmoid = lambda z: 1 / (1 + np.exp(-z))\ny = np.array([1, 0, 1])\np = np.array([.9, .2, .6])\nprint(sigmoid(0.), np.mean((y - p) ** 2), -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)), np.mean((p > .5) == y))\nX = np.arange(12.).reshape(6, 2)\nidx = np.random.permutation(len(X))\nfor i in range(0, len(X), 4):\n    print(X[idx[i:i + 4]].shape)\nprint(np.linalg.norm(X - X[0], axis=1).argmin(), np.argsort(np.linalg.norm(X - X[0], axis=1))[:2], np.bincount([0, 1, 1]).argmax(), (X - X.mean(0)).mean(0), np.c_[np.ones(6), X].shape, np.hanning(3), np.hamming(3), np.blackman(3).shape, np.bartlett(3))",
+"out": "0.5 0.07 0.2797765635793423 1.0\n(4, 2)\n(2, 2)\n0 [0 1] 1 [0. 0.] (6, 3) [0. 1. 0.] [0.08 1.   0.08] (3,) [0. 1. 0.]\n"
 }
 ]

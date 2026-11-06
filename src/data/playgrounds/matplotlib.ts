@@ -387,6 +387,227 @@ sns.heatmap(m, annot=True, fmt='d', cmap='Blues')
 plt.xlabel('predicted')
 plt.ylabel('true')`,
   },
+  // ---- the everyday APIs; each one was run on the real library
+  {
+    id: 'line_style', cat: 'basics', label: 'plot styles / legend / title',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(0, 6, 40)
+plt.figure(figsize=(6, 3.2))
+plt.plot(x, np.sin(x), 'r--', label='sin', linewidth=2)
+plt.plot(x, np.cos(x), color='tab:blue', linestyle=':', marker='o', markersize=3, label='cos', alpha=0.7)
+plt.title('Two waves')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.xlim(0, 6)
+plt.ylim(-1.2, 1.2)
+plt.xticks([0, 3, 6], ['start', 'mid', 'end'])
+plt.grid(True, alpha=0.3)
+plt.legend(loc='upper right')
+plt.tight_layout()
+plt.show()`,
+  },
+  {
+    id: 'barh_stack', cat: 'charts', label: 'barh / stacked / grouped bars',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+names = ['a', 'b', 'c']
+x = np.arange(3)
+p = [3, 5, 2]
+q = [1, 2, 4]
+fig, ax = plt.subplots(1, 3, figsize=(9, 2.8))
+bars = ax[0].barh(names, p, color='tab:green')
+ax[0].bar_label(bars)
+ax[1].bar(names, p, label='p')
+ax[1].bar(names, q, bottom=p, label='q')
+ax[1].legend()
+ax[2].bar(x - 0.2, p, width=0.4, label='p')
+ax[2].bar(x + 0.2, q, width=0.4, label='q')
+ax[2].set_xticks(x, names)
+ax[2].legend()
+fig.tight_layout()
+plt.show()`,
+  },
+  {
+    id: 'distributions', cat: 'charts', label: 'hist / boxplot / violinplot',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(0)
+a = np.random.normal(0, 1, 300)
+b = np.random.normal(1, 0.5, 300)
+fig, ax = plt.subplots(1, 3, figsize=(9, 2.8))
+ax[0].hist(a, bins=20, alpha=0.6, label='a')
+ax[0].hist(b, bins=20, alpha=0.6, label='b')
+ax[0].legend()
+ax[1].boxplot([a, b])
+ax[1].set_xticks([1, 2], ['a', 'b'])
+ax[2].violinplot([a, b])
+fig.tight_layout()
+plt.show()`,
+  },
+  {
+    id: 'pie_stack', cat: 'charts', label: 'pie / stackplot / errorbar',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(1, 3, figsize=(9, 2.8))
+ax[0].pie([40, 35, 25], labels=['a', 'b', 'c'], autopct='%1.0f%%')
+x = np.arange(5)
+ax[1].stackplot(x, [1, 2, 3, 2, 1], [2, 2, 1, 1, 3], labels=['p', 'q'])
+ax[1].legend(loc='upper left')
+ax[2].errorbar(x, x * 2, yerr=0.5 + 0.2 * x, fmt='o-', capsize=3)
+fig.tight_layout()
+plt.show()`,
+  },
+  {
+    id: 'stem_step', cat: 'charts', label: 'stem / step / hlines / vlines',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.arange(8)
+y = np.sin(x)
+fig, ax = plt.subplots(1, 3, figsize=(9, 2.6))
+ax[0].stem(x, y)
+ax[1].step(x, y, where='mid')
+ax[1].axhline(0, color='gray', linestyle='--')
+ax[1].axvline(3, color='red')
+ax[1].axvspan(5, 6, alpha=0.2)
+ax[1].axhspan(-0.5, -0.2, alpha=0.2, color='green')
+ax[2].hlines([0, 0.5], 0, 7, colors='gray')
+ax[2].vlines(x, 0, y)
+fig.tight_layout()
+plt.show()`,
+  },
+  {
+    id: 'annotate_more', cat: 'basics', label: 'annotate / text / arrow',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(-2, 2, 40)
+y = x ** 2
+fig, ax = plt.subplots(figsize=(5, 3))
+ax.plot(x, y)
+ax.annotate('minimum', xy=(0, 0), xytext=(0.8, 2), arrowprops=dict(arrowstyle='->'))
+ax.text(-1.9, 3.4, 'y = x²', fontsize=12, color='tab:red')
+ax.scatter([0], [0], s=60, c='k', zorder=3)
+ax.arrow(-1.5, 1, 0.5, -0.5, head_width=0.1)
+ax.set(title='Parabola', xlabel='x', ylabel='y')
+plt.show()`,
+  },
+  {
+    id: 'layouts', cat: 'basics', label: 'GridSpec / subplot_mosaic / sharex',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+from matplotlib.gridspec import GridSpec
+x = np.arange(5)
+fig = plt.figure(figsize=(7, 3.2))
+gs = GridSpec(2, 3, figure=fig)
+a = fig.add_subplot(gs[:, 0])
+b = fig.add_subplot(gs[0, 1:])
+c = fig.add_subplot(gs[1, 1:], sharex=b)
+for ax, t in zip([a, b, c], 'abc'):
+    ax.plot(x, x)
+    ax.set_title(t)
+fig.suptitle('GridSpec')
+fig.tight_layout()
+fig2, axs = plt.subplot_mosaic('AAB;CCB', figsize=(6, 3))
+for k, ax in axs.items():
+    ax.set_title(k)
+fig2.subplots_adjust(hspace=0.6)
+plt.show()`,
+  },
+  {
+    id: 'colorbar', cat: 'images', label: 'colorbar / pcolormesh / matshow',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+x, y = np.meshgrid(np.linspace(-2, 2, 40), np.linspace(-2, 2, 40))
+z = np.exp(-x ** 2 - y ** 2)
+fig, ax = plt.subplots(1, 3, figsize=(10, 2.8))
+m = ax[0].pcolormesh(x, y, z, cmap='viridis', shading='auto')
+fig.colorbar(m, ax=ax[0])
+n = ax[1].imshow(z, cmap='magma', origin='lower', extent=(-2, 2, -2, 2))
+fig.colorbar(n, ax=ax[1], label='height')
+ax[2].matshow(np.arange(16).reshape(4, 4), cmap='Blues')
+fig.tight_layout()
+plt.show()`,
+  },
+  {
+    id: 'hexbin', cat: 'charts', label: 'hexbin / hist2d / quiver',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(0)
+x = np.random.normal(size=500)
+y = x + np.random.normal(size=500) * 0.5
+fig, ax = plt.subplots(1, 3, figsize=(10, 2.8))
+ax[0].hexbin(x, y, gridsize=15, cmap='Blues')
+ax[1].hist2d(x, y, bins=15, cmap='Greens')
+gx, gy = np.meshgrid(np.linspace(-2, 2, 8), np.linspace(-2, 2, 8))
+ax[2].quiver(gx, gy, -gy, gx)
+fig.tight_layout()
+plt.show()`,
+  },
+  {
+    id: 'axes_scale', cat: 'charts', label: 'loglog / invert_yaxis / twiny',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.logspace(0, 3, 20)
+fig, ax = plt.subplots(1, 3, figsize=(9, 2.8))
+ax[0].loglog(x, x ** 2)
+ax[0].grid(True, which='both', alpha=0.3)
+ax[1].semilogy(x, x ** 2)
+ax[1].semilogx(x, x ** 2)
+ax[2].plot([1, 2, 3], [3, 1, 2])
+ax[2].invert_yaxis()
+ax[2].margins(0.2)
+ax[2].tick_params(axis='x', labelrotation=45, labelsize=8)
+ax[2].minorticks_on()
+print(ax[2].get_ylim(), ax[2].get_xlabel(), ax[2].get_xscale(), ax[0].get_xscale(), ax[2].get_title() == '')
+fig.tight_layout()
+plt.show()`,
+  },
+  {
+    id: 'ticks_fmt', cat: 'basics', label: 'ticker: MultipleLocator / FuncFormatter',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+from matplotlib.ticker import FuncFormatter, MaxNLocator, MultipleLocator, PercentFormatter
+fig, ax = plt.subplots(1, 3, figsize=(9, 2.6))
+ax[0].plot([0, 10], [0, 1])
+ax[0].xaxis.set_major_locator(MultipleLocator(2))
+ax[0].yaxis.set_major_formatter(PercentFormatter(1.0))
+ax[1].plot([0, 3000], [0, 2])
+ax[1].xaxis.set_major_formatter(FuncFormatter(lambda v, p: f'{v / 1000:.0f}k'))
+ax[2].plot([0, 7], [0, 3])
+ax[2].xaxis.set_major_locator(MaxNLocator(integer=True))
+fig.tight_layout()
+plt.show()`,
+  },
+  {
+    id: 'save_state', cat: 'basics', label: 'savefig / gcf / gca / rcParams',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.size'] = 11
+print(plt.rcParams['font.size'], plt.rcParams['figure.figsize'])
+with plt.rc_context({'lines.linewidth': 3}):
+    plt.plot([1, 2], [1, 2])
+print(plt.gca().get_lines()[0].get_linewidth(), plt.gcf().number, plt.get_fignums())
+fig = plt.gcf()
+print(fig.get_size_inches(), fig.dpi, len(fig.axes))
+fig.set_size_inches(5, 2)
+fig.savefig('out.png', dpi=100, bbox_inches='tight')
+plt.close(fig)
+print(plt.get_fignums())
+print(plt.cm.viridis(0.5), plt.get_cmap('jet').name, len(plt.colormaps()) > 50)
+plt.show()`,
+  },
 ]
 
 export const MATPLOTLIB_PLAYGROUND: PlayConfig = {

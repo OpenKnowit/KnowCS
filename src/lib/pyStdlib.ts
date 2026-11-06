@@ -2144,8 +2144,11 @@ const build = (h: Host): Record<string, Value> => ({
     strftime: F('strftime', (a) => S(strftime(new Date(), (a[0] as { v: string }).v))),
   }),
   abc: (() => {
-    const base = { k: 'class', name: 'ABC', bases: [], ns: new Map(), host: null, builtin: true } satisfies ClassValue
-    return mod('abc', { ABC: base, ABCMeta: base, abstractmethod: F('abstractmethod', (a) => a[0]) })
+    const base = { k: 'class', name: 'ABC', bases: [], ns: new Map(), host: null, builtin: true, abstractBase: true } satisfies ClassValue
+    return mod('abc', { ABC: base, ABCMeta: base, abstractmethod: F('abstractmethod', (a) => {
+      if (a[0].k === 'func') a[0].abstract = true
+      return a[0]
+    }) })
   })(),
   warnings: mod('warnings', { warn: noop('warn'), filterwarnings: noop('filterwarnings'), simplefilter: noop('simplefilter') }),
   io: makeIo(h),

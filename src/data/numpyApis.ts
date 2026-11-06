@@ -244,6 +244,138 @@ np.savetxt('t.csv', np.array([[1, 2], [3, 4]]), delimiter=',', fmt='%d')
 print(open('t.csv').read())
 print(np.loadtxt('t.csv', delimiter=','))`,
   },
+  {
+    id: 'append_delete', cat: 'shape', label: 'np.append / delete / insert', match: ['np.append'],
+    code: `import numpy as np
+
+a = np.array([1, 2, 3])
+print(np.append(a, 4), np.append(a, [4, 5]), np.insert(a, 1, 9), np.delete(a, 0), np.delete(a, [0, 2]))
+m = np.array([[1, 2], [3, 4]])
+print(np.append(m, [[5, 6]], axis=0))
+print(np.delete(m, 0, axis=1), np.insert(m, 1, 0, axis=0))
+print(a)`,
+  },
+  {
+    id: 'copy_view', cat: 'shape', label: 'copy / view / astype', match: [],
+    code: `import numpy as np
+
+a = np.arange(4)
+v = a[1:3]
+c = a[1:3].copy()
+v[0] = 99
+print(a, c, v.base is a, c.base is None, np.shares_memory(a, v))
+b = a.astype(float)
+print(b.dtype, a.dtype, np.array([1.9, -1.9]).astype(int), np.array([1, 0]).astype(bool))
+print(a.ndim, a.size, a.shape, a.dtype, a.itemsize, a.nbytes)
+print(np.array_equal(a, a.copy()), a.tolist(), a[0].item(), a.fill(0), a)`,
+  },
+  {
+    id: 'stack_more', cat: 'shape', label: 'column_stack / atleast_2d / flipud', match: [],
+    code: `import numpy as np
+
+a = np.array([1, 2])
+b = np.array([3, 4])
+print(np.column_stack([a, b]), np.dstack([a, b]).shape, np.hstack([a, b]), np.vstack([a, b]).shape, np.block([[a], [b]]).shape)
+print(np.atleast_1d(1), np.atleast_2d(a).shape, np.atleast_3d(a).shape)
+m = np.arange(4).reshape(2, 2)
+print(np.fliplr(m), np.flipud(m), np.rot90(m), np.roll(m, 1), np.diag(m), np.diag([1, 2]), np.tril(m), np.triu(m))
+print(np.broadcast_to(a, (2, 2)), np.broadcast_shapes((2, 1), (3,)), [x.shape for x in np.array_split(np.arange(5), 2)], [x.shape for x in np.hsplit(m, 2)], [x.shape for x in np.vsplit(m, 2)])`,
+  },
+  {
+    id: 'trig', cat: 'math', label: 'floor / sin / arctan2 / degrees', match: [],
+    code: `import numpy as np
+
+x = np.array([-1.5, 0.5, 2.5])
+print(np.floor(x), np.ceil(x), np.trunc(x), np.rint(x), np.round(x), np.fix(x), np.sign(x))
+print(np.sin(0), np.cos(0), np.tan(0), np.arcsin(1), np.arccos(1), np.arctan(1), np.arctan2(1, 1), np.sinh(0), np.cosh(0), np.pi, np.e)
+print(np.degrees(np.pi), np.radians(180), np.deg2rad(90), np.rad2deg(np.pi / 2), np.hypot(3, 4))
+print(np.exp(1), np.expm1(0), np.log1p(0), np.log10(100), np.power(2, 3), np.cbrt(8), np.floor_divide(7, 2), np.mod(7, 2), np.remainder(-7, 2), np.fmod(-7, 2), np.divmod(7, 2))
+print(np.add(1, 2), np.subtract(1, 2), np.multiply(2, 3), np.divide(1, 2), np.negative(1), np.reciprocal(2.), np.minimum(1, 2), np.fmax(1, np.nan), np.nan_to_num(np.nan), np.isfinite(1.), np.isinf(1.), np.inf, np.nan)`,
+  },
+  {
+    id: 'linalg_more', cat: 'linalg', label: 'np.linalg.eig / cholesky / qr / pinv', match: ['np.linalg.eig'],
+    code: `import numpy as np
+
+A = np.array([[2., 1.], [1., 3.]])
+v, w = np.linalg.eig(A)
+print(np.round(np.sort(v), 4), w.shape, np.linalg.eigvals(A).shape)
+print(np.round(np.linalg.cholesky(A), 4))
+Q, R = np.linalg.qr(A)
+print(np.allclose(Q @ R, A), np.round(np.linalg.pinv(A), 4), np.linalg.matrix_rank(A), np.linalg.matrix_power(A, 2))
+print(np.round(np.linalg.cond(A), 4), np.linalg.slogdet(A), np.linalg.multi_dot([A, A, A]).shape)
+print(np.dot([1, 2], [3, 4]), np.inner([1, 2], [3, 4]), np.vdot([1, 2], [3, 4]), np.cross([1, 0, 0], [0, 1, 0]), np.kron([1, 2], [1, 1]))
+print(np.einsum('ij,ij->', A, A), np.einsum('ii', A), np.einsum('ij,j->i', A, [1, 1]), np.tensordot(A, A, axes=1).shape)
+try:
+    np.linalg.inv(np.zeros((2, 2)))
+except np.linalg.LinAlgError as e:
+    print('LinAlgError', e)`,
+  },
+  {
+    id: 'stats_more', cat: 'stats', label: 'digitize / convolve / nanmean', match: [],
+    code: `import numpy as np
+
+x = np.array([1., 2., np.nan, 4.])
+print(np.nanmean(x), np.nansum(x), np.nanmax(x), np.nanmin(x), np.nanstd(x), np.nanmedian(x), np.nanargmax(x), np.nanpercentile(x, 50))
+print(np.mean([1, 2]), np.sum([1, 2]), np.min([1, 2]), np.max([1, 2]), np.amax([1, 2]), np.amin([1, 2]), np.ptp([1, 5]), np.std([1, 3]), np.var([1, 3]), np.cumprod([1, 2, 3]))
+print(np.digitize([0.5, 1.5, 3.], [1, 2]), np.searchsorted([1, 3, 5], 4), np.convolve([1, 2, 3], [1, 1]), np.convolve([1, 2, 3], [1, 1], 'same'), np.correlate([1, 2], [1, 1]), np.interp(1.5, [1, 2], [10, 20]), np.trapezoid([1, 2, 3]), np.gradient([1, 2, 4]))
+print(np.unique([3, 1, 3], return_counts=True), np.unique([3, 1, 3], return_index=True), np.intersect1d([1, 2], [2, 3]), np.union1d([1, 2], [2, 3]), np.setdiff1d([1, 2], [2]), np.flatnonzero([0, 1, 1]), np.partition([3, 1, 2], 1)[1], np.argpartition([3, 1, 2], 0)[0], np.lexsort(([1, 2], [2, 1])))`,
+  },
+  {
+    id: 'random_more', cat: 'random', label: 'np.random.choice / shuffle / normal', match: ['np.random.choice'],
+    code: `import numpy as np
+
+np.random.seed(0)
+print(np.random.random(2).shape, np.random.random_sample(2).shape, np.random.uniform(0, 1, 2).shape, np.random.normal(0, 1, (2, 2)).shape, np.random.standard_normal(2).shape)
+print(np.random.choice(5, 2).shape, np.random.choice([7, 8], 3, p=[1., 0.]), np.random.choice(4, 4, replace=False).shape, sorted(np.random.permutation(3).tolist()))
+a = np.arange(4)
+np.random.shuffle(a)
+print(sorted(a.tolist()))
+print(np.random.binomial(1, 1., 2), np.random.poisson(1., 2).shape, np.random.exponential(1., 2).shape, np.random.beta(1, 1, 2).shape, np.random.gamma(1., 1., 2).shape, np.random.multinomial(4, [1., 0.]), np.random.laplace(0, 1, 2).shape, np.random.multivariate_normal([0, 0], np.eye(2), 3).shape, np.random.dirichlet([1, 1]).shape)
+r = np.random.RandomState(0)
+print(r.randint(0, 5, 2).shape, r.rand(2).shape)
+g = np.random.default_rng(0)
+print(g.normal(size=2).shape, g.choice(3, 2, replace=False).shape, g.permutation(3).shape, g.uniform(size=1).shape)`,
+  },
+  {
+    id: 'index_more', cat: 'index', label: 'np.ix_ / c_ / r_ / argwhere', match: ['np.ix_'],
+    code: `import numpy as np
+
+a = np.arange(9).reshape(3, 3)
+print(a[np.ix_([0, 2], [0, 1])], a[:, [0, 2]], a[[0, 2]], a[1, ...], a[..., 1], a[::2, ::-1], a[-1], a[a[:, 0] > 2])
+print(np.c_[[1, 2], [3, 4]], np.r_[[1, 2], [3]], np.s_[1:2], np.mgrid[0:2, 0:2].shape, np.ogrid[0:2, 0:2][1].shape, np.indices((2, 2)).shape)
+print(np.take(a, [0, 8]), np.put(b := a.copy(), 0, 9), b[0, 0], np.diag_indices(2), np.tril_indices(2), np.triu_indices(2), np.unravel_index(5, (3, 3)), np.ravel_multi_index((1, 2), (3, 3)))
+print(np.select([a[0] > 1], [1], default=0), np.choose([0, 1], [[1, 2], [3, 4]]), np.extract(a[0] > 0, a[0]), np.compress([0, 1], [5, 6]), np.argwhere(a > 7), np.nonzero(a[0]))
+print(np.apply_along_axis(np.sum, 1, a), np.vectorize(lambda v: v + 1)([1]), np.fromfunction(lambda i, j: i + j, (2, 2)), np.copyto(c := np.zeros(1), 5), c, np.fill_diagonal(d := np.zeros((2, 2)), 1), d)`,
+  },
+  {
+    id: 'errstate', cat: 'math', label: 'np.errstate / set_printoptions / finfo', match: ['np.errstate'],
+    code: `import numpy as np
+
+with np.errstate(divide='ignore', invalid='ignore'):
+    print(np.array([1., 0.]) / 0)
+print(np.finfo(np.float64).eps, np.finfo(np.float32).max, np.iinfo(np.int32).max, np.iinfo(np.uint8).max)
+with np.printoptions(precision=2, suppress=True):
+    print(np.array([1.23456, 1e-9]))
+np.set_printoptions(precision=3)
+print(np.array([1.23456]), np.array2string(np.array([1, 2]), separator=','), np.array_str(np.array([1])), np.array_repr(np.array([1])))
+np.set_printoptions(precision=8)
+print(np.result_type(np.int64, np.float32), np.can_cast(np.int64, np.float64), np.issubdtype(np.int64, np.integer), np.dtype('float32').name)
+print(np.isclose(0.1 + 0.2, 0.3), np.allclose([1.], [1.0000001]), np.array_equiv([1, 1], 1), np.binary_repr(5), np.base_repr(10, 16), np.isscalar(1), np.ndim([1]), np.shape([1]), np.size([1]))`,
+  },
+  {
+    id: 'windows', cat: 'ml', label: 'one-liners: sigmoid, MSE, batches', match: [],
+    code: `import numpy as np
+
+sigmoid = lambda z: 1 / (1 + np.exp(-z))
+y = np.array([1, 0, 1])
+p = np.array([.9, .2, .6])
+print(sigmoid(0.), np.mean((y - p) ** 2), -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)), np.mean((p > .5) == y))
+X = np.arange(12.).reshape(6, 2)
+idx = np.random.permutation(len(X))
+for i in range(0, len(X), 4):
+    print(X[idx[i:i + 4]].shape)
+print(np.linalg.norm(X - X[0], axis=1).argmin(), np.argsort(np.linalg.norm(X - X[0], axis=1))[:2], np.bincount([0, 1, 1]).argmax(), (X - X.mean(0)).mean(0), np.c_[np.ones(6), X].shape, np.hanning(3), np.hamming(3), np.blackman(3).shape, np.bartlett(3))`,
+  },
 ]
 
 /** Code blocks in the note → a runnable version in the panel (matched by their content). */

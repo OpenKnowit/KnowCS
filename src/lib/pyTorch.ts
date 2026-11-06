@@ -5589,6 +5589,7 @@ class TensorDataset extends DatasetObj {
 const datasetLen = (h: Host, ds: Value): number => {
   if (ds.k === 'obj' && ds.o.len) return ds.o.len(h)
   if (ds.k === 'list' || ds.k === 'tuple') return ds.items.length
+  if (ds.k === 'range') return h.iterate(ds).length
   const f = ds.k === 'inst' ? h.getAttrOr(ds, '__len__') : undefined
   if (!f) throw h.err('TypeError', `object of type '${typeName(ds)}' has no len()`)
   return h.num(h.call(f, []))

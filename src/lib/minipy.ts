@@ -1106,6 +1106,7 @@ export type Kw = Record<string, Value>
 
 /** A user-defined function or lambda; closure = the enclosing function's frame (null at module level) */
 export interface FuncValue {
+  abstract?: boolean
   k: 'func'
   name: string
   params: Param[]
@@ -1159,7 +1160,7 @@ export interface ClassMeta {
 }
 
 /** builtin: part of Python (ValueError …), so it prints without __main__; module: the library module it prints with */
-export interface ClassValue { k: 'class'; generic?: boolean; name: string; bases: Value[]; ns: Map<string, Value>; host: HostClass | null; builtin?: boolean; module?: string; meta?: ClassMeta }
+export interface ClassValue { k: 'class'; generic?: boolean; abstractBase?: boolean; abstracts?: string[]; name: string; bases: Value[]; ns: Map<string, Value>; host: HostClass | null; builtin?: boolean; module?: string; meta?: ClassMeta }
 export interface InstValue { k: 'inst'; cls: ClassValue; attrs: Map<string, Value>; state: Record<string, unknown> }
 
 export type Value =
@@ -3545,7 +3546,33 @@ class Interp implements Host {
     }
   }
 
+  /** the methods a class derived from ABC has not written yet */
+  abstractsOf(cls: ClassValue): string[] {
+    const order: ClassValue[] = []
+    const walk = (c: Value) => {
+      if (c.k === 'class' && !order.includes(c)) {
+        order.push(c)
+        c.bases.forEach(walk)
+      }
+    }
+    walk(cls)
+    if (!order.some((c) => c.abstractBase)) return []
+    const found = new Set<string>()
+    const out: string[] = []
+    for (const c of order) {
+      for (const [n, v] of c.ns) {
+        if (found.has(n)) continue
+        found.add(n)
+        const f = v.k === 'descr' ? v.f : v
+        if (f.k === 'func' && f.abstract) out.push(n)
+      }
+    }
+    return out.sort()
+  }
+
   instantiate(cls: ClassValue, args: Value[], kw: Kw): Value {
+    const missing = (cls.abstracts ??= this.abstractsOf(cls))
+    if (missing.length) throw this.err('TypeError', `Can't instantiate abstract class ${cls.name} with abstract method${missing.length > 1 ? 's' : ''} ${missing.join(', ')}`)
     const inst: InstValue = { k: 'inst', cls, attrs: new Map(), state: {} }
     // an exception keeps its arguments even when its own __init__ does not pass them on
     if (cls.host === EXC_HOST) EXC_HOST.init(inst, args, kw, this)
@@ -4462,6 +4489,8 @@ class Interp implements Host {
         break
       case 'int': case 'float': case 'bool':
         if (name === 'item') return fn(() => obj)
+        // NumPy's scalars are plain numbers here, and a.mean().round(2) is how people write it
+        if (name === 'round' && obj.k === 'float') return fn((args, kw) => this.call(this.builtins.round, [obj, args[0] ?? kw.decimals ?? int(0)]))
         if (name === 'is_integer') return fn(() => bool(Number.isInteger(numOf(obj))))
         if (name === 'real' || name === 'conjugate') {
           const self = obj.k === 'float' ? obj : int(numOf(obj))
@@ -5254,8 +5283,12 @@ class Interp implements Host {
       }, 'elementwise'),
       nonzero: fn('nonzero', (args) => this.nonzero(asArr(args[0], 'nonzero')), 'info'),
       // ---- linear algebra
-      dot: fn('dot', (args) => this.binop('@', args[0], args[1]), 'matmul'),
-      matmul: fn('matmul', (args) => this.binop('@', args[0], args[1]), 'matmul'),
+      dot: fn('dot', (args) => {
+        const [a, b] = args
+        if (isNum(a) || isNum(b)) return this.binop('*', isNum(a) ? a : arr(asArr(a, 'dot')), isNum(b) ? b : arr(asArr(b, 'dot')))
+        return this.binop('@', arr(asArr(a, 'dot')), arr(asArr(b, 'dot')))
+      }, 'matmul'),
+      matmul: fn('matmul', (args) => this.binop('@', arr(asArr(args[0], 'matmul')), arr(asArr(args[1], 'matmul'))), 'matmul'),
       outer: fn('outer', (args) => arr(outer(asArr(args[0], 'outer'), asArr(args[1], 'outer'))), 'matmul'),
       trace: fn('trace', (args) => {
         const a = asArr(args[0], 'trace')
@@ -5425,7 +5458,8 @@ class Interp implements Host {
       array_equal: fn('array_equal', (args) => {
         const a = toArray(args[0])
         const b = toArray(args[1])
-        return bool(a.shape.length === b.shape.length && a.shape.every((d, i) => d === b.shape[i]) && a.values().every((x, i) => x === b.values()[i]))
+        const other = b.values()
+        return bool(a.shape.length === b.shape.length && a.shape.every((d, i) => d === b.shape[i]) && a.values().every((x, i) => x === other[i]))
       }, 'info'),
       // ---- element-wise math
       abs: elementwise('abs', Math.abs, 'same'),

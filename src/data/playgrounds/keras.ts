@@ -384,6 +384,276 @@ h = m.fit(ds, epochs=2, verbose=0)
 print(ds.element_spec, h.params)
 print(m.predict(ds, verbose=0).shape)`,
   },
+  // ---- the everyday APIs; each one was run on the real library
+  {
+    id: 'cnn_layers', cat: 'layers', label: 'Conv2D / MaxPool / BatchNorm',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+m = keras.Sequential([
+    keras.Input((28, 28, 1)),
+    layers.Rescaling(1 / 255),
+    layers.Conv2D(8, 3, padding='same', activation='relu'),
+    layers.BatchNormalization(),
+    layers.MaxPooling2D(2),
+    layers.Conv2D(16, 3, activation='relu'),
+    layers.AveragePooling2D(2),
+    layers.GlobalAveragePooling2D(),
+    layers.Dropout(0.5),
+    layers.Dense(10, activation='softmax'),
+])
+m.summary()
+for l in m.layers:
+    print(l.name, l.output.shape)`,
+  },
+  {
+    id: 'shape_layers', cat: 'layers', label: 'Reshape / Permute / UpSampling2D',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+x = np.arange(24.).reshape(1, 2, 3, 4)
+print(layers.Reshape((4, 6))(x).shape)
+print(layers.Permute((3, 1, 2))(x).shape)
+print(layers.Flatten()(x).shape)
+print(layers.UpSampling2D(2)(x).shape)
+print(layers.ZeroPadding2D(1)(x).shape)
+print(layers.Cropping2D(((0, 1), (1, 1)))(x).shape)
+print(layers.Resizing(4, 6)(x).shape)
+print(layers.RepeatVector(3)(np.ones((1, 2))).shape)`,
+  },
+  {
+    id: 'activation_layers', cat: 'layers', label: 'ReLU / LeakyReLU / Softmax',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+x = np.array([[-2., 0., 2.]])
+print(layers.ReLU()(x))
+print(layers.LeakyReLU(negative_slope=0.1)(x))
+print(layers.ELU()(x))
+print(layers.Softmax()(x))
+print(layers.Activation('tanh')(x))
+print(layers.Lambda(lambda t: t * 2)(x))
+print(keras.activations.relu(x), keras.activations.sigmoid(x), keras.activations.gelu(x))`,
+  },
+  {
+    id: 'merge_layers', cat: 'layers', label: 'Add / Concatenate / Multiply',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+a = np.array([[1., 2.]])
+b = np.array([[3., 4.]])
+print(layers.Add()([a, b]), layers.Subtract()([a, b]), layers.Multiply()([a, b]))
+print(layers.Average()([a, b]), layers.Maximum()([a, b]), layers.Minimum()([a, b]))
+print(layers.Concatenate()([a, b]), layers.Dot(axes=1)([a, b]))
+print(layers.add([a, b]), layers.concatenate([a, b], axis=-1))`,
+  },
+  {
+    id: 'rnn_layers', cat: 'layers', label: 'SimpleRNN / Embedding / Bidirectional',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+m = keras.Sequential([
+    keras.Input((5,), dtype='int32'),
+    layers.Embedding(100, 8),
+    layers.Bidirectional(layers.SimpleRNN(4, return_sequences=True)),
+    layers.TimeDistributed(layers.Dense(2)),
+    layers.Conv1D(3, 2),
+    layers.MaxPooling1D(2),
+    layers.GlobalMaxPooling1D(),
+])
+m.summary()
+print(m(np.zeros((2, 5), 'int32')).shape)`,
+  },
+  {
+    id: 'attention_norm', cat: 'layers', label: 'LayerNormalization / Normalization',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+x = np.ones((1, 4, 8), 'float32')
+print(layers.LayerNormalization()(x).shape)
+print(layers.GaussianNoise(0.1)(x).shape, layers.GaussianDropout(0.1)(x).shape, layers.SpatialDropout1D(0.5)(x).shape)
+norm = layers.Normalization(axis=-1)
+norm.adapt(np.array([[1.], [2.], [3.]]))
+print(norm(np.array([[2.]])))`,
+  },
+  {
+    id: 'augment', cat: 'layers', label: 'RandomFlip / RandomRotation',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+aug = keras.Sequential([layers.RandomFlip('horizontal'), layers.RandomRotation(0.1), layers.RandomZoom(0.1), layers.RandomCrop(4, 4)])
+x = np.random.rand(2, 8, 8, 3)
+print(aug(x, training=True).shape)
+print(layers.RandomFlip('horizontal')(x, training=False).shape)
+print(np.allclose(layers.RandomFlip('horizontal')(x, training=False), x))`,
+  },
+  {
+    id: 'losses_fn', cat: 'evaluate', label: 'keras.losses',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+y = np.array([[1., 0.], [0., 1.]])
+p = np.array([[.9, .1], [.2, .8]])
+print(keras.losses.MeanSquaredError()(y, p))
+print(keras.losses.MeanAbsoluteError()(y, p))
+print(keras.losses.CategoricalCrossentropy()(y, p))
+print(keras.losses.BinaryCrossentropy()(y, p))
+print(keras.losses.SparseCategoricalCrossentropy()(np.array([0, 1]), p))
+print(keras.losses.Huber()(y, p), keras.losses.Hinge()(y, p), keras.losses.KLDivergence()(y, p), keras.losses.CosineSimilarity()(y, p))
+print(keras.losses.get('mse').__name__)`,
+  },
+  {
+    id: 'metrics_fn', cat: 'evaluate', label: 'keras.metrics',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+m = keras.metrics.BinaryAccuracy()
+m.update_state([1, 0, 1, 1], [0.9, 0.2, 0.4, 0.8])
+print(m.result(), m.name)
+m.reset_state()
+print(m.result())
+for cls in [keras.metrics.Precision, keras.metrics.Recall, keras.metrics.AUC]:
+    x = cls()
+    x.update_state([1, 0, 1, 1], [0.9, 0.2, 0.4, 0.8])
+    print(x.name, np.round(float(x.result()), 3))
+c = keras.metrics.SparseCategoricalAccuracy()
+c.update_state([1, 0], [[.1, .9], [.3, .7]])
+print(c.result())
+t = keras.metrics.TopKCategoricalAccuracy(k=2)
+t.update_state([[0, 0, 1]], [[.5, .3, .2]])
+print(t.result())
+print(keras.metrics.MeanSquaredError().name, keras.metrics.RootMeanSquaredError().name, keras.metrics.Mean().name)`,
+  },
+  {
+    id: 'optimizers', cat: 'evaluate', label: 'keras.optimizers',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+for cls in [keras.optimizers.SGD, keras.optimizers.Adam, keras.optimizers.AdamW, keras.optimizers.RMSprop, keras.optimizers.Adagrad, keras.optimizers.Adadelta, keras.optimizers.Adamax, keras.optimizers.Nadam]:
+    o = cls(learning_rate=0.01)
+    print(cls.__name__, round(float(o.learning_rate), 4))
+print(keras.optimizers.SGD(0.1, momentum=0.9).momentum)
+print(type(keras.optimizers.get('adam')).__name__)
+m = keras.Sequential([keras.Input((1,)), layers.Dense(1)])
+m.compile(keras.optimizers.Adam(1e-3), loss='mse', metrics=['mae'])
+print(m.metrics_names, m.get_compile_config()['loss'])`,
+  },
+  {
+    id: 'initializers', cat: 'evaluate', label: 'initializers / regularizers',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+keras.utils.set_random_seed(0)
+print(keras.initializers.Zeros()((2,)), keras.initializers.Ones()((2,)), keras.initializers.Constant(3.)((2,)))
+for init in ['glorot_uniform', 'he_normal', 'he_uniform', 'lecun_normal', 'random_normal', 'orthogonal']:
+    print(init, keras.initializers.get(init)((3, 3)).shape)
+d = layers.Dense(2, kernel_initializer='he_normal', bias_initializer='zeros', kernel_regularizer=keras.regularizers.L2(0.01))
+print(d(np.ones((1, 2))).shape, len(d.losses))
+w = np.array([1., 2.], 'float32')
+print(keras.regularizers.L2(0.5)(w), keras.regularizers.L1(0.5)(w), keras.regularizers.L1L2(0.5, 0.5)(w))`,
+  },
+  {
+    id: 'model_attrs', cat: 'evaluate', label: 'weights / get_config / to_json',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+m = keras.Sequential([keras.Input((3,)), layers.Dense(2, name='a'), layers.Dropout(0.5), layers.BatchNormalization()])
+print(len(m.layers), [l.name for l in m.layers], m.count_params())
+print([w.shape for w in m.weights])
+print(len(m.trainable_weights), len(m.non_trainable_weights), len(m.trainable_variables))
+print(m.get_layer('a').units, m.get_layer(index=0).name, m.input_shape, m.output_shape)
+m.layers[0].trainable = False
+print(len(m.trainable_weights), m.layers[0].trainable)
+w = m.get_layer('a').get_weights()
+m.get_layer('a').set_weights([np.ones_like(w[0]), w[1]])
+print(m.get_layer('a').kernel.numpy())
+print(m.get_config()['layers'][1]['class_name'], keras.models.model_from_json(m.to_json()).count_params())
+print(keras.models.clone_model(m).count_params())`,
+  },
+  {
+    id: 'batch_api', cat: 'train', label: 'train_on_batch / predict_on_batch',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+keras.utils.set_random_seed(0)
+X = np.array([[0.], [1.]])
+y = np.array([[0.], [2.]])
+m = keras.Sequential([keras.Input((1,)), layers.Dense(1)])
+m.compile('sgd', 'mse')
+first = m.train_on_batch(X, y)
+for _ in range(50):
+    last = m.train_on_batch(X, y)
+print(float(last) < float(first))
+print(m.predict_on_batch(X).shape, type(m.test_on_batch(X, y)).__name__)
+m.save_weights('w.weights.h5')
+m.load_weights('w.weights.h5')
+print(m.predict(X, verbose=0).shape, m.evaluate(X, y, verbose=0) >= 0)`,
+  },
+  {
+    id: 'callbacks_more', cat: 'callbacks', label: 'ReduceLROnPlateau / ModelCheckpoint',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+keras.utils.set_random_seed(0)
+X = np.linspace(0, 1, 8).reshape(-1, 1)
+y = 2 * X
+m = keras.Sequential([keras.Input((1,)), layers.Dense(1)])
+m.compile(keras.optimizers.SGD(0.1), 'mse')
+log = []
+cbs = [
+    keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=1, min_lr=1e-3),
+    keras.callbacks.ModelCheckpoint('best.keras', monitor='loss', save_best_only=True),
+    keras.callbacks.TerminateOnNaN(),
+    keras.callbacks.LambdaCallback(on_epoch_end=lambda e, logs: log.append(e)),
+]
+h = m.fit(X, y, epochs=3, verbose=0, callbacks=cbs)
+print(log, sorted(h.history), h.params['epochs'], h.epoch)
+print(keras.models.load_model('best.keras').count_params())`,
+  },
+  {
+    id: 'ops', cat: 'custom', label: 'keras.ops',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+from keras import ops
+x = ops.convert_to_tensor([[1., 2.], [3., 4.]])
+print(ops.shape(x), ops.sum(x), ops.mean(x, axis=0), ops.max(x), ops.min(x), ops.prod(x))
+print(ops.reshape(x, (-1,)), ops.transpose(x), ops.expand_dims(x, 0).shape, ops.squeeze(ops.ones((1, 2))).shape)
+print(ops.concatenate([x, x]).shape, ops.stack([x, x]).shape, ops.tile(x, 2).shape, ops.zeros_like(x), ops.eye(2), ops.linspace(0, 1, 3))
+print(ops.matmul(x, x), ops.multiply(x, x), ops.subtract(x, x), ops.divide(x, x), ops.power(x, 2), ops.sqrt(x), ops.exp(ops.zeros(1)), ops.abs(-x))
+print(ops.argmax(x), ops.argsort(x), ops.sort(-x), ops.where(x > 2, x, 0.), ops.clip(x, 2, 3), ops.one_hot(np.array([0, 1]), 2))
+print(ops.cast(x, 'int32'), ops.equal(x, x), ops.greater(x, 2), ops.less(x, 2), ops.norm(x), ops.stop_gradient(x).shape)
+print(ops.softmax(x), ops.relu(x - 2), ops.sigmoid(x))`,
+  },
+  {
+    id: 'utils', cat: 'custom', label: 'keras.utils',
+    code: `import numpy as np
+import keras
+from keras import layers
+
+print(keras.utils.to_categorical([0, 2], 3))
+print(keras.utils.normalize(np.array([[3., 4.]])))
+keras.utils.set_random_seed(0)
+keras.utils.clear_session()
+a, b = keras.utils.split_dataset(np.arange(10), left_size=0.8)
+print(len(list(a)), len(list(b)))
+print(keras.utils.img_to_array(np.zeros((2, 2, 3))).shape)`,
+  },
 ]
 
 export const KERAS_PLAYGROUND: PlayConfig = {
@@ -392,7 +662,7 @@ export const KERAS_PLAYGROUND: PlayConfig = {
   maxSize: 2_000_000,
   timeBudget: 5000,
   debounce: 700,
-  cats: ['build', 'train', 'pitfalls', 'functional', 'custom', 'callbacks', 'sequences'],
+  cats: ['build', 'train', 'pitfalls', 'functional', 'custom', 'callbacks', 'sequences', 'layers', 'evaluate'],
   entries: ENTRIES,
   prelude: H,
   callApis: [],
