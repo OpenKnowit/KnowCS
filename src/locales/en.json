@@ -408,8 +408,10 @@
     "unit_mm": "Height in mm",
     "axis_height_unit": "Height ({{u}})",
     "stats_line": "height μ = {{mh}} {{u}}, σ = {{sh}} · weight μ = {{mw}} kg, σ = {{sw}}",
-    "unit_note_cm": "In cm both features spread over a few units, so standardising changes little. Switch the height to mm.",
-    "unit_note_mm": "In mm every height difference is 10 times larger: the raw distance is almost all height, and the dashed region stretches along weight. Standardised, the answer is the same as in cm."
+    "unit_note_cm": "Both axes in cm and kg, 1 cm as long as 1 kg: the dashed region is a circle. Switch the height to mm.",
+    "unit_note_mm": "In mm every height difference is 10 times larger. With 1 mm as long as 1 kg, the weights are squeezed into a thin band: the raw distance hardly sees them.",
+    "axis_weight_unit": "Weight ({{u}})",
+    "std_note": "Standardised, both axes count in standard deviations (z = (x − μ) / σ): the dashed circle is the same in cm and in mm."
   },
   "app": {
     "title": "CS/AI Interactive Learning Lab",

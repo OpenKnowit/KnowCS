@@ -7,7 +7,9 @@ import { LineChart } from '../components/LineChart'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
 import { KNN_RAW_DATA } from '../data/constants'
-import { computeKnn, knnStats, looErrorCurve, nudgeTestPoint, scaleHeights, scaleLinear, svgToDataPoint } from '../lib/knn'
+import { computeKnn, knnStats, knnView, looErrorCurve, nudgeTestPoint, scaleHeights } from '../lib/knn'
+import type { KnnView } from '../lib/knn'
+import { niceTicks } from '../lib/chart'
 import type { KnnPoint, StudentClass, TestPoint } from '../types'
 
 const WIDTH = 400
@@ -24,8 +26,11 @@ type Unit = 'cm' | 'mm'
 type Point = KnnPoint & { id: number }
 type Drag = { kind: 'test' } | { kind: 'point'; id: number } | { kind: 'new'; s: StudentClass }
 
-const px = (h: number) => scaleLinear(h, RANGE.minH, RANGE.maxH, WIDTH)
-const py = (w: number) => HEIGHT - scaleLinear(w, RANGE.minW, RANGE.maxW, HEIGHT)
+/** where points may be placed, in cm and kg */
+const PLACE = { minH: 145, maxH: 185, minW: 45, maxW: 80 }
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+/** a tick label: whole numbers as they are, z-scores with one decimal at most */
+const tick = (v: number) => String(+v.toFixed(1))
 const pct = (v: number) => `${Math.round(v * 100)}%`
 const COLOR: Record<StudentClass, string> = { M: '#3b82f6', L: '#ef4444' }
 const fresh = (): Point[] => KNN_RAW_DATA.map((p, id) => ({ ...p, id }))
@@ -71,18 +76,31 @@ export const KnnModule = () => {
   )
   const best = useMemo(() => looCurve.reduce((a, b) => (b.y < a.y ? b : a)), [looCurve])
 
+  // the plot in the distance's own units, one unit as long on both axes (cm & kg, mm & kg, or z & z). While something is
+  // dragged it stays as it was, or editing a point would move the axes under the pointer.
+  const liveView = useMemo(() => knnView(isStandardized, factor, stats, RANGE), [isStandardized, factor, stats])
+  const [frozen, setFrozen] = useState<KnnView | null>(null)
+  const view = frozen ?? liveView
+  const px = (h: number) => ((view.toU(h) - view.u0) / view.span) * WIDTH
+  const py = (w: number) => HEIGHT - ((view.toV(w) - view.v0) / view.span) * HEIGHT
+  const motion = { duration: drag ? 0 : 0.45 }
+
   /** pointer → plot coordinates (the canvas is scaled on small screens) */
   const at = (e: { clientX: number; clientY: number }) => {
     const rect = svgRef.current!.getBoundingClientRect()
     const x = ((e.clientX - rect.left) / rect.width) * WIDTH
     const y = ((e.clientY - rect.top) / rect.height) * HEIGHT
     const out = x < -OUT || x > WIDTH + OUT || y < -OUT || y > HEIGHT + OUT
-    const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
-    return { ...svgToDataPoint(clamp(x, 0, WIDTH), clamp(y, 0, HEIGHT), WIDTH, HEIGHT, PLOT), out, inside: x >= 0 && x <= WIDTH && y >= 0 && y <= HEIGHT }
+    const u = view.u0 + (clamp(x, 0, WIDTH) / WIDTH) * view.span
+    const v = view.v0 + ((HEIGHT - clamp(y, 0, HEIGHT)) / HEIGHT) * view.span
+    const h = Math.round(clamp(view.fromU(u), PLACE.minH, PLACE.maxH))
+    const w = Math.round(clamp(view.fromV(v), PLACE.minW, PLACE.maxW))
+    return { h, w, out, inside: x >= 0 && x <= WIDTH && y >= 0 && y <= HEIGHT }
   }
 
   const begin = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (!svgRef.current) return
+    setFrozen(liveView)
     const target = (e.target as Element).closest('[data-point]')
     const p = at(e)
     if (target && editing) {
@@ -118,11 +136,13 @@ export const KnnModule = () => {
     }
     setDrag(null)
     setGhost(null)
+    setFrozen(null)
   }
 
   // the palette: press a chip and drag it onto the plot (or just press it, then press the plot)
   const fromPalette = (s: StudentClass) => (e: ReactPointerEvent<HTMLButtonElement>) => {
     setAddClass(s)
+    setFrozen(liveView)
     setDrag({ kind: 'new', s })
     e.currentTarget.setPointerCapture(e.pointerId)
   }
@@ -137,15 +157,13 @@ export const KnnModule = () => {
   const tx = px(testPoint.h)
   const ty = py(testPoint.w)
   const predLabel = processedData.prediction === 'M' ? t('knn.class_m') : t('knn.class_l')
-  // the points at the K-th neighbour's distance: an ellipse on this plot, which shows cm and kg side by side
-  const r = processedData.radiusDist
-  const rxCm = (isStandardized ? r * stats.stdH : r) / factor
-  const ryKg = isStandardized ? r * stats.stdW : r
-  const rx = (rxCm / (RANGE.maxH - RANGE.minH)) * WIDTH
-  const ry = (ryKg / (RANGE.maxW - RANGE.minW)) * HEIGHT
+  // every point as far as the K-th neighbour: a circle, as both axes are in the distance's units
+  const radius = (processedData.radiusDist / view.span) * WIDTH
+  const uTicks = niceTicks(view.u0, view.u0 + view.span, 5).filter((v) => v > view.u0 && v < view.u0 + view.span)
+  const vTicks = niceTicks(view.v0, view.v0 + view.span, 5).filter((v) => v > view.v0 && v < view.v0 + view.span)
+  const uUnit = isStandardized ? 'z' : unit
   const byId = new Map(points.map((p, i) => [p.id, i]))
   const seg = (on: boolean) => `px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition ${on ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`
-  const hTick = (v: number) => String(v * factor)
 
   return (
     <div className="space-y-4">
@@ -201,7 +219,7 @@ export const KnnModule = () => {
 
           {/* 网格布局给两条坐标轴标签留位置，避免旋转文字压到画布 */}
           <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 w-full max-w-[min(470px,calc(100dvh-470px))] min-w-[240px] mx-auto">
-            <div className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] whitespace-nowrap" aria-hidden>{t('knn.axis_weight')}</div>
+            <div className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] whitespace-nowrap" aria-hidden>{t('knn.axis_weight_unit', { u: isStandardized ? 'z' : 'kg' })}</div>
             <div className="aspect-square w-full">
             <svg
               ref={svgRef}
@@ -221,23 +239,29 @@ export const KnnModule = () => {
               <defs>
                 <clipPath id="knn-plot"><rect width={WIDTH} height={HEIGHT} /></clipPath>
               </defs>
-              {/* a grid line every 5 cm and every 5 kg */}
-              {[160, 165, 170].map((h) => (
-                <g key={`h${h}`}>
-                  <line x1={px(h)} y1={0} x2={px(h)} y2={HEIGHT} stroke="#f1f5f9" strokeWidth="1" />
-                  <text x={px(h)} y={HEIGHT - 5} textAnchor="middle" className="fill-slate-300 text-[10px] font-bold">{hTick(h)}</text>
-                </g>
-              ))}
-              {[60, 65].map((w) => (
-                <g key={`w${w}`}>
-                  <line x1={0} y1={py(w)} x2={WIDTH} y2={py(w)} stroke="#f1f5f9" strokeWidth="1" />
-                  <text x={5} y={py(w) - 4} className="fill-slate-300 text-[10px] font-bold">{w}</text>
-                </g>
-              ))}
+              {/* grid and ticks in the view's units: cm or mm and kg, or z-scores */}
+              {uTicks.map((u) => {
+                const x = ((u - view.u0) / view.span) * WIDTH
+                return (
+                  <g key={`u${u}`}>
+                    <line x1={x} y1={0} x2={x} y2={HEIGHT} stroke="#f1f5f9" strokeWidth="1" />
+                    <text x={x} y={HEIGHT - 5} textAnchor="middle" className="fill-slate-300 text-[10px] font-bold">{tick(u)}</text>
+                  </g>
+                )
+              })}
+              {vTicks.map((v) => {
+                const y = HEIGHT - ((v - view.v0) / view.span) * HEIGHT
+                return (
+                  <g key={`v${v}`}>
+                    <line x1={0} y1={y} x2={WIDTH} y2={y} stroke="#f1f5f9" strokeWidth="1" />
+                    <text x={5} y={y - 4} className="fill-slate-300 text-[10px] font-bold">{tick(v)}</text>
+                  </g>
+                )
+              })}
 
-              {/* every point as close as the K-th neighbour: in mm the raw distance hardly sees weight, so it stretches */}
+              {/* every point as close as the K-th neighbour: a circle in the distance's own units */}
               {processedData.topK.length > 0 && (
-                <ellipse clipPath="url(#knn-plot)" cx={tx} cy={ty} rx={rx} ry={ry} fill="rgba(59, 130, 246, 0.05)" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 4" />
+                <m.circle clipPath="url(#knn-plot)" initial={false} animate={{ cx: tx, cy: ty, r: radius }} transition={motion} fill="rgba(59, 130, 246, 0.05)" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 4" />
               )}
 
               {/* 邻居连线 */}
@@ -246,8 +270,9 @@ export const KnnModule = () => {
                 return (
                   <m.line
                     key={p.id}
-                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                    x1={tx} y1={ty} x2={px(p.h)} y2={py(p.w)}
+                    initial={{ pathLength: 0, x1: tx, y1: ty, x2: px(p.h), y2: py(p.w) }}
+                    animate={{ pathLength: 1, x1: tx, y1: ty, x2: px(p.h), y2: py(p.w) }}
+                    transition={motion}
                     stroke={COLOR[p.s]} strokeWidth="2" opacity="0.6"
                   />
                 )
@@ -259,10 +284,9 @@ export const KnnModule = () => {
                 const dragged = drag?.kind === 'point' && drag.id === p.id
                 const leaving = dragged && ghost?.out
                 return (
-                  <g key={p.id} data-point={p.id} className={editing ? 'cursor-grab' : undefined}>
-                    {editing && <circle cx={px(p.h)} cy={py(p.w)} r={14} fill="transparent" />}
+                  <m.g key={p.id} data-point={p.id} className={editing ? 'cursor-grab' : undefined} initial={false} animate={{ x: px(p.h), y: py(p.w) }} transition={motion}>
+                    {editing && <circle r={14} fill="transparent" />}
                     <m.circle
-                      cx={px(p.h)} cy={py(p.w)}
                       r={rank ? 8 : editing ? 6 : 4}
                       fill={COLOR[p.s]}
                       stroke={leaving ? '#0f172a' : '#fff'}
@@ -271,30 +295,30 @@ export const KnnModule = () => {
                       animate={{ opacity: leaving ? 0.35 : rank || editing ? 1 : 0.25, scale: rank ? 1.3 : 1 }}
                     />
                     {rank && !dragged && (
-                      <text x={px(p.h)} y={py(p.w) + 18} textAnchor="middle" className="text-[10px] font-black fill-slate-800 pointer-events-none">
+                      <text y={18} textAnchor="middle" className="text-[10px] font-black fill-slate-800 pointer-events-none">
                         #{rank}
                       </text>
                     )}
-                    {leaving && <text x={px(p.h)} y={py(p.w) - 14} textAnchor="middle" className="text-[10px] font-black fill-slate-700 pointer-events-none">{t('knn.release_delete')}</text>}
-                  </g>
+                    {leaving && <text y={-14} textAnchor="middle" className="text-[10px] font-black fill-slate-700 pointer-events-none">{t('knn.release_delete')}</text>}
+                  </m.g>
                 )
               })}
               {drag?.kind === 'new' && ghost && <circle cx={px(ghost.h)} cy={py(ghost.w)} r={7} fill={COLOR[drag.s]} opacity={0.6} stroke="#fff" strokeWidth={2} />}
 
-              <m.g data-test animate={{ x: tx, y: ty }} initial={false} transition={drag?.kind === 'test' ? { duration: 0 } : undefined} className="cursor-move">
+              <m.g data-test animate={{ x: tx, y: ty }} initial={false} transition={drag?.kind === 'test' ? { duration: 0 } : motion} className="cursor-move">
                 <circle r="10" fill="#10b981" stroke="#fff" strokeWidth="4" />
                 <text y="-18" textAnchor="middle" className="text-[10px] font-black fill-emerald-600 uppercase pointer-events-none">{t('knn.test_sample')}</text>
               </m.g>
             </svg>
             </div>
             <div aria-hidden />
-            <div className="text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] whitespace-nowrap" aria-hidden>{t('knn.axis_height_unit', { u: unit })}</div>
+            <div className="text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] whitespace-nowrap" aria-hidden>{t('knn.axis_height_unit', { u: uUnit })}</div>
           </div>
           <div className="mt-4 grid gap-1.5 text-center text-[11px] text-slate-500">
             <p className="font-mono">
               {t('knn.stats_line', { mh: num(+stats.meanH.toFixed(2)), sh: stats.stdH.toFixed(2), mw: num(+stats.meanW.toFixed(2)), sw: stats.stdW.toFixed(2), u: unit })}
             </p>
-            <p className={unit === 'mm' ? 'text-amber-700 font-semibold' : 'text-slate-400'}>{t(unit === 'mm' ? 'knn.unit_note_mm' : 'knn.unit_note_cm')}</p>
+            <p className={unit === 'mm' && !isStandardized ? 'text-amber-700 font-semibold' : 'text-slate-400'}>{t(isStandardized ? 'knn.std_note' : unit === 'mm' ? 'knn.unit_note_mm' : 'knn.unit_note_cm')}</p>
             <p className="text-[10px] text-slate-400 coarse:hidden">{t('knn.keyboard_hint')}</p>
           </div>
         </div>

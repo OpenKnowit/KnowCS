@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { KNN_RAW_DATA } from '../data/constants'
 import type { KnnStats } from '../types'
-import { computeKnn, knnStats, looErrorCurve, nudgeTestPoint, scaleHeights, scaleLinear, svgToDataPoint } from './knn'
+import { computeKnn, knnStats, knnView, looErrorCurve, nudgeTestPoint, scaleHeights, scaleLinear, svgToDataPoint } from './knn'
 
 const STATS: KnnStats = { meanH: 164, meanW: 62.33, stdH: 4.33, stdW: 2.63, minH: 155, maxH: 175, minW: 55, maxW: 70 }
 const TEST_POINT = { h: 161, w: 61 } // 模块默认测试点
@@ -162,5 +162,24 @@ describe('units and standardisation', () => {
     expect(run(1, true)).toBe('L')
     expect(run(10, true)).toBe('L')      // standardised: the unit does not matter
     expect(knnStats(KNN_RAW_DATA, 10, range).stdH).toBeCloseTo(43.3, 1)
+  })
+})
+
+describe('the plot window', () => {
+  const range = { minH: 155, maxH: 175, minW: 55, maxW: 70 }
+  it('has one unit as long on both axes, and maps back to the data', () => {
+    for (const [std, factor] of [[false, 1], [false, 10], [true, 1], [true, 10]] as const) {
+      const v = knnView(std, factor, knnStats(KNN_RAW_DATA, factor, range), range)
+      expect(v.fromU(v.toU(162))).toBeCloseTo(162, 9)
+      expect(v.fromV(v.toV(65))).toBeCloseTo(65, 9)
+      // the whole cm / kg range is inside the square window
+      for (const h of [155, 175]) expect(v.toU(h)).toBeGreaterThanOrEqual(v.u0 - 1e-9)
+      for (const w of [55, 70]) expect(v.toV(w)).toBeLessThanOrEqual(v.v0 + v.span + 1e-9)
+    }
+    const raw = knnView(false, 1, knnStats(KNN_RAW_DATA, 1, range), range)
+    expect([raw.u0, raw.v0, raw.span]).toEqual([155, 52.5, 20])        // 20 cm wide, so 20 kg tall
+    const z = knnView(true, 1, knnStats(KNN_RAW_DATA, 1, range), range)
+    expect(z.span).toBeCloseTo(15 / 2.6346, 3)                          // weight spans more σ than height
+    expect(knnView(true, 10, knnStats(KNN_RAW_DATA, 10, range), range).span).toBeCloseTo(z.span, 9)   // the unit does not matter
   })
 })

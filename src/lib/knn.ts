@@ -112,3 +112,28 @@ export function knnStats(points: KnnPoint[], factor: number, range: { minH: numb
   const ws = points.map((p) => p.w)
   return { meanH: mean(hs), meanW: mean(ws), stdH: std(hs), stdW: std(ws), minH: range.minH * factor, maxH: range.maxH * factor, minW: range.minW, maxW: range.maxW }
 }
+
+/**
+ * The plot in the units the distance uses: (cm, kg), (mm, kg) or, standardised, (z, z), with one unit as long on both
+ * axes, so the points at one distance from the test point make a circle. The window is the given cm / kg range, made
+ * square in those units around its centre (in mm the weights then fit in a thin band: that is what the raw distance sees).
+ */
+export interface KnnView {
+  u0: number
+  v0: number
+  /** the side of the window, in view units */
+  span: number
+  toU: (h: number) => number
+  toV: (w: number) => number
+  fromU: (u: number) => number
+  fromV: (v: number) => number
+}
+export function knnView(standardized: boolean, factor: number, stats: KnnStats, range: { minH: number; maxH: number; minW: number; maxW: number }): KnnView {
+  const toU = (h: number) => (standardized ? (h * factor - stats.meanH) / stats.stdH : h * factor)
+  const toV = (w: number) => (standardized ? (w - stats.meanW) / stats.stdW : w)
+  const fromU = (u: number) => (standardized ? u * stats.stdH + stats.meanH : u) / factor
+  const fromV = (v: number) => (standardized ? v * stats.stdW + stats.meanW : v)
+  const [ua, ub, va, vb] = [toU(range.minH), toU(range.maxH), toV(range.minW), toV(range.maxW)]
+  const span = Math.max(ub - ua, vb - va)
+  return { u0: (ua + ub) / 2 - span / 2, v0: (va + vb) / 2 - span / 2, span, toU, toV, fromU, fromV }
+}
