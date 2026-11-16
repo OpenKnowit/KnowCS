@@ -11,6 +11,9 @@ const LANG_LABELS: Record<LangCode, string> = {
   'zh-HK': '繁體中文',
 }
 
+/** where questions and corrections go; shown in the footer */
+const CONTACT = 'jzhangkb@connect.ust.hk'
+
 export type Section = 'course' | 'playground' | 'resources' | 'watch' | 'drill' | 'notes' | 'extend'
 
 const LanguageMenu = () => {
@@ -152,8 +155,17 @@ export function Shell({ section, children }: { section: Section; children: React
       <div id="main-content" tabIndex={-1} className="focus:outline-none">
         {children}
       </div>
-      {/* the playground workbench fills the screen down to the bottom edge */}
-      {section !== 'playground' && <div className="h-10 print:hidden" aria-hidden />}
+      {/* a quiet last line; the playground workbench fills the screen down to the bottom edge, so it has none */}
+      {section !== 'playground' && (
+        <footer className="px-4 pb-5 pt-8 text-center text-[11px] leading-relaxed text-slate-400 print:hidden">
+          {t('app.footer.unofficial')}
+          <span aria-hidden> · </span>
+          {t('app.footer.contact')}{' '}
+          <a href={`mailto:${CONTACT}`} className="hover:text-slate-600 hover:underline">
+            {CONTACT}
+          </a>
+        </footer>
+      )}
     </div>
   )
 }

@@ -24,7 +24,8 @@ KnowCS 是面向香港科技大学 **COMP2211（Exploring Artificial Intelligenc
 npm install
 npm run dev        # http://localhost:5174
 npm run lint       # ESLint
-npm test           # Vitest（400+ 个测试）
+npm test           # Vitest
+npm run test:server  # 后台 API 自己的测试（server/）
 npm run typecheck  # tsc --noEmit
 npm run build      # 多页构建，输出到 dist/
 ```
@@ -39,3 +40,7 @@ npm run build      # 多页构建，输出到 dist/
 
 
 
+
+## 许可
+
+代码以 [MIT 许可](./LICENSE) 发布。第三方材料沿用各自的条款：ConvNetJS（`src/lib/vendor/convnet.js`，MIT）与 MNIST 图片（`src/data/mnist/`，CC BY-SA 3.0）。

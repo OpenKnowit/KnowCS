@@ -26,7 +26,9 @@ so right after a deploy an old page may still ask for the old hashed chunks. Fil
 is overwritten; chunks older than two weeks drop out on their own.
 
 The playground's "Run in real Python" card downloads Pyodide from jsDelivr by default
-(`https://cdn.jsdelivr.net/pyodide/v314.0.7/full/`, see `src/lib/pyodide/config.ts`). To serve it
+(`https://cdn.jsdelivr.net/pyodide/v314.0.7/full/`, see `src/lib/pyodide/config.ts`): about 6 MB over the wire, fetched
+ahead of the first run only on pages that have a playground, and not on a mobile, slow or Save-Data connection
+(`useWarmEngine` in `src/site/playground/useEngine.ts`). To serve it
 from elsewhere (a self-hosted copy of the Pyodide `full/` directory, or COS + CDN), build with
 `VITE_PYODIDE_BASE=https://…/full/ npm run build`. The host must send CORS headers for `.mjs`, `.wasm` and wheels.
 
@@ -76,7 +78,7 @@ service, `server/admin.mjs` (no framework; `opencc-js` derives the Traditional C
 also reads (`GET /api/resources`); without the service the page shows its built-in list. On the server:
 
 - Code: `/opt/knowcs-admin/` (`admin.mjs`, `package.json`, `resources-seed.json`, `npm install --omit=dev`), owned by root.
-- Data: `/var/lib/knowcs-admin/` (`resources.json` + `.backup`, `media/` uploads, `session.key`), owned by the system
+- Data: `/var/lib/knowcs-admin/` (`resources.json` + `.backup`, `media/` uploads, `session.key`, `stats.json`), owned by the system
   user `knowcs-admin`. The first start copies `resources-seed.json` in; after that the JSON file is the source of truth.
 - Settings: `/etc/knowcs-admin.env` (root only, not in Git): `ADMIN_PASSPHRASE`, `DATA_DIR=/var/lib/knowcs-admin`,
   `PORT=3021`, `HOST=127.0.0.1`, `COOKIE_SECURE=true`, `TRUST_PROXY=true`. Change the passphrase there and
@@ -86,5 +88,15 @@ also reads (`GET /api/resources`); without the service the page shows its built-
   `knowcs.online.conf` and `dev.knowcs.online.conf`. The two sites share one service, so they show the same list.
 
 Sign-in sets an HttpOnly, SameSite=Strict, signed cookie for 12 hours; five wrong passphrases per minute per IP are
-refused; changes are accepted only from the site's own pages (Origin check). Update the code with the same three files
-and `systemctl restart knowcs-admin`.
+refused; changes are accepted only from the site's own pages (Origin check). Sign-ins, refused ones too, are written
+to the journal. Update the code with the same three files and `systemctl restart knowcs-admin`.
+
+Visits: every page sends one `POST /api/hit` when it is opened (`src/site/visit.ts`: path, language, the site that
+linked to it), and `/admin/` shows the counts per day (`GET /api/stats`, signed in). Only counts are kept, in
+`stats.json`, for 400 days and per site (`STATS_HOSTS`, by default `knowcs.online,dev.knowcs.online`): no cookie, and
+no address or browser is stored. A visitor is told apart within one day by a hash under a key that stays in memory,
+so a restart counts that day's returning visitors again. Crawlers, the admin and 404 pages, and browsers that send
+Do Not Track or Global Privacy Control are left out. The counts are written every 30 seconds and when the service stops.
+
+The API has its own tests, which start the real server on a spare port with an empty data folder: run
+`npm run test:server` after changing `server/` (they are not part of `npm test`).

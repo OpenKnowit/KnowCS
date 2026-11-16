@@ -1,6 +1,7 @@
 {
   "name": "cs-helper",
   "private": true,
+  "license": "MIT",
   "version": "3.0.0",
   "type": "module",
   "scripts": {
@@ -10,7 +11,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "gen:zh-hk": "node scripts/gen-zh-hk.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:server": "vitest run --config vitest.server.config.ts"
   },
   "dependencies": {
     "dragology": "0.2.0",

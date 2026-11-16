@@ -11,13 +11,16 @@
 //   DELETE /api/resources/<id>            remove   │
 //   PATCH  /api/resources/order {ids, baseIds}     │ reorder
 //   PUT    /api/resources/<id>/preview    image body (PNG / JPEG / WebP ≤ 3 MB); DELETE removes it
+//   POST   /api/hit  {p, r, l}            one page view: path, the site that linked here, language (see "Visits")
+//   GET    /api/stats?days=30             signed in: the counts per day for the site asked from
 //
 // Env: ADMIN_PASSPHRASE (required), DATA_DIR, PORT (3021), HOST (127.0.0.1), COOKIE_SECURE=true,
-// TRUST_PROXY=true (behind a proxy that sets X-Real-IP and X-Forwarded-Host).
+// TRUST_PROXY=true (behind a proxy that sets X-Real-IP and X-Forwarded-Host),
+// STATS_HOSTS (the sites whose visits are counted; knowcs.online,dev.knowcs.online).
 import http from 'node:http'
 import { promises as fs, createReadStream } from 'node:fs'
 import path from 'node:path'
-import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
 import { fileURLToPath } from 'node:url'
 
@@ -89,12 +92,33 @@ async function readBody(req, limit) {
   }
   return Buffer.concat(parts)
 }
+/** a JSON object from the body (anything else, null and arrays included, is a bad request) */
 const readJSON = async (req, limit = 32 * 1024) => {
+  let value
   try {
-    return JSON.parse((await readBody(req, limit)).toString() || '{}')
+    value = JSON.parse((await readBody(req, limit)).toString() || '{}')
   } catch (e) {
     if (e.status) throw e
     throw fail(400, 'bad_json')
+  }
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw fail(400, 'bad_json')
+  return value
+}
+
+const ipOf = (req) => {
+  const fwd = req.headers['x-real-ip']
+  return process.env.TRUST_PROXY === 'true' && typeof fwd === 'string' && isIP(fwd) ? fwd : req.socket.remoteAddress
+}
+/** the site the request was made to (the proxy passes it on) */
+const hostOf = (req) => {
+  const fwd = req.headers['x-forwarded-host']
+  return process.env.TRUST_PROXY === 'true' && typeof fwd === 'string' ? fwd.split(',')[0].trim() : req.headers.host
+}
+const hostOfUrl = (url) => {
+  try {
+    return new URL(url).host
+  } catch {
+    return null
   }
 }
 
@@ -102,8 +126,7 @@ const attempts = new Map()
 function limitSignIn(req, res) {
   const now = Date.now()
   for (const [k, v] of attempts) if (v.until <= now) attempts.delete(k)
-  const fwd = req.headers['x-real-ip']
-  const ip = process.env.TRUST_PROXY === 'true' && typeof fwd === 'string' && isIP(fwd) ? fwd : req.socket.remoteAddress
+  const ip = ipOf(req)
   const entry = attempts.get(ip) || { count: 0, until: now + 60_000 }
   if (entry.count >= 5) {
     res.setHeader('Retry-After', String(Math.max(1, Math.ceil((entry.until - now) / 1000))))
@@ -121,8 +144,9 @@ function fields(input, old = {}) {
     const zh = text(o?.zh, max)
     return { en, zh, 'zh-HK': zh ? toHK(zh) : '' }
   }
-  const url = text(input.url, 2048)
-  if (!/^https?:\/\/[^\s]+$/i.test(url)) throw fail(400, 'bad_url')
+  // a link too long to keep is refused, not cut short into one that leads nowhere
+  const url = String(input.url ?? '').trim()
+  if (url.length > 2048 || !/^https?:\/\/[^\s]+$/i.test(url)) throw fail(400, 'bad_url')
   const cat = CATS.includes(input.cat) ? input.cat : null
   const kind = KINDS.includes(input.kind) ? input.kind : null
   if (!cat || !kind) throw fail(400, 'bad_category')
@@ -145,6 +169,86 @@ async function save(change) {
   writing = op.catch(() => {})
   return op
 }
+// --- Visits: how many pages were opened, per day and site. Counts only: no cookie, and no address or browser is kept.
+// A visitor is told apart for one day by a hash of address + browser under a key that lives in memory and changes
+// every day; the hashes are never written anywhere, so a restart counts that day's returning visitors again.
+const statsPath = path.join(dataDir, 'stats.json')
+const STATS_HOSTS = (process.env.STATS_HOSTS || 'knowcs.online,dev.knowcs.online').split(',').map((h) => h.trim()).filter(Boolean)
+const STATS_LANGS = ['en', 'zh', 'zh-HK']
+const KEEP_DAYS = 400
+const MAX_KEYS = 300 // different pages or referring sites per day; the rest are counted together
+const OTHER = '(other)'
+const BOT = /bot|crawl|spider|slurp|headless|lighthouse|preview|monitor|curl|wget|python|scrapy/i
+/** { host: { 'YYYY-MM-DD': { views, visitors, pages: {path: n}, refs: {host: n}, langs: {lang: n} } } } */
+let stats = {}
+try {
+  stats = JSON.parse(await fs.readFile(statsPath, 'utf8'))
+} catch {
+  /* none yet */
+}
+/** the date in Hong Kong, where the course is */
+const dayOf = (t = Date.now()) => new Date(t + 8 * 3600_000).toISOString().slice(0, 10)
+let today = dayOf()
+let salt = randomBytes(16)
+const seen = new Set()
+const hitRate = new Map()
+let statsDirty = false
+
+const bump = (counts, key) => {
+  const k = Object.hasOwn(counts, key) || Object.keys(counts).length < MAX_KEYS ? key : OTHER
+  counts[k] = (counts[k] || 0) + 1
+}
+function countHit(req, host, body) {
+  if (!STATS_HOSTS.includes(host)) return
+  const ua = String(req.headers['user-agent'] || '')
+  if (!ua || BOT.test(ua)) return
+  const page = typeof body.p === 'string' && body.p.length <= 80 && /^\/(?:[a-z0-9-]+\/)*$/.test(body.p) ? body.p : null
+  if (!page) return
+  const now = Date.now()
+  const ip = ipOf(req)
+  // at most 60 a minute from one address: a person cannot open pages faster, a loop can
+  for (const [k, v] of hitRate) if (v.until <= now) hitRate.delete(k)
+  const rate = hitRate.get(ip) || { count: 0, until: now + 60_000 }
+  if (rate.count >= 60) return
+  rate.count++
+  hitRate.set(ip, rate)
+
+  const day = dayOf(now)
+  if (day !== today) {
+    today = day
+    salt = randomBytes(16)
+    seen.clear()
+    const oldest = dayOf(now - KEEP_DAYS * 86400_000)
+    for (const days of Object.values(stats)) for (const d of Object.keys(days)) if (d < oldest) delete days[d]
+  }
+  const site = (stats[host] ??= {})
+  const entry = (site[day] ??= { views: 0, visitors: 0, pages: {}, refs: {}, langs: {} })
+  entry.views++
+  const who = createHash('sha256').update(salt).update(`${host}\n${ip}\n${ua}`).digest('base64')
+  if (!seen.has(who)) {
+    seen.add(who)
+    entry.visitors++
+  }
+  bump(entry.pages, page)
+  const ref = typeof body.r === 'string' ? body.r.toLowerCase() : ''
+  if (ref && ref.length <= 100 && /^[a-z0-9.-]+(?::\d+)?$/.test(ref) && ref !== host) bump(entry.refs, ref)
+  if (STATS_LANGS.includes(body.l)) bump(entry.langs, body.l)
+  statsDirty = true
+}
+async function flushStats() {
+  if (!statsDirty) return
+  statsDirty = false
+  try {
+    await fs.writeFile(`${statsPath}.tmp`, JSON.stringify(stats))
+    await fs.rename(`${statsPath}.tmp`, statsPath)
+  } catch (e) {
+    statsDirty = true
+    console.error(e)
+  }
+}
+setInterval(flushStats, 30_000).unref()
+for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, () => void flushStats().finally(() => process.exit(0)))
+
 const removeMedia = async (preview) => {
   const m = /^\/api\/media\/([a-f0-9-]+\.(png|jpg|webp))$/.exec(preview || '')
   if (m) await fs.rm(path.join(mediaDir, m[1]), { force: true })
@@ -154,7 +258,8 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('Referrer-Policy', 'same-origin')
   try {
-    const { pathname } = new URL(req.url, 'http://localhost')
+    const { pathname, searchParams } = new URL(req.url, 'http://localhost')
+    const host = hostOf(req)
     if (pathname === '/api/resources' && req.method === 'GET') return json(res, 200, content)
     const media = /^\/api\/media\/([a-f0-9-]+)\.(png|jpg|webp)$/.exec(pathname)
     if (media && req.method === 'GET') {
@@ -165,16 +270,30 @@ const server = http.createServer(async (req, res) => {
       return createReadStream(file).pipe(res)
     }
     if (pathname === '/api/session' && req.method === 'GET') return json(res, 200, { authenticated: authenticated(req) })
+    if (pathname === '/api/stats' && req.method === 'GET') {
+      if (!authenticated(req)) throw fail(401, 'signed_out')
+      const n = Math.min(KEEP_DAYS, Math.max(1, Math.floor(Number(searchParams.get('days')) || 30)))
+      const from = dayOf(Date.now() - (n - 1) * 86400_000)
+      const days = Object.fromEntries(Object.entries(stats[host] || {}).filter(([d]) => d >= from))
+      return json(res, 200, { host, today: dayOf(), counted: STATS_HOSTS.includes(host), days })
+    }
 
     // everything below changes data: only from this site's own pages
     const origin = req.headers.origin
-    const fwdHost = req.headers['x-forwarded-host']
-    const host = process.env.TRUST_PROXY === 'true' && typeof fwdHost === 'string' ? fwdHost.split(',')[0].trim() : req.headers.host
-    if (!origin || new URL(origin).host !== host || req.headers['sec-fetch-site'] === 'cross-site') throw fail(403, 'wrong_origin')
+    if (!origin || hostOfUrl(origin) !== host || req.headers['sec-fetch-site'] === 'cross-site') throw fail(403, 'wrong_origin')
+    if (pathname === '/api/hit' && req.method === 'POST') {
+      countHit(req, host, await readJSON(req, 1024))
+      res.writeHead(204, { 'Cache-Control': 'no-store' })
+      return res.end()
+    }
     if (pathname === '/api/session' && req.method === 'POST') {
       limitSignIn(req, res)
       const { passphrase } = await readJSON(req, 4096)
-      if (!equal(String(passphrase || ''), password)) throw fail(401, 'wrong_passphrase')
+      if (typeof passphrase !== 'string' || !equal(passphrase, password)) {
+        console.warn(`sign-in refused for ${ipOf(req)}`)
+        throw fail(401, 'wrong_passphrase')
+      }
+      console.log(`signed in from ${ipOf(req)}`)
       const expires = String(Date.now() + 12 * 3600_000)
       res.setHeader('Set-Cookie', `knowcs_admin=${expires}.${sign(expires)}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=43200${secure ? '; Secure' : ''}`)
       return json(res, 200, { authenticated: true })
@@ -255,4 +374,4 @@ const server = http.createServer(async (req, res) => {
 })
 server.requestTimeout = 60_000
 const port = Number(process.env.PORT || 3021)
-server.listen(port, process.env.HOST || '127.0.0.1', () => console.log(`KnowCS admin API on ${port}`))
+server.listen(port, process.env.HOST || '127.0.0.1', () => console.log(`KnowCS admin API on ${server.address().port}`))

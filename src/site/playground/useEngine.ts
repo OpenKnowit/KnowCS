@@ -37,15 +37,34 @@ export function useEngineChoice(): [Engine, (e: Engine) => void] {
 
 export const useEngineState = (): EngineState => useSyncExternalStore(onEngineState, engineState, () => 'cold' as EngineState)
 
-/** start downloading Python soon after a playground that can use it opens (not on a data-saving connection) */
+/** a connection where 6 MB nobody asked for is not a favour: Save-Data, a mobile network, or a slow one (Chromium tells; elsewhere unknown) */
+const costly = (): boolean => {
+  const c = (navigator as Navigator & { connection?: { saveData?: boolean; type?: string; effectiveType?: string } }).connection
+  return !!c && (c.saveData === true || c.type === 'cellular' || /(^|-)[23]g$/.test(c.effectiveType ?? ''))
+}
+
+/**
+ * Fetch Python ahead of its first run, only on a page that can run it and only once that page is on screen: at once when real
+ * Python is this browser's engine, otherwise soon after, unless the connection is costly (the first real run then downloads it, and says so).
+ */
 export function useWarmEngine(enabled: boolean) {
+  const [engine] = useEngineChoice()
   useEffect(() => {
     if (!enabled) return
-    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
-    if (conn?.saveData) return
-    const id = setTimeout(warmReal, 1200)
-    return () => clearTimeout(id)
-  }, [enabled])
+    let id: ReturnType<typeof setTimeout> | undefined
+    const start = () => {
+      if (engine === 'real') warmReal()
+      else if (!costly()) id = setTimeout(warmReal, 1200)
+    }
+    // a page prerendered on hover has not been opened yet: wait until it is shown
+    const prerendering = (document as Document & { prerendering?: boolean }).prerendering === true
+    if (prerendering) document.addEventListener('prerenderingchange', start, { once: true })
+    else start()
+    return () => {
+      clearTimeout(id)
+      document.removeEventListener('prerenderingchange', start)
+    }
+  }, [enabled, engine])
 }
 
 export type RealRun =

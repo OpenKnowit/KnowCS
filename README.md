@@ -24,7 +24,8 @@ KnowCS is an interactive study site for HKUST **COMP2211 (Exploring Artificial I
 npm install
 npm run dev        # http://localhost:5174
 npm run lint       # ESLint
-npm test           # Vitest (400+ tests)
+npm test           # Vitest
+npm run test:server  # the admin API's own tests (server/)
 npm run typecheck  # tsc --noEmit
 npm run build      # multi-page build into dist/
 ```
@@ -34,3 +35,7 @@ React 19, TypeScript (strict), Vite 7 (multi-page; pages come from `src/lib/site
 ## Acknowledgements
 
 Early content drew on the study notes at [moyunxiang/COMP2211](https://github.com/moyunxiang/COMP2211/blob/main/COMP2211.md). Exam examples are paraphrased or recomputed from the course’s lectures and past papers for study use.
+
+## License
+
+The code is released under the [MIT License](./LICENSE). Third-party material keeps its own terms: ConvNetJS (`src/lib/vendor/convnet.js`, MIT) and the MNIST images (`src/data/mnist/`, CC BY-SA 3.0).

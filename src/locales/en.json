@@ -522,6 +522,10 @@
       "mode_nav": "Site sections",
       "module_nav": "Course modules",
       "language": "Change language"
+    },
+    "footer": {
+      "unofficial": "An unofficial study site, not affiliated with HKUST",
+      "contact": "Contact:"
     }
   },
   "alphabeta": {
@@ -1213,6 +1217,26 @@
         "wrong_origin": "Changes are only accepted from this site.",
         "not_found": "That resource no longer exists: reload the page.",
         "server_error": "Something went wrong on the server."
+      },
+      "stats": {
+        "title": "Visits",
+        "range_label": "Days shown",
+        "range": "{{n}} days",
+        "today": "Today",
+        "total": "Last {{n}} days",
+        "views": "page views",
+        "visitors": "visitors",
+        "per_day": "Page views per day",
+        "peak": "most in a day: {{n}}",
+        "bar": "{{day}}: {{views}} page views, {{visitors}} visitors",
+        "pages": "Pages",
+        "refs": "Came from",
+        "direct": "no other site (typed, bookmarked, unknown)",
+        "langs": "Language",
+        "empty": "No visits counted in these days.",
+        "uncounted": "Visits to {{host}} are not counted.",
+        "failed": "The counts could not be loaded.",
+        "how": "Counts only: no cookie is set, and no address or browser is stored. Visitors are told apart within one day, so somebody who comes on two days counts twice. Crawlers and browsers that ask not to be tracked are left out."
       }
     },
     "coverage": {

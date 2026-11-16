@@ -5,8 +5,10 @@ import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, LogOut, Pencil, Plus, Tras
 import { RESOURCE_CATS, RESOURCE_KINDS, inLang } from '../../lib/resources'
 import type { ResourceData, ResourceItem } from '../../lib/resources'
 import { previewSrc } from '../resourcePreviews'
+import { AdminStats } from './AdminStats'
 
-// /admin/: the Resources list behind a passphrase (server/admin.mjs). Not linked from the site, not indexed.
+// /admin/: the Resources list and the visit counts behind a passphrase (server/admin.mjs). Not indexed; the only link
+// to it is the small one at the bottom of the Resources page.
 
 type Draft = Pick<ResourceItem, 'url' | 'cat' | 'kind'> & { title: { en: string; zh: string }; desc: { en: string; zh: string } }
 const EMPTY: Draft = { url: 'https://', cat: 'study', kind: 'web', title: { en: '', zh: '' }, desc: { en: '', zh: '' } }
@@ -237,7 +239,8 @@ export default function AdminPage() {
       {state === 'in' && data && (
         <>
           {error && <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{error}</p>}
-          <p className="mt-2 text-sm text-slate-500">{t('site.admin.count', { count: data.resources.length })}</p>
+          <AdminStats />
+          <p className="mt-5 text-sm text-slate-500">{t('site.admin.count', { count: data.resources.length })}</p>
           <ul className="mt-4 grid gap-2">
             {data.resources.map((r, i) => {
               const img = previewSrc(r)

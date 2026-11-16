@@ -118,12 +118,14 @@ for (const page of PAGES) {
   writeFileSync(file, pageHtml(page))
 }
 // sitemap.xml and robots.txt, served from the site root
+// not listed: pages that are not content (redirects, 404, admin) and the ones nothing on the site links to yet (past papers, notes, extras)
+const UNLISTED = new Set(["redirect", "notfound", "admin", "papers", "notes", "note", "extend", "extend-item"])
 mkdirSync(resolve(ROOT, "public"), { recursive: true })
 writeFileSync(
   resolve(ROOT, "public/sitemap.xml"),
   `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${PAGES.filter((p) => p.kind !== "redirect" && p.kind !== "notfound" && p.kind !== "admin").map((p) => `  <url><loc>${urlOf(p)}</loc></url>`).join("\n")}
+${PAGES.filter((p) => !UNLISTED.has(p.kind)).map((p) => `  <url><loc>${urlOf(p)}</loc></url>`).join("\n")}
 </urlset>
 `,
 )
