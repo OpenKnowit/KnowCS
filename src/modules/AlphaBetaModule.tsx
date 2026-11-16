@@ -4,6 +4,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
+  ArrowLeft,
+  ArrowRight,
   FileText,
   GitBranch,
   Layers,
@@ -13,8 +15,11 @@ import {
   RotateCcw,
   Maximize2,
   Minus,
+  Pencil,
   Plus,
   Shuffle,
+  Trash2,
+  X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react'
@@ -22,29 +27,38 @@ import { Trans, useTranslation } from 'react-i18next'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
 import { AB_PRESETS } from '../data/constants'
-import { buildAbTree, generateAbSteps } from '../lib/alphabeta'
+import { addChild, canMove, canRemove, fullShape, generateAbSteps, layoutAbTree, mapLeaves, moveNode, removeNode, setLeafValue, shapeDepth, shapeLeaves } from '../lib/alphabeta'
+import type { AbPath, AbShape } from '../lib/alphabeta'
 import type { AbNode, AbStep } from '../types'
 
 const fmt = (v: number): string => (v === Infinity ? '∞' : v === -Infinity ? '-∞' : String(v))
 
 const MIN_DEPTH = 2
 const MAX_DEPTH = 5
-const randomLeaves = (n: number) => Array.from({ length: n }, () => Math.floor(Math.random() * 21))
+const randomLeaf = () => Math.floor(Math.random() * 21)
+const randomLeaves = (n: number) => Array.from({ length: n }, randomLeaf)
+// how big an edited tree may grow: the canvas stays readable
+const MAX_LEAVES = 32
+const MAX_LEVELS = 6
 
 export const AlphaBetaModule = () => {
   const { t } = useTranslation()
-  // the tree: how many levels above the leaves (a full binary tree), and the leaf values left to right
-  const [depth, setDepth] = useState(3)
-  const [vals, setVals] = useState<number[]>(() => [...AB_PRESETS.alpha])
+  // the tree: a full binary one from the presets and the level buttons, or any shape in edit mode
+  const [shape, setShape] = useState<AbShape>(() => fullShape(3, AB_PRESETS.alpha))
   const [preset, setPreset] = useState<string>('alpha')
+  // edit mode: click a node to select it, then add a child, move it or remove it
+  const [editMode, setEditMode] = useState(false)
+  const [selected, setSelected] = useState<AbPath | null>(null)
   const [stepIdx, setStepIdx] = useState(0)
   // the leaf whose value is being typed in place (click a leaf); null = none
   const [editing, setEditing] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1000)
 
-  const tree = useMemo(() => buildAbTree(depth, vals), [depth, vals])
+  const tree = useMemo(() => layoutAbTree(shape), [shape])
   const nodes: Record<string, AbNode> = tree.nodes
+  const depth = shapeDepth(shape)
+  const selectedId = selected && Object.keys(tree.paths).find((id) => tree.paths[id].join() === selected.join())
   const edges = useMemo(() => Object.values(nodes).flatMap((n) => (n.children ?? []).map((c) => ({ from: n.id, to: c }))), [nodes])
   const leafIds = useMemo(() => Object.values(nodes).filter((n) => n.type === 'leaf').map((n) => n.id), [nodes])
 
@@ -63,38 +77,47 @@ export const AlphaBetaModule = () => {
     return () => clearTimeout(timer)
   }, [playing, safeIdx, steps.length, speed])
 
+  // any change to the tree starts the search again from the first step
+  const changeTree = (next: AbShape, presetKey = 'custom') => {
+    setShape(next)
+    setPreset(presetKey)
+    setStepIdx(0)
+    setPlaying(false)
+  }
   const applyPreset = (key: string) => {
-    setDepth(3)
-    setVals([...AB_PRESETS[key]])
-    setPreset(key)
-    setStepIdx(0)
-    setPlaying(false)
+    changeTree(fullShape(3, AB_PRESETS[key]), key)
+    setSelected(null)
   }
-
-  const randomize = () => {
-    setVals(randomLeaves(2 ** depth))
-    setPreset('custom')
-    setStepIdx(0)
-    setPlaying(false)
-  }
-
-  const setLeaf = (id: string, v: number) => {
-    const i = Number(id.slice(1)) - 1
-    setVals((prev) => prev.map((x, j) => (j === i ? v : x)))
-    setPreset('custom')
-  }
-  // more or fewer levels: the leaves we have are kept (left to right), new ones are random
+  const randomize = () => changeTree(mapLeaves(shape, randomLeaf))
+  const setLeaf = (id: string, v: number) => changeTree(setLeafValue(shape, tree.paths[id], v))
+  // more or fewer levels: a full binary tree again, keeping the leaves we have (left to right); new ones are random
   const changeDepth = (d: number) => {
     const next = Math.max(MIN_DEPTH, Math.min(MAX_DEPTH, d))
-    if (next === depth) return
-    setDepth(next)
-    setVals((prev) => {
-      const n = 2 ** next
-      return prev.length >= n ? prev.slice(0, n) : [...prev, ...randomLeaves(n - prev.length)]
-    })
-    setPreset('custom')
-    setStepIdx(0)
-    setPlaying(false)
+    const prev = shapeLeaves(shape)
+    const n = 2 ** next
+    changeTree(fullShape(next, prev.length >= n ? prev.slice(0, n) : [...prev, ...randomLeaves(n - prev.length)]))
+    setSelected(null)
+  }
+  const isLeafSel = selectedId ? nodes[selectedId].type === 'leaf' : false
+  const canAdd = !!selected && shapeLeaves(shape).length < MAX_LEAVES && (!isLeafSel || selected.length < MAX_LEVELS)
+  const addToSelected = () => {
+    if (!selected || !canAdd) return
+    changeTree(addChild(shape, selected, randomLeaf()))
+  }
+  const removeSelected = () => {
+    if (!selected || !canRemove(shape, selected)) return
+    changeTree(removeNode(shape, selected, randomLeaf()))
+    setSelected(null)
+  }
+  const moveSelected = (dir: -1 | 1) => {
+    if (!selected || !canMove(shape, selected, dir)) return
+    changeTree(moveNode(shape, selected, dir))
+    setSelected([...selected.slice(0, -1), selected.at(-1)! + dir])
+  }
+  const toggleEdit = () => {
+    setEditMode((on) => !on)
+    setSelected(null)
+    setEditing(null)
   }
 
   // the canvas: drag to move, Ctrl/⌘ + wheel or the buttons to zoom; it fits the tree again when its size changes
@@ -102,9 +125,9 @@ export const AlphaBetaModule = () => {
   const H = tree.height
   const fit = { k: 1, tx: (W - tree.width) / 2, ty: 0 }
   const [view, setView] = useState(fit)
-  const [viewFor, setViewFor] = useState(depth)
-  if (viewFor !== depth) {
-    setViewFor(depth)
+  const [viewFor, setViewFor] = useState(`${W}x${H}`)
+  if (viewFor !== `${W}x${H}`) {
+    setViewFor(`${W}x${H}`)
     setView(fit)
   }
   const svgRef = useRef<SVGSVGElement>(null)
@@ -249,12 +272,20 @@ export const AlphaBetaModule = () => {
               <div className="flex flex-col gap-1.5">
                 <span className="text-xs font-semibold text-slate-500">{t('alphabeta.levels')}</span>
                 <div className="flex items-center gap-1">
-                  <button type="button" onClick={() => changeDepth(depth - 1)} disabled={depth <= MIN_DEPTH} aria-label={t('alphabeta.levels_less')} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:border-slate-400 disabled:opacity-40"><Minus size={14} aria-hidden /></button>
-                  <span className="w-16 text-center font-mono text-sm font-bold text-slate-900">{depth} · {2 ** depth}</span>
-                  <button type="button" onClick={() => changeDepth(depth + 1)} disabled={depth >= MAX_DEPTH} aria-label={t('alphabeta.levels_more')} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:border-slate-400 disabled:opacity-40"><Plus size={14} aria-hidden /></button>
+                  <button type="button" onClick={() => changeDepth(depth - 1)} disabled={depth <= MIN_DEPTH && leafIds.length === 2 ** depth} aria-label={t('alphabeta.levels_less')} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:border-slate-400 disabled:opacity-40"><Minus size={14} aria-hidden /></button>
+                  <span className="w-16 text-center font-mono text-sm font-bold text-slate-900">{depth} · {leafIds.length}</span>
+                  <button type="button" onClick={() => changeDepth(depth + 1)} disabled={depth >= MAX_DEPTH && leafIds.length === 2 ** depth} aria-label={t('alphabeta.levels_more')} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:border-slate-400 disabled:opacity-40"><Plus size={14} aria-hidden /></button>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={toggleEdit}
+                  aria-pressed={editMode}
+                  className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition ${editMode ? 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700' : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400'}`}
+                >
+                  <Pencil size={14} className={editMode ? 'text-white' : 'text-blue-600'} aria-hidden /> {t(editMode ? 'alphabeta.edit_done' : 'alphabeta.edit_mode')}
+                </button>
                 <button onClick={randomize} className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-400">
                   <Shuffle size={14} className="text-blue-600" aria-hidden /> {t('alphabeta.randomize')}
                 </button>
@@ -264,8 +295,39 @@ export const AlphaBetaModule = () => {
               </div>
             </div>
 
+            {editMode && (
+              <div className="flex min-h-[3.25rem] flex-wrap items-center gap-2 rounded-[20px] border border-blue-300 bg-blue-50/60 px-4 py-2 text-xs text-slate-700">
+                {selectedId ? (
+                  <>
+                    <span className="font-mono text-sm font-bold text-slate-900">{selectedId}</span>
+                    <span className="text-slate-500">{nodes[selectedId].type === 'leaf' ? t('alphabeta.edit_leaf_type') : nodes[selectedId].type.toUpperCase()}</span>
+                    {isLeafSel && (
+                      <label className="flex items-center gap-1.5 font-semibold">
+                        {t('alphabeta.edit_value')}
+                        <input key={`${selectedId}:${nodes[selectedId].value}`} {...leafInput(nodes[selectedId])} autoFocus={false} className="h-8 w-16 rounded-lg border-2 border-blue-600 bg-white text-center font-mono text-sm font-bold outline-none" />
+                      </label>
+                    )}
+                    <span className="ml-auto flex flex-wrap gap-1">
+                      {[
+                        { icon: Plus, label: t(isLeafSel ? 'alphabeta.edit_expand' : 'alphabeta.edit_add'), on: addToSelected, ok: canAdd },
+                        { icon: ArrowLeft, label: t('alphabeta.edit_left'), on: () => moveSelected(-1), ok: canMove(shape, selected!, -1) },
+                        { icon: ArrowRight, label: t('alphabeta.edit_right'), on: () => moveSelected(1), ok: canMove(shape, selected!, 1) },
+                        { icon: Trash2, label: t('alphabeta.edit_delete'), on: removeSelected, ok: canRemove(shape, selected!), danger: true },
+                      ].map(({ icon: Icon, label, on, ok, danger }) => (
+                        <button key={label} type="button" onClick={on} disabled={!ok} className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 font-semibold disabled:opacity-40 ${danger ? 'border-rose-200 text-rose-700 hover:bg-rose-50' : 'border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
+                          <Icon size={13} aria-hidden /> {label}
+                        </button>
+                      ))}
+                      <button type="button" onClick={() => setSelected(null)} aria-label={t('alphabeta.edit_deselect')} title={t('alphabeta.edit_deselect')} className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><X size={14} aria-hidden /></button>
+                    </span>
+                  </>
+                ) : (
+                  <span>{t('alphabeta.edit_hint', { leaves: MAX_LEAVES, levels: MAX_LEVELS })}</span>
+                )}
+              </div>
+            )}
             <div className={`${panel} relative flex flex-col overflow-hidden sm:block sm:h-[480px]`}>
-              <div className="pointer-events-none px-4 pt-3 text-[11px] font-semibold text-slate-600 sm:absolute sm:left-4 sm:top-4 sm:z-10 sm:rounded-lg sm:border sm:border-slate-200 sm:bg-white/90 sm:px-3 sm:py-1 sm:text-slate-500 backdrop-blur">{t('alphabeta.canvas_label')}</div>
+              <div className="pointer-events-none px-4 pt-3 text-[11px] font-semibold text-slate-600 sm:absolute sm:left-4 sm:top-4 sm:z-10 sm:rounded-lg sm:border sm:border-slate-200 sm:bg-white/90 sm:px-3 sm:py-1 sm:text-slate-500 backdrop-blur">{t(editMode ? 'alphabeta.edit_canvas_label' : 'alphabeta.canvas_label')}</div>
               <div className="order-last flex items-center justify-end gap-1 border-t border-slate-100 p-1 sm:absolute sm:bottom-3 sm:right-3 sm:z-10 sm:rounded-xl sm:border sm:border-slate-200 sm:bg-white/90 sm:backdrop-blur">
                 <span className="hidden px-2 text-[11px] text-slate-500 sm:inline coarse:hidden">{t('alphabeta.canvas_hint')}</span>
                 <button type="button" onClick={() => zoomAt(1 / 1.25)} aria-label={t('alphabeta.zoom_out')} title={t('alphabeta.zoom_out')} className="grid h-7 w-7 place-items-center coarse:h-9 coarse:w-9 rounded-lg text-slate-600 hover:bg-slate-100"><ZoomOut size={15} aria-hidden /></button>
@@ -286,7 +348,7 @@ export const AlphaBetaModule = () => {
                 role="img"
                 aria-label={t('alphabeta.tree_label')}
                 onPointerDown={(e) => {
-                  if ((e.target as Element).closest('[data-leaf], foreignObject')) return
+                  if ((e.target as Element).closest('[data-leaf], [data-node], foreignObject')) return
                   e.currentTarget.setPointerCapture(e.pointerId)
                   drag.current = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty }
                 }}
@@ -362,10 +424,12 @@ export const AlphaBetaModule = () => {
                         data-leaf
                         className="cursor-pointer [&:hover>circle]:stroke-blue-500"
                         onClick={() => {
+                          if (editMode) return setSelected(tree.paths[node.id])
                           setEditInBar(unit() < 0.75)
                           setEditing(node.id)
                         }}
                       >
+                        {selectedId === node.id && <circle cx={node.x} cy={node.y} r={32} fill="#dbeafe" stroke="#2563eb" strokeWidth={2.5} strokeDasharray="5,4" />}
                         {/* a bigger target than the circle, for a finger on a small tree */}
                         <rect x={node.x - 40} y={node.y - 40} width={80} height={80} fill="transparent" />
                         <circle cx={node.x} cy={node.y} r={22} fill={fill} stroke={stroke} strokeWidth={3} strokeDasharray={isPruned ? '5,4' : undefined} />
@@ -384,7 +448,14 @@ export const AlphaBetaModule = () => {
                     ? `${node.x},${node.y - 26} ${node.x - 26},${node.y + 18} ${node.x + 26},${node.y + 18}`
                     : `${node.x - 26},${node.y - 18} ${node.x + 26},${node.y - 18} ${node.x},${node.y + 26}`
                   return (
-                    <g key={node.id}>
+                    <g
+                      key={node.id}
+                      data-node={editMode ? '' : undefined}
+                      className={editMode ? 'cursor-pointer [&:hover>polygon]:stroke-blue-500' : undefined}
+                      onClick={editMode ? () => setSelected(tree.paths[node.id]) : undefined}
+                    >
+                      {editMode && <rect x={node.x - 36} y={node.y - 36} width={72} height={72} fill="transparent" />}
+                      {selectedId === node.id && <circle cx={node.x} cy={node.y} r={40} fill="#dbeafe" stroke="#2563eb" strokeWidth={2.5} strokeDasharray="5,4" />}
                       <polygon points={points} fill={fill} stroke={stroke} strokeWidth={3} strokeLinejoin="round" strokeDasharray={isPruned ? '5,4' : undefined} />
                       <text x={node.x} y={node.y + (isMax ? 10 : -2)} textAnchor="middle" fontSize={9} fontWeight={800} fill={text}>{isMax ? '▲MAX' : '▼MIN'}</text>
                       <g transform={`translate(${node.x}, ${node.y + (isMax ? -40 : -34)})`}>

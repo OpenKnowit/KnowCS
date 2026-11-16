@@ -564,7 +564,7 @@
     "header_title": "Alpha-Beta 剪枝逐步演示",
     "header_sub": "帶 α / β 上下界的深度優先搜索：看清每一次決策與剪枝。",
     "presets_label": "選擇樹預設",
-    "canvas_label": "可互動樹畫布（點擊葉子節點可修改數值）",
+    "canvas_label": "可互動樹畫布（點擊葉子可修改數值，點「編輯樹」可改結構）",
     "layers": {
       "max": "MAX 層（取最大值）",
       "min": "MIN 層（取最小值）",
@@ -592,7 +592,19 @@
     "canvas_hint": "拖動可移動 · Ctrl/⌘ + 滾輪縮放",
     "zoom_in": "放大",
     "zoom_out": "縮小",
-    "zoom_fit": "適應畫布"
+    "zoom_fit": "適應畫布",
+    "edit_mode": "編輯樹",
+    "edit_done": "完成編輯",
+    "edit_canvas_label": "編輯模式：點選節點來修改",
+    "edit_hint": "點任意節點選中它，可以給它加子節點、左右換位，或連同下面的子樹一起刪除；葉子還能改數值。子節點個數和層數隨意，最多 {{leaves}} 個葉子、{{levels}} 層。",
+    "edit_leaf_type": "葉子",
+    "edit_value": "數值",
+    "edit_add": "加子節點",
+    "edit_expand": "拆成兩個",
+    "edit_left": "左移",
+    "edit_right": "右移",
+    "edit_delete": "刪除",
+    "edit_deselect": "取消選中"
   },
   "kmeans": {
     "canvas_title": "簇分配（點擊播放逐輪迭代）",

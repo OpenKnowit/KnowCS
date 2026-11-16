@@ -564,7 +564,7 @@
     "header_title": "Alpha-beta pruning, step by step",
     "header_sub": "Depth-first search with α / β bounds: watch every decision and every cut.",
     "presets_label": "Tree preset",
-    "canvas_label": "Interactive tree (click a leaf to change its value)",
+    "canvas_label": "Interactive tree (click a leaf to change its value, or Edit tree to change its shape)",
     "layers": {
       "max": "MAX layer (takes the largest)",
       "min": "MIN layer (takes the smallest)",
@@ -592,7 +592,19 @@
     "canvas_hint": "Drag to move · Ctrl/⌘ + scroll to zoom",
     "zoom_in": "Zoom in",
     "zoom_out": "Zoom out",
-    "zoom_fit": "Fit the tree"
+    "zoom_fit": "Fit the tree",
+    "edit_mode": "Edit tree",
+    "edit_done": "Done editing",
+    "edit_canvas_label": "Editing: click a node to change it",
+    "edit_hint": "Click any node to select it. Give it a child, move it left or right, or delete it with everything under it; a leaf also takes a new value. Any number of children, any depth: up to {{leaves}} leaves and {{levels}} levels.",
+    "edit_leaf_type": "leaf",
+    "edit_value": "Value",
+    "edit_add": "Add child",
+    "edit_expand": "Split into two",
+    "edit_left": "Left",
+    "edit_right": "Right",
+    "edit_delete": "Delete",
+    "edit_deselect": "Deselect"
   },
   "kmeans": {
     "canvas_title": "Cluster Assignment (click Play to iterate)",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildAbTree, generateAbSteps, leavesEvaluated, minimaxValue, treeWithLeaves } from './alphabeta'
+import { addChild, shapeAt, buildAbTree, canMove, canRemove, fullShape, generateAbSteps, layoutAbTree, leavesEvaluated, minimaxValue, moveNode, removeNode, setLeafValue, shapeDepth, shapeLeaves, treeWithLeaves } from './alphabeta'
+import type { AbShape } from './alphabeta'
 import { AB_NODES, AB_PRESETS } from '../data/constants'
 
 describe('generateAbSteps', () => {
@@ -95,5 +96,60 @@ describe('buildAbTree', () => {
     expect(generateAbSteps(nodes).at(-1)!.returnValue).toBe(minimaxValue(nodes))
     const { nodes: two } = buildAbTree(2, [4, 9, 2, 7])
     expect(generateAbSteps(two).at(-1)!.returnValue).toBe(4)
+  })
+})
+
+describe('a tree of any shape', () => {
+  // A has three children: a MIN node over two leaves, a lone leaf, and a MIN node over a MAX node and a leaf
+  const shape: AbShape = { children: [{ children: [{ value: 3 }, { value: 12 }] }, { value: 8 }, { children: [{ children: [{ value: 2 }, { value: 4 }, { value: 6 }] }, { value: 14 }] }] }
+
+  it('names, types and places every node', () => {
+    const { nodes, paths, width, height } = layoutAbTree(shape)
+    expect(nodes.A.children).toEqual(['B', 'L3', 'C'])
+    expect(nodes.B.type).toBe('min')
+    expect(nodes.D.type).toBe('max')
+    expect(nodes.D.children).toEqual(['L4', 'L5', 'L6'])
+    expect(nodes.L3.parent).toBe('A')
+    expect(paths.L5).toEqual([2, 0, 1])
+    // a leaf sits at its own level, and a parent over its first and last child
+    expect(nodes.L3.y).toBeLessThan(nodes.L1.y)
+    expect(nodes.D.x).toBe(nodes.L5.x)
+    expect(width).toBe(140 + 6 * 120)
+    expect(height).toBe(nodes.L4.y + 60)
+  })
+
+  it('alpha-beta still returns the minimax value', () => {
+    const { nodes } = layoutAbTree(shape)
+    expect(minimaxValue(nodes)).toBe(8)
+    expect(generateAbSteps(nodes).at(-1)!.returnValue).toBe(8)
+  })
+
+  it('a full binary shape is the old tree', () => {
+    const vals = [3, 5, 2, 4, 6, 1, 0, 7]
+    expect(layoutAbTree(fullShape(3, vals)).nodes).toEqual(buildAbTree(3, vals).nodes)
+    expect(shapeLeaves(fullShape(3, vals))).toEqual(vals)
+    expect(shapeDepth(shape)).toBe(3)
+  })
+
+  it('adds, moves, removes and sets nodes without touching the old shape', () => {
+    const before = JSON.stringify(shape)
+    // a child of a leaf turns the leaf into a MIN / MAX node over its old value and the new one
+    expect(shapeAt(addChild(shape, [1], 5), [1])).toEqual({ children: [{ value: 8 }, { value: 5 }] })
+    expect(shapeAt(addChild(shape, [0], 5), [0]).children).toHaveLength(3)
+    expect(shapeLeaves(moveNode(shape, [1], -1))).toEqual([8, 3, 12, 2, 4, 6, 14])
+    expect(canMove(shape, [0], -1)).toBe(false)
+    expect(canMove(shape, [], 1)).toBe(false)
+    expect(shapeLeaves(removeNode(shape, [2, 0], 0))).toEqual([3, 12, 8, 14])
+    // the last child gone: the parent becomes a leaf
+    expect(shapeAt(removeNode(removeNode(shape, [0, 0], 9), [0, 0], 9), [0])).toEqual({ value: 9 })
+    expect(shapeAt(setLeafValue(shape, [2, 0, 2], 20), [2, 0, 2])).toEqual({ value: 20 })
+    expect(JSON.stringify(shape)).toBe(before)
+  })
+
+  it('keeps the root a MIN / MAX node', () => {
+    expect(canRemove(shape, [])).toBe(false)
+    const one: AbShape = { children: [{ value: 1 }] }
+    expect(canRemove(one, [0])).toBe(false)
+    expect(removeNode(one, [0], 0)).toBe(one)
   })
 })

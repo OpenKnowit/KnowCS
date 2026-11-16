@@ -219,28 +219,119 @@ export const AB_LEAF_GAP = 120
 export const AB_LEVEL_GAP = 120
 
 /**
+ * A game tree by its shape alone: a leaf has a value, any other node has children, left to right, as many as
+ * it likes. Levels alternate MAX (the root), MIN, MAX, …, so the type of a node follows from its depth.
+ */
+export interface AbShape {
+  value?: number
+  children?: AbShape[]
+}
+/** a node of a shape by the child index taken at each level from the root; [] is the root */
+export type AbPath = number[]
+
+const isLeafShape = (s: AbShape): boolean => !s.children?.length
+
+/** a full binary shape `depth` levels deep above its leaves, the leaves taking `leafValues` left to right */
+export function fullShape(depth: number, leafValues: readonly number[]): AbShape {
+  let i = 0
+  const grow = (l: number): AbShape => (l === depth ? { value: leafValues[i++] ?? 0 } : { children: [grow(l + 1), grow(l + 1)] })
+  return grow(0)
+}
+
+/** the leaf values, left to right */
+export const shapeLeaves = (s: AbShape): number[] => (isLeafShape(s) ? [s.value ?? 0] : s.children!.flatMap(shapeLeaves))
+/** how many levels the deepest leaf sits below the root */
+export const shapeDepth = (s: AbShape): number => (isLeafShape(s) ? 0 : 1 + Math.max(...s.children!.map(shapeDepth)))
+/** the shape with every leaf value replaced by f(value, index left to right) */
+export function mapLeaves(s: AbShape, f: (v: number, i: number) => number): AbShape {
+  let i = 0
+  const go = (n: AbShape): AbShape => (isLeafShape(n) ? { value: f(n.value ?? 0, i++) } : { children: n.children!.map(go) })
+  return go(s)
+}
+
+/**
+ * Nodes with SVG positions for a shape: leaves AB_LEAF_GAP apart along the bottom in left-to-right order, each
+ * at its own level, every parent centred over its first and last child. Inner nodes are named A, B, … breadth
+ * first and leaves L1, L2, … left to right; `paths` maps each name back to its node in the shape.
+ */
+export function layoutAbTree(shape: AbShape): { nodes: Record<string, AbNode>; paths: Record<string, AbPath>; width: number; height: number } {
+  // names: inner nodes breadth first, leaves left to right
+  const names = new Map<AbShape, string>()
+  let inner = 0
+  let leaf = 0
+  const visitLeaves = (s: AbShape) => (isLeafShape(s) ? names.set(s, `L${++leaf}`) : s.children!.forEach(visitLeaves))
+  visitLeaves(shape)
+  for (let level = [shape]; level.length; level = level.flatMap((s) => s.children ?? [])) for (const s of level) if (!isLeafShape(s)) names.set(s, nodeName(inner++))
+
+  const nodes: Record<string, AbNode> = {}
+  const paths: Record<string, AbPath> = {}
+  let slot = 0
+  let bottom = 0
+  const place = (s: AbShape, l: number, parent: string | null, path: AbPath): AbNode => {
+    const id = names.get(s)!
+    paths[id] = path
+    if (isLeafShape(s)) {
+      const y = 60 + l * AB_LEVEL_GAP + 10
+      bottom = Math.max(bottom, y)
+      return (nodes[id] = { id, type: 'leaf', parent, value: s.value ?? 0, x: 70 + slot++ * AB_LEAF_GAP, y })
+    }
+    const kids = s.children!.map((c, i) => place(c, l + 1, id, [...path, i]))
+    return (nodes[id] = { id, type: l % 2 === 0 ? 'max' : 'min', parent, children: kids.map((k) => k.id), x: (kids[0].x + kids.at(-1)!.x) / 2, y: 60 + l * AB_LEVEL_GAP })
+  }
+  place(shape, 0, null, [])
+  return { nodes, paths, width: 140 + (slot - 1) * AB_LEAF_GAP, height: bottom + 60 }
+}
+
+/**
  * A full binary game tree `depth` levels deep above its leaves (MAX at the root, then MIN, MAX, …), with SVG
  * positions: leaves AB_LEAF_GAP apart along the bottom, each parent centred over its children.
  * depth 3 is the lecture's tree: A → B, C → D…G → L1…L8.
  */
 export function buildAbTree(depth: number, leafValues: number[]): { nodes: Record<string, AbNode>; width: number; height: number } {
-  const nodes: Record<string, AbNode> = {}
-  const leaves = 2 ** depth
-  const leafY = 60 + depth * AB_LEVEL_GAP + 10
-  // ids level by level
-  const levels: string[][] = []
-  let k = 0
-  for (let l = 0; l < depth; l++) levels.push(Array.from({ length: 2 ** l }, () => nodeName(k++)))
-  levels.push(Array.from({ length: leaves }, (_, i) => `L${i + 1}`))
-  for (let i = 0; i < leaves; i++) {
-    const id = levels[depth][i]
-    nodes[id] = { id, type: 'leaf', parent: levels[depth - 1][i >> 1], value: leafValues[i] ?? 0, x: 70 + i * AB_LEAF_GAP, y: leafY }
-  }
-  for (let l = depth - 1; l >= 0; l--) {
-    levels[l].forEach((id, i) => {
-      const children = [levels[l + 1][2 * i], levels[l + 1][2 * i + 1]]
-      nodes[id] = { id, type: l % 2 === 0 ? 'max' : 'min', parent: l ? levels[l - 1][i >> 1] : null, children, x: (nodes[children[0]].x + nodes[children[1]].x) / 2, y: 60 + l * AB_LEVEL_GAP }
-    })
-  }
-  return { nodes, width: 140 + (leaves - 1) * AB_LEAF_GAP, height: leafY + 60 }
+  const { nodes, width, height } = layoutAbTree(fullShape(depth, leafValues))
+  return { nodes, width, height }
 }
+
+// ---- editing a shape: each returns a new shape and leaves the old one alone ----
+
+/** the node at `path` rebuilt by f; the rest of the tree is shared */
+function update(s: AbShape, path: AbPath, f: (n: AbShape) => AbShape): AbShape {
+  if (!path.length) return f(s)
+  const [i, ...rest] = path
+  return { children: s.children!.map((c, j) => (j === i ? update(c, rest, f) : c)) }
+}
+export const shapeAt = (s: AbShape, path: AbPath): AbShape => path.reduce((n, i) => n.children![i], s)
+
+/** a new leaf as the last child of `path`; a leaf there becomes a MIN / MAX node over its old value and the new one */
+export const addChild = (s: AbShape, path: AbPath, value: number): AbShape =>
+  update(s, path, (n) => ({ children: isLeafShape(n) ? [{ value: n.value ?? 0 }, { value }] : [...n.children!, { value }] }))
+
+/** the node at `path` and everything under it gone; a parent left with no children becomes a leaf worth `value` */
+export function removeNode(s: AbShape, path: AbPath, value: number): AbShape {
+  if (!canRemove(s, path)) return s
+  const i = path.at(-1)!
+  return update(s, path.slice(0, -1), (p) => {
+    const rest = p.children!.filter((_, j) => j !== i)
+    return rest.length ? { children: rest } : { value }
+  })
+}
+/** every node but the root, and not the root's only child (the root stays a MIN / MAX node) */
+export const canRemove = (s: AbShape, path: AbPath): boolean => path.length > 1 || (path.length === 1 && s.children!.length > 1)
+
+/** the node at `path` swapped with its neighbour on the left (-1) or the right (+1) */
+export function moveNode(s: AbShape, path: AbPath, dir: -1 | 1): AbShape {
+  if (!canMove(s, path, dir)) return s
+  const i = path.at(-1)!
+  return update(s, path.slice(0, -1), (p) => {
+    const kids = [...p.children!]
+    ;[kids[i], kids[i + dir]] = [kids[i + dir], kids[i]]
+    return { children: kids }
+  })
+}
+export function canMove(s: AbShape, path: AbPath, dir: -1 | 1): boolean {
+  if (!path.length) return false
+  const j = path.at(-1)! + dir
+  return j >= 0 && j < shapeAt(s, path.slice(0, -1)).children!.length
+}
+
+export const setLeafValue = (s: AbShape, path: AbPath, value: number): AbShape => update(s, path, () => ({ value }))
