@@ -1,40 +1,21 @@
 # CLAUDE.md
 
-本文件为 Claude Code（及其他 AI 助手 / 新成员）提供项目上手指引。**动手前请先读完本页并按需查阅 `docs/` 下的三份文档。**
 
 ## 项目简介
 
-CS Helper (KnowitCS) 是面向 HKUST COMP2211（机器学习）的**交互式学习网站**：纯前端、多页静态站（每个模块一个 URL），通过可视化模块帮助学生理解机器学习核心概念与考点。在线 Demo：中文 <https://knowcs.online>。
+KnowCS 是面向 HKUST COMP2211（机器学习）的**交互式学习网站**：纯前端、多页静态站（每个模块一个 URL），通过可视化模块帮助学生理解机器学习核心概念与考点。在线 Demo：中文 <https://knowcs.online>。
 
 ## 文档导航（docs/）
 
-> 三份文档分工明确，按需查阅：
 
-- **[设计文档 docs/design.md](./docs/design.md)** —— **怎么做**：技术栈、整体架构、各可视化模块设计、i18n、构建部署、扩展指引与已知约束。改代码前的权威参考。
 - **[开发日志 docs/log.md](./docs/log.md)** —— **做了什么**：关键进展、决策与变更时间线，以及技术债清单。
 - **[路线规划 docs/plan.md](./docs/plan.md)** —— **接下来做什么**：愿景、近期/中长期计划、候选模块池与立项步骤。
 
-## 技术栈速览
-
-React 19 · TypeScript（strict）· Vite 7 · Tailwind CSS 4 · Framer Motion 12（`LazyMotion` + `m.*`）· KaTeX · react-i18next · Vite 多入口（页面清单 `src/lib/sitemap.ts`，构建时生成 `site/**/index.html`）。图表用自研 SVG `LineChart`；Markdown 笔记在构建期预渲染（`scripts/vite-plugins.mjs`）。
-
-## 常用命令
-
-```bash
-npm install       # 安装依赖
-npm run dev       # 开发服务器（http://localhost:5174）
-npm run lint      # ESLint 检查（部署门禁）
-npm test          # Vitest 单元测试（部署门禁）
-npm run typecheck # tsc --noEmit 严格类型检查（部署门禁）
-npm run build     # 生产构建：tsc --noEmit && vite build → dist/ 多页（部署门禁）
-npm run preview   # 预览构建产物
-```
 
 ## 构建与服务器部署
 
 生产域名：<https://knowcs.online>。托管在 `ssh pastpaper` 服务器，由现有 1Panel OpenResty 提供静态文件和 HTTPS。
 
-GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm ci`、lint、test、typecheck、build，不再自动发布到 PinMe，也不消耗 PinMe 余额。
 
 发布步骤见 `deploy/README.md`。站点目录为 `/opt/1panel/www/sites/knowcs`；`releases/<timestamp>/` 保存每次构建的整个 `dist/`，`current` 软链接指向线上版本。通过原子替换软链接发布，保留旧版本供回滚。Nginx 配置模板为 `deploy/knowcs.online.conf`，证书由 Certbot webroot 签发及自动续期。
 
@@ -54,47 +35,3 @@ GitHub Actions（`.github/workflows/deploy.yml`）只执行 Node 22 下的 `npm 
 | 初次发布 | `releases/20261005-2158`；对应代码提交 `bd0fbbe` |
 
 **不要混淆实例**：`ssh pastpaper` 对应上表的 `lhins-ir66ks5j`，不是名字为 `PastpaperMaster` 的 `lhins-ik4lnte5`。后续操作前重新核实 SSH、云实例和 DNS，不能把这里的快照当作永久不变的状态。腾讯云/DNS 操作使用用户级 `tencent-cloud-ops` 技能及本机 TCCLI；认证过期由用户执行 `tccli auth login`。
-
-### 推送与发布是两步
-
-- **GitHub 推送**只触发 `Validate KnowCS`，不会更新服务器。完成推送后仍需上传已验证的 `dist/` 全部内容、核对 SHA-256、原子切换 `current`。
-- GitHub SSH 曾连接失败；可使用已有 `gh` 登录凭据通过 HTTPS 推送，不在命令中放 token：
-
-  ```bash
-  git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push https://github.com/OpenKnowit/KnowCS.git main
-  gh run list --repo OpenKnowit/KnowCS --limit 3
-  ```
-
-- 修改 `.github/workflows/` 需要 `gh` 的 `workflow` 权限；若 GitHub 明确拒绝，可执行 `gh auth refresh -h github.com -s workflow` 并由用户完成浏览器授权。
-- 静态内容发布不需要重启或 reload OpenResty。只有修改站点配置/更新证书时，先备份，再执行 `sudo docker exec 1Panel-openresty-QDQf nginx -t`，通过后 `nginx -s reload`；不要重启容器。
-- 验证 HTTPS 200、HTTP 301、gzip、线上/本地 HTML SHA-256、真实浏览器桌面/手机行为，并确认 `mc.iloveust.com`、`pastpaper.knowit.top` 仍正常。
-- 回滚内容时原子地将 `current` 指回旧 release；初次上线前配置备份在站点 `backups/openresty-conf-before.tgz`。保留旧版本和备份，不要覆盖其他站点。
-- `designs/knowcs-all.pen` 是用户独立修改，提交时排除；`work/` 的 DNS 快照也不入库。任何密钥、token、私钥均不得写入文档、memory 或 Git。
-
-## 工作约定
-
-- **部署门禁四连**：提交/部署前确保 `npm run lint`、`npm test`、`npm run typecheck`、`npm run build` 均通过。CI 只校验，服务器发布需单独执行。
-- **计算逻辑放 `src/lib/`**：可视化模块的纯计算（距离/卷积/概率等）一律提取为 `src/lib/` 纯函数并配套 `*.test.ts`，组件只负责渲染与交互。
-- **i18n 同步**：新增/修改文案必须同时更新 `src/locales/en.json` 与 `src/locales/zh.json`，键严格对齐；繁体 `zh-HK.json` **由脚本生成、严禁手改**——改完 `zh.json` 后运行 `npm run gen:zh-hk`（OpenCC 简→港繁 + 香港术语映射，映射表见 `scripts/zh-hk.mjs` 的 `HK_TERMS`）。资料包笔记与拓展页同理：只维护 `*.en.*` 与 `*.zh.*` 两份，繁体在构建期自动生成；改内容时两份同步更新。
-- **文案拆包**：每页都加载的只是主文案（`*.json?core`，约 16KB）；只在一页用到的部分（`watch.<集>` 的字幕等、`lab.<页>`、`numpy_module`、`numpy_api`、`drill`、`formulas.items` 及各经典模块命名空间）由构建插件 `localeSplit`（`scripts/vite-plugins.mjs`）拆成「包 × 语言」chunk，页面用 `withPacks` / `ensurePacks`（`src/i18nPacks.ts`）在加载代码时一并加载。新增实验页要在 `src/site/pageLoaders.ts` 的 `LAB_LOADERS` 用 `withPacks(i18n, ['lab.<键>'], …)` 注册（ModulePage 与预加载都读这张表）；新增顶层命名空间若只属一页，加进插件的 `FIXED_PACKS` 并在该页加载；讲解视频借用其他包时登记在 `useEpisode.ts` 的 `EXTRA_PACKS`（有测试守护）。
-- **新增模块**：照 [docs/design.md](./docs/design.md) 第 11 节 / [docs/plan.md](./docs/plan.md) 第 6 节的步骤执行。
-- **文档维护**：架构决策写入 `design.md`；完成的变更追加到 `log.md`；规划调整更新 `plan.md`。
-
-## 目录要点
-
-- `src/lib/sitemap.ts` —— 唯一页面清单：模块（讲次 / 试卷）、笔记、拓展、URL、旧链接映射（`#/course/x` → `/x/`，`/lab/*.html` 跳转页）。`vite.config.js` 据此生成 HTML 入口。
-- `src/site/watch/` —— 讲解视频：`Player.tsx`（时间轴播放器）、`stage.tsx`（1600×900 舞台坐标、配色、`At`/`Tex`）、`episodes/*.tsx`（每集一组场景，`render(p)` 为场景进度的纯函数）。新增一集：计算放 `src/lib/` 配测试 → 写 episode → 在 `episodes/index.ts`、`useEpisode.ts` 的 `LOADERS` 与 `sitemap.ts` 的 `EPISODES` 注册 → `watch.<id>.*` 文案（字幕键 `scenes.<scene>.c<k>`，数量与 `cues` 对齐）。
-- `src/site/playground/` + `src/data/playgrounds/` —— 库实验台：`/playground/`（`pages/PlaygroundPage.tsx`，库清单与加载在 `playground/libs.ts`，NumPy 用 `NumpyApiPanel`，其余五个库用 `Playground` 的 `wide` 两栏布局，所选库在 URL hash）以及资料包里 matplotlib / PyTorch / Keras / TensorFlow / pandas 笔记旁的实验台：`Playground.tsx`（目录、编辑器、步骤、输出、全屏）、`views.tsx`（按事件类型画调用网格 / 图 / DataFrame / 形状流 / 计算图 / 训练曲线）、`FigureView.tsx`、`loaders.ts`（笔记 id → 配置 + `playground.<id>` 文案包）；示例配置在 `src/data/playgrounds/<库>.ts`，`playgrounds.test.ts` 会运行全部示例。库实现在 `src/lib/pyPlot.ts`、`pyTorch.ts`、`pyKeras.ts`（含 tensorflow）、`pyPandas.ts`，张量与自动求导在 `tensorCore.ts`；它们通过 minipy 的 `PyLib` / `PyObj` / `HostClass` 接入，改输出格式时对照真实库（各 `*.test.ts` 存有真实输出）。
-- `src/data/drill.ts`、`src/data/formulas.ts` —— 概念自测（`/drill/`）与公式表（`/formulas/`）的数据，文案在 `drill.*`、`formulas.*`；`/papers/` 考点地图由 `MODULES[].exams` 反推。对应测试会用库函数核对可计算的答案、并检查 KaTeX 能排版每条公式。
-- `src/site/` —— 全站共用入口 `main.tsx`（按 `<body data-page>` 懒加载页面）、`Shell.tsx`（顶栏 / 页脚 / 语言）、`ui.tsx`（PageBar、LabPage、Workspace、`<Ans>` 自测格等）、`pages/`（Home / Playground / Module / Notes / Extend / Watch / Drill / Formulas / Papers / 404；导航为「课程 · 实验场 · 更多」）、`modules/`（12 个考点实验页，含 Affine 与 PyTorch）。新增实验页：计算放 `src/lib/` 配测试 → `site/modules/Xxx.tsx`（用 `LabPage`）→ `sitemap.ts` 的 `ModuleId` 与 `MODULES` → `pageLoaders.ts` 的 `LAB_LOADERS` → `site.modules.<id>` 与 `lab.<id>` 文案。`/lab/*.html` 旧跳转只覆盖最初 10 个原型。
-- `src/modules/*.tsx` —— 8 个经典课程模块 + Package / Extend 视图（感知机与 PyTorch 由 `site/modules/` 的实验页承担）。动画一律用 `m.*`，不要用 `motion.*`；用到 `m.*` 的页面要包在 `components/Motion.tsx` 里（入口不再全局提供 LazyMotion）。
-- `src/components/*.tsx` —— 共享组件（Latex / LineChart / SectionTitle / SeniorAdvice）。
-- `src/lib/*.ts` —— 纯计算逻辑（knn / bayes / backprop / kmeans / alphabeta / chart / sitemap / lang …）+ 同目录 Vitest 单元测试。`ndarray.ts` + `ndops.ts` + `minipy.ts` 是 NumPy 实验台、NumPy 笔记 API 面板与各库实验台共用的迷你 NumPy 与 Python 子集解释器（支持语句块 / 函数 / 类 / with；有时间预算），改语义时要对照真 NumPy 的输出（`npapi.test.ts` 存放真实输出）；`npTrace.ts` 计算每个结果元素来自哪些输入元素；`broadcast.ts` 负责广播规则讲解。
-- `src/types.ts` + `src/data/constants.ts` —— 共享类型定义与类型化数据常量。
-- `src/i18n.ts` + `src/locales/` —— 国际化初始化与三语文案。`<Trans>` 一律用 `components={{1: …}}` 显式映射，文案里不要写 Markdown。
-- `scripts/vite-plugins.mjs` —— 构建期插件（KaTeX 字体瘦身、`*.md?html` 预渲染）。
-- `dist/`、`site/` —— 构建产物与生成的 HTML 入口，不入库。
-- `manim/` —— Manim Community 讲解视频源码（5 个高频考点，`render.sh` 渲染，产物 `manim/media/` 不入库），**不参与站点构建**；站内讲解视频是 `src/site/watch/` 的时间轴动画。
-- `src/ref/` —— 历史参考版本（.jsx），**不参与构建、已在 lint/tsc 忽略**。
-- 实验页文案在 `lab.<page>.*`；解析错误抛 `LabError`（`src/lib/labError.ts`），文案在 `lab.errors.*`。
-- `docs/` —— 设计 / 日志 / 计划三份文档（见上）。
