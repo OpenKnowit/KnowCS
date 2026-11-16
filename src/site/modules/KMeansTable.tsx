@@ -5,6 +5,9 @@ import { kmeansTable, type KMetric } from '../../lib/kmeansTable'
 import { niceTicks } from '../../lib/chart'
 import { errorText, fmt, PALETTE } from '../format'
 import { Ans, Btn, Card, LabPage, Note, Presets, Seg, Stat, TableWrap, Workspace } from '../ui'
+import { KMeansPractice } from './KMeansDrag'
+import { plotFrame } from './kmeansFrame'
+import type { DragState } from './KMeansDrag'
 
 interface Preset {
   id: string
@@ -38,20 +41,7 @@ function parsePoints(text: string): { names: string[]; pts: number[][] } {
 
 function Plot({ pts, names, centroids, next, assign }: { pts: number[][]; names: string[]; centroids: number[][]; next: number[][]; assign: number[] }) {
   const { t } = useTranslation()
-  const oneD = pts[0].length === 1
-  const W = 560, H = oneD ? 160 : 360, P = 34
-  const all = [...pts, ...centroids, ...next]
-  const xs = all.map((p) => p[0])
-  const ys = oneD ? [0] : all.map((p) => p[1])
-  const pad = (a: number[]) => {
-    const lo = Math.min(...a), hi = Math.max(...a)
-    const m = (hi - lo || 2) * 0.12
-    return [lo - m, hi + m]
-  }
-  const [x0, x1] = pad(xs)
-  const [y0, y1] = oneD ? [-1, 1] : pad(ys)
-  const X = (v: number) => P + ((v - x0) / (x1 - x0)) * (W - 2 * P)
-  const Y = (v: number) => (oneD ? H / 2 : H - P - ((v - y0) / (y1 - y0)) * (H - 2 * P))
+  const { oneD, W, H, P, x0, x1, y0, y1, X, Y } = plotFrame(pts, centroids, next)
   const yOf = (p: number[]) => (oneD ? 0 : p[1])
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t('lab.km.plot_aria')}>
@@ -102,6 +92,9 @@ export default function KMeansTable() {
   const [seedsText, setSeedsText] = useState(PRESETS[0].seeds)
   const [metric, setMetric] = useState<KMetric>('euclidean')
   const [round, setRound] = useState(0)
+  // practice: drag each point to its centroid; watch: the round as the table works it out
+  const [mode, setMode] = useState<'practice' | 'watch'>('practice')
+  const [prac, setPrac] = useState<{ key: string; state: DragState; revealed: boolean; last: number | null }>({ key: '', state: { guess: [] }, revealed: false, last: null })
 
   const parsed = useMemo(() => {
     try {
@@ -167,6 +160,25 @@ export default function KMeansTable() {
   const isLast = r === result.rounds.length - 1
   const point = (c: number[]) => `(${c.map((v) => fmt(v, 2)).join(', ')})`
 
+  // a fresh round (or new data) starts with every point unassigned
+  const pracKey = `${r}|${pointsText}|${seedsText}|${metric}`
+  if (prac.key !== pracKey) setPrac({ key: pracKey, state: { guess: pts.map(() => null) }, revealed: false, last: null })
+  const guess = prac.key === pracKey ? prac.state.guess : pts.map(() => null)
+  const right = guess.filter((g, i) => g === R.assign[i]).length
+  const allRight = right === pts.length
+  const assign = (next: DragState) => {
+    const changed = next.guess.findIndex((g, i) => g !== guess[i])
+    setPrac({ key: pracKey, state: next, revealed: false, last: changed >= 0 ? changed : prac.last })
+  }
+  const pick = (i: number, g: number) => assign({ guess: guess.map((v, j) => (j === i ? g : v)) })
+  const dists = (i: number) => R.dist[i].map((dv, j) => `d(${names[i]}, C${j + 1}) = ${fmt(dv, 2)}`).join(', ')
+  const lastI = prac.last
+  const lastG = lastI === null ? null : guess[lastI]
+  const tie = lastI !== null && R.dist[lastI].filter((dv) => Math.abs(dv - R.dist[lastI][R.assign[lastI]]) < 1e-12).length > 1
+  const feedback = lastI === null || lastG === null ? null : lastG === R.assign[lastI]
+    ? { tone: 'good' as const, text: t('lab.km.drop_right', { p: names[lastI], c: `C${lastG + 1}`, dists: dists(lastI) }) }
+    : { tone: 'bad' as const, text: t('lab.km.drop_wrong', { p: names[lastI], c: `C${lastG + 1}`, best: `C${R.assign[lastI] + 1}`, dists: dists(lastI) }) + (tie ? ` ${t('lab.km.drop_tie')}` : '') }
+
   return (
     <LabPage id="kmeans-table" quiz>
       <Workspace
@@ -189,8 +201,40 @@ export default function KMeansTable() {
           </>
         }
       >
-        <Card step={1} title={t('lab.km.round_title', { r: r + 1 })} sub={t('lab.km.round_sub')}>
-          <Plot pts={pts} names={names} centroids={R.centroids} next={R.next} assign={R.assign} />
+        <Card step={1} title={t('lab.km.round_title', { r: r + 1 })} sub={mode === 'practice' ? t('lab.km.drag_hint', { m: t(`lab.km.m_${metric}`) }) : t('lab.km.round_sub')}>
+          <div className="mb-3">
+            <Seg value={mode} onChange={setMode} options={[{ v: 'practice', label: t('lab.km.mode_practice') }, { v: 'watch', label: t('lab.km.mode_watch') }]} />
+          </div>
+          {mode === 'watch' ? (
+            <Plot pts={pts} names={names} centroids={R.centroids} next={R.next} assign={R.assign} />
+          ) : (
+            <>
+              <KMeansPractice pts={pts} names={names} centroids={R.centroids} next={R.next} answer={R.assign} state={prac.key === pracKey ? prac.state : { guess }} revealed={prac.revealed} onDrop={assign} />
+              <div className="mt-3 grid gap-2">
+                {feedback && <p className={`rounded-lg px-3 py-2 text-[13px] ${feedback.tone === 'good' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`} aria-live="polite">{feedback.text}</p>}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Stat k={t('lab.km.drag_progress')} v={`${right} / ${pts.length}`} tone={allRight ? 'good' : 'none'} />
+                  {allRight && !prac.revealed && <Btn primary onClick={() => setPrac({ ...prac, revealed: true })}>{t('lab.km.drag_reveal')}</Btn>}
+                  {prac.revealed && !isLast && <Btn primary onClick={() => setRound(r + 1)}>{t('lab.km.drag_next')}</Btn>}
+                  <Btn onClick={() => setPrac({ key: pracKey, state: { guess: pts.map(() => null) }, revealed: false, last: null })} disabled={guess.every((g) => g === null)}>{t('lab.km.drag_again')}</Btn>
+                </div>
+                {allRight && <p className="text-[13px] text-slate-600">{prac.revealed ? R.next.map((c, j) => `C${j + 1} → ${point(c)}`).join('  ·  ') : t('lab.km.drag_all_right')}</p>}
+                <details className="text-[12.5px] text-slate-600">
+                  <summary className="cursor-pointer select-none font-semibold">{t('lab.km.drag_tap')}</summary>
+                  <div className="mt-2 grid gap-1.5">
+                    {pts.map((_, i) => (
+                      <div key={i} className="flex flex-wrap items-center gap-1.5">
+                        <span className="w-14 font-mono font-bold">{names[i]}</span>
+                        {R.centroids.map((_, j) => (
+                          <button key={j} type="button" aria-pressed={guess[i] === j} onClick={() => pick(i, j)} className={`rounded-md border px-2 py-0.5 font-mono text-xs font-bold ${guess[i] === j ? 'text-white' : 'bg-white'}`} style={guess[i] === j ? { background: PALETTE[j], borderColor: PALETTE[j] } : { color: PALETTE[j], borderColor: '#cbd5e1' }}>C{j + 1}</button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            </>
+          )}
         </Card>
 
         <Card step={2} title={t('lab.km.dist_table', { m: t(`lab.km.m_${metric}`) })} sub={t('lab.common.quiz_sub')}>

@@ -1518,7 +1518,20 @@
       "not_done_never": "Press Next. K-Means stops only after a full round in which no point changes cluster ({{n}} rounds here, without converging).",
       "empty_note": "One cluster ended up empty — a true/false favourite (2024 Spring: “possible” is True).",
       "traps": "Use the distance the question names — 2023 Fall wanted <1>squared</1> distances. Round only when the paper says so (usually 2 decimals). Ties go to centroid 1 unless told otherwise. K-Means always converges, but not necessarily to the best clustering: a different seed can give a different answer.",
-      "choose_k": "Choosing k is not part of the algorithm. Exams ask for the elbow method: plot SSE against k and pick where the curve stops dropping sharply — not the k with the smallest SSE (that is always k = n)."
+      "choose_k": "Choosing k is not part of the algorithm. Exams ask for the elbow method: plot SSE against k and pick where the curve stops dropping sharply — not the k with the smallest SSE (that is always k = n).",
+      "mode_practice": "Assign them yourself",
+      "mode_watch": "Show the answer",
+      "drag_hint": "Drag each point onto the centroid it is closest to ({{m}}). Each drop is checked at once.",
+      "drag_aria": "Points to drag onto their closest centroid",
+      "drop_right": "{{p}} → {{c}}: right. {{dists}}.",
+      "drop_wrong": "{{p}} → {{c}}: not this one. {{dists}}, so {{p}} goes to {{best}}.",
+      "drop_tie": "On a tie, the lower-numbered centroid wins.",
+      "drag_progress": "Assigned correctly",
+      "drag_reveal": "Work out the new centroids",
+      "drag_next": "Next round",
+      "drag_again": "Clear this round",
+      "drag_all_right": "Every point is in the right cluster. Next, each centroid moves to the mean of its points.",
+      "drag_tap": "Or pick with buttons"
     },
     "perc": {
       "lead": "Feed one row at a time: compute O, and only if it is wrong move w and θ by η(T − O)x. Watch the decision line jump until every point is on its side — or never, if no straight line exists.",
