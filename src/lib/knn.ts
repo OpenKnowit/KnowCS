@@ -93,3 +93,22 @@ export const nudgeTestPoint = (p: TestPoint, dh: number, dw: number, stats: KnnS
   h: Math.min(stats.maxH, Math.max(stats.minH, p.h + dh)),
   w: Math.min(stats.maxW, Math.max(stats.minW, p.w + dw)),
 })
+
+/** heights in another unit (×10 for mm), weights as they are */
+export const scaleHeights = <T extends KnnPoint | TestPoint>(p: T, factor: number): T => ({ ...p, h: p.h * factor })
+
+/**
+ * Mean and sample standard deviation (n − 1, as lecture 3 computes them) of each feature, with heights scaled by
+ * `factor`; the plot range is given in cm and kg and scaled the same way.
+ */
+export function knnStats(points: KnnPoint[], factor: number, range: { minH: number; maxH: number; minW: number; maxW: number }): KnnStats {
+  const mean = (v: number[]) => v.reduce((s, x) => s + x, 0) / (v.length || 1)
+  const std = (v: number[]) => {
+    if (v.length < 2) return 1
+    const m = mean(v)
+    return Math.sqrt(v.reduce((s, x) => s + (x - m) ** 2, 0) / (v.length - 1)) || 1
+  }
+  const hs = points.map((p) => p.h * factor)
+  const ws = points.map((p) => p.w)
+  return { meanH: mean(hs), meanW: mean(ws), stdH: std(hs), stdW: std(ws), minH: range.minH * factor, maxH: range.maxH * factor, minW: range.minW, maxW: range.maxW }
+}

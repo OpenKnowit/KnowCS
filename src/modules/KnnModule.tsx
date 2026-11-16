@@ -1,22 +1,35 @@
-import React, { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { m } from 'framer-motion'
-import { LineChart as LineIcon, MousePointer2, Scale } from 'lucide-react'
+import { LineChart as LineIcon, MousePointer2, Pencil, RotateCcw, Scale } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { LineChart } from '../components/LineChart'
 import { Latex } from '../components/Latex'
 import { SeniorAdvice } from '../components/SeniorAdvice'
-import { KNN_RAW_DATA, KNN_STATS } from '../data/constants'
-import { computeKnn, looErrorCurve, nudgeTestPoint, scaleLinear, svgToDataPoint } from '../lib/knn'
-import type { KnnStats, TestPoint } from '../types'
+import { KNN_RAW_DATA } from '../data/constants'
+import { computeKnn, knnStats, looErrorCurve, nudgeTestPoint, scaleHeights, scaleLinear, svgToDataPoint } from '../lib/knn'
+import type { KnnPoint, StudentClass, TestPoint } from '../types'
 
 const WIDTH = 400
 const HEIGHT = 400
 const K_VALUES = Array.from({ length: 15 }, (_, i) => i + 1)
-const STATS: KnnStats = KNN_STATS
+/** the plot, in cm and kg (the data stays in these; mm only changes the numbers the distance sees) */
+const RANGE = { minH: 155, maxH: 175, minW: 55, maxW: 70 }
+const PLOT = { ...RANGE, meanH: 0, meanW: 0, stdH: 1, stdW: 1 }
+const START_TEST: TestPoint = { h: 162, w: 65 }
+/** how far past the edge (in plot units) a dragged point has to go to be removed */
+const OUT = 14
 
-const px = (h: number) => scaleLinear(h, STATS.minH, STATS.maxH, WIDTH)
-const py = (w: number) => HEIGHT - scaleLinear(w, STATS.minW, STATS.maxW, HEIGHT)
+type Unit = 'cm' | 'mm'
+type Point = KnnPoint & { id: number }
+type Drag = { kind: 'test' } | { kind: 'point'; id: number } | { kind: 'new'; s: StudentClass }
+
+const px = (h: number) => scaleLinear(h, RANGE.minH, RANGE.maxH, WIDTH)
+const py = (w: number) => HEIGHT - scaleLinear(w, RANGE.minW, RANGE.maxW, HEIGHT)
 const pct = (v: number) => `${Math.round(v * 100)}%`
+const COLOR: Record<StudentClass, string> = { M: '#3b82f6', L: '#ef4444' }
+const fresh = (): Point[] => KNN_RAW_DATA.map((p, id) => ({ ...p, id }))
+const num = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2))
 
 const ARROWS: Record<string, [number, number]> = {
   ArrowLeft: [-1, 0],
@@ -29,130 +42,261 @@ const ARROWS: Record<string, [number, number]> = {
 export const KnnModule = () => {
   const [k, setK] = useState(5)
   const [isStandardized, setIsStandardized] = useState(false)
-  const [testPoint, setTestPoint] = useState<TestPoint>({ h: 161, w: 61 })
+  const [unit, setUnit] = useState<Unit>('cm')
+  const [points, setPoints] = useState<Point[]>(fresh)
+  const [testPoint, setTestPoint] = useState<TestPoint>(START_TEST)
+  const [editing, setEditing] = useState(false)
+  const [drag, setDrag] = useState<Drag | null>(null)
+  /** where a new point being dragged in from the palette is, and whether a dragged point is past the edge */
+  const [ghost, setGhost] = useState<{ h: number; w: number; out: boolean } | null>(null)
+  /** the class a press on the plot adds while editing */
+  const [addClass, setAddClass] = useState<StudentClass>('M')
   const svgRef = useRef<SVGSVGElement>(null)
+  const nextId = useRef(KNN_RAW_DATA.length)
   const { t } = useTranslation()
 
+  // the distance sees heights in the chosen unit; the plot stays in cm
+  const factor = unit === 'mm' ? 10 : 1
+  const stats = useMemo(() => knnStats(points, factor, RANGE), [points, factor])
+  const scaled = useMemo(() => points.map((p) => scaleHeights(p, factor)), [points, factor])
   const processedData = useMemo(
-    () => computeKnn(KNN_RAW_DATA, testPoint, k, isStandardized, STATS),
-    [k, isStandardized, testPoint]
+    () => computeKnn(scaled, scaleHeights(testPoint, factor), k, isStandardized, stats),
+    [scaled, testPoint, factor, k, isStandardized, stats]
   )
 
-  // 真实的留一法误差曲线（随标准化开关重新计算）
+  // 真实的留一法误差曲线（随标准化开关、单位和数据重新计算）
   const looCurve = useMemo(
-    () => looErrorCurve(KNN_RAW_DATA, K_VALUES, isStandardized, STATS).map((p) => ({ x: p.k, y: p.error })),
-    [isStandardized]
+    () => looErrorCurve(scaled, K_VALUES, isStandardized, stats).map((p) => ({ x: p.k, y: p.error })),
+    [scaled, isStandardized, stats]
   )
   const best = useMemo(() => looCurve.reduce((a, b) => (b.y < a.y ? b : a)), [looCurve])
 
-  const handleSvgClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current) return
-    const rect = svgRef.current.getBoundingClientRect()
-    // 按实际渲染尺寸换算回 viewBox 坐标（画布在小屏上会被缩放）
+  /** pointer → plot coordinates (the canvas is scaled on small screens) */
+  const at = (e: { clientX: number; clientY: number }) => {
+    const rect = svgRef.current!.getBoundingClientRect()
     const x = ((e.clientX - rect.left) / rect.width) * WIDTH
     const y = ((e.clientY - rect.top) / rect.height) * HEIGHT
-    setTestPoint(svgToDataPoint(x, y, WIDTH, HEIGHT, STATS))
+    const out = x < -OUT || x > WIDTH + OUT || y < -OUT || y > HEIGHT + OUT
+    const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+    return { ...svgToDataPoint(clamp(x, 0, WIDTH), clamp(y, 0, HEIGHT), WIDTH, HEIGHT, PLOT), out, inside: x >= 0 && x <= WIDTH && y >= 0 && y <= HEIGHT }
   }
 
-  const handleSvgKey = (e: React.KeyboardEvent<SVGSVGElement>) => {
+  const begin = (e: ReactPointerEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return
+    const target = (e.target as Element).closest('[data-point]')
+    const p = at(e)
+    if (target && editing) {
+      setDrag({ kind: 'point', id: Number(target.getAttribute('data-point')) })
+    } else if (editing && !(e.target as Element).closest('[data-test]')) {
+      // a press on empty space adds a point there, and keeps it under the pointer until release
+      const id = nextId.current++
+      setPoints((ps) => [...ps, { id, h: p.h, w: p.w, s: addClass }])
+      setDrag({ kind: 'point', id })
+    } else {
+      setTestPoint({ h: p.h, w: p.w })
+      setDrag({ kind: 'test' })
+    }
+    svgRef.current.setPointerCapture(e.pointerId)
+  }
+  const move = (e: ReactPointerEvent) => {
+    if (!drag || !svgRef.current) return
+    const p = at(e)
+    if (drag.kind === 'test') setTestPoint({ h: p.h, w: p.w })
+    else if (drag.kind === 'point') {
+      setPoints((ps) => ps.map((q) => (q.id === drag.id ? { ...q, h: p.h, w: p.w } : q)))
+      setGhost(p.out ? { h: p.h, w: p.w, out: true } : null)
+    } else setGhost(p.inside ? { h: p.h, w: p.w, out: false } : null)
+  }
+  const end = (e: ReactPointerEvent) => {
+    if (drag && svgRef.current) {
+      const p = at(e)
+      if (drag.kind === 'point' && p.out) setPoints((ps) => ps.filter((q) => q.id !== drag.id))
+      if (drag.kind === 'new' && p.inside) {
+        const id = nextId.current++
+        setPoints((ps) => [...ps, { id, h: p.h, w: p.w, s: drag.s }])
+      }
+    }
+    setDrag(null)
+    setGhost(null)
+  }
+
+  // the palette: press a chip and drag it onto the plot (or just press it, then press the plot)
+  const fromPalette = (s: StudentClass) => (e: ReactPointerEvent<HTMLButtonElement>) => {
+    setAddClass(s)
+    setDrag({ kind: 'new', s })
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  const handleSvgKey = (e: ReactKeyboardEvent<SVGSVGElement>) => {
     const d = ARROWS[e.key]
     if (!d) return
     e.preventDefault()
-    setTestPoint((p) => nudgeTestPoint(p, d[0], d[1], STATS))
+    setTestPoint((p) => nudgeTestPoint(p, d[0], d[1], PLOT))
   }
 
   const tx = px(testPoint.h)
   const ty = py(testPoint.w)
   const predLabel = processedData.prediction === 'M' ? t('knn.class_m') : t('knn.class_l')
+  // the points at the K-th neighbour's distance: an ellipse on this plot, which shows cm and kg side by side
+  const r = processedData.radiusDist
+  const rxCm = (isStandardized ? r * stats.stdH : r) / factor
+  const ryKg = isStandardized ? r * stats.stdW : r
+  const rx = (rxCm / (RANGE.maxH - RANGE.minH)) * WIDTH
+  const ry = (ryKg / (RANGE.maxW - RANGE.minW)) * HEIGHT
+  const byId = new Map(points.map((p, i) => [p.id, i]))
+  const seg = (on: boolean) => `px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition ${on ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`
+  const hTick = (v: number) => String(v * factor)
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <div className="lg:col-span-7 bg-white border border-slate-200 rounded-[2rem] p-5 sm:p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-3">
             <h4 className="text-[11px] font-black text-slate-400 uppercase flex items-center gap-2">
-              <MousePointer2 size={14} className="text-blue-500" aria-hidden /> {t('knn.click_instruction')}
+              <MousePointer2 size={14} className="text-blue-500" aria-hidden /> {editing ? t('knn.edit_hint') : t('knn.click_instruction')}
             </h4>
-            <div className="flex flex-wrap gap-2 bg-slate-100 p-1 rounded-xl shrink-0" role="group" aria-label={t('knn.distance_mode')}>
-               <button onClick={() => setIsStandardized(false)} aria-pressed={!isStandardized} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition ${!isStandardized ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>{t('knn.raw_data')}</button>
-               <button onClick={() => setIsStandardized(true)} aria-pressed={isStandardized} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition ${isStandardized ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>{t('knn.standardized')}</button>
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              aria-pressed={editing}
+              className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-[11px] font-black uppercase transition ${editing ? 'bg-blue-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              <Pencil size={13} aria-hidden /> {editing ? t('knn.edit_done') : t('knn.edit')}
+            </button>
+          </div>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl" role="group" aria-label={t('knn.distance_mode')}>
+              <button onClick={() => setIsStandardized(false)} aria-pressed={!isStandardized} className={seg(!isStandardized)}>{t('knn.raw_data')}</button>
+              <button onClick={() => setIsStandardized(true)} aria-pressed={isStandardized} className={seg(isStandardized)}>{t('knn.standardized')}</button>
+            </div>
+            <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl" role="group" aria-label={t('knn.unit')}>
+              <button onClick={() => setUnit('cm')} aria-pressed={unit === 'cm'} className={seg(unit === 'cm')}>{t('knn.unit_cm')}</button>
+              <button onClick={() => setUnit('mm')} aria-pressed={unit === 'mm'} className={seg(unit === 'mm')}>{t('knn.unit_mm')}</button>
             </div>
           </div>
 
+          {editing && (
+            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/60 p-2.5">
+              {(['M', 'L'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onPointerDown={fromPalette(s)}
+                  onPointerMove={move}
+                  onPointerUp={end}
+                  aria-pressed={addClass === s}
+                  className={`flex touch-none select-none items-center gap-2 rounded-xl border-2 bg-white px-3 py-1.5 text-[11px] font-black cursor-grab active:cursor-grabbing ${addClass === s ? '' : 'border-transparent'}`}
+                  style={addClass === s ? { borderColor: COLOR[s] } : undefined}
+                >
+                  <i className="h-3 w-3 rounded-full" style={{ background: COLOR[s] }} aria-hidden />
+                  {t(s === 'M' ? 'knn.add_m' : 'knn.add_l')}
+                </button>
+              ))}
+              <span className="text-[11px] text-slate-500">{t('knn.n_points', { n: points.length })}</span>
+              <button type="button" onClick={() => setPoints(fresh())} className="ml-auto flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-white">
+                <RotateCcw size={12} aria-hidden /> {t('knn.reset_data')}
+              </button>
+            </div>
+          )}
+
           {/* 网格布局给两条坐标轴标签留位置，避免旋转文字压到画布 */}
-          <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 w-full max-w-[min(470px,calc(100dvh-510px))] mx-auto">
+          <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 w-full max-w-[min(470px,calc(100dvh-470px))] min-w-[240px] mx-auto">
             <div className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] whitespace-nowrap" aria-hidden>{t('knn.axis_weight')}</div>
             <div className="aspect-square w-full">
             <svg
               ref={svgRef}
               viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-              className="w-full h-full cursor-crosshair border-l border-b border-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-sm"
-              onClick={handleSvgClick}
+              className={`w-full h-full overflow-visible border-l border-b border-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-sm select-none ${editing ? 'cursor-copy' : 'cursor-crosshair'}`}
+              // while editing, a finger on the plot moves points instead of the page
+              style={{ touchAction: editing || drag ? 'none' : 'pan-y' }}
+              onPointerDown={begin}
+              onPointerMove={move}
+              onPointerUp={end}
+              onPointerCancel={end}
               onKeyDown={handleSvgKey}
               tabIndex={0}
               role="application"
               aria-label={t('knn.canvas_label', { h: testPoint.h, w: testPoint.w, k, cls: predLabel })}
             >
-              {[...Array(5)].map((_, i) => (
-                <React.Fragment key={i}>
-                  <line x1={0} y1={(i * HEIGHT) / 4} x2={WIDTH} y2={(i * HEIGHT) / 4} stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1={(i * WIDTH) / 4} y1={0} x2={(i * WIDTH) / 4} y2={HEIGHT} stroke="#f1f5f9" strokeWidth="1" />
-                </React.Fragment>
+              <defs>
+                <clipPath id="knn-plot"><rect width={WIDTH} height={HEIGHT} /></clipPath>
+              </defs>
+              {/* a grid line every 5 cm and every 5 kg */}
+              {[160, 165, 170].map((h) => (
+                <g key={`h${h}`}>
+                  <line x1={px(h)} y1={0} x2={px(h)} y2={HEIGHT} stroke="#f1f5f9" strokeWidth="1" />
+                  <text x={px(h)} y={HEIGHT - 5} textAnchor="middle" className="fill-slate-300 text-[10px] font-bold">{hTick(h)}</text>
+                </g>
+              ))}
+              {[60, 65].map((w) => (
+                <g key={`w${w}`}>
+                  <line x1={0} y1={py(w)} x2={WIDTH} y2={py(w)} stroke="#f1f5f9" strokeWidth="1" />
+                  <text x={5} y={py(w) - 4} className="fill-slate-300 text-[10px] font-bold">{w}</text>
+                </g>
               ))}
 
-              {/* 决策圆（仅原始模式下几何直观；标准化后等距线是椭圆） */}
-              {!isStandardized && (
-                <circle
-                  cx={tx}
-                  cy={ty}
-                  r={scaleLinear(STATS.minH + processedData.radiusDist, STATS.minH, STATS.maxH, WIDTH)}
-                  fill="rgba(59, 130, 246, 0.05)"
-                  stroke="#3b82f6"
-                  strokeWidth="1"
-                  strokeDasharray="4 4"
-                />
+              {/* every point as close as the K-th neighbour: in mm the raw distance hardly sees weight, so it stretches */}
+              {processedData.topK.length > 0 && (
+                <ellipse clipPath="url(#knn-plot)" cx={tx} cy={ty} rx={rx} ry={ry} fill="rgba(59, 130, 246, 0.05)" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 4" />
               )}
 
               {/* 邻居连线 */}
-              {processedData.topK.map((n) => (
-                <m.line
-                  key={n.idx}
-                  initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                  x1={tx} y1={ty} x2={px(n.h)} y2={py(n.w)}
-                  stroke={n.s === 'M' ? '#3b82f6' : '#ef4444'} strokeWidth="2" opacity="0.6"
-                />
-              ))}
-
-              {/* 数据点 */}
-              {processedData.data.map((d) => {
-                const rank = processedData.neighborsMap.get(d.idx)
+              {processedData.topK.map((n) => {
+                const p = points[n.idx]
                 return (
-                  <g key={d.idx}>
-                    <m.circle
-                      cx={px(d.h)} cy={py(d.w)}
-                      r={rank ? 8 : 4}
-                      fill={d.s === 'M' ? '#3b82f6' : '#ef4444'}
-                      animate={{ opacity: rank ? 1 : 0.25, scale: rank ? 1.3 : 1 }}
-                    />
-                    {rank && (
-                      <text x={px(d.h)} y={py(d.w) + 18} textAnchor="middle" className="text-[10px] font-black fill-slate-800">
-                        #{rank}
-                      </text>
-                    )}
-                  </g>
+                  <m.line
+                    key={p.id}
+                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                    x1={tx} y1={ty} x2={px(p.h)} y2={py(p.w)}
+                    stroke={COLOR[p.s]} strokeWidth="2" opacity="0.6"
+                  />
                 )
               })}
 
-              <m.g animate={{ x: tx, y: ty }} initial={false}>
+              {/* 数据点 */}
+              {points.map((p) => {
+                const rank = processedData.neighborsMap.get(byId.get(p.id)!)
+                const dragged = drag?.kind === 'point' && drag.id === p.id
+                const leaving = dragged && ghost?.out
+                return (
+                  <g key={p.id} data-point={p.id} className={editing ? 'cursor-grab' : undefined}>
+                    {editing && <circle cx={px(p.h)} cy={py(p.w)} r={14} fill="transparent" />}
+                    <m.circle
+                      cx={px(p.h)} cy={py(p.w)}
+                      r={rank ? 8 : editing ? 6 : 4}
+                      fill={COLOR[p.s]}
+                      stroke={leaving ? '#0f172a' : '#fff'}
+                      strokeWidth={leaving ? 2 : 1}
+                      strokeDasharray={leaving ? '3 2' : undefined}
+                      animate={{ opacity: leaving ? 0.35 : rank || editing ? 1 : 0.25, scale: rank ? 1.3 : 1 }}
+                    />
+                    {rank && !dragged && (
+                      <text x={px(p.h)} y={py(p.w) + 18} textAnchor="middle" className="text-[10px] font-black fill-slate-800 pointer-events-none">
+                        #{rank}
+                      </text>
+                    )}
+                    {leaving && <text x={px(p.h)} y={py(p.w) - 14} textAnchor="middle" className="text-[10px] font-black fill-slate-700 pointer-events-none">{t('knn.release_delete')}</text>}
+                  </g>
+                )
+              })}
+              {drag?.kind === 'new' && ghost && <circle cx={px(ghost.h)} cy={py(ghost.w)} r={7} fill={COLOR[drag.s]} opacity={0.6} stroke="#fff" strokeWidth={2} />}
+
+              <m.g data-test animate={{ x: tx, y: ty }} initial={false} transition={drag?.kind === 'test' ? { duration: 0 } : undefined} className="cursor-move">
                 <circle r="10" fill="#10b981" stroke="#fff" strokeWidth="4" />
-                <text y="-18" textAnchor="middle" className="text-[10px] font-black fill-emerald-600 uppercase">{t('knn.test_sample')}</text>
+                <text y="-18" textAnchor="middle" className="text-[10px] font-black fill-emerald-600 uppercase pointer-events-none">{t('knn.test_sample')}</text>
               </m.g>
             </svg>
             </div>
             <div aria-hidden />
-            <div className="text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] whitespace-nowrap" aria-hidden>{t('knn.axis_height')}</div>
+            <div className="text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] whitespace-nowrap" aria-hidden>{t('knn.axis_height_unit', { u: unit })}</div>
           </div>
-          <p className="mt-4 text-center text-[10px] text-slate-400 coarse:hidden">{t('knn.keyboard_hint')}</p>
+          <div className="mt-4 grid gap-1.5 text-center text-[11px] text-slate-500">
+            <p className="font-mono">
+              {t('knn.stats_line', { mh: num(+stats.meanH.toFixed(2)), sh: stats.stdH.toFixed(2), mw: num(+stats.meanW.toFixed(2)), sw: stats.stdW.toFixed(2), u: unit })}
+            </p>
+            <p className={unit === 'mm' ? 'text-amber-700 font-semibold' : 'text-slate-400'}>{t(unit === 'mm' ? 'knn.unit_note_mm' : 'knn.unit_note_cm')}</p>
+            <p className="text-[10px] text-slate-400 coarse:hidden">{t('knn.keyboard_hint')}</p>
+          </div>
         </div>
 
         <div className="lg:col-span-5 space-y-4">
@@ -172,7 +316,7 @@ export const KnnModule = () => {
              />
              </div>
              <p className="text-[10px] text-slate-400 mt-3 leading-relaxed">
-               {t('knn.loo_hint', { n: KNN_RAW_DATA.length, k: best.x, err: pct(best.y) })}
+               {t('knn.loo_hint', { n: points.length, k: best.x, err: pct(best.y) })}
              </p>
              <div className="mt-3 grid grid-cols-2 gap-4 text-center border-t border-slate-800 pt-3">
                 <div><p className="text-[9px] text-slate-500 uppercase">{t('knn.low_k')}</p><p className="text-[10px] text-red-400 font-bold">{t('knn.overfitting')}</p></div>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { KNN_RAW_DATA } from '../data/constants'
 import type { KnnStats } from '../types'
-import { computeKnn, looErrorCurve, nudgeTestPoint, scaleLinear, svgToDataPoint } from './knn'
+import { computeKnn, knnStats, looErrorCurve, nudgeTestPoint, scaleHeights, scaleLinear, svgToDataPoint } from './knn'
 
 const STATS: KnnStats = { meanH: 164, meanW: 62.33, stdH: 4.33, stdW: 2.63, minH: 155, maxH: 175, minW: 55, maxW: 70 }
 const TEST_POINT = { h: 161, w: 61 } // 模块默认测试点
@@ -141,5 +141,26 @@ describe('svgToDataPoint', () => {
     const p = svgToDataPoint(123, 217, 400, 400, STATS)
     expect(Number.isInteger(p.h)).toBe(true)
     expect(Number.isInteger(p.w)).toBe(true)
+  })
+})
+
+describe('units and standardisation', () => {
+  const range = { minH: 155, maxH: 175, minW: 55, maxW: 70 }
+  it('computes the lecture’s mean and sample standard deviation', () => {
+    const s = knnStats(KNN_RAW_DATA, 1, range)
+    expect(s.meanH).toBe(164)
+    expect(s.stdH).toBeCloseTo(4.33, 2)
+    expect(s.meanW).toBeCloseTo(62.33, 2)
+    expect(s.stdW).toBeCloseTo(2.63, 2)
+  })
+
+  it('heights in mm change the raw prediction, not the standardised one', () => {
+    const t = { h: 162, w: 65 }
+    const run = (factor: number, std: boolean) => computeKnn(KNN_RAW_DATA.map((p) => scaleHeights(p, factor)), scaleHeights(t, factor), 5, std, knnStats(KNN_RAW_DATA, factor, range)).prediction
+    expect(run(1, false)).toBe('L')
+    expect(run(10, false)).toBe('M')     // in mm, height decides the distance almost alone
+    expect(run(1, true)).toBe('L')
+    expect(run(10, true)).toBe('L')      // standardised: the unit does not matter
+    expect(knnStats(KNN_RAW_DATA, 10, range).stdH).toBeCloseTo(43.3, 1)
   })
 })

@@ -371,7 +371,7 @@
     }
   },
   "knn": {
-    "click_instruction": "Click background to move test point",
+    "click_instruction": "Click or drag to move the test point",
     "raw_data": "Raw Data",
     "standardized": "Standardized",
     "test_sample": "Test Sample",
@@ -384,7 +384,7 @@
     "k_value": "Parameter K:",
     "m_vote": "M Size Vote",
     "l_vote": "L Size Vote",
-    "advice": "Observe the interaction: As you increase <1>K</1>, the decision boundary becomes smoother. Small <1>K</1> leads to complex boundaries prone to <3>Overfitting</3> (capturing noise), while large <5>K</5> simplifies the boundary causing <3>Underfitting</3>. Also, toggle 'Standardized' to see how scale affects distance—without it, features with larger ranges (like Weight) dominate the distance calculation, which is a classic trap in KNN!",
+    "advice": "Observe the interaction: as you increase <1>K</1>, the decision boundary becomes smoother. A small <1>K</1> gives jagged boundaries that <3>overfit</3> (they follow noise), while a large <5>K</5> oversimplifies and <3>underfits</3>. Then switch the height to mm: the same people, but height differences become 10 times larger, so the raw Euclidean distance ignores weight and the prediction changes. Standardising (z = (x − μ) / σ) puts each feature on its own scale first, so the unit no longer matters. This is the classic KNN trap!",
     "distance_mode": "Distance metric",
     "canvas_label": "KNN scatter plot. Click or use arrow keys to move the test point. Test point: height {{h}} cm, weight {{w}} kg. With K = {{k}} the prediction is {{cls}}.",
     "axis_weight": "Weight (kg)",
@@ -394,7 +394,22 @@
     "loo_hint": "Real result, not a sketch: each of the {{n}} samples is held out and predicted by the others. Lowest error here: K = {{k}} ({{err}}). Green dot = best K, dashed line = your K.",
     "tie": "Tie {{m}} : {{l}} — no majority, so the nearest neighbour breaks the tie → {{cls}}. Pick an odd K to avoid this.",
     "class_m": "M size",
-    "class_l": "L size"
+    "class_l": "L size",
+    "edit": "Edit data",
+    "edit_done": "Done",
+    "edit_hint": "Drag M / L onto the plot or click it to add · drag a point to move it, off the plot to delete",
+    "add_m": "M size",
+    "add_l": "L size",
+    "n_points": "{{n}} points",
+    "reset_data": "Lecture data",
+    "release_delete": "release to delete",
+    "unit": "Height unit",
+    "unit_cm": "Height in cm",
+    "unit_mm": "Height in mm",
+    "axis_height_unit": "Height ({{u}})",
+    "stats_line": "height μ = {{mh}} {{u}}, σ = {{sh}} · weight μ = {{mw}} kg, σ = {{sw}}",
+    "unit_note_cm": "In cm both features spread over a few units, so standardising changes little. Switch the height to mm.",
+    "unit_note_mm": "In mm every height difference is 10 times larger: the raw distance is almost all height, and the dashed region stretches along weight. Standardised, the answer is the same as in cm."
   },
   "app": {
     "title": "CS/AI Interactive Learning Lab",
