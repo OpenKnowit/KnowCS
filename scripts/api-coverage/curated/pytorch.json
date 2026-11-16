@@ -1,0 +1,606 @@
+[
+ {
+  "keys": [
+   "Tensor.addcmul",
+   "Tensor.addcdiv",
+   "Tensor.addcdiv_"
+  ],
+  "src": "import torch\nt = torch.tensor([1., 2., 3.])\na = torch.tensor([2., 4., 6.])\nb = torch.tensor([4., 2., 1.])\nprint(t.addcmul(a, b, value=0.5))     # t + 0.5 * a * b\nprint(t.addcdiv(a, b, value=0.5))     # t + 0.5 * a / b\nt.addcdiv_(a, b)                      # the same with value=1, in place\nprint(t)\n",
+  "out": "tensor([5., 6., 6.])\ntensor([1.2500, 3.0000, 6.0000])\ntensor([1.5000, 4.0000, 9.0000])"
+ },
+ {
+  "keys": [
+   "torch.addmm",
+   "torch.addmv",
+   "torch.addr",
+   "Tensor.addmm_",
+   "Tensor.addmv_",
+   "Tensor.addr_",
+   "torch.addmv_"
+  ],
+  "src": "import torch\nM = torch.zeros(2, 2)\nA = torch.tensor([[1., 2.], [3., 4.]])\nv = torch.tensor([1., 1.])\nw = torch.tensor([1., 2.])\nprint(torch.addmm(M, A, A, beta=1, alpha=2))     # beta * M + alpha * (A @ A)\nprint(torch.addmv(v, A, v))                      # v + A @ v\nprint(torch.addr(M, v, w))                       # M + outer(v, w)\nM.addmm_(A, torch.eye(2))                        # in place: M += A @ I\nM.addr_(v, w)\nprint(M)\nu = torch.ones(2)\nu.addmv_(A, v)\ntorch.addmv_(u, A, v)\nprint(u)\n",
+  "out": "tensor([[14., 20.],\n        [30., 44.]])\ntensor([4., 8.])\ntensor([[1., 2.],\n        [1., 2.]])\ntensor([[2., 4.],\n        [4., 6.]])\ntensor([ 7., 15.])"
+ },
+ {
+  "keys": [
+   "Tensor.bmm",
+   "torch.baddbmm",
+   "torch.addbmm",
+   "Tensor.baddbmm_",
+   "Tensor.addbmm_"
+  ],
+  "src": "import torch\nA = torch.tensor([[1., 2.], [3., 4.]])\nbatch = torch.stack([A, torch.eye(2)])            # 2 matrices of 2 × 2\nprint(batch.bmm(batch))                           # each matrix times itself\nprint(torch.baddbmm(torch.ones(2, 2, 2), batch, batch)[0])   # 1 + A @ A, per matrix\nprint(torch.addbmm(torch.zeros(2, 2), batch, batch))        # the products, summed\nC = torch.zeros(2, 2, 2)\nC.baddbmm_(batch, batch)\nS = torch.zeros(2, 2)\nS.addbmm_(batch, batch)\nprint(C[1], S)\n",
+  "out": "tensor([[[ 7., 10.],\n         [15., 22.]],\n\n        [[ 1.,  0.],\n         [ 0.,  1.]]])\ntensor([[ 8., 11.],\n        [16., 23.]])\ntensor([[ 8., 10.],\n        [15., 23.]])\ntensor([[1., 0.],\n        [0., 1.]]) tensor([[ 8., 10.],\n        [15., 23.]])"
+ },
+ {
+  "keys": [
+   "Tensor.outer",
+   "Tensor.ger",
+   "Tensor.vdot"
+  ],
+  "src": "import torch\na = torch.tensor([1., 2., 3.])\nb = torch.tensor([10., 20.])\nprint(a.outer(b))           # every a[i] * b[j]: a 3 × 2 table\nprint(a.ger(b))             # the old name of outer\nprint(a.vdot(torch.tensor([1., 0., -1.])))   # dot product (conjugating a, for complex tensors)\n",
+  "out": "tensor([[10., 20.],\n        [20., 40.],\n        [30., 60.]])\ntensor([[10., 20.],\n        [20., 40.],\n        [30., 60.]])\ntensor(-2.)"
+ },
+ {
+  "keys": [
+   "Tensor.bitwise_and",
+   "Tensor.bitwise_or",
+   "Tensor.bitwise_xor",
+   "Tensor.bitwise_not",
+   "Tensor.bitwise_left_shift",
+   "Tensor.bitwise_right_shift",
+   "Tensor.bitwise_or_",
+   "Tensor.bitwise_xor_",
+   "Tensor.bitwise_not_",
+   "Tensor.bitwise_left_shift_",
+   "Tensor.bitwise_right_shift_"
+  ],
+  "src": "import torch\na = torch.tensor([12, 10, 7])     # 1100 1010 0111\nb = torch.tensor([10, 6, 1])      # 1010 0110 0001\nprint(a.bitwise_and(b), a.bitwise_or(b), a.bitwise_xor(b))\nprint(a.bitwise_not())            # every bit flipped: -(a + 1)\nprint(a.bitwise_left_shift(1), a.bitwise_right_shift(1))    # × 2 and // 2\nc = a.clone()\nc.bitwise_or_(b)\nc.bitwise_xor_(b)\nc.bitwise_not_()\nc.bitwise_left_shift_(2)\nc.bitwise_right_shift_(1)\nprint(c)\n",
+  "out": "tensor([8, 2, 1]) tensor([14, 14,  7]) tensor([ 6, 12,  6])\ntensor([-13, -11,  -8])\ntensor([24, 20, 14]) tensor([6, 5, 3])\ntensor([-10, -18, -14])"
+ },
+ {
+  "keys": [
+   "Tensor.gcd",
+   "Tensor.lcm",
+   "Tensor.gcd_",
+   "Tensor.lcm_",
+   "torch.gcd_",
+   "torch.lcm_"
+  ],
+  "src": "import torch\na = torch.tensor([12, 18, 7])\nb = torch.tensor([8, 24, 5])\nprint(a.gcd(b), a.lcm(b))         # greatest common divisor, least common multiple\nc = a.clone()\nc.gcd_(b)\ntorch.lcm_(c, b)\nd = a.clone()\nd.lcm_(b)\ntorch.gcd_(d, b)\nprint(c, d)\n",
+  "out": "tensor([4, 6, 1]) tensor([24, 72, 35])\ntensor([ 8, 24,  5]) tensor([ 8, 24,  5])"
+ },
+ {
+  "keys": [
+   "Tensor.float_power_",
+   "Tensor.lerp_",
+   "Tensor.renorm",
+   "Tensor.renorm_"
+  ],
+  "src": "import torch\nt = torch.tensor([1., 2., 3.], dtype=torch.float64)\nt.float_power_(2)                  # squared, in place: float_power works in float64\nprint(t, t.dtype)\nstart = torch.tensor([0., 0.])\nstart.lerp_(torch.tensor([10., 20.]), 0.25)    # a quarter of the way to the end\nprint(start)\nrows = torch.tensor([[3., 4.], [0.3, 0.4]])\nprint(rows.renorm(p=2, dim=0, maxnorm=1))      # rows longer than 1 scaled down to length 1\nrows.renorm_(2, 0, 1)\nprint(rows)\n",
+  "out": "tensor([1., 4., 9.], dtype=torch.float64) torch.float64\ntensor([2.5000, 5.0000])\ntensor([[0.6000, 0.8000],\n        [0.3000, 0.4000]])\ntensor([[0.6000, 0.8000],\n        [0.3000, 0.4000]])"
+ },
+ {
+  "keys": [
+   "Tensor.index_copy_",
+   "Tensor.index_fill_",
+   "Tensor.index_put_",
+   "Tensor.index_reduce_",
+   "torch.index_fill",
+   "torch.index_put_",
+   "torch.index_reduce",
+   "torch.index_select"
+  ],
+  "src": "import torch\nx = torch.zeros(3, 4)\nidx = torch.tensor([0, 2])\nprint(torch.index_select(torch.arange(12.).view(3, 4), 0, idx))   # rows 0 and 2\nx.index_copy_(0, idx, torch.ones(2, 4))        # rows 0 and 2 ← ones\nx.index_fill_(1, torch.tensor([3]), 7.)       # column 3 ← 7\nprint(x)\nprint(torch.index_fill(torch.zeros(2, 3), 1, torch.tensor([1]), -1.))\ny = torch.zeros(3)\ny.index_put_((torch.tensor([0, 2]),), torch.tensor([5., 6.]))\ntorch.index_put_(y, (torch.tensor([1]),), torch.tensor([9.]))\nprint(y)\nz = torch.ones(3)\nz.index_reduce_(0, torch.tensor([0, 0, 2]), torch.tensor([2., 3., 4.]), 'prod')   # z[0] *= 2 * 3, z[2] *= 4\nprint(z, torch.index_reduce(torch.ones(2), 0, torch.tensor([1, 1]), torch.tensor([2., 5.]), 'amax'))\n",
+  "out": "tensor([[ 0.,  1.,  2.,  3.],\n        [ 8.,  9., 10., 11.]])\ntensor([[1., 1., 1., 7.],\n        [0., 0., 0., 7.],\n        [1., 1., 1., 7.]])\ntensor([[ 0., -1.,  0.],\n        [ 0., -1.,  0.]])\ntensor([5., 9., 6.])\ntensor([6., 1., 4.]) tensor([1., 5.])"
+ },
+ {
+  "keys": [
+   "Tensor.scatter_add_",
+   "Tensor.scatter_reduce_",
+   "torch.scatter",
+   "torch.scatter_add"
+  ],
+  "src": "import torch\nsrc = torch.tensor([1., 2., 3., 4.])\ngroup = torch.tensor([0, 1, 0, 1])           # which bin each value goes to\nprint(torch.scatter(torch.zeros(2), 0, torch.tensor([1, 0]), torch.tensor([5., 6.])))\nprint(torch.scatter_add(torch.zeros(2), 0, group, src))      # sums per bin: 1 + 3, 2 + 4\nt = torch.zeros(2)\nt.scatter_add_(0, group, src)\nm = torch.zeros(2)\nm.scatter_reduce_(0, group, src, reduce='amax', include_self=False)   # the largest per bin\nprint(t, m)\n",
+  "out": "tensor([6., 5.])\ntensor([4., 6.])\ntensor([4., 6.]) tensor([3., 4.])"
+ },
+ {
+  "keys": [
+   "Tensor.put_",
+   "torch.put",
+   "torch.take",
+   "Tensor.take_along_dim",
+   "torch.take_along_dim",
+   "Tensor.masked_scatter_",
+   "torch.masked_fill"
+  ],
+  "src": "import torch\nt = torch.arange(6.).view(2, 3)\nprint(torch.take(t, torch.tensor([0, 5])))                 # flat positions 0 and 5\nprint(torch.put(t, torch.tensor([1]), torch.tensor([-1.])))\nt.put_(torch.tensor([4]), torch.tensor([40.]))\nprint(t)\norder = t.argsort(dim=1)\nprint(t.take_along_dim(order, dim=1), torch.take_along_dim(t, order, dim=1).shape)   # each row sorted\nmask = t > 2\nprint(torch.masked_fill(t, mask, 0.))\nu = torch.zeros(2, 3)\nu.masked_scatter_(mask, torch.tensor([7., 8., 9.]))        # fills the True places in order\nprint(u)\n",
+  "out": "tensor([0., 5.])\ntensor([[ 0., -1.,  2.],\n        [ 3.,  4.,  5.]])\ntensor([[ 0.,  1.,  2.],\n        [ 3., 40.,  5.]])\ntensor([[ 0.,  1.,  2.],\n        [ 3.,  5., 40.]]) torch.Size([2, 3])\ntensor([[0., 1., 2.],\n        [0., 0., 0.]])\ntensor([[0., 0., 0.],\n        [7., 8., 9.]])"
+ },
+ {
+  "keys": [
+   "Tensor.where",
+   "Tensor.broadcast_to",
+   "Tensor.is_nonzero",
+   "Tensor.resize"
+  ],
+  "src": "import torch\nt = torch.tensor([-2., 1., -3., 4.])\nprint(t.where(t > 0, torch.tensor(0.)))      # keep the positives, 0 elsewhere\nprint(torch.tensor([1., 2.]).broadcast_to((3, 2)))\nprint(torch.tensor([3.]).is_nonzero(), torch.tensor([0.]).is_nonzero())   # one element only\nprint(torch.arange(6.).resize(2, 3))\n",
+  "out": "tensor([0., 1., 0., 4.])\ntensor([[1., 2.],\n        [1., 2.],\n        [1., 2.]])\nTrue False\ntensor([[0., 1., 2.],\n        [3., 4., 5.]])"
+ },
+ {
+  "keys": [
+   "Tensor.map_"
+  ],
+  "src": "import torch\nt = torch.tensor([1., 2., 3.])\nt.map_(torch.tensor([10., 20., 30.]), lambda a, b: a * b + 1)   # a Python function, element by element\nprint(t)\n",
+  "out": "tensor([11., 41., 91.])"
+ },
+ {
+  "keys": [
+   "Tensor.geometric_"
+  ],
+  "src": "import torch\ntorch.manual_seed(0)\nt = torch.empty(1000)\nt.geometric_(0.25)                 # trials until the first success, p = 0.25: mean 1 / p\nprint(t.min() >= 1, t.mean() > 3)\n",
+  "out": "tensor(True) tensor(True)"
+ },
+ {
+  "keys": [
+   "Tensor.prelu",
+   "torch.prelu",
+   "nn.functional.prelu"
+  ],
+  "src": "import torch\nimport torch.nn.functional as F\nx = torch.tensor([-2., -1., 0., 1., 2.])\na = torch.tensor([0.25])           # the slope for negative inputs, learnt in nn.PReLU\nprint(x.prelu(a))\nprint(torch.prelu(x, a), F.prelu(x, a))\n",
+  "out": "tensor([-0.5000, -0.2500,  0.0000,  1.0000,  2.0000])\ntensor([-0.5000, -0.2500,  0.0000,  1.0000,  2.0000]) tensor([-0.5000, -0.2500,  0.0000,  1.0000,  2.0000])"
+ },
+ {
+  "keys": [
+   "Tensor.cholesky",
+   "Tensor.qr",
+   "Tensor.solve",
+   "Tensor.eig",
+   "Tensor.symeig",
+   "Tensor.lstsq"
+  ],
+  "src": "import torch\nA = torch.tensor([[4., 2.], [2., 3.]])\n# the old Tensor methods were removed in torch 2; torch.linalg has them now\nfor name, call in [('cholesky', lambda: A.cholesky()), ('qr', lambda: A.qr()), ('solve', lambda: A.solve(A)),\n                   ('eig', lambda: A.eig()), ('symeig', lambda: A.symeig()), ('lstsq', lambda: A.lstsq(A))]:\n    try:\n        call()\n        print(name, 'works')\n    except RuntimeError:\n        print(name, 'removed')\nprint(torch.linalg.cholesky(A))                    # A = L @ L.T\nprint(torch.linalg.solve(A, torch.tensor([2., 1.])))\n",
+  "out": "cholesky removed\nqr removed\nsolve removed\neig removed\nsymeig removed\nlstsq removed\ntensor([[2.0000, 0.0000],\n        [1.0000, 1.4142]])\ntensor([0.5000, 0.0000])"
+ },
+ {
+  "keys": [
+   "torch.dsplit",
+   "torch.split_with_sizes",
+   "torch.narrow",
+   "torch.unflatten",
+   "torch.moveaxis",
+   "torch.movedim",
+   "torch.swapaxes",
+   "torch.swapdims"
+  ],
+  "src": "import torch\nt = torch.arange(24).view(2, 3, 4)\nprint([p.shape for p in torch.dsplit(t, 2)])                   # along the 3rd dimension\nprint([p.tolist() for p in torch.split_with_sizes(torch.arange(5), [2, 3])])\nprint(torch.narrow(torch.arange(10), 0, 3, 4))                 # 4 elements from index 3\nprint(torch.unflatten(torch.arange(6), 0, (2, 3)))\nprint(torch.moveaxis(t, 2, 0).shape, torch.movedim(t, 0, -1).shape)\nprint(torch.swapaxes(t, 0, 2).shape, torch.swapdims(t, 1, 2).shape)\n",
+  "out": "[torch.Size([2, 3, 2]), torch.Size([2, 3, 2])]\n[[0, 1], [2, 3, 4]]\ntensor([3, 4, 5, 6])\ntensor([[0, 1, 2],\n        [3, 4, 5]])\ntorch.Size([4, 2, 3]) torch.Size([3, 4, 2])\ntorch.Size([4, 3, 2]) torch.Size([2, 4, 3])"
+ },
+ {
+  "keys": [
+   "torch.threshold",
+   "torch.threshold_",
+   "nn.functional.threshold_"
+  ],
+  "src": "import torch\nimport torch.nn.functional as F\nx = torch.tensor([-1., 0.5, 2., 3.])\nprint(torch.threshold(x, 1.0, -9.))     # values ≤ 1 become -9\ntorch.threshold_(x, 0., 0.)              # a ReLU, in place\nF.threshold_(x, 2.5, 0.)\nprint(x)\n",
+  "out": "tensor([-9., -9.,  2.,  3.])\ntensor([0., 0., 0., 3.])"
+ },
+ {
+  "keys": [
+   "torch.layer_norm"
+  ],
+  "src": "import torch\nx = torch.tensor([[1., 2., 3.], [4., 6., 8.]])\nprint(torch.layer_norm(x, (3,)))                     # each row: mean 0, variance 1\nprint(torch.layer_norm(x, (3,), torch.tensor([1., 1., 2.]), torch.zeros(3)))   # then scaled and shifted\n",
+  "out": "tensor([[-1.2247,  0.0000,  1.2247],\n        [-1.2247,  0.0000,  1.2247]])\ntensor([[-1.2247,  0.0000,  2.4495],\n        [-1.2247,  0.0000,  2.4495]])"
+ },
+ {
+  "keys": [
+   "torch.cosine_embedding_loss",
+   "torch.margin_ranking_loss",
+   "torch.triplet_margin_loss",
+   "torch.poisson_nll_loss",
+   "nn.functional.cosine_embedding_loss",
+   "nn.functional.margin_ranking_loss",
+   "nn.functional.triplet_margin_loss",
+   "nn.functional.gaussian_nll_loss",
+   "nn.functional.multi_margin_loss",
+   "nn.functional.multilabel_margin_loss"
+  ],
+  "src": "import torch\nimport torch.nn.functional as F\na = torch.tensor([[1., 0.], [0., 1.]])\nb = torch.tensor([[1., 0.1], [1., 0.]])\nsame = torch.tensor([1., -1.])                       # pair 0 should be similar, pair 1 not\nprint(F.cosine_embedding_loss(a, b, same), torch.cosine_embedding_loss(a, b, same, 0., 1))\nprint(F.margin_ranking_loss(torch.tensor([3., 1.]), torch.tensor([1., 2.]), torch.tensor([1., 1.])))\nprint(torch.margin_ranking_loss(torch.tensor([3.]), torch.tensor([1.]), torch.tensor([-1.]), 0., 1))\nanchor, pos, neg = torch.zeros(1, 2), torch.tensor([[0.1, 0.]]), torch.tensor([[0.5, 0.]])\nprint(F.triplet_margin_loss(anchor, pos, neg, margin=1.0), torch.triplet_margin_loss(anchor, pos, neg, 1.0, 2.0, 1e-6, False, 1))\nprint(torch.poisson_nll_loss(torch.tensor([0., 1.]), torch.tensor([1., 2.]), True, False, 1e-8, 1))\nprint(F.gaussian_nll_loss(torch.tensor([1., 2.]), torch.tensor([1.5, 2.]), torch.tensor([1., 1.])))\nscores = torch.tensor([[0.1, 0.8, 0.3]])\nprint(F.multi_margin_loss(scores, torch.tensor([1])), F.multilabel_margin_loss(scores, torch.tensor([[1, 2, -1]])))\n",
+  "out": "tensor(0.0025) tensor(0.0025)\ntensor(0.5000)\ntensor(2.)\ntensor(0.6000) tensor(0.6000)\ntensor(0.8591)\ntensor(0.0625)\ntensor(0.2667) tensor(0.3667)"
+ },
+ {
+  "keys": [
+   "nn.functional.max_pool2d_with_indices",
+   "nn.functional.max_unpool1d",
+   "nn.functional.lp_pool1d",
+   "nn.functional.lp_pool2d"
+  ],
+  "src": "import torch\nimport torch.nn.functional as F\nimg = torch.tensor([[[[1., 5., 2., 0.], [3., 4., 8., 1.], [0., 2., 1., 1.], [6., 1., 0., 9.]]]])\nout, where = F.max_pool2d_with_indices(img, 2)\nprint(out, where)                       # the maxima, and the flat positions they came from\nseq = torch.tensor([[[1., 3., 2., 7.]]])\npooled, idx = F.max_pool1d(seq, 2, return_indices=True)\nprint(F.max_unpool1d(pooled, idx, 2))   # each maximum back in its place, zeros elsewhere\nprint(F.lp_pool1d(seq, 2, 2))           # the 2-norm of each window\nprint(F.lp_pool2d(img, 2, 2))\n",
+  "out": "tensor([[[[5., 8.],\n          [6., 9.]]]]) tensor([[[[ 1,  6],\n          [12, 15]]]])\ntensor([[[0., 3., 0., 7.]]])\ntensor([[[3.1623, 7.2801]]])\ntensor([[[[7.1414, 8.3066],\n          [6.4031, 9.1104]]]])"
+ },
+ {
+  "keys": [
+   "nn.functional.avg_pool3d",
+   "nn.functional.max_pool3d",
+   "nn.functional.max_pool3d_with_indices",
+   "torch.max_pool3d",
+   "torch.conv3d",
+   "nn.functional.conv_transpose3d",
+   "torch.conv_transpose3d",
+   "torch.conv_transpose2d"
+  ],
+  "src": "import torch\nimport torch.nn.functional as F\nvol = torch.arange(64.).view(1, 1, 4, 4, 4)            # one channel, a 4 × 4 × 4 volume\nprint(F.avg_pool3d(vol, 2).shape, F.max_pool3d(vol, 2).flatten())\nprint(F.max_pool3d_with_indices(vol, 2)[1].flatten()[:3], torch.max_pool3d(vol, 2).shape)\nprint(torch.conv3d(vol, torch.ones(1, 1, 2, 2, 2)).shape)         # (4 − 2 + 1)³\nprint(F.conv_transpose3d(torch.ones(1, 1, 2, 2, 2), torch.ones(1, 1, 2, 2, 2)).shape)\nprint(torch.conv_transpose3d(torch.ones(1, 1, 1, 1, 1), torch.ones(1, 1, 2, 2, 2)).shape)\nprint(torch.conv_transpose2d(torch.ones(1, 1, 2, 2), torch.ones(1, 1, 3, 3)))   # each input spreads over a 3 × 3 patch\n",
+  "out": "torch.Size([1, 1, 2, 2, 2]) tensor([21., 23., 29., 31., 53., 55., 61., 63.])\ntensor([21, 23, 29]) torch.Size([1, 1, 2, 2, 2])\ntorch.Size([1, 1, 3, 3, 3])\ntorch.Size([1, 1, 3, 3, 3])\ntorch.Size([1, 1, 2, 2, 2])\ntensor([[[[1., 2., 2., 1.],\n          [2., 4., 4., 2.],\n          [2., 4., 4., 2.],\n          [1., 2., 2., 1.]]]])"
+ },
+ {
+  "keys": [
+   "nn.functional.upsample",
+   "nn.functional.upsample_nearest",
+   "nn.functional.upsample_bilinear",
+   "nn.functional.pixel_unshuffle",
+   "torch.pixel_unshuffle",
+   "nn.functional.channel_shuffle",
+   "torch.channel_shuffle"
+  ],
+  "src": "import torch\nimport torch.nn.functional as F\nimg = torch.tensor([[[[1., 2.], [3., 4.]]]])\nprint(F.upsample_nearest(img, scale_factor=2))      # each pixel becomes a 2 × 2 block\nprint(F.upsample_bilinear(img, scale_factor=2)[0, 0, 0])\nprint(F.upsample(img, size=(3, 3)).shape)            # the old name of interpolate\nbig = torch.arange(16.).view(1, 1, 4, 4)\nprint(F.pixel_unshuffle(big, 2).shape, torch.pixel_unshuffle(big, 2)[0, :, 0, 0])   # 2 × 2 blocks → 4 channels\nch = torch.arange(4.).view(1, 4, 1, 1)\nprint(F.channel_shuffle(ch, 2).flatten(), torch.channel_shuffle(ch, 2).flatten())   # channels interleaved\n",
+  "out": "tensor([[[[1., 1., 2., 2.],\n          [1., 1., 2., 2.],\n          [3., 3., 4., 4.],\n          [3., 3., 4., 4.]]]])\ntensor([1.0000, 1.3333, 1.6667, 2.0000])\ntorch.Size([1, 1, 3, 3])\ntorch.Size([1, 4, 2, 2]) tensor([0., 1., 4., 5.])\ntensor([0., 2., 1., 3.]) tensor([0., 2., 1., 3.])"
+ },
+ {
+  "keys": [
+   "nn.functional.local_response_norm"
+  ],
+  "src": "import torch\nimport torch.nn.functional as F\nx = torch.tensor([[[[1.]], [[2.]], [[3.]], [[4.]]]])     # 4 channels of one pixel\nprint(F.local_response_norm(x, size=2).flatten())        # each divided by the activity of its neighbouring channels\n",
+  "out": "tensor([1.0000, 1.9996, 2.9985, 3.9963])"
+ },
+ {
+  "keys": [
+   "torch.feature_alpha_dropout",
+   "torch.dtype"
+  ],
+  "src": "import torch\nprint(torch.feature_alpha_dropout(torch.ones(1, 2, 2), 0.5, False))   # off when not training\nprint(torch.tensor([1, 2]).dtype, isinstance(torch.float32, torch.dtype))\n",
+  "out": "tensor([[[1., 1.],\n         [1., 1.]]])\ntorch.int64 True"
+ },
+ {
+  "keys": [
+   "torch.autocast",
+   "torch.get_rng_state",
+   "torch.get_num_interop_threads"
+  ],
+  "src": "import torch\nwith torch.autocast('cpu', enabled=False):    # enabled=True runs matmuls in bfloat16 inside the block\n    y = torch.ones(2, 2) @ torch.ones(2, 2)\nprint(y.shape)\ntorch.manual_seed(0)\nstate = torch.get_rng_state()                  # save the generator\na = torch.rand(2)\ntorch.set_rng_state(state)                     # and go back to it\nprint(torch.equal(a, torch.rand(2)), torch.get_num_interop_threads() > 0)\n",
+  "out": "torch.Size([2, 2])\nTrue True"
+ },
+ {
+  "keys": [
+   "distributions.Distribution",
+   "torch.special.polygamma",
+   "torch.linalg.tensorsolve"
+  ],
+  "src": "import torch\nd = torch.distributions.Normal(0., 1.)\nprint(isinstance(d, torch.distributions.Distribution), d.mean, d.stddev)   # every distribution is one\nprint(torch.special.polygamma(1, torch.tensor([1., 2.])))                   # π²/6, π²/6 − 1\nA = torch.eye(6).view(2, 3, 6)\nB = torch.ones(2, 3)\nprint(torch.linalg.tensorsolve(A, B).shape)\n",
+  "out": "True tensor(0.) tensor(1.)\ntensor([1.6449, 0.6449])\ntorch.Size([6])"
+ },
+ {
+  "keys": [
+   "nn.Module.get_buffer",
+   "nn.init.dirac"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nbn = nn.BatchNorm1d(3)\nprint(bn.get_buffer('running_mean'))           # buffers: state that is saved but not trained\nconv = nn.Conv2d(2, 2, 3, padding=1)\nnn.init.dirac_(conv.weight)                    # a kernel that copies its input\nnn.init.zeros_(conv.bias)\nx = torch.arange(18.).view(1, 2, 3, 3)\nprint(torch.equal(conv(x), x))\nw = torch.empty(1, 1, 3)\nprint(nn.init.dirac(w))\n",
+  "out": "tensor([0., 0., 0.])\nTrue\ntensor([[[0., 1., 0.]]])"
+ },
+ {
+  "keys": [
+   "torch.optim.Optimizer",
+   "optim.lr_scheduler.LRScheduler"
+  ],
+  "src": "import torch\nw = torch.nn.Parameter(torch.ones(2))\nopt = torch.optim.SGD([w], lr=0.1)\nsched = torch.optim.lr_scheduler.StepLR(opt, step_size=2, gamma=0.5)\nprint(isinstance(opt, torch.optim.Optimizer), isinstance(sched, torch.optim.lr_scheduler.LRScheduler))\nfor epoch in range(4):\n    opt.step()\n    sched.step()\n    print(epoch, sched.get_last_lr())\n",
+  "out": "True True\n0 [0.1]\n1 [0.05]\n2 [0.05]\n3 [0.025]"
+ },
+ {
+  "keys": [
+   "Tensor.view",
+   "Tensor.numel",
+   "Tensor.dim",
+   "Tensor.stride",
+   "Tensor.type"
+  ],
+  "src": "import torch\nt = torch.arange(12.)\nm = t.view(3, 4)                  # the same 12 numbers as 3 rows of 4: no copy\nprint(m)\nprint(m.numel(), m.dim(), m.stride())     # elements, axes, steps in memory per axis\nprint(m.view(-1, 6).shape)        # -1: worked out from the rest\nprint(m.type(), m.type(torch.int64).dtype)\n",
+  "out": "tensor([[ 0.,  1.,  2.,  3.],\n        [ 4.,  5.,  6.,  7.],\n        [ 8.,  9., 10., 11.]])\n12 2 (4, 1)\ntorch.Size([2, 6])\ntorch.FloatTensor torch.int64"
+ },
+ {
+  "keys": [
+   "Tensor.grad",
+   "nn.Module.zero_grad",
+   "nn.Module.parameters",
+   "nn.Module.named_parameters"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nmodel = nn.Linear(2, 1)\nx = torch.tensor([[1., 2.]])\nloss = model(x).sum()\nloss.backward()                   # fills .grad of every parameter\nfor name, p in model.named_parameters():\n    print(name, tuple(p.shape), p.grad)\nprint(sum(p.numel() for p in model.parameters()))\nmodel.zero_grad()                 # back to no gradient before the next step\nprint(model.weight.grad)\n",
+  "out": "weight (1, 2) tensor([[1., 2.]])\nbias (1,) tensor([1.])\n3\nNone"
+ },
+ {
+  "keys": [
+   "torch.nn.ReLU",
+   "torch.nn.LeakyReLU",
+   "torch.nn.ELU",
+   "torch.nn.GELU",
+   "torch.nn.SiLU",
+   "torch.nn.Tanh",
+   "torch.nn.Sigmoid",
+   "torch.nn.Softplus",
+   "torch.nn.Softsign",
+   "torch.nn.Hardtanh",
+   "torch.nn.Hardswish",
+   "torch.nn.Hardsigmoid",
+   "torch.nn.ReLU6",
+   "torch.nn.Mish",
+   "torch.nn.SELU",
+   "torch.nn.CELU",
+   "torch.nn.LogSigmoid",
+   "torch.nn.Tanhshrink",
+   "torch.nn.Softshrink",
+   "torch.nn.Hardshrink",
+   "torch.nn.Threshold",
+   "torch.nn.PReLU"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nx = torch.tensor([-3., -1., 0., 1., 3.])\nfor layer in [nn.ReLU(), nn.LeakyReLU(0.1), nn.ELU(), nn.GELU(), nn.SiLU(), nn.Tanh(), nn.Sigmoid(),\n              nn.Softplus(), nn.Softsign(), nn.Hardtanh(), nn.Hardswish(), nn.Hardsigmoid(), nn.ReLU6(),\n              nn.Mish(), nn.SELU(), nn.CELU(), nn.LogSigmoid(), nn.Tanhshrink(), nn.Softshrink(), nn.Hardshrink(),\n              nn.Threshold(0.5, -1.), nn.PReLU()]:\n    print(f'{type(layer).__name__:12}', [round(v, 3) for v in layer(x).tolist()])\n",
+  "out": "ReLU         [0.0, 0.0, 0.0, 1.0, 3.0]\nLeakyReLU    [-0.3, -0.1, 0.0, 1.0, 3.0]\nELU          [-0.95, -0.632, 0.0, 1.0, 3.0]\nGELU         [-0.004, -0.159, 0.0, 0.841, 2.996]\nSiLU         [-0.142, -0.269, 0.0, 0.731, 2.858]\nTanh         [-0.995, -0.762, 0.0, 0.762, 0.995]\nSigmoid      [0.047, 0.269, 0.5, 0.731, 0.953]\nSoftplus     [0.049, 0.313, 0.693, 1.313, 3.049]\nSoftsign     [-0.75, -0.5, 0.0, 0.5, 0.75]\nHardtanh     [-1.0, -1.0, 0.0, 1.0, 1.0]\nHardswish    [-0.0, -0.333, 0.0, 0.667, 3.0]\nHardsigmoid  [0.0, 0.333, 0.5, 0.667, 1.0]\nReLU6        [0.0, 0.0, 0.0, 1.0, 3.0]\nMish         [-0.146, -0.303, 0.0, 0.865, 2.987]\nSELU         [-1.671, -1.111, 0.0, 1.051, 3.152]\nCELU         [-0.95, -0.632, 0.0, 1.0, 3.0]\nLogSigmoid   [-3.049, -1.313, -0.693, -0.313, -0.049]\nTanhshrink   [-2.005, -0.238, 0.0, 0.238, 2.005]\nSoftshrink   [-2.5, -0.5, 0.0, 0.5, 2.5]\nHardshrink   [-3.0, -1.0, 0.0, 1.0, 3.0]\nThreshold    [-1.0, -1.0, -1.0, 1.0, 3.0]\nPReLU        [-0.75, -0.25, 0.0, 1.0, 3.0]"
+ },
+ {
+  "keys": [
+   "torch.nn.Softmax",
+   "torch.nn.LogSoftmax",
+   "torch.nn.Softmin",
+   "torch.nn.Softmax2d",
+   "torch.nn.GLU"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nscores = torch.tensor([[1., 2., 3.]])\nprint(nn.Softmax(dim=1)(scores))        # positive, sums to 1\nprint(nn.LogSoftmax(dim=1)(scores))     # its log: what NLLLoss expects\nprint(nn.Softmin(dim=1)(scores))        # softmax of the negatives: the smallest gets the most\nprint(nn.Softmax2d()(torch.ones(1, 2, 1, 1)).flatten())   # over the channels of each pixel\nprint(nn.GLU()(torch.tensor([[1., 2., 0., 10.]])))        # first half × sigmoid(second half)\n",
+  "out": "tensor([[0.0900, 0.2447, 0.6652]])\ntensor([[-2.4076, -1.4076, -0.4076]])\ntensor([[0.6652, 0.2447, 0.0900]])\ntensor([0.5000, 0.5000])\ntensor([[0.5000, 1.9999]])"
+ },
+ {
+  "keys": [
+   "torch.nn.CrossEntropyLoss",
+   "torch.nn.NLLLoss",
+   "torch.nn.BCELoss",
+   "torch.nn.BCEWithLogitsLoss",
+   "torch.nn.KLDivLoss"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nlogits = torch.tensor([[2., 0.5, -1.], [0., 1., 3.]])\nlabels = torch.tensor([0, 2])\nprint(nn.CrossEntropyLoss()(logits, labels))                       # softmax, then −log p(true class)\nprint(nn.NLLLoss()(torch.log_softmax(logits, dim=1), labels))       # the same in two steps\np = torch.tensor([0.9, 0.2])\ny = torch.tensor([1., 0.])\nprint(nn.BCELoss()(p, y), nn.BCEWithLogitsLoss()(torch.logit(p), y))   # probabilities, or scores before sigmoid\nq = torch.log(torch.tensor([[0.5, 0.5]]))\nprint(nn.KLDivLoss(reduction='batchmean')(q, torch.tensor([[0.9, 0.1]])))\n",
+  "out": "tensor(0.2056)\ntensor(0.2056)\ntensor(0.1643) tensor(0.1643)\ntensor(0.3681)"
+ },
+ {
+  "keys": [
+   "torch.nn.MSELoss",
+   "torch.nn.L1Loss",
+   "torch.nn.SmoothL1Loss",
+   "torch.nn.HuberLoss"
+  ],
+  "src": "import torch\nimport torch.nn as nn\npred = torch.tensor([2.5, 0.0, 2.0])\ntrue = torch.tensor([3.0, -0.5, 4.0])\nprint(nn.MSELoss()(pred, true))          # mean of squared errors\nprint(nn.L1Loss()(pred, true))           # mean of absolute errors\nprint(nn.SmoothL1Loss()(pred, true))     # squared for small errors, absolute for large\nprint(nn.HuberLoss(delta=1.0)(pred, true))\n",
+  "out": "tensor(1.5000)\ntensor(1.)\ntensor(0.5833)\ntensor(0.5833)"
+ },
+ {
+  "keys": [
+   "torch.nn.PoissonNLLLoss",
+   "torch.nn.GaussianNLLLoss",
+   "torch.nn.CosineEmbeddingLoss",
+   "torch.nn.MarginRankingLoss",
+   "torch.nn.HingeEmbeddingLoss",
+   "torch.nn.SoftMarginLoss",
+   "torch.nn.MultiLabelSoftMarginLoss",
+   "torch.nn.MultiLabelMarginLoss",
+   "torch.nn.MultiMarginLoss",
+   "torch.nn.TripletMarginLoss"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nprint(nn.PoissonNLLLoss()(torch.tensor([0., 1.]), torch.tensor([1., 2.])))\nprint(nn.GaussianNLLLoss()(torch.tensor([1., 2.]), torch.tensor([1.5, 2.]), torch.tensor([1., 1.])))\na, b = torch.tensor([[1., 0.]]), torch.tensor([[1., 1.]])\nprint(nn.CosineEmbeddingLoss()(a, b, torch.tensor([1.])))\nprint(nn.MarginRankingLoss(margin=1.)(torch.tensor([2.]), torch.tensor([1.5]), torch.tensor([1.])))\nprint(nn.HingeEmbeddingLoss()(torch.tensor([0.3, 2.]), torch.tensor([1., -1.])))\nprint(nn.SoftMarginLoss()(torch.tensor([2., -1.]), torch.tensor([1., -1.])))\nscores = torch.tensor([[0.1, 0.8, 0.3]])\nprint(nn.MultiLabelSoftMarginLoss()(scores, torch.tensor([[0., 1., 1.]])))\nprint(nn.MultiLabelMarginLoss()(scores, torch.tensor([[1, 2, -1]])), nn.MultiMarginLoss()(scores, torch.tensor([1])))\nprint(nn.TripletMarginLoss()(torch.zeros(1, 2), torch.tensor([[0.1, 0.]]), torch.tensor([[2., 0.]])))\n",
+  "out": "tensor(0.8591)\ntensor(0.0625)\ntensor(0.2929)\ntensor(0.5000)\ntensor(0.1500)\ntensor(0.2201)\ntensor(0.5566)\ntensor(0.3667) tensor(0.2667)\ntensor(0.)"
+ },
+ {
+  "keys": [
+   "torch.nn.Conv1d",
+   "torch.nn.Conv2d",
+   "torch.nn.Conv3d",
+   "torch.nn.ConvTranspose1d",
+   "torch.nn.ConvTranspose2d"
+  ],
+  "src": "import torch\nimport torch.nn as nn\ntorch.manual_seed(0)\nimg = torch.rand(1, 3, 8, 8)                       # batch, channels, height, width\nconv = nn.Conv2d(3, 4, kernel_size=3, padding=1)\nprint(conv(img).shape, conv.weight.shape)          # 4 filters of 3 × 3 × 3\nprint(nn.Conv1d(2, 5, 3)(torch.rand(1, 2, 10)).shape)          # 10 − 3 + 1 = 8\nprint(nn.Conv3d(1, 2, 2)(torch.rand(1, 1, 4, 4, 4)).shape)\nprint(nn.ConvTranspose2d(4, 1, 2, stride=2)(torch.rand(1, 4, 3, 3)).shape)   # upsampling: 3 → 6\nprint(nn.ConvTranspose1d(1, 1, 3)(torch.rand(1, 1, 5)).shape)\n",
+  "out": "torch.Size([1, 4, 8, 8]) torch.Size([4, 3, 3, 3])\ntorch.Size([1, 5, 8])\ntorch.Size([1, 2, 3, 3, 3])\ntorch.Size([1, 1, 6, 6])\ntorch.Size([1, 1, 7])"
+ },
+ {
+  "keys": [
+   "torch.nn.MaxPool1d",
+   "torch.nn.MaxPool2d",
+   "torch.nn.AvgPool1d",
+   "torch.nn.AvgPool2d",
+   "torch.nn.AdaptiveAvgPool1d",
+   "torch.nn.AdaptiveAvgPool2d",
+   "torch.nn.AdaptiveMaxPool1d",
+   "torch.nn.AdaptiveMaxPool2d"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nimg = torch.arange(16.).view(1, 1, 4, 4)\nprint(nn.MaxPool2d(2)(img))                 # the largest of each 2 × 2 block\nprint(nn.AvgPool2d(2)(img))                 # the mean of each block\nprint(nn.AdaptiveAvgPool2d(1)(img))         # whatever the size: one value per channel\nprint(nn.AdaptiveMaxPool2d((1, 2))(img))\nseq = torch.tensor([[[1., 5., 2., 8., 3., 3.]]])\nprint(nn.MaxPool1d(2)(seq), nn.AvgPool1d(3)(seq))\nprint(nn.AdaptiveAvgPool1d(2)(seq), nn.AdaptiveMaxPool1d(3)(seq))\n",
+  "out": "tensor([[[[ 5.,  7.],\n          [13., 15.]]]])\ntensor([[[[ 2.5000,  4.5000],\n          [10.5000, 12.5000]]]])\ntensor([[[[7.5000]]]])\ntensor([[[[13., 15.]]]])\ntensor([[[5., 8., 3.]]]) tensor([[[2.6667, 4.6667]]])\ntensor([[[2.6667, 4.6667]]]) tensor([[[5., 8., 3.]]])"
+ },
+ {
+  "keys": [
+   "torch.nn.ZeroPad1d",
+   "torch.nn.ZeroPad2d",
+   "torch.nn.ConstantPad1d",
+   "torch.nn.ConstantPad2d",
+   "torch.nn.ReflectionPad1d",
+   "torch.nn.ReflectionPad2d",
+   "torch.nn.ReplicationPad1d",
+   "torch.nn.ReplicationPad2d",
+   "torch.nn.CircularPad1d",
+   "torch.nn.CircularPad2d"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nrow = torch.tensor([[[1., 2., 3.]]])\nfor pad in [nn.ZeroPad1d(2), nn.ConstantPad1d(2, 9.), nn.ReflectionPad1d(2), nn.ReplicationPad1d(2), nn.CircularPad1d(2)]:\n    print(f'{type(pad).__name__:17}', pad(row).flatten().tolist())\nimg = torch.tensor([[[[1., 2.], [3., 4.]]]])\nprint(nn.ZeroPad2d(1)(img)[0, 0])\nprint(nn.ReflectionPad2d(1)(img)[0, 0])\nprint(nn.ReplicationPad2d(1)(img).shape, nn.CircularPad2d(1)(img).shape, nn.ConstantPad2d(1, -1.)(img)[0, 0, 0])\n",
+  "out": "ZeroPad1d         [0.0, 0.0, 1.0, 2.0, 3.0, 0.0, 0.0]\nConstantPad1d     [9.0, 9.0, 1.0, 2.0, 3.0, 9.0, 9.0]\nReflectionPad1d   [3.0, 2.0, 1.0, 2.0, 3.0, 2.0, 1.0]\nReplicationPad1d  [1.0, 1.0, 1.0, 2.0, 3.0, 3.0, 3.0]\nCircularPad1d     [2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0]\ntensor([[0., 0., 0., 0.],\n        [0., 1., 2., 0.],\n        [0., 3., 4., 0.],\n        [0., 0., 0., 0.]])\ntensor([[4., 3., 4., 3.],\n        [2., 1., 2., 1.],\n        [4., 3., 4., 3.],\n        [2., 1., 2., 1.]])\ntorch.Size([1, 1, 4, 4]) torch.Size([1, 1, 4, 4]) tensor([-1., -1., -1., -1.])"
+ },
+ {
+  "keys": [
+   "torch.nn.Upsample",
+   "torch.nn.UpsamplingNearest2d",
+   "torch.nn.UpsamplingBilinear2d",
+   "torch.nn.PixelShuffle",
+   "torch.nn.PixelUnshuffle",
+   "torch.nn.Unfold",
+   "torch.nn.Fold",
+   "torch.nn.Flatten",
+   "torch.nn.Unflatten",
+   "torch.nn.Identity"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nimg = torch.tensor([[[[1., 2.], [3., 4.]]]])\nprint(nn.Upsample(scale_factor=2, mode='nearest')(img)[0, 0])    # each pixel → a 2 × 2 block\nprint(nn.UpsamplingNearest2d(scale_factor=2)(img).shape, nn.UpsamplingBilinear2d(scale_factor=2)(img)[0, 0, 0])\nfour = torch.arange(4.).view(1, 4, 1, 1)\nprint(nn.PixelShuffle(2)(four)[0, 0])          # 4 channels → one 2 × 2 picture\nprint(nn.PixelUnshuffle(2)(nn.PixelShuffle(2)(four)).flatten())\npatches = nn.Unfold(kernel_size=2)(torch.arange(9.).view(1, 1, 3, 3))\nprint(patches.shape)                           # every 2 × 2 patch as a column\nprint(nn.Fold((3, 3), kernel_size=2)(patches)[0, 0])   # put back, overlaps added\nx = torch.zeros(2, 3, 4)\nprint(nn.Flatten()(x).shape, nn.Unflatten(1, (2, 6))(nn.Flatten()(x)).shape, nn.Identity()(x).shape)\n",
+  "out": "tensor([[1., 1., 2., 2.],\n        [1., 1., 2., 2.],\n        [3., 3., 4., 4.],\n        [3., 3., 4., 4.]])\ntorch.Size([1, 1, 4, 4]) tensor([1.0000, 1.3333, 1.6667, 2.0000])\ntensor([[0., 1.],\n        [2., 3.]])\ntensor([0., 1., 2., 3.])\ntorch.Size([1, 4, 4])\ntensor([[ 0.,  2.,  2.],\n        [ 6., 16., 10.],\n        [ 6., 14.,  8.]])\ntorch.Size([2, 12]) torch.Size([2, 2, 6]) torch.Size([2, 3, 4])"
+ },
+ {
+  "keys": [
+   "torch.nn.BatchNorm1d",
+   "torch.nn.BatchNorm2d",
+   "torch.nn.BatchNorm3d",
+   "torch.nn.LayerNorm",
+   "torch.nn.GroupNorm",
+   "torch.nn.InstanceNorm1d",
+   "torch.nn.InstanceNorm2d"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nx = torch.tensor([[1., 10.], [3., 20.], [5., 30.]])     # 3 examples, 2 features\nbn = nn.BatchNorm1d(2)\nprint(bn(x))                       # each feature: mean 0, variance 1 over the batch\nprint(bn.running_mean)             # remembered for eval()\nprint(nn.LayerNorm(2)(x))          # each example over its own features\nimg = torch.arange(16.).view(1, 4, 2, 2)\nprint(nn.BatchNorm2d(4)(img).shape, nn.GroupNorm(2, 4)(img)[0, :, 0, 0])\nprint(nn.InstanceNorm1d(2)(torch.tensor([[[1., 3.], [2., 6.]]])), nn.InstanceNorm2d(4)(img).shape)\nprint(nn.BatchNorm3d(1)(torch.rand(2, 1, 2, 2, 2)).shape)\n",
+  "out": "tensor([[-1.2247, -1.2247],\n        [ 0.0000,  0.0000],\n        [ 1.2247,  1.2247]], grad_fn=<NativeBatchNormBackward0>)\ntensor([0.3000, 2.0000])\ntensor([[-1.0000,  1.0000],\n        [-1.0000,  1.0000],\n        [-1.0000,  1.0000]], grad_fn=<NativeLayerNormBackward0>)\ntorch.Size([1, 4, 2, 2]) tensor([-1.5275,  0.2182, -1.5275,  0.2182], grad_fn=<SelectBackward0>)\ntensor([[[-1.0000,  1.0000],\n         [-1.0000,  1.0000]]]) torch.Size([1, 4, 2, 2])\ntorch.Size([2, 1, 2, 2, 2])"
+ },
+ {
+  "keys": [
+   "torch.nn.Dropout",
+   "torch.nn.Dropout1d",
+   "torch.nn.Dropout2d",
+   "torch.nn.Dropout3d",
+   "torch.nn.AlphaDropout",
+   "nn.Module.train"
+  ],
+  "src": "import torch\nimport torch.nn as nn\ntorch.manual_seed(0)\ndrop = nn.Dropout(p=0.5)\nx = torch.ones(10)\nprint(sorted(set(drop(x).tolist())))   # training: about half zeroed, the rest × 2\ndrop.eval()\nprint(drop(x))                     # eval: unchanged\ndrop.train()\nprint(drop.training)\nprint(nn.Dropout1d(0.5)(torch.ones(1, 4, 3)).shape, nn.Dropout2d(0.5)(torch.ones(1, 4, 2, 2)).shape)\nprint(nn.Dropout3d(0.5).eval()(torch.ones(1, 2, 2, 2, 2)).sum(), nn.AlphaDropout(0.5).eval()(x).sum())\n",
+  "out": "[0.0, 2.0]\ntensor([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])\nTrue\ntorch.Size([1, 4, 3]) torch.Size([1, 4, 2, 2])\ntensor(16.) tensor(10.)"
+ },
+ {
+  "keys": [
+   "torch.nn.RNN",
+   "torch.nn.LSTM",
+   "torch.nn.GRU",
+   "torch.nn.RNNCell",
+   "torch.nn.LSTMCell",
+   "torch.nn.GRUCell"
+  ],
+  "src": "import torch\nimport torch.nn as nn\ntorch.manual_seed(0)\nseq = torch.rand(1, 5, 3)                         # batch 1, 5 steps, 3 features each\nlstm = nn.LSTM(input_size=3, hidden_size=4, batch_first=True)\nout, (h, c) = lstm(seq)\nprint(out.shape, h.shape, c.shape)                # every step's output, the last hidden and cell state\nout, h = nn.GRU(3, 4, batch_first=True)(seq)\nprint(out.shape, h.shape)\nprint(nn.RNN(3, 2, num_layers=2, batch_first=True)(seq)[1].shape)    # 2 layers\ncell = nn.LSTMCell(3, 4)\nh, c = cell(seq[:, 0])                            # one step at a time\nprint(h.shape, nn.GRUCell(3, 4)(seq[:, 0]).shape, nn.RNNCell(3, 4)(seq[:, 0]).shape)\n",
+  "out": "torch.Size([1, 5, 4]) torch.Size([1, 1, 4]) torch.Size([1, 1, 4])\ntorch.Size([1, 5, 4]) torch.Size([1, 1, 4])\ntorch.Size([2, 1, 2])\ntorch.Size([1, 4]) torch.Size([1, 4]) torch.Size([1, 4])"
+ },
+ {
+  "keys": [
+   "torch.nn.Embedding",
+   "torch.nn.EmbeddingBag",
+   "torch.nn.Bilinear",
+   "torch.nn.CosineSimilarity",
+   "torch.nn.PairwiseDistance"
+  ],
+  "src": "import torch\nimport torch.nn as nn\ntorch.manual_seed(0)\nemb = nn.Embedding(num_embeddings=10, embedding_dim=3)    # a table: one row of 3 numbers per word id\nwords = torch.tensor([[1, 4, 4]])\nprint(emb(words).shape, torch.equal(emb(words)[0, 1], emb(words)[0, 2]))   # the same id, the same row\nprint(nn.EmbeddingBag(10, 3, mode='mean')(words).shape)                   # one mean vector per bag\na = torch.tensor([[1., 0.], [1., 1.]])\nb = torch.tensor([[2., 0.], [-1., -1.]])\nprint(nn.CosineSimilarity(dim=1)(a, b), nn.PairwiseDistance()(a, b))\nprint(nn.Bilinear(2, 2, 1)(a, b).shape)\n",
+  "out": "torch.Size([1, 3, 3]) True\ntorch.Size([1, 3])\ntensor([ 1.0000, -1.0000]) tensor([1.0000, 2.8284])\ntorch.Size([2, 1])"
+ },
+ {
+  "keys": [
+   "torch.nn.Sequential",
+   "torch.nn.ModuleList",
+   "torch.nn.ModuleDict",
+   "torch.nn.Linear",
+   "nn.Module.children",
+   "nn.Module.named_children",
+   "nn.Module.modules",
+   "nn.Module.named_modules",
+   "nn.Module.get_submodule"
+  ],
+  "src": "import torch\nimport torch.nn as nn\nmodel = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 2))   # layers run in order\nprint(model(torch.ones(1, 4)).shape)\nprint([type(m).__name__ for m in model.children()])\nprint([n for n, _ in model.named_children()], len(list(model.modules())), [n for n, _ in model.named_modules()][:2])\nprint(model.get_submodule('2'))\nblocks = nn.ModuleList([nn.Linear(2, 2) for _ in range(3)])         # a list whose layers count as parameters\nheads = nn.ModuleDict({'cls': nn.Linear(2, 3), 'reg': nn.Linear(2, 1)})\nx = torch.ones(1, 2)\nfor b in blocks:\n    x = b(x)\nprint(heads['cls'](x).shape, sum(p.numel() for p in blocks.parameters()))\n",
+  "out": "torch.Size([1, 2])\n['Linear', 'ReLU', 'Linear']\n['0', '1', '2'] 4 ['', '0']\nLinear(in_features=8, out_features=2, bias=True)\ntorch.Size([1, 3]) 18"
+ },
+ {
+  "keys": [
+   "nn.Module.state_dict",
+   "nn.Module.load_state_dict",
+   "nn.Module.apply",
+   "nn.Module.add_module",
+   "nn.Module.get_parameter",
+   "nn.Module.buffers",
+   "nn.Module.named_buffers",
+   "nn.init.calculate_gain"
+  ],
+  "src": "import torch\nimport torch.nn as nn\na = nn.Linear(2, 1)\nb = nn.Linear(2, 1)\nprint(list(a.state_dict()))                  # names → tensors: what torch.save stores\nb.load_state_dict(a.state_dict())            # b now has a's weights\nprint(torch.equal(a.weight, b.weight))\n\ndef init(m):\n    if isinstance(m, nn.Linear):\n        nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('relu'))\n        nn.init.zeros_(m.bias)\n\nnet = nn.Sequential(nn.Linear(3, 3), nn.ReLU())\nnet.apply(init)                              # called on every submodule\nnet.add_module('out', nn.Linear(3, 1))\nprint(net.get_parameter('0.bias'), nn.init.calculate_gain('relu'))\nbn = nn.BatchNorm1d(2)\nprint([n for n, _ in bn.named_buffers()], len(list(bn.buffers())))\nprint(net(torch.ones(1, 3)).shape)\n",
+  "out": "['weight', 'bias']\nTrue\nParameter containing:\ntensor([0., 0., 0.], requires_grad=True) 1.4142135623730951\n['running_mean', 'running_var', 'num_batches_tracked'] 3\ntorch.Size([1, 1])"
+ },
+ {
+  "keys": [
+   "torch.nn.MultiheadAttention",
+   "torch.nn.TransformerEncoderLayer",
+   "torch.nn.TransformerDecoderLayer"
+  ],
+  "src": "import torch\nimport torch.nn as nn\ntorch.manual_seed(0)\nx = torch.rand(1, 4, 8)                           # batch, 4 tokens, 8 numbers each\nattn = nn.MultiheadAttention(embed_dim=8, num_heads=2, batch_first=True)\nout, weights = attn(x, x, x)                      # self-attention\nprint(out.shape, weights.shape, weights.sum(dim=-1))   # each token's weights sum to 1\nenc = nn.TransformerEncoderLayer(d_model=8, nhead=2, batch_first=True)\nprint(enc(x).shape)\ndec = nn.TransformerDecoderLayer(d_model=8, nhead=2, batch_first=True)\nprint(dec(x, x).shape)\n",
+  "out": "torch.Size([1, 4, 8]) torch.Size([1, 4, 4]) tensor([[1.0000, 1.0000, 1.0000, 1.0000]], grad_fn=<SumBackward1>)\ntorch.Size([1, 4, 8])\ntorch.Size([1, 4, 8])"
+ },
+ {
+  "keys": [
+   "torch.float32",
+   "torch.float",
+   "torch.double",
+   "torch.float16",
+   "torch.int64",
+   "torch.long",
+   "torch.int",
+   "torch.bool",
+   "torch.get_default_dtype",
+   "torch.finfo",
+   "torch.iinfo"
+  ],
+  "src": "import torch\nprint(torch.tensor([1.5]).dtype, torch.tensor([1]).dtype, torch.get_default_dtype())\nprint(torch.float == torch.float32, torch.double == torch.float64, torch.long == torch.int64, torch.int == torch.int32)\nx = torch.tensor([1.7, -2.2])\nprint(x.to(torch.int64), x.to(torch.bool), x.to(torch.float16).dtype)   # converting cuts or rounds\nprint(torch.finfo(torch.float32).eps, torch.finfo(torch.float16).max)   # the smallest step after 1, the largest value\nprint(torch.iinfo(torch.int8).min, torch.iinfo(torch.int8).max)\n",
+  "out": "torch.float32 torch.int64 torch.float32\nTrue True True True\ntensor([ 1, -2]) tensor([True, True]) torch.float16\n1.1920928955078125e-07 65504.0\n-128 127"
+ },
+ {
+  "keys": [
+   "torch.Tensor",
+   "torch.FloatTensor",
+   "torch.LongTensor",
+   "torch.DoubleTensor",
+   "torch.IntTensor",
+   "torch.BoolTensor",
+   "torch.as_tensor",
+   "torch.is_tensor",
+   "torch.Size",
+   "torch.device"
+  ],
+  "src": "import torch\nimport numpy as np\nprint(torch.Tensor([1, 2]), torch.FloatTensor([1, 2]).dtype)    # the old constructors: float32\nprint(torch.LongTensor([1, 2]).dtype, torch.DoubleTensor([1]).dtype, torch.IntTensor([1]).dtype, torch.BoolTensor([1, 0]))\na = np.array([1., 2.])\nt = torch.as_tensor(a)                 # shares memory with the NumPy array\na[0] = 9.\nprint(t, torch.is_tensor(t), torch.is_tensor(a))\nprint(torch.Size([2, 3]) == torch.zeros(2, 3).shape, torch.zeros(2, 3).shape[1])\nprint(torch.device('cpu'), torch.zeros(1).device)\n",
+  "out": "tensor([1., 2.]) torch.float32\ntorch.int64 torch.float64 torch.int32 tensor([ True, False])\ntensor([9., 2.], dtype=torch.float64) True False\nTrue 3\ncpu cpu"
+ },
+ {
+  "keys": [
+   "torch.triu_indices",
+   "torch.tril_indices",
+   "torch.hann_window",
+   "torch.hamming_window",
+   "torch.blackman_window",
+   "torch.bartlett_window",
+   "torch.kaiser_window"
+  ],
+  "src": "import torch\nm = torch.arange(9.).view(3, 3)\nup = torch.triu_indices(3, 3)              # the (row, col) pairs on and above the diagonal\nprint(up)\nprint(m[up[0], up[1]])                     # those entries of m\nlow = torch.tril_indices(3, 3, offset=-1)\nprint(m[low[0], low[1]])\nfor f in [torch.hann_window, torch.hamming_window, torch.blackman_window, torch.bartlett_window, torch.kaiser_window]:\n    print(f'{f.__name__:16}', [round(v, 3) for v in f(5, periodic=False).tolist()])   # tapers used before an FFT\n",
+  "out": "tensor([[0, 0, 0, 1, 1, 2],\n        [0, 1, 2, 1, 2, 2]])\ntensor([0., 1., 2., 4., 5., 8.])\ntensor([3., 6., 7.])\nhann_window      [0.0, 0.5, 1.0, 0.5, 0.0]\nhamming_window   [0.08, 0.54, 1.0, 0.54, 0.08]\nblackman_window  [-0.0, 0.34, 1.0, 0.34, -0.0]\nbartlett_window  [0.0, 0.5, 1.0, 0.5, 0.0]\nkaiser_window    [0.0, 0.216, 1.0, 0.216, 0.0]"
+ },
+ {
+  "keys": [
+   "utils.data.DataLoader",
+   "utils.data.Subset",
+   "utils.data.RandomSampler",
+   "utils.data.SequentialSampler",
+   "utils.data.SubsetRandomSampler",
+   "utils.data.WeightedRandomSampler",
+   "utils.data.BatchSampler",
+   "utils.data.default_collate",
+   "utils.data.IterableDataset"
+  ],
+  "src": "import torch\nfrom torch.utils.data import DataLoader, TensorDataset, Subset, RandomSampler, SequentialSampler, SubsetRandomSampler, WeightedRandomSampler, BatchSampler, default_collate, IterableDataset\ntorch.manual_seed(0)\nds = TensorDataset(torch.arange(6.), torch.tensor([0, 0, 0, 1, 1, 1]))\nfor x, y in DataLoader(ds, batch_size=4):          # batches of 4: the last one is shorter\n    print(x, y)\nprint(len(Subset(ds, [0, 2, 4])), list(SequentialSampler(ds)))\nprint(sorted(RandomSampler(ds)), sorted(SubsetRandomSampler([1, 3])))\nprint(len(list(WeightedRandomSampler([0.1, 0.9], num_samples=5))))\nprint(list(BatchSampler(SequentialSampler(ds), batch_size=4, drop_last=True)))\nprint(default_collate([(1, 2), (3, 4)]))           # a list of examples → one batch\n\nclass Count(IterableDataset):                      # a stream instead of a list\n    def __iter__(self):\n        return iter(range(3))\n\nprint(list(DataLoader(Count(), batch_size=2)))\n",
+  "out": "tensor([0., 1., 2., 3.]) tensor([0, 0, 0, 1])\ntensor([4., 5.]) tensor([1, 1])\n3 [0, 1, 2, 3, 4, 5]\n[0, 1, 2, 3, 4, 5] [1, 3]\n5\n[[0, 1, 2, 3]]\n[tensor([1, 3]), tensor([2, 4])]\n[tensor([0, 1]), tensor([2])]"
+ },
+ {
+  "keys": [
+   "torch.linalg.LinAlgError",
+   "nn.functional.gumbel_softmax"
+  ],
+  "src": "import torch\nimport torch.nn.functional as F\ntry:\n    torch.linalg.inv(torch.zeros(2, 2))          # a singular matrix has no inverse\nexcept torch.linalg.LinAlgError as e:\n    print(type(e).__name__)\ntorch.manual_seed(0)\ny = F.gumbel_softmax(torch.tensor([[1., 2., 3.]]), tau=0.5, hard=True)   # a one-hot sample you can backpropagate through\nprint(y.sum(), y.shape)\n",
+  "out": "_LinAlgError\ntensor(1.) torch.Size([1, 3])"
+ }
+]

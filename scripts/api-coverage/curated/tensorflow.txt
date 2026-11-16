@@ -1,0 +1,42 @@
+# Programs for the API index of TensorFlow names whose automatic example only fetched them, without a call.
+
+### tf.math.logical_and tf.math.logical_or tf.math.logical_xor tf.math.logical_not tf.math.reduce_all tf.math.reduce_any
+import tensorflow as tf
+a = tf.constant([True, True, False, False])
+b = tf.constant([True, False, True, False])
+print(tf.math.logical_and(a, b), tf.math.logical_or(a, b))
+print(tf.math.logical_xor(a, b), tf.math.logical_not(a))
+print(tf.math.reduce_all(a), tf.math.reduce_any(a))     # every one True? any True?
+
+### tf.nn.max_pool tf.nn.avg_pool tf.nn.bias_add
+import tensorflow as tf
+img = tf.reshape(tf.constant([1., 5., 2., 0., 3., 4., 8., 1., 0., 2., 1., 1., 6., 1., 0., 9.]), (1, 4, 4, 1))
+print(tf.reshape(tf.nn.max_pool(img, 2, 2, 'VALID'), (2, 2)))     # the largest of each 2 × 2 block
+print(tf.reshape(tf.nn.avg_pool(img, 2, 2, 'VALID'), (2, 2)))
+print(tf.nn.bias_add(tf.constant([[1., 2.], [3., 4.]]), tf.constant([10., 20.])))   # one bias per column
+
+### tf.Variable.assign_add tf.data.Dataset.as_numpy_iterator
+import tensorflow as tf
+count = tf.Variable(0)
+for k in range(3):
+    count.assign_add(2)                                # count += 2, in place
+print(count.numpy())
+ds = tf.data.Dataset.range(5).map(lambda x: x * x)
+print(list(ds.as_numpy_iterator()))                    # the elements as NumPy values
+
+### tf.image.random_flip_left_right tf.image.random_flip_up_down
+import tensorflow as tf
+img = tf.reshape(tf.range(4.), (2, 2, 1))
+flipped = tf.image.random_flip_left_right(img, seed=1)     # mirrored or not, at random
+upside = tf.image.random_flip_up_down(img, seed=1)
+print(flipped.shape, upside.shape)
+print(sorted(tf.reshape(flipped, [-1]).numpy().tolist()))   # the same pixels either way
+
+### tf.Variable.name tf.Variable.assign tf.TensorSpec
+import tensorflow as tf
+w = tf.Variable([1., 2.], name='weights')
+print(w.name)                               # the name, with ':0' added
+w.assign([5., 6.])                          # new values, same variable
+print(w.numpy(), w * 2)
+spec = tf.TensorSpec(shape=(None, 3), dtype=tf.float32)   # any number of rows of 3 floats
+print(spec)

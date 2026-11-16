@@ -1,0 +1,48 @@
+[
+ {
+  "keys": [
+   "tf.math.logical_and",
+   "tf.math.logical_or",
+   "tf.math.logical_xor",
+   "tf.math.logical_not",
+   "tf.math.reduce_all",
+   "tf.math.reduce_any"
+  ],
+  "src": "import tensorflow as tf\na = tf.constant([True, True, False, False])\nb = tf.constant([True, False, True, False])\nprint(tf.math.logical_and(a, b), tf.math.logical_or(a, b))\nprint(tf.math.logical_xor(a, b), tf.math.logical_not(a))\nprint(tf.math.reduce_all(a), tf.math.reduce_any(a))     # every one True? any True?\n",
+  "out": "tf.Tensor([ True False False False], shape=(4,), dtype=bool) tf.Tensor([ True  True  True False], shape=(4,), dtype=bool)\ntf.Tensor([False  True  True False], shape=(4,), dtype=bool) tf.Tensor([False False  True  True], shape=(4,), dtype=bool)\ntf.Tensor(False, shape=(), dtype=bool) tf.Tensor(True, shape=(), dtype=bool)"
+ },
+ {
+  "keys": [
+   "tf.nn.max_pool",
+   "tf.nn.avg_pool",
+   "tf.nn.bias_add"
+  ],
+  "src": "import tensorflow as tf\nimg = tf.reshape(tf.constant([1., 5., 2., 0., 3., 4., 8., 1., 0., 2., 1., 1., 6., 1., 0., 9.]), (1, 4, 4, 1))\nprint(tf.reshape(tf.nn.max_pool(img, 2, 2, 'VALID'), (2, 2)))     # the largest of each 2 × 2 block\nprint(tf.reshape(tf.nn.avg_pool(img, 2, 2, 'VALID'), (2, 2)))\nprint(tf.nn.bias_add(tf.constant([[1., 2.], [3., 4.]]), tf.constant([10., 20.])))   # one bias per column\n",
+  "out": "tf.Tensor(\n[[5. 8.]\n [6. 9.]], shape=(2, 2), dtype=float32)\ntf.Tensor(\n[[3.25 2.75]\n [2.25 2.75]], shape=(2, 2), dtype=float32)\ntf.Tensor(\n[[11. 22.]\n [13. 24.]], shape=(2, 2), dtype=float32)"
+ },
+ {
+  "keys": [
+   "tf.Variable.assign_add",
+   "tf.data.Dataset.as_numpy_iterator"
+  ],
+  "src": "import tensorflow as tf\ncount = tf.Variable(0)\nfor k in range(3):\n    count.assign_add(2)                                # count += 2, in place\nprint(count.numpy())\nds = tf.data.Dataset.range(5).map(lambda x: x * x)\nprint(list(ds.as_numpy_iterator()))                    # the elements as NumPy values\n",
+  "out": "6\n[0, 1, 4, 9, 16]"
+ },
+ {
+  "keys": [
+   "tf.image.random_flip_left_right",
+   "tf.image.random_flip_up_down"
+  ],
+  "src": "import tensorflow as tf\nimg = tf.reshape(tf.range(4.), (2, 2, 1))\nflipped = tf.image.random_flip_left_right(img, seed=1)     # mirrored or not, at random\nupside = tf.image.random_flip_up_down(img, seed=1)\nprint(flipped.shape, upside.shape)\nprint(sorted(tf.reshape(flipped, [-1]).numpy().tolist()))   # the same pixels either way\n",
+  "out": "(2, 2, 1) (2, 2, 1)\n[0.0, 1.0, 2.0, 3.0]"
+ },
+ {
+  "keys": [
+   "tf.Variable.name",
+   "tf.Variable.assign",
+   "tf.TensorSpec"
+  ],
+  "src": "import tensorflow as tf\nw = tf.Variable([1., 2.], name='weights')\nprint(w.name)                               # the name, with ':0' added\nw.assign([5., 6.])                          # new values, same variable\nprint(w.numpy(), w * 2)\nspec = tf.TensorSpec(shape=(None, 3), dtype=tf.float32)   # any number of rows of 3 floats\nprint(spec)\n",
+  "out": "weights:0\n[5. 6.] tf.Tensor([10. 12.], shape=(2,), dtype=float32)\nTensorSpec(shape=(None, 3), dtype=tf.float32, name=None)"
+ }
+]

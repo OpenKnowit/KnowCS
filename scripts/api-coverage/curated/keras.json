@@ -1,0 +1,86 @@
+[
+ {
+  "keys": [
+   "keras.layers.average",
+   "keras.layers.maximum",
+   "keras.layers.minimum",
+   "keras.layers.multiply",
+   "keras.layers.subtract",
+   "keras.layers.dot"
+  ],
+  "src": "import numpy as np\nimport keras\na = np.array([[1., 4.]])\nb = np.array([[3., 2.]])\nprint(keras.layers.average([a, b]), keras.layers.maximum([a, b]), keras.layers.minimum([a, b]))\nprint(keras.layers.multiply([a, b]), keras.layers.subtract([a, b]))\nprint(keras.layers.dot([a, b], axes=1))          # 1·3 + 4·2\n",
+  "out": "tf.Tensor([[2. 3.]], shape=(1, 2), dtype=float32) tf.Tensor([[3. 4.]], shape=(1, 2), dtype=float32) tf.Tensor([[1. 2.]], shape=(1, 2), dtype=float32)\ntf.Tensor([[3. 8.]], shape=(1, 2), dtype=float32) tf.Tensor([[-2.  2.]], shape=(1, 2), dtype=float32)\ntf.Tensor([[11.]], shape=(1, 1), dtype=float32)"
+ },
+ {
+  "keys": [
+   "keras.Layer",
+   "keras.Model.compute_output_shape"
+  ],
+  "src": "import numpy as np\nimport keras\n\nclass Scale(keras.Layer):                         # a layer of your own: one weight per feature\n    def build(self, input_shape):\n        self.w = self.add_weight(shape=(input_shape[-1],), initializer='ones')\n    def call(self, x):\n        return x * self.w\n\nmodel = keras.Sequential([keras.Input((3,)), Scale(), keras.layers.Dense(2)])\nmodel.summary()\nprint(model.compute_output_shape((None, 3)))\n",
+  "out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ scale (Scale)                   │ (None, 3)              │             3 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 2)              │             8 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 11 (44.00 B)\n Trainable params: 11 (44.00 B)\n Non-trainable params: 0 (0.00 B)\n(None, 2)"
+ },
+ {
+  "keys": [
+   "keras.losses.Loss",
+   "keras.losses.sparse_categorical_crossentropy",
+   "keras.metrics.sparse_categorical_crossentropy"
+  ],
+  "src": "import numpy as np\nimport keras\n\nclass MeanAbs(keras.losses.Loss):                 # a loss of your own\n    def call(self, y_true, y_pred):\n        return keras.ops.mean(keras.ops.abs(y_true - y_pred), axis=-1)\n\nprint(MeanAbs()(np.array([[1., 2.]]), np.array([[1.5, 1.]])))\nprobs = np.array([[0.7, 0.2, 0.1], [0.1, 0.1, 0.8]])\nlabels = np.array([0, 2])                          # class numbers, not one-hot\nprint(keras.losses.sparse_categorical_crossentropy(labels, probs))   # −log 0.7, −log 0.8\nprint(keras.metrics.sparse_categorical_crossentropy(labels, probs))\n",
+  "out": "tf.Tensor(0.75, shape=(), dtype=float32)\ntf.Tensor([0.35667494 0.22314355], shape=(2,), dtype=float64)\ntf.Tensor([0.35667494 0.22314355], shape=(2,), dtype=float64)"
+ },
+ {
+  "keys": [
+   "keras.metrics.Metric",
+   "keras.metrics.sparse_categorical_accuracy",
+   "keras.metrics.sparse_top_k_categorical_accuracy",
+   "keras.metrics.get"
+  ],
+  "src": "import numpy as np\nimport keras\nprobs = np.array([[0.7, 0.2, 0.1], [0.3, 0.6, 0.1], [0.5, 0.1, 0.4]], dtype='float32')\nlabels = np.array([0, 0, 2])\nprint(keras.metrics.sparse_categorical_accuracy(labels, probs))         # 1 where the top class is right\nprint(keras.metrics.sparse_top_k_categorical_accuracy(labels, probs, k=2))\nacc = keras.metrics.get('accuracy')\nprint(isinstance(keras.metrics.SparseCategoricalAccuracy(), keras.metrics.Metric), callable(acc))\n",
+  "out": "tf.Tensor([1. 0. 0.], shape=(3,), dtype=float32)\ntf.Tensor([1. 1. 1.], shape=(3,), dtype=float32)\nTrue True"
+ },
+ {
+  "keys": [
+   "keras.activations.get",
+   "keras.activations.serialize",
+   "keras.activations.deserialize",
+   "keras.initializers.serialize",
+   "keras.regularizers.get"
+  ],
+  "src": "import numpy as np\nimport keras\nrelu = keras.activations.get('relu')               # a name → the function\nprint(relu(np.array([-1., 2.])))\nprint(keras.activations.serialize(relu))           # and back to its name\nprint(keras.activations.deserialize('sigmoid')(np.array([0.])))\nprint(keras.initializers.serialize(keras.initializers.Zeros()))\nprint(type(keras.regularizers.get('l2')).__name__)\n",
+  "out": "tf.Tensor([0. 2.], shape=(2,), dtype=float64)\nrelu\ntf.Tensor([0.5], shape=(1,), dtype=float64)\n{'module': 'keras.initializers', 'class_name': 'Zeros', 'config': {}, 'registered_name': None}\nL2"
+ },
+ {
+  "keys": [
+   "keras.models.Model"
+  ],
+  "src": "import numpy as np\nimport keras\ninputs = keras.Input((2,))\noutputs = keras.layers.Dense(1, activation='sigmoid')(inputs)\nmodel = keras.models.Model(inputs, outputs)        # the functional API: from inputs to outputs\nmodel.summary()\n",
+  "out": "Model: \"functional\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ input_layer (InputLayer)        │ (None, 2)              │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 1)              │             3 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 3 (12.00 B)\n Trainable params: 3 (12.00 B)\n Non-trainable params: 0 (0.00 B)"
+ },
+ {
+  "keys": [
+   "keras.ops.tensordot"
+  ],
+  "src": "import numpy as np\nimport keras\na = np.arange(6.).reshape(2, 3)\nb = np.arange(12.).reshape(3, 4)\nprint(keras.ops.tensordot(a, b, axes=1))           # the same as a @ b\nprint(keras.ops.tensordot(a, a, axes=2))           # every product summed: a scalar\n",
+  "out": "tf.Tensor(\n[[20. 23. 26. 29.]\n [56. 68. 80. 92.]], shape=(2, 4), dtype=float64)\ntf.Tensor(55.0, shape=(), dtype=float64)"
+ },
+ {
+  "keys": [
+   "keras.layers.Input",
+   "keras.layers.Conv2D",
+   "keras.optimizers.Adam",
+   "keras.optimizers.get",
+   "keras.activations.tanh",
+   "keras.utils.to_categorical"
+  ],
+  "src": "import numpy as np\nimport keras\nfrom keras import layers\nmodel = keras.Sequential([\n    layers.Input((8, 8, 1)),                         # 8 × 8 grey pictures\n    layers.Conv2D(4, 3, activation='relu'),          # 4 filters of 3 × 3 → (6, 6, 4)\n    layers.Flatten(),\n    layers.Dense(3, activation='softmax'),\n])\nmodel.summary()\nprint(keras.utils.to_categorical([0, 2, 1], num_classes=3))      # labels → one-hot rows\nopt = keras.optimizers.Adam(learning_rate=0.01)\nprint(type(opt).__name__, float(opt.learning_rate), type(keras.optimizers.get('sgd')).__name__)\nprint(keras.activations.tanh(np.array([-2., 0., 2.])))\n",
+  "out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ conv2d (Conv2D)                 │ (None, 6, 6, 4)        │            40 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ flatten (Flatten)               │ (None, 144)            │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 3)              │           435 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 475 (1.86 KB)\n Trainable params: 475 (1.86 KB)\n Non-trainable params: 0 (0.00 B)\n[[1. 0. 0.]\n [0. 0. 1.]\n [0. 1. 0.]]\nAdam 0.009999999776482582 SGD\ntf.Tensor([-0.96402758  0.          0.96402758], shape=(3,), dtype=float64)"
+ },
+ {
+  "keys": [
+   "keras.Model.to_json",
+   "keras.Model.get_compile_config"
+  ],
+  "src": "import numpy as np\nimport keras\nfrom keras import layers\nmodel = keras.Sequential([layers.Input((2,)), layers.Dense(1)])\ntext = model.to_json()                      # the architecture as JSON, without the weights\nagain = keras.models.model_from_json(text)\nagain.summary()\nmodel.compile(optimizer='sgd', loss='mse')\nprint(model.get_compile_config()['loss'])\n",
+  "out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ dense (Dense)                   │ (None, 1)              │             3 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 3 (12.00 B)\n Trainable params: 3 (12.00 B)\n Non-trainable params: 0 (0.00 B)\nmse"
+ }
+]

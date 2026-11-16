@@ -26,8 +26,10 @@ for (const s of sections) {
   const got = r.error ? `${r.error.type}: ${r.error.message}` : norm(r.stdout)
   const figures = r.displays.filter((d) => d.type === 'figure') as { fig: FigureSpec }[]
   const marks = figures.reduce((n, d) => n + drawn(d.fig), 0)
-  const missing = s.keys.filter((k) => !new RegExp(`\\b${k.split('.')[1]}\\b`).test(s.src))
-  const why = s.realError ? `real: ${s.realError}` : r.error ? `sandbox: ${got}` : !same(got, norm(s.real)) ? `differs\n  real:    ${norm(s.real).slice(0, 300)}\n  sandbox: ${got.slice(0, 300)}` : !marks ? 'draws nothing' : missing.length ? `does not use ${missing.join(' ')}` : null
+  // what the playground's right side shows: a figure for matplotlib, the traced steps, tables and diagrams for the rest
+  const shown = lib === 'python' ? 1 : lib === 'matplotlib' ? marks : marks + r.calls.length + r.events.filter((e) => e.type !== 'note').length + r.displays.length + (r.outDisplay ? 1 : 0)
+  const missing = s.keys.filter((k) => !new RegExp(`\\b${k.slice(k.lastIndexOf('.') + 1)}\\b`).test(s.src))
+  const why = s.realError ? `real: ${s.realError}` : r.error ? `sandbox: ${got}` : !same(got, norm(s.real)) ? `differs\n  real:    ${norm(s.real).slice(0, 300)}\n  sandbox: ${got.slice(0, 300)}` : !shown ? 'shows nothing' : missing.length ? `does not use ${missing.join(' ')}` : null
   if (why) {
     bad++
     console.log(`✗ ${s.keys.join(' ')}\n  ${why}`)

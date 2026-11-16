@@ -1493,6 +1493,14 @@ const sampleRows = (h: Host, total: number, p: Params): number[] => {
   return rs.choice(total, n, replace, w)
 }
 
+/** df.attrs: one dict per Series or DataFrame, kept, so df.attrs['k'] = v sticks (a column taken out starts empty, as in pandas) */
+const ATTRS = new WeakMap<object, Value>()
+const attrsOf = (o: object): Value => {
+  let d = ATTRS.get(o)
+  if (!d) ATTRS.set(o, (d = { k: 'dict', d: dictFromPairs([]) }))
+  return d
+}
+
 const reindexSeries = (h: Host, s: Series, target: IndexObj, p: Params): Series => {
   const meth = given(p.method) ? h.str(p.method!) : null
   const fillv = given(p.fill_value)
@@ -2350,7 +2358,7 @@ export const seriesAttr = (s: Series, name: string, h: Host): Value | undefined 
     case 'is_monotonic_increasing': return py.bool(monotonic(s.values, true))
     case 'is_monotonic_decreasing': return py.bool(monotonic(s.values, false))
     case 'nbytes': return py.int(memOfSeries(s))
-    case 'attrs': return { k: 'dict', d: dictFromPairs([]) }
+    case 'attrs': return attrsOf(s)
     case 'loc': case 'iloc': case 'at': case 'iat': return py.obj(seriesIndexer(s, name))
     case 'str': return py.obj(strAccessor(h, s))
     case 'cat':
@@ -3428,7 +3436,7 @@ export const frameAttr = (f: Frame, name: string, h: Host): Value | undefined =>
     case 'T': return py.obj(transposeFrame(f))
     case 'values': return frameArray(h, f, {})
     case 'loc': case 'iloc': case 'at': case 'iat': return py.obj(frameIndexer(f, name))
-    case 'attrs': return { k: 'dict', d: dictFromPairs([]) }
+    case 'attrs': return attrsOf(f)
     case 'from_dict': case 'from_records': return (h.getAttr(h.getAttr(h.module('pandas'), 'DataFrame'), name))
   }
   return undefined

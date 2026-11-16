@@ -1,0 +1,96 @@
+# Programs for the API index of Python names whose automatic example only fetched them, without a call.
+
+### typing.Sequence typing.Mapping typing.Set typing.FrozenSet typing.Iterator typing.Generator typing.Literal typing.Final typing.ClassVar typing.Type typing.NoReturn
+from typing import Sequence, Mapping, Set, FrozenSet, Iterator, Generator, Literal, Final, ClassVar, Type, NoReturn
+
+MAX: Final = 3
+
+class Config:
+    count: ClassVar[int] = 0
+
+def mean(xs: Sequence[float]) -> float:
+    return sum(xs) / len(xs)
+
+def countdown(n: int) -> Iterator[int]:
+    while n:
+        yield n
+        n -= 1
+
+def pairs() -> Generator[int, None, str]:
+    yield 1
+    return 'done'
+
+def mode(m: Literal['r', 'w']) -> Mapping[str, Set[int]]:
+    return {m: {1}}
+
+def fail(msg: str) -> NoReturn:
+    raise ValueError(msg)
+
+def make(cls: Type[Config]) -> FrozenSet[str]:
+    return frozenset({cls.__name__})
+
+print(mean([1, 2, 3]), list(countdown(MAX)), mode('r'), make(Config))
+print(mean.__annotations__)
+print(mode.__annotations__['m'])
+
+### types.FunctionType types.LambdaType types.BuiltinFunctionType types.MethodType types.GeneratorType types.MappingProxyType
+import types
+
+def f():
+    yield 1
+
+class A:
+    def m(self):
+        return 1
+
+print(isinstance(f, types.FunctionType), isinstance(lambda: 0, types.LambdaType))
+print(isinstance(len, types.BuiltinFunctionType), isinstance(A().m, types.MethodType))
+print(isinstance(f(), types.GeneratorType))
+frozen = types.MappingProxyType({'a': 1})        # a read-only view of a dict
+try:
+    frozen['b'] = 2
+except TypeError as e:
+    print('read-only:', type(e).__name__)
+
+### abc.ABCMeta inspect.getmro inspect.Parameter
+import abc
+import inspect
+
+class Shape(metaclass=abc.ABCMeta):              # the same as inheriting from abc.ABC
+    @abc.abstractmethod
+    def area(self): ...
+
+class Square(Shape):
+    def __init__(self, side=1):
+        self.side = side
+    def area(self):
+        return self.side ** 2
+
+print([c.__name__ for c in inspect.getmro(Square)])
+p = inspect.signature(Square.__init__).parameters['side']
+print(p.name, p.default, p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD)
+
+### operator.getitem operator.matmul builtins.delattr builtins.UnicodeDecodeError enum.unique random.randrange
+import operator
+import enum
+import random
+print(operator.getitem([10, 20, 30], 1), operator.getitem({'a': 1}, 'a'))   # the same as x[i]
+
+class V:
+    def __init__(self, x):
+        self.x = x
+    def __matmul__(self, other):
+        return self.x * other.x
+
+print(operator.matmul(V(3), V(4)))            # the same as a @ b
+v = V(1)
+delattr(v, 'x')                               # the same as del v.x
+print(hasattr(v, 'x'))
+print(issubclass(UnicodeDecodeError, ValueError))   # so except ValueError catches it too
+
+@enum.unique                                   # no two members with one value
+class Size(enum.Enum):
+    S = 1
+    M = 2
+print(list(Size))
+print(random.randrange(0, 10, 2) % 2)          # an even number from 0, 2, … 8

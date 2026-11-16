@@ -1,0 +1,106 @@
+# Programs for the API index of pandas names whose automatic example only fetched them, without a call.
+
+### DataFrame.take Series.take DataFrame.dot
+import pandas as pd
+df = pd.DataFrame({'name': ['Ann', 'Ben', 'Cat'], 'score': [70, 85, 92]}, index=['a', 'b', 'c'])
+print(df.take([2, 0]))                 # rows by position, whatever the index labels
+print(df['score'].take([1]))
+w = pd.DataFrame({'x': [1, 0], 'y': [0, 2]}, index=['p', 'q'])
+m = pd.DataFrame({'p': [1, 2], 'q': [3, 4]})
+print(m.dot(w))                        # matrix product, matched on m's columns and w's index
+
+### Series.str.extractall Series.str.rindex
+import pandas as pd
+s = pd.Series(['a1b22', 'c333'])
+print(s.str.extractall(r'(\d+)'))      # every match, one row each
+print(pd.Series(['banana', 'abcab']).str.rindex('a'))   # the last position of 'a'
+s.str.extractall(r'(?P<digits>\d+)')
+
+### pd.pivot pd.pivot_table
+import pandas as pd
+df = pd.DataFrame({'day': ['Mon', 'Mon', 'Tue', 'Tue'], 'city': ['HK', 'SZ', 'HK', 'SZ'], 'temp': [24, 26, 22, 25]})
+print(pd.pivot(df, index='day', columns='city', values='temp'))        # one cell per pair
+sales = pd.DataFrame({'shop': ['A', 'A', 'B', 'B', 'B'], 'item': ['x', 'y', 'x', 'x', 'y'], 'n': [1, 2, 3, 4, 5]})
+table = pd.pivot_table(sales, index='shop', columns='item', values='n', aggfunc='sum')   # repeats summed
+print(table)
+table
+
+### DataFrame.groupby Series.groupby GroupBy.count GroupBy.median GroupBy.quantile GroupBy.var GroupBy.apply GroupBy.indices
+import pandas as pd
+df = pd.DataFrame({'class': ['A', 'A', 'B', 'B', 'B'], 'score': [70, 90, 60, 80, 100]})
+g = df.groupby('class')                   # rows split by class
+print(g['score'].count())
+print(g['score'].median())
+print(g['score'].quantile(0.5), g['score'].var())
+print(g.apply(lambda part: part['score'].max() - part['score'].min(), include_groups=False))   # range per class
+print(g.indices)
+print(df['score'].groupby(df['class']).mean())
+g['score'].median()
+
+### DataFrame.apply Series.apply DataFrame.count Series.count DataFrame.median Series.median DataFrame.quantile Series.quantile DataFrame.var Series.var Series.item
+import pandas as pd
+df = pd.DataFrame({'h': [160, 172, None, 181], 'w': [55, 70, 63, 80]})
+print(df.count())                         # non-missing values per column
+print(df.median(), df.quantile(0.75), df.var(), sep='\n')
+print(df.apply(lambda col: col.max() - col.min()))           # a function on each column
+print(df['w'].apply(lambda v: 'heavy' if v > 65 else 'light'))
+print(df['w'].count(), df['w'].median(), df['w'].quantile(0.25), round(df['w'].var(), 2))
+print(df.loc[df['w'] == 80, 'h'].item())  # the single value of a one-element Series
+df.apply(lambda col: col / col.max())
+
+### DataFrame.merge pd.concat pd.DataFrame
+import pandas as pd
+students = pd.DataFrame({'id': [1, 2, 3], 'name': ['Ann', 'Ben', 'Cat']})
+marks = pd.DataFrame({'id': [1, 3, 4], 'mark': [88, 75, 60]})
+print(students.merge(marks, on='id'))                  # only ids in both
+print(students.merge(marks, on='id', how='left'))      # every student; NaN where no mark
+more = pd.DataFrame({'id': [5], 'name': ['Dan']})
+print(pd.concat([students, more], ignore_index=True))  # rows stacked
+students.merge(marks, on='id', how='outer')
+
+### pd.isna pd.notna pd.isnull pd.notnull pd.NA pd.value_counts
+import pandas as pd
+import numpy as np
+s = pd.Series([1, None, 3, np.nan])
+print(pd.isna(s).tolist(), pd.notna(s).sum())          # NaN and None both count as missing
+print(pd.isnull(None), pd.notnull(5))                  # the same, by their older names
+print(pd.NA, pd.isna(pd.NA))                           # pandas' own missing value
+print(pd.Series(['a', 'b', 'a']).value_counts())
+
+### Series.str.split Series.str.lower Series.str.title Series.str.strip Series.str.lstrip Series.str.rstrip Series.str.len Series.str.contains Series.str.count Series.str.repeat Series.str.swapcase Series.str.casefold
+import pandas as pd
+names = pd.Series(['  ann lee ', 'BEN KO', 'cat'])
+clean = names.str.strip()                  # spaces off both ends
+print(clean.str.lower().tolist(), clean.str.title().tolist(), clean.str.swapcase().tolist())
+print(names.str.lstrip().tolist(), names.str.rstrip().tolist())
+print(clean.str.len().tolist(), clean.str.contains('e', case=False).tolist())
+print(clean.str.split().tolist())          # a list of words per row
+print(clean.str.count('a').tolist(), pd.Series(['ab']).str.repeat(3)[0], pd.Series(['Straße']).str.casefold()[0])
+
+### Series.str.partition Series.str.rpartition Series.str.rsplit Series.str.rfind Series.str.center Series.str.ljust Series.str.rjust Series.str.slice_replace Series.str.normalize
+import pandas as pd
+paths = pd.Series(['a/b/c.txt', 'x/y.csv'])
+print(paths.str.partition('/'))            # before, separator, after the first '/'
+print(paths.str.rpartition('/')[2].tolist(), paths.str.rsplit('/', n=1).tolist(), paths.str.rfind('/').tolist())
+tags = pd.Series(['hk', 'sz'])
+print(tags.str.center(6, '*').tolist(), tags.str.ljust(4, '.').tolist(), tags.str.rjust(4, '.').tolist())
+print(pd.Series(['abcdef']).str.slice_replace(1, 3, 'XY')[0], pd.Series(['ﬁ']).str.normalize('NFKC')[0])
+
+### Series.str.isdigit Series.str.isalpha Series.str.isalnum Series.str.isnumeric Series.str.isdecimal Series.str.isspace Series.str.isupper Series.str.islower Series.str.istitle Series.str.fullmatch
+import pandas as pd
+s = pd.Series(['123', 'abc', 'a1', ' ', 'ABC', 'Title Case'])
+for test in ['isdigit', 'isalpha', 'isalnum', 'isnumeric', 'isdecimal', 'isspace', 'isupper', 'islower', 'istitle']:
+    print(f'{test:10}', getattr(s.str, test)().tolist())
+print(s.str.fullmatch(r'[a-z]+\d?').tolist())    # the whole string must match
+
+### pd.set_option pd.get_option pd.reset_option pd.options Series.axes DataFrame.axes Series.attrs DataFrame.attrs Series.nbytes Series.is_monotonic_decreasing
+import pandas as pd
+df = pd.DataFrame({'x': [3.14159, 2.71828], 'y': [1.41421, 1.73205]})
+pd.set_option('display.precision', 2)          # show 2 decimals; the values stay as they are
+print(df, pd.get_option('display.precision'), pd.options.display.precision)
+pd.reset_option('display.precision')
+print(df)
+print(df.axes, df['x'].axes)                   # [row labels, column labels]
+df.attrs['source'] = 'lab'                     # notes that travel with the frame
+print(df.attrs, df['x'].attrs, df['x'].nbytes, df['x'].is_monotonic_decreasing)
+df

@@ -1,0 +1,144 @@
+[
+ {
+  "keys": [
+   "DataFrame.take",
+   "Series.take",
+   "DataFrame.dot"
+  ],
+  "src": "import pandas as pd\ndf = pd.DataFrame({'name': ['Ann', 'Ben', 'Cat'], 'score': [70, 85, 92]}, index=['a', 'b', 'c'])\nprint(df.take([2, 0]))                 # rows by position, whatever the index labels\nprint(df['score'].take([1]))\nw = pd.DataFrame({'x': [1, 0], 'y': [0, 2]}, index=['p', 'q'])\nm = pd.DataFrame({'p': [1, 2], 'q': [3, 4]})\nprint(m.dot(w))                        # matrix product, matched on m's columns and w's index\n",
+  "out": "  name  score\nc  Cat     92\na  Ann     70\nb    85\nName: score, dtype: int64\n   x  y\n0  1  6\n1  2  8"
+ },
+ {
+  "keys": [
+   "Series.str.extractall",
+   "Series.str.rindex"
+  ],
+  "src": "import pandas as pd\ns = pd.Series(['a1b22', 'c333'])\nprint(s.str.extractall(r'(\\d+)'))      # every match, one row each\nprint(pd.Series(['banana', 'abcab']).str.rindex('a'))   # the last position of 'a'\ns.str.extractall(r'(?P<digits>\\d+)')\n",
+  "out": "           0\n  match\n0 0        1\n  1       22\n1 0      333\n0    5\n1    3\ndtype: int64"
+ },
+ {
+  "keys": [
+   "pd.pivot",
+   "pd.pivot_table"
+  ],
+  "src": "import pandas as pd\ndf = pd.DataFrame({'day': ['Mon', 'Mon', 'Tue', 'Tue'], 'city': ['HK', 'SZ', 'HK', 'SZ'], 'temp': [24, 26, 22, 25]})\nprint(pd.pivot(df, index='day', columns='city', values='temp'))        # one cell per pair\nsales = pd.DataFrame({'shop': ['A', 'A', 'B', 'B', 'B'], 'item': ['x', 'y', 'x', 'x', 'y'], 'n': [1, 2, 3, 4, 5]})\ntable = pd.pivot_table(sales, index='shop', columns='item', values='n', aggfunc='sum')   # repeats summed\nprint(table)\ntable\n",
+  "out": "city  HK  SZ\nday\nMon   24  26\nTue   22  25\nitem  x  y\nshop\nA     1  2\nB     7  5"
+ },
+ {
+  "keys": [
+   "DataFrame.groupby",
+   "Series.groupby",
+   "GroupBy.count",
+   "GroupBy.median",
+   "GroupBy.quantile",
+   "GroupBy.var",
+   "GroupBy.apply",
+   "GroupBy.indices"
+  ],
+  "src": "import pandas as pd\ndf = pd.DataFrame({'class': ['A', 'A', 'B', 'B', 'B'], 'score': [70, 90, 60, 80, 100]})\ng = df.groupby('class')                   # rows split by class\nprint(g['score'].count())\nprint(g['score'].median())\nprint(g['score'].quantile(0.5), g['score'].var())\nprint(g.apply(lambda part: part['score'].max() - part['score'].min(), include_groups=False))   # range per class\nprint(g.indices)\nprint(df['score'].groupby(df['class']).mean())\ng['score'].median()\n",
+  "out": "class\nA    2\nB    3\nName: score, dtype: int64\nclass\nA    80.0\nB    80.0\nName: score, dtype: float64\nclass\nA    80.0\nB    80.0\nName: score, dtype: float64 class\nA    200.0\nB    400.0\nName: score, dtype: float64\nclass\nA    20\nB    40\ndtype: int64\n{'A': array([0, 1]), 'B': array([2, 3, 4])}\nclass\nA    80.0\nB    80.0\nName: score, dtype: float64"
+ },
+ {
+  "keys": [
+   "DataFrame.apply",
+   "Series.apply",
+   "DataFrame.count",
+   "Series.count",
+   "DataFrame.median",
+   "Series.median",
+   "DataFrame.quantile",
+   "Series.quantile",
+   "DataFrame.var",
+   "Series.var",
+   "Series.item"
+  ],
+  "src": "import pandas as pd\ndf = pd.DataFrame({'h': [160, 172, None, 181], 'w': [55, 70, 63, 80]})\nprint(df.count())                         # non-missing values per column\nprint(df.median(), df.quantile(0.75), df.var(), sep='\\n')\nprint(df.apply(lambda col: col.max() - col.min()))           # a function on each column\nprint(df['w'].apply(lambda v: 'heavy' if v > 65 else 'light'))\nprint(df['w'].count(), df['w'].median(), df['w'].quantile(0.25), round(df['w'].var(), 2))\nprint(df.loc[df['w'] == 80, 'h'].item())  # the single value of a one-element Series\ndf.apply(lambda col: col / col.max())\n",
+  "out": "h    3\nw    4\ndtype: int64\nh    172.0\nw     66.5\ndtype: float64\nh    176.5\nw     72.5\nName: 0.75, dtype: float64\nh    111.000000\nw    112.666667\ndtype: float64\nh    21.0\nw    25.0\ndtype: float64\n0    light\n1    heavy\n2    light\n3    heavy\nName: w, dtype: object\n4 66.5 61.0 112.67\n181.0"
+ },
+ {
+  "keys": [
+   "DataFrame.merge",
+   "pd.concat",
+   "pd.DataFrame"
+  ],
+  "src": "import pandas as pd\nstudents = pd.DataFrame({'id': [1, 2, 3], 'name': ['Ann', 'Ben', 'Cat']})\nmarks = pd.DataFrame({'id': [1, 3, 4], 'mark': [88, 75, 60]})\nprint(students.merge(marks, on='id'))                  # only ids in both\nprint(students.merge(marks, on='id', how='left'))      # every student; NaN where no mark\nmore = pd.DataFrame({'id': [5], 'name': ['Dan']})\nprint(pd.concat([students, more], ignore_index=True))  # rows stacked\nstudents.merge(marks, on='id', how='outer')\n",
+  "out": "   id name  mark\n0   1  Ann    88\n1   3  Cat    75\n   id name  mark\n0   1  Ann  88.0\n1   2  Ben   NaN\n2   3  Cat  75.0\n   id name\n0   1  Ann\n1   2  Ben\n2   3  Cat\n3   5  Dan"
+ },
+ {
+  "keys": [
+   "pd.isna",
+   "pd.notna",
+   "pd.isnull",
+   "pd.notnull",
+   "pd.NA",
+   "pd.value_counts"
+  ],
+  "src": "import pandas as pd\nimport numpy as np\ns = pd.Series([1, None, 3, np.nan])\nprint(pd.isna(s).tolist(), pd.notna(s).sum())          # NaN and None both count as missing\nprint(pd.isnull(None), pd.notnull(5))                  # the same, by their older names\nprint(pd.NA, pd.isna(pd.NA))                           # pandas' own missing value\nprint(pd.Series(['a', 'b', 'a']).value_counts())\n",
+  "out": "[False, True, False, True] 2\nTrue True\n<NA> True\na    2\nb    1\nName: count, dtype: int64"
+ },
+ {
+  "keys": [
+   "Series.str.split",
+   "Series.str.lower",
+   "Series.str.title",
+   "Series.str.strip",
+   "Series.str.lstrip",
+   "Series.str.rstrip",
+   "Series.str.len",
+   "Series.str.contains",
+   "Series.str.count",
+   "Series.str.repeat",
+   "Series.str.swapcase",
+   "Series.str.casefold"
+  ],
+  "src": "import pandas as pd\nnames = pd.Series(['  ann lee ', 'BEN KO', 'cat'])\nclean = names.str.strip()                  # spaces off both ends\nprint(clean.str.lower().tolist(), clean.str.title().tolist(), clean.str.swapcase().tolist())\nprint(names.str.lstrip().tolist(), names.str.rstrip().tolist())\nprint(clean.str.len().tolist(), clean.str.contains('e', case=False).tolist())\nprint(clean.str.split().tolist())          # a list of words per row\nprint(clean.str.count('a').tolist(), pd.Series(['ab']).str.repeat(3)[0], pd.Series(['Straße']).str.casefold()[0])\n",
+  "out": "['ann lee', 'ben ko', 'cat'] ['Ann Lee', 'Ben Ko', 'Cat'] ['ANN LEE', 'ben ko', 'CAT']\n['ann lee ', 'BEN KO', 'cat'] ['  ann lee', 'BEN KO', 'cat']\n[7, 6, 3] [True, True, False]\n[['ann', 'lee'], ['BEN', 'KO'], ['cat']]\n[1, 0, 1] ababab strasse"
+ },
+ {
+  "keys": [
+   "Series.str.partition",
+   "Series.str.rpartition",
+   "Series.str.rsplit",
+   "Series.str.rfind",
+   "Series.str.center",
+   "Series.str.ljust",
+   "Series.str.rjust",
+   "Series.str.slice_replace",
+   "Series.str.normalize"
+  ],
+  "src": "import pandas as pd\npaths = pd.Series(['a/b/c.txt', 'x/y.csv'])\nprint(paths.str.partition('/'))            # before, separator, after the first '/'\nprint(paths.str.rpartition('/')[2].tolist(), paths.str.rsplit('/', n=1).tolist(), paths.str.rfind('/').tolist())\ntags = pd.Series(['hk', 'sz'])\nprint(tags.str.center(6, '*').tolist(), tags.str.ljust(4, '.').tolist(), tags.str.rjust(4, '.').tolist())\nprint(pd.Series(['abcdef']).str.slice_replace(1, 3, 'XY')[0], pd.Series(['ﬁ']).str.normalize('NFKC')[0])\n",
+  "out": "   0  1        2\n0  a  /  b/c.txt\n1  x  /    y.csv\n['c.txt', 'y.csv'] [['a/b', 'c.txt'], ['x', 'y.csv']] [3, 1]\n['**hk**', '**sz**'] ['hk..', 'sz..'] ['..hk', '..sz']\naXYdef fi"
+ },
+ {
+  "keys": [
+   "Series.str.isdigit",
+   "Series.str.isalpha",
+   "Series.str.isalnum",
+   "Series.str.isnumeric",
+   "Series.str.isdecimal",
+   "Series.str.isspace",
+   "Series.str.isupper",
+   "Series.str.islower",
+   "Series.str.istitle",
+   "Series.str.fullmatch"
+  ],
+  "src": "import pandas as pd\ns = pd.Series(['123', 'abc', 'a1', ' ', 'ABC', 'Title Case'])\nfor test in ['isdigit', 'isalpha', 'isalnum', 'isnumeric', 'isdecimal', 'isspace', 'isupper', 'islower', 'istitle']:\n    print(f'{test:10}', getattr(s.str, test)().tolist())\nprint(s.str.fullmatch(r'[a-z]+\\d?').tolist())    # the whole string must match\n",
+  "out": "isdigit    [True, False, False, False, False, False]\nisalpha    [False, True, False, False, True, False]\nisalnum    [True, True, True, False, True, False]\nisnumeric  [True, False, False, False, False, False]\nisdecimal  [True, False, False, False, False, False]\nisspace    [False, False, False, True, False, False]\nisupper    [False, False, False, False, True, False]\nislower    [False, True, True, False, False, False]\nistitle    [False, False, False, False, False, True]\n[False, True, True, False, False, False]"
+ },
+ {
+  "keys": [
+   "pd.set_option",
+   "pd.get_option",
+   "pd.reset_option",
+   "pd.options",
+   "Series.axes",
+   "DataFrame.axes",
+   "Series.attrs",
+   "DataFrame.attrs",
+   "Series.nbytes",
+   "Series.is_monotonic_decreasing"
+  ],
+  "src": "import pandas as pd\ndf = pd.DataFrame({'x': [3.14159, 2.71828], 'y': [1.41421, 1.73205]})\npd.set_option('display.precision', 2)          # show 2 decimals; the values stay as they are\nprint(df, pd.get_option('display.precision'), pd.options.display.precision)\npd.reset_option('display.precision')\nprint(df)\nprint(df.axes, df['x'].axes)                   # [row labels, column labels]\ndf.attrs['source'] = 'lab'                     # notes that travel with the frame\nprint(df.attrs, df['x'].attrs, df['x'].nbytes, df['x'].is_monotonic_decreasing)\ndf\n",
+  "out": "      x     y\n0  3.14  1.41\n1  2.72  1.73 2 2\n         x        y\n0  3.14159  1.41421\n1  2.71828  1.73205\n[RangeIndex(start=0, stop=2, step=1), Index(['x', 'y'], dtype='object')] [RangeIndex(start=0, stop=2, step=1)]\n{'source': 'lab'} {} 16 True"
+ }
+]

@@ -1661,7 +1661,8 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
       if (!d) throw h.err('TypeError', `data type ${repr(args[0])} not understood`)
       return { k: 'dtype', d }
     } },
-    typename: fn('typename', (args) => S({ b: 'bool', '?': 'bool', i: 'integer', f: 'floating point' }[(args[0] as { v: string }).v] ?? 'unknown')),
+    // numpy's own table (numpy/lib/_type_check_impl.py)
+    typename: fn('typename', (args) => S({ S1: 'character', '?': 'bool', b: 'signed char', B: 'unsigned char', h: 'short', H: 'unsigned short', i: 'integer', I: 'unsigned integer', l: 'long integer', L: 'unsigned long integer', q: 'long long integer', Q: 'unsigned long long integer', f: 'single precision', d: 'double precision', g: 'long precision', F: 'complex single precision', D: 'complex double precision', G: 'complex long double precision', S: 'string', U: 'unicode', V: 'void', O: 'object' }[(args[0] as { v: string }).v] ?? 'unknown')),
     isscalar: fn('isscalar', (args) => bool(isNum(args[0]) || args[0].k === 'str')),
     iterable: fn('iterable', (args) => {
       try {
@@ -2628,6 +2629,8 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     }
     repr() { return this.cls === 'Generator' ? 'Generator(PCG64)' : '<RandomState>' }
     getAttr(name: string) { return this.table[name] }
+    /** isinstance(rng, np.random.Generator) */
+    isa(name: string) { return name === `numpy.random.${this.cls}` }
   }
   const Rng = h.rng.constructor as new (seed?: number) => SandboxRandom
   /** PCG64(5), MT19937(5), SeedSequence(5): only the seed matters here, as the sandbox has one generator */

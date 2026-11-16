@@ -2920,6 +2920,8 @@ class KMetric extends PyObj {
   /** 'accuracy' chooses among the accuracies when it first sees the data */
   auto: boolean
   impl: string
+  /** every metric object is a keras.metrics.Metric */
+  isa(name: string) { return name === 'Metric' || name === this.cls }
   /** a Python function given to metrics=[...] */
   pyFn: Value | null = null
   /** a user's keras.metrics.Metric */

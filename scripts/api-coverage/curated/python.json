@@ -1,0 +1,52 @@
+[
+ {
+  "keys": [
+   "typing.Sequence",
+   "typing.Mapping",
+   "typing.Set",
+   "typing.FrozenSet",
+   "typing.Iterator",
+   "typing.Generator",
+   "typing.Literal",
+   "typing.Final",
+   "typing.ClassVar",
+   "typing.Type",
+   "typing.NoReturn"
+  ],
+  "src": "from typing import Sequence, Mapping, Set, FrozenSet, Iterator, Generator, Literal, Final, ClassVar, Type, NoReturn\n\nMAX: Final = 3\n\nclass Config:\n    count: ClassVar[int] = 0\n\ndef mean(xs: Sequence[float]) -> float:\n    return sum(xs) / len(xs)\n\ndef countdown(n: int) -> Iterator[int]:\n    while n:\n        yield n\n        n -= 1\n\ndef pairs() -> Generator[int, None, str]:\n    yield 1\n    return 'done'\n\ndef mode(m: Literal['r', 'w']) -> Mapping[str, Set[int]]:\n    return {m: {1}}\n\ndef fail(msg: str) -> NoReturn:\n    raise ValueError(msg)\n\ndef make(cls: Type[Config]) -> FrozenSet[str]:\n    return frozenset({cls.__name__})\n\nprint(mean([1, 2, 3]), list(countdown(MAX)), mode('r'), make(Config))\nprint(mean.__annotations__)\nprint(mode.__annotations__['m'])\n",
+  "out": "2.0 [3, 2, 1] {'r': {1}} frozenset({'Config'})\n{'xs': typing.Sequence[float], 'return': <class 'float'>}\ntyping.Literal['r', 'w']"
+ },
+ {
+  "keys": [
+   "types.FunctionType",
+   "types.LambdaType",
+   "types.BuiltinFunctionType",
+   "types.MethodType",
+   "types.GeneratorType",
+   "types.MappingProxyType"
+  ],
+  "src": "import types\n\ndef f():\n    yield 1\n\nclass A:\n    def m(self):\n        return 1\n\nprint(isinstance(f, types.FunctionType), isinstance(lambda: 0, types.LambdaType))\nprint(isinstance(len, types.BuiltinFunctionType), isinstance(A().m, types.MethodType))\nprint(isinstance(f(), types.GeneratorType))\nfrozen = types.MappingProxyType({'a': 1})        # a read-only view of a dict\ntry:\n    frozen['b'] = 2\nexcept TypeError as e:\n    print('read-only:', type(e).__name__)\n",
+  "out": "True True\nTrue True\nTrue\nread-only: TypeError"
+ },
+ {
+  "keys": [
+   "abc.ABCMeta",
+   "inspect.getmro",
+   "inspect.Parameter"
+  ],
+  "src": "import abc\nimport inspect\n\nclass Shape(metaclass=abc.ABCMeta):              # the same as inheriting from abc.ABC\n    @abc.abstractmethod\n    def area(self): ...\n\nclass Square(Shape):\n    def __init__(self, side=1):\n        self.side = side\n    def area(self):\n        return self.side ** 2\n\nprint([c.__name__ for c in inspect.getmro(Square)])\np = inspect.signature(Square.__init__).parameters['side']\nprint(p.name, p.default, p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD)\n",
+  "out": "['Square', 'Shape', 'object']\nside 1 True"
+ },
+ {
+  "keys": [
+   "operator.getitem",
+   "operator.matmul",
+   "builtins.delattr",
+   "builtins.UnicodeDecodeError",
+   "enum.unique",
+   "random.randrange"
+  ],
+  "src": "import operator\nimport enum\nimport random\nprint(operator.getitem([10, 20, 30], 1), operator.getitem({'a': 1}, 'a'))   # the same as x[i]\n\nclass V:\n    def __init__(self, x):\n        self.x = x\n    def __matmul__(self, other):\n        return self.x * other.x\n\nprint(operator.matmul(V(3), V(4)))            # the same as a @ b\nv = V(1)\ndelattr(v, 'x')                               # the same as del v.x\nprint(hasattr(v, 'x'))\nprint(issubclass(UnicodeDecodeError, ValueError))   # so except ValueError catches it too\n\n@enum.unique                                   # no two members with one value\nclass Size(enum.Enum):\n    S = 1\n    M = 2\nprint(list(Size))\nprint(random.randrange(0, 10, 2) % 2)          # an even number from 0, 2, … 8\n",
+  "out": "20 1\n12\nFalse\nTrue\n[<Size.S: 1>, <Size.M: 2>]\n0"
+ }
+]

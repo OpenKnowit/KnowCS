@@ -862,7 +862,10 @@ class TypingAlias extends Base {
       if (v.k === 'str') return `ForwardRef(${repr(v)})`
       return repr(v)
     }
-    return { k: 'obj', o: new TypingAlias(`${this.name}[${(idx.k === 'tuple' ? idx.items : [idx]).map(shown).join(', ')}]`) } as Value
+    // Literal's arguments are values, and so is Annotated's metadata after the type: a string there is not a forward reference
+    const items = idx.k === 'tuple' ? idx.items : [idx]
+    const each = (v: Value, i: number) => (this.name === 'Literal' || (this.name === 'Annotated' && i > 0) ? repr(v) : shown(v))
+    return { k: 'obj', o: new TypingAlias(`${this.name}[${items.map(each).join(', ')}]`) } as Value
   }
   binop() { return { k: 'obj', o: this } as Value }
   call(args: Value[], _kw?: Kw, _h?: Host): Value {

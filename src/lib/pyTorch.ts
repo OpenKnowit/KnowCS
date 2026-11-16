@@ -5033,6 +5033,10 @@ class Optimizer extends PyObj {
   /** self.state[p] of a Python subclass, which keeps what it likes there */
   custom = new Map<TT, Value>()
   lbfgs: LbfgsState | null = null
+  /** SGD, Adam … are all torch.optim.Optimizer */
+  isa(name: string) {
+    return name === 'Optimizer' || name === this.cls
+  }
   constructor(kind: string, h: Host, params: Value, defaults: [string, Value][]) {
     super()
     this.cls = kind

@@ -41,6 +41,61 @@ const programs = [...new Set(fs.readFileSync(process.argv[2], 'utf8').split('\n'
   .sort((a, b) => Number(checked.has(hash(b))) - Number(checked.has(hash(a))) || a.length - b.length)
 const words = programs.map((s) => ({ s, dotted: new Set([...s.matchAll(/\.\s*([A-Za-z_]\w*)/g)].map((m) => m[1])), bare: new Set(s.match(/\b[A-Za-z_]\w*\b/g) ?? []), libs: importsOf(s) }))
 
+/** the module each group's names live in, as Python names it */
+const MODULE_PATH: Record<string, string> = {
+  np: 'numpy', 'np.linalg': 'numpy.linalg', 'np.random': 'numpy.random', pd: 'pandas', plt: 'matplotlib.pyplot',
+  torch: 'torch', 'torch.nn': 'torch.nn', 'nn.functional': 'torch.nn.functional', 'nn.init': 'torch.nn.init', 'nn.utils': 'torch.nn.utils',
+  'torch.linalg': 'torch.linalg', 'torch.special': 'torch.special', 'torch.optim': 'torch.optim', 'optim.lr_scheduler': 'torch.optim.lr_scheduler',
+  'torch.autograd': 'torch.autograd', 'utils.data': 'torch.utils.data', distributions: 'torch.distributions',
+  cv2: 'cv2', 'cv2 constants': 'cv2', tf: 'tensorflow',
+}
+const modulePath = (group: string) => MODULE_PATH[group] ?? (group.startsWith('tf.') ? `tensorflow.${group.slice(3)}` : group)
+const canon = (path: string) => path.replace(/^tensorflow\.keras\b/, 'keras')
+
+/** what each name a program binds by import refers to: np → numpy, F → torch.nn.functional, KMeans → sklearn.cluster.KMeans */
+function importTable(src: string): Map<string, string> {
+  const t = new Map<string, string>()
+  for (const m of src.matchAll(/^[ \t]*import[ \t]+([^\n#]+)/gm)) {
+    for (const part of m[1].split(',')) {
+      const [path, alias] = part.trim().split(/\s+as\s+/)
+      if (!path) continue
+      if (alias) t.set(alias.trim(), canon(path.trim()))
+      else t.set(path.trim().split('.')[0], path.trim().split('.')[0])
+    }
+  }
+  for (const m of src.matchAll(/^[ \t]*from[ \t]+([\w.]+)[ \t]+import[ \t]+\(?([^\n#)]+)/gm)) {
+    for (const part of m[2].split(',')) {
+      const [name, alias] = part.trim().split(/\s+as\s+/)
+      if (name && name !== '*') t.set((alias ?? name).trim(), canon(`${m[1]}.${name.trim()}`))
+    }
+  }
+  return t
+}
+
+/**
+ * Whether a program uses this very name: module.name through the module's import (np.exp, F.relu, layers.Dense), or the
+ * name imported from the module; for an instance group, a method or attribute on an object, not a module (x.argmax(),
+ * not np.argmax or tf.argmax). Sharing a word is not enough: `exp=2` is not np.exp.
+ */
+function usesName(src: string, group: string, name: string, instance: boolean): boolean {
+  const table = importTable(src)
+  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  if (instance) {
+    for (const m of src.matchAll(new RegExp(`([\\w.]+|[)\\]'"])\\s*\\.\\s*${esc}\\b`, 'g'))) {
+      const head = m[1].split('.')[0]
+      if (!table.has(head)) return true
+    }
+    return false
+  }
+  const want = canon(modulePath(group))
+  for (const m of src.matchAll(new RegExp(`\\b([A-Za-z_][\\w.]*)\\s*\\.\\s*${esc}\\b`, 'g'))) {
+    const [head, ...rest] = m[1].split('.')
+    const base = table.get(head)
+    if (base && canon([base, ...rest].join('.')) === want) return true
+  }
+  return table.get(name) === canon(`${want}.${name}`) && new RegExp(`\\b${esc}\\b`).test(src.replace(/^[ \t]*(from|import)[^\n]*/gm, ''))
+}
+
 const example = (group: string, g: Group, name: string): typeof words[number] | null => {
   const instance = !/^[\w.]+$/.test(g.expr) || /^(Tensor|ndarray|Series|DataFrame|GroupBy|Series\.str|Axes|Figure|nn\.Module|keras\.Model|tf\.Tensor|tf\.Variable|tf\.data\.Dataset|str|list|dict|set|tuple|int|float)$/.test(group)
   for (const p of words) {
@@ -49,9 +104,9 @@ const example = (group: string, g: Group, name: string): typeof words[number] | 
       if (group !== 'builtins' && !instance && !new RegExp(`\\b(import|from)\\s+[\\w., ]*\\b${group.replace('.', '\\.')}\\b`).test(p.s)) continue
       if (group === 'builtins' ? p.bare.has(name) : instance ? p.dotted.has(name) : p.dotted.has(name) || p.bare.has(name)) return p
     } else {
-      // keras programs often also import tensorflow, and tf programs keras
-      const ok = p.libs.includes(g.lib) || (g.lib === 'numpy' && !p.libs.length)
-      if (ok && (p.dotted.has(name) || (!instance && p.bare.has(name)))) return p
+      // keras programs often also import tensorflow, and tf programs keras; the name must be used as this library's
+      if (!p.libs.includes(g.lib) || !(p.dotted.has(name) || p.bare.has(name))) continue
+      if (usesName(p.s, group, name, instance)) return p
     }
   }
   return null
