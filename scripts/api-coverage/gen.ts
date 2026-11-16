@@ -57,6 +57,14 @@ const example = (group: string, g: Group, name: string): typeof words[number] | 
   return null
 }
 
+// ---- programs written to show a name (curated/<lib>.json), already checked against the real library by curated.ts
+const curated = new Map<string, { src: string; out: string }>()
+for (const f of fs.readdirSync('scripts/api-coverage/curated').filter((f) => f.endsWith('.json'))) {
+  for (const c of JSON.parse(fs.readFileSync(`scripts/api-coverage/curated/${f}`, 'utf8')) as { keys: string[]; src: string; out: string }[]) {
+    for (const k of c.keys) if (!curated.has(k)) curated.set(k, c)
+  }
+}
+
 // ---- calls that worked on the real library: run each here, keep those that print the same
 type Probe = { module: string; name: string; src: string; out: string }
 
@@ -163,6 +171,13 @@ for (const [module, g] of Object.entries(real.groups)) {
     if (bad && !auto && have.has(name) && !refused.has(name)) (backlog[module] ??= []).push({ name, ...bad })
     if (!have.has(name)) {
       codes.push('n')
+      continue
+    }
+    const cur = curated.get(`${module}.${name}`)
+    if (cur) {
+      place(cur.src, true, name)
+      frozen.push(cur)
+      codes.push('c')
       continue
     }
     if (!auto && refused.has(name)) {

@@ -2742,7 +2742,10 @@ class Axes extends PyObj {
   legendObj: LegendObj | null = null
   extraLegends: LegendObj[] = []
   current: Mapped & ArtistObj | null = null
-  zorder = 0
+  /** set_zorder's value as given (an int stays an int) */
+  zorder: Value = py.int(0)
+  /** set_axisbelow's value as given; null = the rcParam ('line') */
+  axisbelow: Value | null = null
   twinned = false
   /** what the last drawing used, for artists whose shape depends on it */
   drawn: { rect: Rect; xlim: [number, number]; ylim: [number, number] } | null = null
@@ -7218,14 +7221,18 @@ const AXES_METHODS: Record<string, AxMethod> = {
     return py.NONE
   },
   get_frame_on: (ax) => py.bool(ax.frame),
-  set_axisbelow: (ax, args, _k, h) => { ax.grid.below = args[0].k === 'str' ? args[0].v === 'line' : h.truthy(args[0]); return py.NONE },
-  get_axisbelow: (ax) => py.bool(ax.grid.below),
+  set_axisbelow: (ax, args, _k, h) => { ax.grid.below = args[0].k === 'str' ? args[0].v === 'line' : h.truthy(args[0]); ax.axisbelow = args[0]; return py.NONE },
+  get_axisbelow: (ax, _a, _k, h) => {
+    if (ax.axisbelow) return ax.axisbelow
+    const rc = rcv(h, 'axes.axisbelow')
+    return rc.k === 'str' && rc.v !== 'line' ? py.bool(rc.v === 'true') : rc
+  },
   set_visible: (ax, args, _k, h) => { ax.visible = h.truthy(args[0]); emitFig(h, ax.fig, ax); return py.NONE },
   get_visible: (ax) => py.bool(ax.visible),
   set_label: (ax, args, _k, h) => { ax.label = h.str(args[0]); return py.NONE },
   get_label: (ax) => py.str(ax.label),
-  set_zorder: (ax, args, _k, h) => { ax.zorder = h.num(args[0]); return py.NONE },
-  get_zorder: (ax) => py.float(ax.zorder),
+  set_zorder: (ax, args, _k, h) => { h.num(args[0]); ax.zorder = args[0]; return py.NONE },
+  get_zorder: (ax) => ax.zorder,
   set_alpha: () => py.NONE,
   get_figure: (ax) => py.obj(ax.fig),
   remove: (ax, _a, _k, h) => {
@@ -8372,7 +8379,8 @@ const subplotsOn = (h: Host, f: Figure, args: Value[], kw: Kw, emit: boolean): V
   }
   if (shareX === 'col' || shareX === 'all') axes.forEach((a, i) => { if (Math.floor(i / ncols) !== nrows - 1) { a.x.style.label1 = false; a.x.offsetVisible = false } })
   if (shareY === 'row' || shareY === 'all') axes.forEach((a, i) => { if (i % ncols !== 0) { a.y.style.label1 = false; a.y.offsetVisible = false } })
-  f.cur = axes[0]
+  // each Axes is added in turn, so the last one is current, as in matplotlib
+  f.cur = axes[axes.length - 1]
   if (emit) emitFig(h, f, null)
   const out = squeeze && axes.length === 1 ? py.obj(axes[0]) : py.obj(new AxesGrid(axes, squeeze && (nrows === 1 || ncols === 1) ? [axes.length] : [nrows, ncols]))
   return py.tuple([py.obj(f), out])

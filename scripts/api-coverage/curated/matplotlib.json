@@ -1,0 +1,606 @@
+[
+ {
+  "keys": [
+   "Axes.get_xlim",
+   "Axes.get_xbound",
+   "Axes.get_ybound",
+   "Axes.get_xmargin",
+   "Axes.get_ymargin",
+   "Axes.viewLim",
+   "Axes.get_data_ratio"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 10, 50)\nfig, ax = plt.subplots()\nax.plot(x, x ** 2 / 10, label='x² / 10')\nax.legend()\nprint(ax.get_xlim())                       # the data, 0 … 10, plus a 5% margin each side\nprint(ax.get_xbound(), ax.get_ybound())\nprint(ax.get_xmargin(), ax.get_ymargin())\nprint(ax.viewLim)\nprint(round(ax.get_data_ratio(), 3))       # y range / x range\n",
+  "out": "(-0.5, 10.5)\n(-0.5, 10.5) (-0.5, 10.5)\n0.05 0.05\nBbox(x0=-0.5, y0=-0.5, x1=10.5, y1=10.5)\n1.0"
+ },
+ {
+  "keys": [
+   "Axes.get_xticks",
+   "Axes.get_yticks",
+   "Axes.get_xticklabels",
+   "Axes.get_yticklabels",
+   "Axes.get_xmajorticklabels",
+   "Axes.get_ymajorticklabels",
+   "Axes.get_xminorticklabels",
+   "Axes.get_yminorticklabels"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.bar(['Mon', 'Tue', 'Wed'], [3, 7, 5])\nax.set_yticks([0, 2.5, 5, 7.5])\nprint(ax.get_xticks(), ax.get_yticks())\nprint([t.get_text() for t in ax.get_xticklabels()])\nprint(len(ax.get_yticklabels()), len(ax.get_xmajorticklabels()), len(ax.get_ymajorticklabels()))\nprint(len(ax.get_xminorticklabels()), len(ax.get_yminorticklabels()))   # no minor ticks unless asked\n",
+  "out": "[0, 1, 2] [0.  2.5 5.  7.5]\n['Mon', 'Tue', 'Wed']\n4 3 4\n0 0"
+ },
+ {
+  "keys": [
+   "Axes.get_lines",
+   "Axes.lines",
+   "Axes.get_legend",
+   "Axes.get_legend_handles_labels",
+   "Axes.has_data",
+   "Axes.get_images",
+   "Axes.get_children"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 2 * np.pi, 60)\nfig, ax = plt.subplots()\nax.plot(x, np.sin(x), label='sin')\nax.plot(x, np.cos(x), label='cos')\nax.legend()\nprint(len(ax.get_lines()), ax.lines[1].get_label())\nhandles, labels = ax.get_legend_handles_labels()\nprint(labels)\nprint(ax.get_legend() is not None, ax.has_data(), len(ax.get_images()))\nprint(type(ax.get_children()).__name__)\n",
+  "out": "2 cos\n['sin', 'cos']\nTrue True 0\nlist"
+ },
+ {
+  "keys": [
+   "Axes.get_facecolor",
+   "Axes.get_fc",
+   "Axes.set_facecolor",
+   "Figure.set_facecolor",
+   "Figure.get_facecolor"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 2 * np.pi, 60)\nfig, ax = plt.subplots()\nax.plot(x, np.sin(x), color='white', linewidth=2)\nax.set_facecolor('#1e293b')      # inside the axes\nfig.set_facecolor('#e0f2fe')     # around them\nprint(ax.get_facecolor())\nprint(ax.get_fc() == ax.get_facecolor(), fig.get_facecolor())\n",
+  "out": "(0.11764705882352941, 0.1607843137254902, 0.23137254901960785, 1.0)\nTrue (0.8784313725490196, 0.9490196078431372, 0.996078431372549, 1.0)"
+ },
+ {
+  "keys": [
+   "Axes.get_aspect",
+   "Axes.set_aspect",
+   "Axes.get_adjustable",
+   "Axes.get_box_aspect",
+   "Axes.apply_aspect"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nt = np.linspace(0, 2 * np.pi, 100)\nfig, ax = plt.subplots()\nax.plot(np.cos(t), np.sin(t))\nprint(ax.get_aspect())           # 'auto': a circle comes out as an ellipse\nax.set_aspect('equal')           # one unit as long on x as on y\nax.apply_aspect()\nprint(ax.get_aspect(), ax.get_adjustable(), ax.get_box_aspect())\nax.set_title('set_aspect(\"equal\")')\n",
+  "out": "auto\n1.0 box None"
+ },
+ {
+  "keys": [
+   "Axes.get_autoscale_on",
+   "Axes.get_autoscalex_on",
+   "Axes.get_autoscaley_on",
+   "Axes.relim",
+   "Axes.autoscale_view",
+   "Axes.update_datalim",
+   "Axes.autoscale"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nline, = ax.plot([0, 1, 2], [0, 1, 4])\nprint(ax.get_autoscale_on(), ax.get_autoscalex_on(), ax.get_autoscaley_on())\nline.set_data([0, 1, 2, 3, 4], [0, 1, 4, 9, 16])   # new data: the view does not follow by itself\nprint(ax.get_ylim())\nax.relim()                # data limits from the lines again\nax.autoscale_view()       # and the view fitted to them\nprint(ax.get_ylim())\nax.update_datalim([[5, 20]])\nax.autoscale(axis='x')\nprint(ax.get_xlim())\n",
+  "out": "True True True\n(-0.2, 4.2)\n(-0.8, 16.8)\n(-0.25, 5.25)"
+ },
+ {
+  "keys": [
+   "plt.autoscale"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 3, 30)\nplt.plot(x, np.exp(x))\nplt.autoscale(tight=True)    # no margin: the curve touches the frame\nprint(plt.xlim())\n",
+  "out": "(0.0, 3.0)"
+ },
+ {
+  "keys": [
+   "Axes.cla",
+   "Axes.clear",
+   "Axes.remove"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, axs = plt.subplots(1, 4, figsize=(10, 2.5))\nfor a in axs:\n    a.plot([0, 1, 2], [2, 0, 1])\naxs[1].cla()       # empties the axes, keeps them\naxs[2].clear()     # the same\naxs[3].remove()    # takes the axes out of the figure\naxs[0].set_title('kept')\naxs[1].set_title('cla()')\nprint(len(axs[0].lines), len(axs[1].lines), len(fig.axes))\n",
+  "out": "1 0 3"
+ },
+ {
+  "keys": [
+   "Figure.clf",
+   "Figure.clear",
+   "plt.clf"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, axs = plt.subplots(2, 2)\nprint(len(fig.axes))\nfig.clf()                  # everything goes: the axes too\nprint(len(fig.axes))\nax = fig.add_subplot()\nax.plot([1, 3, 2])\nax.set_title('after fig.clf()')\nfig.clear()                # the same as clf\nplt.clf()                  # the current figure\nax = fig.add_subplot()\nax.bar(['a', 'b'], [2, 3])\nprint(len(fig.axes))\n",
+  "out": "4\n0\n1"
+ },
+ {
+  "keys": [
+   "plt.cla",
+   "plt.delaxes",
+   "Figure.delaxes",
+   "plt.gca",
+   "Figure.gca"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, (a, b) = plt.subplots(1, 2)\na.plot([0, 1], [0, 1])\nb.plot([0, 1], [1, 0])\nprint(plt.gca() is b, fig.gca() is b)    # the last made is the current axes\nplt.cla()                                # clears b\nfig.delaxes(b)\nprint(len(fig.axes))\nplt.delaxes(a)\nfig.add_subplot().plot([3, 1, 2])\nprint(len(fig.axes))\n",
+  "out": "True True\n1\n1"
+ },
+ {
+  "keys": [
+   "Axes.get_figure",
+   "Axes.figure",
+   "Figure.get_axes",
+   "Figure.axes",
+   "Axes.get_position",
+   "Axes.set_position",
+   "Axes.get_subplotspec",
+   "Axes.get_gridspec"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, (a, b) = plt.subplots(1, 2)\na.plot([1, 2, 3], [3, 1, 2])\nb.plot([1, 2, 3], [1, 3, 2])\nprint(a.get_figure() is fig, a.figure is fig, len(fig.get_axes()), len(fig.axes))\nprint(a.get_subplotspec())\nprint(a.get_gridspec())\nprint(b.get_position())\nb.set_position([0.6, 0.3, 0.3, 0.4])    # left, bottom, width, height in figure fractions\nprint(b.get_position())\n",
+  "out": "True True 2 2\nGridSpec(1, 2)[0:1, 0:1]\nGridSpec(1, 2)\nBbox(x0=0.5477272727272726, y0=0.10999999999999999, x1=0.8999999999999999, y1=0.88)\nBbox(x0=0.6, y0=0.3, x1=0.8999999999999999, y1=0.7)"
+ },
+ {
+  "keys": [
+   "Axes.get_visible",
+   "Axes.set_visible",
+   "Axes.get_frame_on",
+   "Axes.get_zorder",
+   "Axes.get_axisbelow"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, (a, b) = plt.subplots(1, 2)\na.plot([1, 2, 3], [2, 3, 1])\na.grid(True)\nb.plot([1, 2, 3], [1, 2, 3])\nprint(a.get_visible(), a.get_frame_on(), a.get_zorder(), a.get_axisbelow())\nb.set_visible(False)       # hidden, still in fig.axes\nprint(b.get_visible(), len(fig.axes))\n",
+  "out": "True True 0 line\nFalse 2"
+ },
+ {
+  "keys": [
+   "Axes.get_label",
+   "Axes.get_ylabel",
+   "Axes.get_yscale"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(1, 100, 50)\nfig, ax = plt.subplots(label='growth')\nax.plot(x, x ** 2)\nax.set_yscale('log')\nax.set_ylabel('x² (log scale)')\nprint(repr(ax.get_label()), ax.get_ylabel(), ax.get_yscale())\n",
+  "out": "'' x² (log scale) log"
+ },
+ {
+  "keys": [
+   "Axes.get_xaxis",
+   "Axes.get_yaxis",
+   "Axes.get_xaxis_transform",
+   "Axes.get_yaxis_transform"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.plot([0, 10], [0, 5])\nax.get_xaxis().set_visible(False)       # no x ticks, no x labels\nprint(type(ax.get_xaxis()).__name__, type(ax.get_yaxis()).__name__)\n# x in data units, y in axes fractions: a band over the whole height\nax.axvspan(2, 4, color='orange', alpha=0.3)\nax.text(3, 0.9, 'x in data, y in axes', transform=ax.get_xaxis_transform(), ha='center')\nprint(ax.get_yaxis_transform() is not None)\n",
+  "out": "XAxis YAxis\nTrue"
+ },
+ {
+  "keys": [
+   "Axes.get_shared_x_axes",
+   "Axes.get_shared_y_axes",
+   "Axes.sharex",
+   "Axes.sharey"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, (a, b) = plt.subplots(1, 2)\na.plot([0, 10], [0, 1])\nb.plot([0, 2], [0, 100])\nb.sharex(a)          # b now shows a's x range, and follows it\nb.sharey(a)\nprint(b.get_xlim() == a.get_xlim(), b.get_ylim() == a.get_ylim())\nprint(type(a.get_shared_x_axes()).__name__, type(a.get_shared_y_axes()).__name__)\n",
+  "out": "True True\nGrouperView GrouperView"
+ },
+ {
+  "keys": [
+   "Axes.invert_xaxis",
+   "Axes.xaxis_inverted",
+   "Axes.yaxis_inverted"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.plot([1, 2, 3, 4], [10, 20, 25, 30], marker='o')\nax.invert_xaxis()                         # 4 on the left, 1 on the right\nax.invert_yaxis()\nprint(ax.xaxis_inverted(), ax.yaxis_inverted(), ax.get_xlim())\n",
+  "out": "True True (4.15, 0.85)"
+ },
+ {
+  "keys": [
+   "Axes.label_outer"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 5, 30)\nfig, axs = plt.subplots(2, 2, sharex=True, sharey=True)\nfor k, a in enumerate(axs.flat):\n    a.plot(x, np.sin(x + k))\n    a.set_xlabel('time')\n    a.set_ylabel('signal')\n    a.label_outer()        # labels only on the outer edge of the grid\nprint(axs[0, 1].get_ylabel(), axs[1, 0].get_ylabel())\n",
+  "out": " signal"
+ },
+ {
+  "keys": [
+   "Axes.locator_params",
+   "plt.locator_params"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 100, 50)\nfig, (a, b) = plt.subplots(1, 2)\na.plot(x, np.sqrt(x))\nb.plot(x, np.sqrt(x))\nb.locator_params(axis='x', nbins=3)    # at most about 3 intervals\nplt.locator_params(axis='y', nbins=4)  # the current axes (b)\nprint(len(a.get_xticks()), len(b.get_xticks()))\n",
+  "out": "7 5"
+ },
+ {
+  "keys": [
+   "Axes.minorticks_off",
+   "plt.minorticks_off"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(1, 1000, 100)\nfig, (a, b) = plt.subplots(1, 2)\na.loglog(x, x)\nb.loglog(x, x)\nb.minorticks_off()       # log axes have minor ticks; these do not\nplt.minorticks_off()\nprint(len(b.get_xminorticklabels()))\n",
+  "out": "0"
+ },
+ {
+  "keys": [
+   "Axes.ticklabel_format",
+   "plt.ticklabel_format"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 1, 20)\nfig, (a, b) = plt.subplots(1, 2)\na.plot(x, x * 1e6)\nb.plot(x, x * 1e6)\nb.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))   # 1e6 written once at the top\nplt.ticklabel_format(axis='x', useOffset=False)\nprint(b.get_ylim())\n",
+  "out": "(-50000.0, 1050000.0)"
+ },
+ {
+  "keys": [
+   "Axes.set_xscale",
+   "plt.xscale",
+   "plt.yscale"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(1, 1000, 100)\nplt.subplot(1, 2, 1)\nplt.plot(x, np.log10(x))\nplt.title('linear x')\nplt.subplot(1, 2, 2)\nplt.plot(x, np.log10(x))\nplt.xscale('log')           # equal steps for 1, 10, 100, 1000: the curve is a line\nplt.yscale('linear')\nplt.title('log x')\nax = plt.gca()\nax.set_xscale('log')\nprint(ax.get_xscale())\n",
+  "out": "log"
+ },
+ {
+  "keys": [
+   "Axes.set_xticklabels",
+   "plt.xticks",
+   "plt.yticks"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.arange(4)\nplt.bar(x, [5, 9, 7, 3])\nplt.xticks(x, ['Q1', 'Q2', 'Q3', 'Q4'])          # positions, then the labels\nplt.yticks([0, 5, 10])\nax = plt.gca()\nax.set_xticklabels(['spring', 'summer', 'autumn', 'winter'], rotation=20)\nprint(list(ax.get_xticks()), [t.get_text() for t in ax.get_xticklabels()])\n",
+  "out": "[0, 1, 2, 3] ['spring', 'summer', 'autumn', 'winter']"
+ },
+ {
+  "keys": [
+   "plt.xlim",
+   "plt.xlabel",
+   "plt.ylabel",
+   "Axes.set_ylim"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(-5, 5, 100)\nplt.plot(x, x ** 3)\nplt.xlim(-2, 2)             # zoom in on the middle\nplt.ylim(-10, 10)\nplt.xlabel('x')\nplt.ylabel('x³')\nplt.gca().set_ylim(bottom=-5)\nprint(plt.xlim(), plt.ylim())\n",
+  "out": "(-2.0, 2.0) (-5.0, 10.0)"
+ },
+ {
+  "keys": [
+   "Axes.fill",
+   "plt.fill"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nt = np.linspace(0, 2 * np.pi, 6)[:-1] + np.pi / 2\nfig, ax = plt.subplots()\nax.fill(np.cos(t), np.sin(t), color='gold', alpha=0.7)     # a filled pentagon\nax.set_aspect('equal')\nplt.fill([1.2, 2, 1.6], [0, 0, 0.8], color='teal')\nprint(len(ax.patches))\n",
+  "out": "2"
+ },
+ {
+  "keys": [
+   "Axes.arrow",
+   "plt.arrow",
+   "Axes.text",
+   "plt.text"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.plot([0, 4], [0, 3], 'o', color='gray')\nax.arrow(0, 0, 3.6, 2.7, width=0.05, head_width=0.25, color='crimson')   # x, y, dx, dy\nax.text(2, 1.1, 'arrow from (0, 0)', rotation=37)\nplt.arrow(4, 0, 0, 2.6, width=0.05, head_width=0.25, color='steelblue')\nplt.text(4.1, 1.3, 'up')\nprint(len(ax.patches), len(ax.texts))\n",
+  "out": "2 2"
+ },
+ {
+  "keys": [
+   "Axes.hlines",
+   "Axes.vlines",
+   "plt.hlines",
+   "plt.vlines"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.arange(1, 8)\ny = np.array([3, 5, 2, 6, 4, 7, 5])\nfig, ax = plt.subplots()\nax.vlines(x, 0, y, color='steelblue', linewidth=4)      # a stem for each value\nax.hlines(y.mean(), 0.5, 7.5, color='crimson', linestyles='dashed', label='mean')\nplt.hlines([2, 6], 0.5, 7.5, colors='gray', linewidth=0.8)\nplt.vlines(4, 0, 7, colors='orange')\nax.legend()\nprint(round(y.mean(), 2))\n",
+  "out": "4.57"
+ },
+ {
+  "keys": [
+   "Axes.step",
+   "plt.step",
+   "Axes.stairs",
+   "plt.stairs"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.arange(8)\ny = np.array([1, 3, 2, 5, 4, 6, 3, 2])\nfig, (a, b) = plt.subplots(1, 2)\na.step(x, y, where='mid', label='step')             # a staircase through the points\na.plot(x, y, 'o', color='gray')\nplt.sca(a)\nplt.step(x, y + 2, where='post', label='post')\na.legend()\nb.stairs(y, np.arange(9), fill=True, alpha=0.5)      # values between edges, as a histogram\nplt.sca(b)\nplt.stairs(y + 1, np.arange(9))\nprint(len(a.lines), len(b.patches))\n",
+  "out": "3 2"
+ },
+ {
+  "keys": [
+   "Axes.broken_barh",
+   "plt.broken_barh"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.broken_barh([(1, 2), (5, 3)], (10, 4), color='steelblue')          # (start, length) pieces at y 10 … 14\nax.broken_barh([(0, 1), (3, 4)], (20, 4), color='orange')\nplt.broken_barh([(2, 5)], (30, 4), color='seagreen')\nax.set_yticks([12, 22, 32], ['A', 'B', 'C'])\nax.set_xlabel('hours')\nprint(len(ax.collections))\n",
+  "out": "3"
+ },
+ {
+  "keys": [
+   "Axes.bar_label",
+   "plt.bar_label"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nbars = ax.bar(['cats', 'dogs', 'birds'], [12, 17, 5], color='steelblue')\nax.bar_label(bars)                          # the value on top of each bar\nmore = plt.bar(['cats', 'dogs', 'birds'], [3, 4, 2], bottom=[12, 17, 5], color='orange')\nplt.bar_label(more, label_type='center')\nprint(len(ax.texts))\n",
+  "out": "6"
+ },
+ {
+  "keys": [
+   "Axes.inset_axes"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 10, 400)\ny = np.sin(x) * np.exp(-x / 4)\nfig, ax = plt.subplots()\nax.plot(x, y)\ninset = ax.inset_axes([0.55, 0.55, 0.4, 0.4])     # x, y, width, height as fractions of ax\ninset.plot(x, y)\ninset.set_xlim(0, 2)\ninset.set_title('zoom', fontsize=9)\nprint(inset.get_xlim())\n",
+  "out": "(0.0, 2.0)"
+ },
+ {
+  "keys": [
+   "Axes.twinx",
+   "Axes.twiny",
+   "plt.twinx",
+   "plt.twiny"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nmonths = np.arange(1, 13)\nrain = [80, 60, 70, 110, 150, 210, 260, 250, 190, 120, 90, 70]\ntemp = [16, 17, 19, 23, 27, 28, 29, 29, 28, 25, 21, 17]\nfig, ax = plt.subplots()\nax.bar(months, rain, color='lightblue')\nax.set_ylabel('rain (mm)')\nright = ax.twinx()                 # same x, its own y axis on the right\nright.plot(months, temp, color='crimson', marker='o')\nright.set_ylabel('°C')\ntop = ax.twiny()\ntop.set_xlim(ax.get_xlim())\nplt.twinx()\nplt.twiny()\nprint(len(fig.axes))\n",
+  "out": "5"
+ },
+ {
+  "keys": [
+   "Axes.triplot",
+   "Axes.tripcolor",
+   "Axes.tricontour",
+   "Axes.tricontourf",
+   "Axes.clabel",
+   "plt.triplot",
+   "plt.tripcolor",
+   "plt.tricontour",
+   "plt.tricontourf",
+   "plt.clabel"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nrng = np.random.default_rng(0)\nx = rng.uniform(-2, 2, 40)\ny = rng.uniform(-2, 2, 40)\nz = np.exp(-(x ** 2 + y ** 2))\nfig, (a, b) = plt.subplots(1, 2)\na.tripcolor(x, y, z)                         # scattered points joined into triangles, coloured\na.triplot(x, y, color='white', linewidth=0.5)\ncs = b.tricontour(x, y, z, levels=4)\nb.clabel(cs)\nb.tricontourf(x, y, z, levels=4, alpha=0.3)\nplt.sca(b)\nplt.triplot(x, y, color='gray', linewidth=0.3)\nplt.tripcolor(x, y, z, alpha=0.1)\ncs2 = plt.tricontour(x, y, z, levels=[0.5], colors='black')\nplt.clabel(cs2)\nplt.tricontourf(x, y, z, levels=[0.8, 1], colors='gold')\nprint(len(a.collections) > 0)\n",
+  "out": "True"
+ },
+ {
+  "keys": [
+   "Axes.add_patch",
+   "Axes.add_artist",
+   "plt.Circle",
+   "plt.Rectangle",
+   "plt.Polygon",
+   "plt.Arrow"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.add_patch(plt.Rectangle((0.5, 0.5), 2, 1, color='steelblue', alpha=0.6))     # corner, width, height\nax.add_patch(plt.Circle((4, 1), 0.8, color='orange'))                            # centre, radius\nax.add_patch(plt.Polygon([[1, 2.5], [2, 3.5], [3, 2.5]], color='seagreen'))\nax.add_artist(plt.Arrow(3.5, 3, 1, -0.6, width=0.4, color='crimson'))\nax.set_xlim(0, 5.5)\nax.set_ylim(0, 4)\nax.set_aspect('equal')\nprint(len(ax.patches))\n",
+  "out": "4"
+ },
+ {
+  "keys": [
+   "Axes.add_line",
+   "plt.Line2D"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.add_line(plt.Line2D([0, 1, 2, 3], [0, 2, 1, 3], color='crimson', marker='o'))\nax.add_line(plt.Line2D([0, 3], [3, 0], linestyle='--'))\nax.set_xlim(-0.5, 3.5)\nax.set_ylim(-0.5, 3.5)                    # add_line does not rescale the view\nprint(len(ax.lines))\n",
+  "out": "2"
+ },
+ {
+  "keys": [
+   "Axes.add_collection"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom matplotlib.collections import LineCollection\nx = np.linspace(0, 2 * np.pi, 40)\npoints = np.column_stack([x, np.sin(x)])\nsegments = np.stack([points[:-1], points[1:]], axis=1)     # one segment between each pair of points\nlc = LineCollection(segments, cmap='viridis', linewidth=3)\nlc.set_array(x[:-1])                                        # coloured by x\nfig, ax = plt.subplots()\nax.add_collection(lc)\nax.autoscale()\nprint(len(ax.collections))\n",
+  "out": "1"
+ },
+ {
+  "keys": [
+   "Axes.get_images",
+   "plt.gci",
+   "plt.sci",
+   "plt.clim"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nz = np.arange(10)[:, None] + np.arange(10)\nfig, ax = plt.subplots()\nim = ax.imshow(z, cmap='magma')\nprint(len(ax.get_images()), plt.gci() is im)\nplt.sci(im)            # the image colormap and clim apply to\nplt.clim(0, 9)         # values above 9 all get the brightest colour\nplt.colorbar()\nbars = ax.bar([2, 5], [3, 6], width=1, color='white', alpha=0.5)\nprint(type(bars).__name__, len(ax.containers))\n",
+  "out": "1 False\nBarContainer 1"
+ },
+ {
+  "keys": [
+   "plt.autumn",
+   "plt.bone",
+   "plt.cool",
+   "plt.copper",
+   "plt.flag",
+   "plt.hot",
+   "plt.inferno",
+   "plt.jet",
+   "plt.magma",
+   "plt.nipy_spectral",
+   "plt.pink",
+   "plt.plasma",
+   "plt.prism",
+   "plt.spring",
+   "plt.summer",
+   "plt.viridis",
+   "plt.winter",
+   "plt.get_cmap",
+   "plt.colormaps"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nz = np.arange(12)[:, None] + np.arange(12)\nnames = ['viridis', 'plasma', 'inferno', 'magma', 'hot', 'cool', 'spring', 'summer', 'autumn',\n         'winter', 'bone', 'copper', 'pink', 'jet', 'nipy_spectral', 'flag', 'prism', 'gray']\nplt.figure(figsize=(10, 5))\nfor k, name in enumerate(names):\n    plt.subplot(3, 6, k + 1)\n    plt.imshow(z)\n    getattr(plt, name)()          # plt.viridis(), plt.hot() …: the colormap of the current image\n    plt.title(name, fontsize=9)\n    plt.axis('off')\nprint(plt.get_cmap('viridis').name, 'magma' in plt.colormaps())\n",
+  "out": "viridis True"
+ },
+ {
+  "keys": [
+   "plt.Normalize"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nz = np.linspace(-3, 3, 100).reshape(10, 10)\nnorm = plt.Normalize(vmin=-1, vmax=1)        # -1 → bottom of the colormap, 1 → top, the rest clipped\nprint(norm(-1), norm(0), norm(1))\nplt.imshow(z, cmap='coolwarm', norm=norm)\nplt.colorbar()\n",
+  "out": "0.0 0.5 1.0"
+ },
+ {
+  "keys": [
+   "plt.MultipleLocator",
+   "plt.MaxNLocator",
+   "plt.FixedLocator",
+   "plt.LinearLocator",
+   "plt.NullLocator",
+   "plt.AutoLocator",
+   "plt.LogLocator"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 10, 50)\nfig, axs = plt.subplots(2, 3, figsize=(9, 4))\nfor a in axs.flat:\n    a.plot(x, x)\naxs[0, 0].xaxis.set_major_locator(plt.MultipleLocator(2.5))    # every 2.5\naxs[0, 1].xaxis.set_major_locator(plt.MaxNLocator(3))          # at most 3 intervals\naxs[0, 2].xaxis.set_major_locator(plt.FixedLocator([1, 4, 9]))\naxs[1, 0].xaxis.set_major_locator(plt.LinearLocator(4))        # 4 evenly spaced\naxs[1, 1].xaxis.set_major_locator(plt.NullLocator())           # none\naxs[1, 2].xaxis.set_major_locator(plt.AutoLocator())\naxs[1, 2].set_yscale('log')\naxs[1, 2].yaxis.set_major_locator(plt.LogLocator())\nfor a, title in zip(axs.flat, ['Multiple(2.5)', 'MaxN(3)', 'Fixed', 'Linear(4)', 'Null', 'Auto / Log']):\n    a.set_title(title, fontsize=9)\nprint(list(axs[0, 0].get_xticks()), list(axs[0, 2].get_xticks()))\n",
+  "out": "[-2.5, 0.0, 2.5, 5.0, 7.5, 10.0, 12.5] [1, 4, 9]"
+ },
+ {
+  "keys": [
+   "plt.FormatStrFormatter",
+   "plt.FuncFormatter",
+   "plt.FixedFormatter",
+   "plt.NullFormatter",
+   "plt.ScalarFormatter",
+   "plt.LogFormatter",
+   "plt.LogFormatterMathtext"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 1, 20)\nfig, axs = plt.subplots(2, 2)\nfor a in axs.flat:\n    a.plot(x, x ** 2)\naxs[0, 0].yaxis.set_major_formatter(plt.FormatStrFormatter('%.1f m'))\naxs[0, 1].yaxis.set_major_formatter(plt.FuncFormatter(lambda v, pos: f'{v:.0%}'))\naxs[1, 0].xaxis.set_major_locator(plt.FixedLocator([0, 0.5, 1]))\naxs[1, 0].xaxis.set_major_formatter(plt.FixedFormatter(['low', 'mid', 'high']))\naxs[1, 1].yaxis.set_major_formatter(plt.NullFormatter())       # ticks without numbers\naxs[1, 1].xaxis.set_major_formatter(plt.ScalarFormatter())\nprint(type(plt.LogFormatter()).__name__, type(plt.LogFormatterMathtext()).__name__)\n",
+  "out": "LogFormatter LogFormatterMathtext"
+ },
+ {
+  "keys": [
+   "plt.Text",
+   "plt.figtext",
+   "Figure.text"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 2 * np.pi, 60)\nfig, ax = plt.subplots()\nax.plot(x, np.sin(x))\nax.annotate('peak', xy=(np.pi / 2, 1), xytext=(2.5, 0.6), arrowprops={'arrowstyle': '->'})\nax.add_artist(plt.Text(4, -0.5, 'a Text artist', color='crimson'))\nfig.text(0.02, 0.02, 'fig.text: figure coordinates', fontsize=8)\nplt.figtext(0.98, 0.02, 'plt.figtext', ha='right', fontsize=8)\nprint(len(ax.texts))\n",
+  "out": "2"
+ },
+ {
+  "keys": [
+   "Figure.add_gridspec",
+   "plt.GridSpec",
+   "Figure.add_subplot"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 6, 60)\nfig = plt.figure(figsize=(7, 5))\ngs = fig.add_gridspec(2, 3)                 # a 2 × 3 grid to place axes on\nbig = fig.add_subplot(gs[0, :])             # the whole top row\nbig.plot(x, np.sin(x))\nbig.set_title('gs[0, :]')\nfig.add_subplot(gs[1, 0]).bar(['a', 'b'], [2, 3])\nfig.add_subplot(gs[1, 1:]).scatter(x, np.cos(x), s=8)\nprint(gs, len(fig.axes))\ng2 = plt.GridSpec(2, 2)\nprint(g2.get_geometry())\n",
+  "out": "GridSpec(2, 3) 3\n(2, 2)"
+ },
+ {
+  "keys": [
+   "plt.subplot2grid",
+   "plt.subplot"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 6, 60)\nplt.figure(figsize=(7, 4))\nplt.subplot2grid((2, 3), (0, 0), colspan=2).plot(x, np.sin(x))     # grid shape, top-left cell\nplt.subplot2grid((2, 3), (0, 2), rowspan=2).barh(['a', 'b', 'c'], [3, 1, 2])\nplt.subplot2grid((2, 3), (1, 0)).plot(x, np.cos(x), color='orange')\nax = plt.subplot(2, 3, 5)\nax.scatter([1, 2, 3], [3, 1, 2])\nprint(len(plt.gcf().axes))\n",
+  "out": "4"
+ },
+ {
+  "keys": [
+   "Figure.add_axes",
+   "Figure.add_artist"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig = plt.figure()\nmain = fig.add_axes([0.1, 0.1, 0.85, 0.8])          # left, bottom, width, height in figure fractions\nmain.plot(np.arange(10), np.arange(10) ** 2)\nsmall = fig.add_axes([0.2, 0.55, 0.3, 0.3])\nsmall.plot(np.arange(10), np.sqrt(np.arange(10)), color='orange')\nfig.add_artist(plt.Text(0.5, 0.95, 'fig.add_artist(Text)', ha='center', color='crimson'))\nprint(len(fig.axes))\n",
+  "out": "2"
+ },
+ {
+  "keys": [
+   "Figure.subplot_mosaic",
+   "plt.subplot_mosaic"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, axd = plt.subplot_mosaic([['top', 'top'], ['left', 'right']])    # axes by name\nx = np.linspace(0, 6, 60)\naxd['top'].plot(x, np.sin(x))\naxd['left'].bar(['a', 'b'], [3, 5])\naxd['right'].scatter(x, np.cos(x), s=6)\nfor k, a in axd.items():\n    a.set_title(k)\nprint(sorted(axd))\nfig2 = plt.figure()\nd2 = fig2.subplot_mosaic('AB')\nd2['A'].plot([1, 2])\nprint(sorted(d2))\n",
+  "out": "['left', 'right', 'top']\n['A', 'B']"
+ },
+ {
+  "keys": [
+   "Figure.subplots_adjust",
+   "plt.subplots_adjust"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, axs = plt.subplots(2, 2)\nfor a in axs.flat:\n    a.plot([0, 1, 2], [1, 0, 2])\n    a.set_title('a title')\nfig.subplots_adjust(hspace=0.6, wspace=0.4)     # more room between the rows and columns\nplt.subplots_adjust(left=0.1)\nprint(fig.subplotpars.hspace, fig.subplotpars.wspace)\n",
+  "out": "0.6 0.4"
+ },
+ {
+  "keys": [
+   "Figure.align_labels",
+   "Figure.align_xlabels",
+   "Figure.align_ylabels"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, (a, b) = plt.subplots(2, 1)\na.plot([0, 1], [0, 1000000])\nb.plot([0, 1], [0, 1])\na.set_ylabel('millions')\nb.set_ylabel('ones')\na.set_xlabel('x')\nb.set_xlabel('x')\nfig.align_ylabels()      # both y labels in one column, whatever the tick widths\nfig.align_xlabels()\nfig.align_labels()\nprint(a.get_ylabel(), b.get_ylabel())\n",
+  "out": "millions ones"
+ },
+ {
+  "keys": [
+   "Figure.autofmt_xdate"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\ndays = ['2026-11-0' + str(d) for d in range(1, 10)]\nfig, ax = plt.subplots()\nax.plot(days, [3, 4, 2, 5, 6, 5, 7, 8, 6])\nfig.autofmt_xdate()          # long x labels tilted so they do not overlap\nprint(len(ax.get_xticks()))\n",
+  "out": "9"
+ },
+ {
+  "keys": [
+   "Figure.get_size_inches",
+   "Figure.set_size_inches",
+   "Figure.get_figwidth",
+   "Figure.get_figheight",
+   "Figure.set_figwidth",
+   "Figure.set_figheight",
+   "Figure.get_dpi",
+   "Figure.dpi",
+   "plt.figaspect"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.plot([1, 2, 3], [1, 4, 9])\nprint(fig.get_size_inches(), fig.get_figwidth(), fig.get_figheight(), fig.get_dpi(), fig.dpi)\nfig.set_size_inches(8, 3)         # wide and short\nfig.set_figwidth(9)\nfig.set_figheight(2.5)\nprint(fig.get_size_inches())\nprint(plt.figaspect(0.5))         # a width and height for height / width = 0.5\n",
+  "out": "[6.4 4.8] 6.4 4.8 100.0 100.0\n[9.  2.5]\n[9.6 4.8]"
+ },
+ {
+  "keys": [
+   "Figure.get_suptitle",
+   "Figure.get_supxlabel",
+   "Figure.get_supylabel",
+   "Figure.get_label",
+   "Figure.number",
+   "plt.get_figlabels",
+   "plt.get_fignums",
+   "plt.fignum_exists"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, axs = plt.subplots(1, 2, num='results')\naxs[0].plot([1, 3, 2])\naxs[1].plot([2, 1, 3])\nfig.suptitle('two runs')\nfig.supxlabel('step')\nfig.supylabel('loss')\nprint(fig.get_suptitle(), fig.get_supxlabel(), fig.get_supylabel())\nprint(fig.get_label(), fig.number, plt.get_figlabels(), plt.get_fignums(), plt.fignum_exists(1))\n",
+  "out": "two runs step loss\nresults 1 ['results'] [1] True"
+ },
+ {
+  "keys": [
+   "Figure.legend",
+   "plt.figlegend"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 6, 60)\nfig, (a, b) = plt.subplots(1, 2)\na.plot(x, np.sin(x), label='sin')\nb.plot(x, np.cos(x), label='cos', color='orange')\nfig.legend(loc='upper center', ncols=2)      # one legend for the lines of every axes\nplt.figlegend(loc='lower center')\nprint(len(fig.axes))\n",
+  "out": "2"
+ },
+ {
+  "keys": [
+   "Figure.colorbar",
+   "plt.colorbar"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nz = np.random.default_rng(0).normal(size=(10, 10))\nfig, ax = plt.subplots()\nim = ax.imshow(z, cmap='RdBu_r')\nfig.colorbar(im, ax=ax, label='value')       # the scale of the colours, beside the axes\nplt.colorbar(im, orientation='horizontal', shrink=0.6)\nprint(len(fig.axes))\n",
+  "out": "3"
+ },
+ {
+  "keys": [
+   "Figure.set",
+   "Axes.set"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 10, 50)\nfig, ax = plt.subplots()\nax.plot(x, np.sqrt(x))\nax.set(title='√x', xlabel='x', ylabel='√x', xlim=(0, 10), ylim=(0, 3.5))   # many setters in one call\nfig.set(facecolor='#f1f5f9', figwidth=6)\nprint(ax.get_title(), ax.get_xlim(), fig.get_figwidth())\n",
+  "out": "√x (0.0, 10.0) 6.0"
+ },
+ {
+  "keys": [
+   "Figure.set_linewidth",
+   "Figure.get_tight_layout",
+   "Figure.get_constrained_layout"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots(layout='constrained')\nax.plot([1, 2, 3], [3, 1, 2])\nfig.set_edgecolor('crimson')\nfig.set_linewidth(4)                # the frame around the whole figure\nprint(fig.get_constrained_layout(), fig.get_tight_layout())\n",
+  "out": "True False"
+ },
+ {
+  "keys": [
+   "Figure.sca",
+   "plt.sca"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, (a, b) = plt.subplots(1, 2)\nplt.sca(a)                  # pyplot calls now go to a\nplt.plot([1, 2, 3], [3, 1, 2])\nplt.title('drawn after sca(a)')\nfig.sca(b)\nplt.bar(['x', 'y'], [2, 3])\nprint(plt.gca() is b)\n",
+  "out": "True"
+ },
+ {
+  "keys": [
+   "Figure.draw_without_rendering",
+   "plt.draw",
+   "plt.draw_if_interactive",
+   "plt.ion",
+   "plt.ioff",
+   "plt.interactive",
+   "plt.isinteractive",
+   "plt.get_backend"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 6, 60)\nfig, ax = plt.subplots()\nline, = ax.plot(x, np.sin(x))\nline.set_ydata(np.sin(2 * x))       # change the data, then redraw\nfig.draw_without_rendering()\nplt.draw()\nplt.ioff()\nprint(plt.isinteractive(), type(plt.get_backend()).__name__)\nplt.ion()\nprint(plt.isinteractive())\nplt.interactive(False)\nplt.draw_if_interactive()\n",
+  "out": "False str\nTrue"
+ },
+ {
+  "keys": [
+   "plt.rc",
+   "plt.rcParams",
+   "plt.rc_context",
+   "plt.rcdefaults",
+   "plt.cycler"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 6, 60)\nplt.rc('lines', linewidth=3)                                     # every new line is 3 pt thick\nplt.rcParams['axes.prop_cycle'] = plt.cycler(color=['crimson', 'teal', 'gold'])\nwith plt.rc_context({'axes.facecolor': '#f1f5f9'}):\n    fig, ax = plt.subplots()\n    for k in range(3):\n        ax.plot(x, np.sin(x + k))\nprint(plt.rcParams['lines.linewidth'])\nplt.rcdefaults()\nprint(plt.rcParams['lines.linewidth'])\n",
+  "out": "3.0\n1.5"
+ },
+ {
+  "keys": [
+   "plt.Figure",
+   "plt.figure",
+   "plt.gcf",
+   "plt.close"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nplt.figure(figsize=(6, 3))           # a new figure becomes the current one\nplt.plot([1, 3, 2, 4])\nprint(plt.gcf().get_size_inches())\nplt.figure()\nplt.plot([1, 2])\nplt.close()                          # closes the current (second) figure\nprint(len(plt.get_fignums()), type(plt.Figure()).__name__)\n",
+  "out": "[6. 3.]\n1 Figure"
+ },
+ {
+  "keys": [
+   "Figure.savefig",
+   "plt.savefig",
+   "plt.imsave"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 6, 60)\nplt.plot(x, np.sin(x))\nplt.title('saved as sine.png')\nplt.savefig('sine.png', dpi=150, bbox_inches='tight')     # the sandbox has no files: it notes the call\nplt.gcf().savefig('sine.pdf')\nplt.imsave('noise.png', np.random.default_rng(0).random((8, 8)))\n",
+  "out": ""
+ },
+ {
+  "keys": [
+   "Axes.name",
+   "plt.pause",
+   "plt.draw_all"
+  ],
+  "src": "import numpy as np\nimport matplotlib.pyplot as plt\nx = np.linspace(0, 6, 60)\nfig, ax = plt.subplots()\nline, = ax.plot(x, np.sin(x))\nfor k in range(3):\n    line.set_ydata(np.sin(x + k))    # an animation by hand: change, redraw, wait\n    plt.draw_all()\n    plt.pause(0.01)\nprint(ax.name)                       # 'rectilinear': an ordinary 2-D axes\n",
+  "out": "rectilinear"
+ }
+]

@@ -1,0 +1,750 @@
+# Programs for the API index (sidebar and gallery) of matplotlib names whose automatic example drew nothing.
+# Each section: "### <module>.<name> …" for the names it shows, then a program. gen.ts prefers these, once
+# scripts/api-coverage/curated.ts has checked that real matplotlib prints the same and the sandbox draws something.
+
+### Axes.get_xlim Axes.get_xbound Axes.get_ybound Axes.get_xmargin Axes.get_ymargin Axes.viewLim Axes.get_data_ratio
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 10, 50)
+fig, ax = plt.subplots()
+ax.plot(x, x ** 2 / 10, label='x² / 10')
+ax.legend()
+print(ax.get_xlim())                       # the data, 0 … 10, plus a 5% margin each side
+print(ax.get_xbound(), ax.get_ybound())
+print(ax.get_xmargin(), ax.get_ymargin())
+print(ax.viewLim)
+print(round(ax.get_data_ratio(), 3))       # y range / x range
+
+### Axes.get_xticks Axes.get_yticks Axes.get_xticklabels Axes.get_yticklabels Axes.get_xmajorticklabels Axes.get_ymajorticklabels Axes.get_xminorticklabels Axes.get_yminorticklabels
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.bar(['Mon', 'Tue', 'Wed'], [3, 7, 5])
+ax.set_yticks([0, 2.5, 5, 7.5])
+print(ax.get_xticks(), ax.get_yticks())
+print([t.get_text() for t in ax.get_xticklabels()])
+print(len(ax.get_yticklabels()), len(ax.get_xmajorticklabels()), len(ax.get_ymajorticklabels()))
+print(len(ax.get_xminorticklabels()), len(ax.get_yminorticklabels()))   # no minor ticks unless asked
+
+### Axes.get_lines Axes.lines Axes.get_legend Axes.get_legend_handles_labels Axes.has_data Axes.get_images Axes.get_children
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 2 * np.pi, 60)
+fig, ax = plt.subplots()
+ax.plot(x, np.sin(x), label='sin')
+ax.plot(x, np.cos(x), label='cos')
+ax.legend()
+print(len(ax.get_lines()), ax.lines[1].get_label())
+handles, labels = ax.get_legend_handles_labels()
+print(labels)
+print(ax.get_legend() is not None, ax.has_data(), len(ax.get_images()))
+print(type(ax.get_children()).__name__)
+
+### Axes.get_facecolor Axes.get_fc Axes.set_facecolor Figure.set_facecolor Figure.get_facecolor
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 2 * np.pi, 60)
+fig, ax = plt.subplots()
+ax.plot(x, np.sin(x), color='white', linewidth=2)
+ax.set_facecolor('#1e293b')      # inside the axes
+fig.set_facecolor('#e0f2fe')     # around them
+print(ax.get_facecolor())
+print(ax.get_fc() == ax.get_facecolor(), fig.get_facecolor())
+
+### Axes.get_aspect Axes.set_aspect Axes.get_adjustable Axes.get_box_aspect Axes.apply_aspect
+import numpy as np
+import matplotlib.pyplot as plt
+t = np.linspace(0, 2 * np.pi, 100)
+fig, ax = plt.subplots()
+ax.plot(np.cos(t), np.sin(t))
+print(ax.get_aspect())           # 'auto': a circle comes out as an ellipse
+ax.set_aspect('equal')           # one unit as long on x as on y
+ax.apply_aspect()
+print(ax.get_aspect(), ax.get_adjustable(), ax.get_box_aspect())
+ax.set_title('set_aspect("equal")')
+
+### Axes.get_autoscale_on Axes.get_autoscalex_on Axes.get_autoscaley_on Axes.relim Axes.autoscale_view Axes.update_datalim Axes.autoscale
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+line, = ax.plot([0, 1, 2], [0, 1, 4])
+print(ax.get_autoscale_on(), ax.get_autoscalex_on(), ax.get_autoscaley_on())
+line.set_data([0, 1, 2, 3, 4], [0, 1, 4, 9, 16])   # new data: the view does not follow by itself
+print(ax.get_ylim())
+ax.relim()                # data limits from the lines again
+ax.autoscale_view()       # and the view fitted to them
+print(ax.get_ylim())
+ax.update_datalim([[5, 20]])
+ax.autoscale(axis='x')
+print(ax.get_xlim())
+
+### plt.autoscale
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 3, 30)
+plt.plot(x, np.exp(x))
+plt.autoscale(tight=True)    # no margin: the curve touches the frame
+print(plt.xlim())
+
+### Axes.cla Axes.clear Axes.remove
+import numpy as np
+import matplotlib.pyplot as plt
+fig, axs = plt.subplots(1, 4, figsize=(10, 2.5))
+for a in axs:
+    a.plot([0, 1, 2], [2, 0, 1])
+axs[1].cla()       # empties the axes, keeps them
+axs[2].clear()     # the same
+axs[3].remove()    # takes the axes out of the figure
+axs[0].set_title('kept')
+axs[1].set_title('cla()')
+print(len(axs[0].lines), len(axs[1].lines), len(fig.axes))
+
+### Figure.clf Figure.clear plt.clf
+import numpy as np
+import matplotlib.pyplot as plt
+fig, axs = plt.subplots(2, 2)
+print(len(fig.axes))
+fig.clf()                  # everything goes: the axes too
+print(len(fig.axes))
+ax = fig.add_subplot()
+ax.plot([1, 3, 2])
+ax.set_title('after fig.clf()')
+fig.clear()                # the same as clf
+plt.clf()                  # the current figure
+ax = fig.add_subplot()
+ax.bar(['a', 'b'], [2, 3])
+print(len(fig.axes))
+
+### plt.cla plt.delaxes Figure.delaxes plt.gca Figure.gca
+import numpy as np
+import matplotlib.pyplot as plt
+fig, (a, b) = plt.subplots(1, 2)
+a.plot([0, 1], [0, 1])
+b.plot([0, 1], [1, 0])
+print(plt.gca() is b, fig.gca() is b)    # the last made is the current axes
+plt.cla()                                # clears b
+fig.delaxes(b)
+print(len(fig.axes))
+plt.delaxes(a)
+fig.add_subplot().plot([3, 1, 2])
+print(len(fig.axes))
+
+### Axes.get_figure Axes.figure Figure.get_axes Figure.axes Axes.get_position Axes.set_position Axes.get_subplotspec Axes.get_gridspec
+import numpy as np
+import matplotlib.pyplot as plt
+fig, (a, b) = plt.subplots(1, 2)
+a.plot([1, 2, 3], [3, 1, 2])
+b.plot([1, 2, 3], [1, 3, 2])
+print(a.get_figure() is fig, a.figure is fig, len(fig.get_axes()), len(fig.axes))
+print(a.get_subplotspec())
+print(a.get_gridspec())
+print(b.get_position())
+b.set_position([0.6, 0.3, 0.3, 0.4])    # left, bottom, width, height in figure fractions
+print(b.get_position())
+
+### Axes.get_visible Axes.set_visible Axes.get_frame_on Axes.get_zorder Axes.get_axisbelow
+import numpy as np
+import matplotlib.pyplot as plt
+fig, (a, b) = plt.subplots(1, 2)
+a.plot([1, 2, 3], [2, 3, 1])
+a.grid(True)
+b.plot([1, 2, 3], [1, 2, 3])
+print(a.get_visible(), a.get_frame_on(), a.get_zorder(), a.get_axisbelow())
+b.set_visible(False)       # hidden, still in fig.axes
+print(b.get_visible(), len(fig.axes))
+
+### Axes.get_label Axes.get_ylabel Axes.get_yscale
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(1, 100, 50)
+fig, ax = plt.subplots(label='growth')
+ax.plot(x, x ** 2)
+ax.set_yscale('log')
+ax.set_ylabel('x² (log scale)')
+print(repr(ax.get_label()), ax.get_ylabel(), ax.get_yscale())
+
+### Axes.get_xaxis Axes.get_yaxis Axes.get_xaxis_transform Axes.get_yaxis_transform
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.plot([0, 10], [0, 5])
+ax.get_xaxis().set_visible(False)       # no x ticks, no x labels
+print(type(ax.get_xaxis()).__name__, type(ax.get_yaxis()).__name__)
+# x in data units, y in axes fractions: a band over the whole height
+ax.axvspan(2, 4, color='orange', alpha=0.3)
+ax.text(3, 0.9, 'x in data, y in axes', transform=ax.get_xaxis_transform(), ha='center')
+print(ax.get_yaxis_transform() is not None)
+
+### Axes.get_shared_x_axes Axes.get_shared_y_axes Axes.sharex Axes.sharey
+import numpy as np
+import matplotlib.pyplot as plt
+fig, (a, b) = plt.subplots(1, 2)
+a.plot([0, 10], [0, 1])
+b.plot([0, 2], [0, 100])
+b.sharex(a)          # b now shows a's x range, and follows it
+b.sharey(a)
+print(b.get_xlim() == a.get_xlim(), b.get_ylim() == a.get_ylim())
+print(type(a.get_shared_x_axes()).__name__, type(a.get_shared_y_axes()).__name__)
+
+### Axes.invert_xaxis Axes.xaxis_inverted Axes.yaxis_inverted
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.plot([1, 2, 3, 4], [10, 20, 25, 30], marker='o')
+ax.invert_xaxis()                         # 4 on the left, 1 on the right
+ax.invert_yaxis()
+print(ax.xaxis_inverted(), ax.yaxis_inverted(), ax.get_xlim())
+
+### Axes.label_outer
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 5, 30)
+fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
+for k, a in enumerate(axs.flat):
+    a.plot(x, np.sin(x + k))
+    a.set_xlabel('time')
+    a.set_ylabel('signal')
+    a.label_outer()        # labels only on the outer edge of the grid
+print(axs[0, 1].get_ylabel(), axs[1, 0].get_ylabel())
+
+### Axes.locator_params plt.locator_params
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 100, 50)
+fig, (a, b) = plt.subplots(1, 2)
+a.plot(x, np.sqrt(x))
+b.plot(x, np.sqrt(x))
+b.locator_params(axis='x', nbins=3)    # at most about 3 intervals
+plt.locator_params(axis='y', nbins=4)  # the current axes (b)
+print(len(a.get_xticks()), len(b.get_xticks()))
+
+### Axes.minorticks_off plt.minorticks_off
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(1, 1000, 100)
+fig, (a, b) = plt.subplots(1, 2)
+a.loglog(x, x)
+b.loglog(x, x)
+b.minorticks_off()       # log axes have minor ticks; these do not
+plt.minorticks_off()
+print(len(b.get_xminorticklabels()))
+
+### Axes.ticklabel_format plt.ticklabel_format
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 1, 20)
+fig, (a, b) = plt.subplots(1, 2)
+a.plot(x, x * 1e6)
+b.plot(x, x * 1e6)
+b.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))   # 1e6 written once at the top
+plt.ticklabel_format(axis='x', useOffset=False)
+print(b.get_ylim())
+
+### Axes.set_xscale plt.xscale plt.yscale
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(1, 1000, 100)
+plt.subplot(1, 2, 1)
+plt.plot(x, np.log10(x))
+plt.title('linear x')
+plt.subplot(1, 2, 2)
+plt.plot(x, np.log10(x))
+plt.xscale('log')           # equal steps for 1, 10, 100, 1000: the curve is a line
+plt.yscale('linear')
+plt.title('log x')
+ax = plt.gca()
+ax.set_xscale('log')
+print(ax.get_xscale())
+
+### Axes.set_xticklabels plt.xticks plt.yticks
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.arange(4)
+plt.bar(x, [5, 9, 7, 3])
+plt.xticks(x, ['Q1', 'Q2', 'Q3', 'Q4'])          # positions, then the labels
+plt.yticks([0, 5, 10])
+ax = plt.gca()
+ax.set_xticklabels(['spring', 'summer', 'autumn', 'winter'], rotation=20)
+print(list(ax.get_xticks()), [t.get_text() for t in ax.get_xticklabels()])
+
+### plt.xlim plt.xlabel plt.ylabel Axes.set_ylim
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(-5, 5, 100)
+plt.plot(x, x ** 3)
+plt.xlim(-2, 2)             # zoom in on the middle
+plt.ylim(-10, 10)
+plt.xlabel('x')
+plt.ylabel('x³')
+plt.gca().set_ylim(bottom=-5)
+print(plt.xlim(), plt.ylim())
+
+### Axes.fill plt.fill
+import numpy as np
+import matplotlib.pyplot as plt
+t = np.linspace(0, 2 * np.pi, 6)[:-1] + np.pi / 2
+fig, ax = plt.subplots()
+ax.fill(np.cos(t), np.sin(t), color='gold', alpha=0.7)     # a filled pentagon
+ax.set_aspect('equal')
+plt.fill([1.2, 2, 1.6], [0, 0, 0.8], color='teal')
+print(len(ax.patches))
+
+### Axes.arrow plt.arrow Axes.text plt.text
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.plot([0, 4], [0, 3], 'o', color='gray')
+ax.arrow(0, 0, 3.6, 2.7, width=0.05, head_width=0.25, color='crimson')   # x, y, dx, dy
+ax.text(2, 1.1, 'arrow from (0, 0)', rotation=37)
+plt.arrow(4, 0, 0, 2.6, width=0.05, head_width=0.25, color='steelblue')
+plt.text(4.1, 1.3, 'up')
+print(len(ax.patches), len(ax.texts))
+
+### Axes.hlines Axes.vlines plt.hlines plt.vlines
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.arange(1, 8)
+y = np.array([3, 5, 2, 6, 4, 7, 5])
+fig, ax = plt.subplots()
+ax.vlines(x, 0, y, color='steelblue', linewidth=4)      # a stem for each value
+ax.hlines(y.mean(), 0.5, 7.5, color='crimson', linestyles='dashed', label='mean')
+plt.hlines([2, 6], 0.5, 7.5, colors='gray', linewidth=0.8)
+plt.vlines(4, 0, 7, colors='orange')
+ax.legend()
+print(round(y.mean(), 2))
+
+### Axes.step plt.step Axes.stairs plt.stairs
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.arange(8)
+y = np.array([1, 3, 2, 5, 4, 6, 3, 2])
+fig, (a, b) = plt.subplots(1, 2)
+a.step(x, y, where='mid', label='step')             # a staircase through the points
+a.plot(x, y, 'o', color='gray')
+plt.sca(a)
+plt.step(x, y + 2, where='post', label='post')
+a.legend()
+b.stairs(y, np.arange(9), fill=True, alpha=0.5)      # values between edges, as a histogram
+plt.sca(b)
+plt.stairs(y + 1, np.arange(9))
+print(len(a.lines), len(b.patches))
+
+### Axes.broken_barh plt.broken_barh
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.broken_barh([(1, 2), (5, 3)], (10, 4), color='steelblue')          # (start, length) pieces at y 10 … 14
+ax.broken_barh([(0, 1), (3, 4)], (20, 4), color='orange')
+plt.broken_barh([(2, 5)], (30, 4), color='seagreen')
+ax.set_yticks([12, 22, 32], ['A', 'B', 'C'])
+ax.set_xlabel('hours')
+print(len(ax.collections))
+
+### Axes.bar_label plt.bar_label
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+bars = ax.bar(['cats', 'dogs', 'birds'], [12, 17, 5], color='steelblue')
+ax.bar_label(bars)                          # the value on top of each bar
+more = plt.bar(['cats', 'dogs', 'birds'], [3, 4, 2], bottom=[12, 17, 5], color='orange')
+plt.bar_label(more, label_type='center')
+print(len(ax.texts))
+
+### Axes.inset_axes
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 10, 400)
+y = np.sin(x) * np.exp(-x / 4)
+fig, ax = plt.subplots()
+ax.plot(x, y)
+inset = ax.inset_axes([0.55, 0.55, 0.4, 0.4])     # x, y, width, height as fractions of ax
+inset.plot(x, y)
+inset.set_xlim(0, 2)
+inset.set_title('zoom', fontsize=9)
+print(inset.get_xlim())
+
+### Axes.twinx Axes.twiny plt.twinx plt.twiny
+import numpy as np
+import matplotlib.pyplot as plt
+months = np.arange(1, 13)
+rain = [80, 60, 70, 110, 150, 210, 260, 250, 190, 120, 90, 70]
+temp = [16, 17, 19, 23, 27, 28, 29, 29, 28, 25, 21, 17]
+fig, ax = plt.subplots()
+ax.bar(months, rain, color='lightblue')
+ax.set_ylabel('rain (mm)')
+right = ax.twinx()                 # same x, its own y axis on the right
+right.plot(months, temp, color='crimson', marker='o')
+right.set_ylabel('°C')
+top = ax.twiny()
+top.set_xlim(ax.get_xlim())
+plt.twinx()
+plt.twiny()
+print(len(fig.axes))
+
+### Axes.triplot Axes.tripcolor Axes.tricontour Axes.tricontourf Axes.clabel plt.triplot plt.tripcolor plt.tricontour plt.tricontourf plt.clabel
+import numpy as np
+import matplotlib.pyplot as plt
+rng = np.random.default_rng(0)
+x = rng.uniform(-2, 2, 40)
+y = rng.uniform(-2, 2, 40)
+z = np.exp(-(x ** 2 + y ** 2))
+fig, (a, b) = plt.subplots(1, 2)
+a.tripcolor(x, y, z)                         # scattered points joined into triangles, coloured
+a.triplot(x, y, color='white', linewidth=0.5)
+cs = b.tricontour(x, y, z, levels=4)
+b.clabel(cs)
+b.tricontourf(x, y, z, levels=4, alpha=0.3)
+plt.sca(b)
+plt.triplot(x, y, color='gray', linewidth=0.3)
+plt.tripcolor(x, y, z, alpha=0.1)
+cs2 = plt.tricontour(x, y, z, levels=[0.5], colors='black')
+plt.clabel(cs2)
+plt.tricontourf(x, y, z, levels=[0.8, 1], colors='gold')
+print(len(a.collections) > 0)
+
+### Axes.add_patch Axes.add_artist plt.Circle plt.Rectangle plt.Polygon plt.Arrow
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.add_patch(plt.Rectangle((0.5, 0.5), 2, 1, color='steelblue', alpha=0.6))     # corner, width, height
+ax.add_patch(plt.Circle((4, 1), 0.8, color='orange'))                            # centre, radius
+ax.add_patch(plt.Polygon([[1, 2.5], [2, 3.5], [3, 2.5]], color='seagreen'))
+ax.add_artist(plt.Arrow(3.5, 3, 1, -0.6, width=0.4, color='crimson'))
+ax.set_xlim(0, 5.5)
+ax.set_ylim(0, 4)
+ax.set_aspect('equal')
+print(len(ax.patches))
+
+### Axes.add_line plt.Line2D
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.add_line(plt.Line2D([0, 1, 2, 3], [0, 2, 1, 3], color='crimson', marker='o'))
+ax.add_line(plt.Line2D([0, 3], [3, 0], linestyle='--'))
+ax.set_xlim(-0.5, 3.5)
+ax.set_ylim(-0.5, 3.5)                    # add_line does not rescale the view
+print(len(ax.lines))
+
+### Axes.add_collection
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
+x = np.linspace(0, 2 * np.pi, 40)
+points = np.column_stack([x, np.sin(x)])
+segments = np.stack([points[:-1], points[1:]], axis=1)     # one segment between each pair of points
+lc = LineCollection(segments, cmap='viridis', linewidth=3)
+lc.set_array(x[:-1])                                        # coloured by x
+fig, ax = plt.subplots()
+ax.add_collection(lc)
+ax.autoscale()
+print(len(ax.collections))
+
+### Axes.get_images plt.gci plt.sci plt.clim
+import numpy as np
+import matplotlib.pyplot as plt
+z = np.arange(10)[:, None] + np.arange(10)
+fig, ax = plt.subplots()
+im = ax.imshow(z, cmap='magma')
+print(len(ax.get_images()), plt.gci() is im)
+plt.sci(im)            # the image colormap and clim apply to
+plt.clim(0, 9)         # values above 9 all get the brightest colour
+plt.colorbar()
+bars = ax.bar([2, 5], [3, 6], width=1, color='white', alpha=0.5)
+print(type(bars).__name__, len(ax.containers))
+
+### plt.autumn plt.bone plt.cool plt.copper plt.flag plt.hot plt.inferno plt.jet plt.magma plt.nipy_spectral plt.pink plt.plasma plt.prism plt.spring plt.summer plt.viridis plt.winter plt.get_cmap plt.colormaps
+import numpy as np
+import matplotlib.pyplot as plt
+z = np.arange(12)[:, None] + np.arange(12)
+names = ['viridis', 'plasma', 'inferno', 'magma', 'hot', 'cool', 'spring', 'summer', 'autumn',
+         'winter', 'bone', 'copper', 'pink', 'jet', 'nipy_spectral', 'flag', 'prism', 'gray']
+plt.figure(figsize=(10, 5))
+for k, name in enumerate(names):
+    plt.subplot(3, 6, k + 1)
+    plt.imshow(z)
+    getattr(plt, name)()          # plt.viridis(), plt.hot() …: the colormap of the current image
+    plt.title(name, fontsize=9)
+    plt.axis('off')
+print(plt.get_cmap('viridis').name, 'magma' in plt.colormaps())
+
+### plt.Normalize
+import numpy as np
+import matplotlib.pyplot as plt
+z = np.linspace(-3, 3, 100).reshape(10, 10)
+norm = plt.Normalize(vmin=-1, vmax=1)        # -1 → bottom of the colormap, 1 → top, the rest clipped
+print(norm(-1), norm(0), norm(1))
+plt.imshow(z, cmap='coolwarm', norm=norm)
+plt.colorbar()
+
+### plt.MultipleLocator plt.MaxNLocator plt.FixedLocator plt.LinearLocator plt.NullLocator plt.AutoLocator plt.LogLocator
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 10, 50)
+fig, axs = plt.subplots(2, 3, figsize=(9, 4))
+for a in axs.flat:
+    a.plot(x, x)
+axs[0, 0].xaxis.set_major_locator(plt.MultipleLocator(2.5))    # every 2.5
+axs[0, 1].xaxis.set_major_locator(plt.MaxNLocator(3))          # at most 3 intervals
+axs[0, 2].xaxis.set_major_locator(plt.FixedLocator([1, 4, 9]))
+axs[1, 0].xaxis.set_major_locator(plt.LinearLocator(4))        # 4 evenly spaced
+axs[1, 1].xaxis.set_major_locator(plt.NullLocator())           # none
+axs[1, 2].xaxis.set_major_locator(plt.AutoLocator())
+axs[1, 2].set_yscale('log')
+axs[1, 2].yaxis.set_major_locator(plt.LogLocator())
+for a, title in zip(axs.flat, ['Multiple(2.5)', 'MaxN(3)', 'Fixed', 'Linear(4)', 'Null', 'Auto / Log']):
+    a.set_title(title, fontsize=9)
+print(list(axs[0, 0].get_xticks()), list(axs[0, 2].get_xticks()))
+
+### plt.FormatStrFormatter plt.FuncFormatter plt.FixedFormatter plt.NullFormatter plt.ScalarFormatter plt.LogFormatter plt.LogFormatterMathtext
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 1, 20)
+fig, axs = plt.subplots(2, 2)
+for a in axs.flat:
+    a.plot(x, x ** 2)
+axs[0, 0].yaxis.set_major_formatter(plt.FormatStrFormatter('%.1f m'))
+axs[0, 1].yaxis.set_major_formatter(plt.FuncFormatter(lambda v, pos: f'{v:.0%}'))
+axs[1, 0].xaxis.set_major_locator(plt.FixedLocator([0, 0.5, 1]))
+axs[1, 0].xaxis.set_major_formatter(plt.FixedFormatter(['low', 'mid', 'high']))
+axs[1, 1].yaxis.set_major_formatter(plt.NullFormatter())       # ticks without numbers
+axs[1, 1].xaxis.set_major_formatter(plt.ScalarFormatter())
+print(type(plt.LogFormatter()).__name__, type(plt.LogFormatterMathtext()).__name__)
+
+### plt.Text plt.figtext Figure.text
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 2 * np.pi, 60)
+fig, ax = plt.subplots()
+ax.plot(x, np.sin(x))
+ax.annotate('peak', xy=(np.pi / 2, 1), xytext=(2.5, 0.6), arrowprops={'arrowstyle': '->'})
+ax.add_artist(plt.Text(4, -0.5, 'a Text artist', color='crimson'))
+fig.text(0.02, 0.02, 'fig.text: figure coordinates', fontsize=8)
+plt.figtext(0.98, 0.02, 'plt.figtext', ha='right', fontsize=8)
+print(len(ax.texts))
+
+### Figure.add_gridspec plt.GridSpec Figure.add_subplot
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 6, 60)
+fig = plt.figure(figsize=(7, 5))
+gs = fig.add_gridspec(2, 3)                 # a 2 × 3 grid to place axes on
+big = fig.add_subplot(gs[0, :])             # the whole top row
+big.plot(x, np.sin(x))
+big.set_title('gs[0, :]')
+fig.add_subplot(gs[1, 0]).bar(['a', 'b'], [2, 3])
+fig.add_subplot(gs[1, 1:]).scatter(x, np.cos(x), s=8)
+print(gs, len(fig.axes))
+g2 = plt.GridSpec(2, 2)
+print(g2.get_geometry())
+
+### plt.subplot2grid plt.subplot
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 6, 60)
+plt.figure(figsize=(7, 4))
+plt.subplot2grid((2, 3), (0, 0), colspan=2).plot(x, np.sin(x))     # grid shape, top-left cell
+plt.subplot2grid((2, 3), (0, 2), rowspan=2).barh(['a', 'b', 'c'], [3, 1, 2])
+plt.subplot2grid((2, 3), (1, 0)).plot(x, np.cos(x), color='orange')
+ax = plt.subplot(2, 3, 5)
+ax.scatter([1, 2, 3], [3, 1, 2])
+print(len(plt.gcf().axes))
+
+### Figure.add_axes Figure.add_artist
+import numpy as np
+import matplotlib.pyplot as plt
+fig = plt.figure()
+main = fig.add_axes([0.1, 0.1, 0.85, 0.8])          # left, bottom, width, height in figure fractions
+main.plot(np.arange(10), np.arange(10) ** 2)
+small = fig.add_axes([0.2, 0.55, 0.3, 0.3])
+small.plot(np.arange(10), np.sqrt(np.arange(10)), color='orange')
+fig.add_artist(plt.Text(0.5, 0.95, 'fig.add_artist(Text)', ha='center', color='crimson'))
+print(len(fig.axes))
+
+### Figure.subplot_mosaic plt.subplot_mosaic
+import numpy as np
+import matplotlib.pyplot as plt
+fig, axd = plt.subplot_mosaic([['top', 'top'], ['left', 'right']])    # axes by name
+x = np.linspace(0, 6, 60)
+axd['top'].plot(x, np.sin(x))
+axd['left'].bar(['a', 'b'], [3, 5])
+axd['right'].scatter(x, np.cos(x), s=6)
+for k, a in axd.items():
+    a.set_title(k)
+print(sorted(axd))
+fig2 = plt.figure()
+d2 = fig2.subplot_mosaic('AB')
+d2['A'].plot([1, 2])
+print(sorted(d2))
+
+### Figure.subplots_adjust plt.subplots_adjust
+import numpy as np
+import matplotlib.pyplot as plt
+fig, axs = plt.subplots(2, 2)
+for a in axs.flat:
+    a.plot([0, 1, 2], [1, 0, 2])
+    a.set_title('a title')
+fig.subplots_adjust(hspace=0.6, wspace=0.4)     # more room between the rows and columns
+plt.subplots_adjust(left=0.1)
+print(fig.subplotpars.hspace, fig.subplotpars.wspace)
+
+### Figure.align_labels Figure.align_xlabels Figure.align_ylabels
+import numpy as np
+import matplotlib.pyplot as plt
+fig, (a, b) = plt.subplots(2, 1)
+a.plot([0, 1], [0, 1000000])
+b.plot([0, 1], [0, 1])
+a.set_ylabel('millions')
+b.set_ylabel('ones')
+a.set_xlabel('x')
+b.set_xlabel('x')
+fig.align_ylabels()      # both y labels in one column, whatever the tick widths
+fig.align_xlabels()
+fig.align_labels()
+print(a.get_ylabel(), b.get_ylabel())
+
+### Figure.autofmt_xdate
+import numpy as np
+import matplotlib.pyplot as plt
+days = ['2026-11-0' + str(d) for d in range(1, 10)]
+fig, ax = plt.subplots()
+ax.plot(days, [3, 4, 2, 5, 6, 5, 7, 8, 6])
+fig.autofmt_xdate()          # long x labels tilted so they do not overlap
+print(len(ax.get_xticks()))
+
+### Figure.get_size_inches Figure.set_size_inches Figure.get_figwidth Figure.get_figheight Figure.set_figwidth Figure.set_figheight Figure.get_dpi Figure.dpi plt.figaspect
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.plot([1, 2, 3], [1, 4, 9])
+print(fig.get_size_inches(), fig.get_figwidth(), fig.get_figheight(), fig.get_dpi(), fig.dpi)
+fig.set_size_inches(8, 3)         # wide and short
+fig.set_figwidth(9)
+fig.set_figheight(2.5)
+print(fig.get_size_inches())
+print(plt.figaspect(0.5))         # a width and height for height / width = 0.5
+
+### Figure.get_suptitle Figure.get_supxlabel Figure.get_supylabel Figure.get_label Figure.number plt.get_figlabels plt.get_fignums plt.fignum_exists
+import numpy as np
+import matplotlib.pyplot as plt
+fig, axs = plt.subplots(1, 2, num='results')
+axs[0].plot([1, 3, 2])
+axs[1].plot([2, 1, 3])
+fig.suptitle('two runs')
+fig.supxlabel('step')
+fig.supylabel('loss')
+print(fig.get_suptitle(), fig.get_supxlabel(), fig.get_supylabel())
+print(fig.get_label(), fig.number, plt.get_figlabels(), plt.get_fignums(), plt.fignum_exists(1))
+
+### Figure.legend plt.figlegend
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 6, 60)
+fig, (a, b) = plt.subplots(1, 2)
+a.plot(x, np.sin(x), label='sin')
+b.plot(x, np.cos(x), label='cos', color='orange')
+fig.legend(loc='upper center', ncols=2)      # one legend for the lines of every axes
+plt.figlegend(loc='lower center')
+print(len(fig.axes))
+
+### Figure.colorbar plt.colorbar
+import numpy as np
+import matplotlib.pyplot as plt
+z = np.random.default_rng(0).normal(size=(10, 10))
+fig, ax = plt.subplots()
+im = ax.imshow(z, cmap='RdBu_r')
+fig.colorbar(im, ax=ax, label='value')       # the scale of the colours, beside the axes
+plt.colorbar(im, orientation='horizontal', shrink=0.6)
+print(len(fig.axes))
+
+### Figure.set Axes.set
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 10, 50)
+fig, ax = plt.subplots()
+ax.plot(x, np.sqrt(x))
+ax.set(title='√x', xlabel='x', ylabel='√x', xlim=(0, 10), ylim=(0, 3.5))   # many setters in one call
+fig.set(facecolor='#f1f5f9', figwidth=6)
+print(ax.get_title(), ax.get_xlim(), fig.get_figwidth())
+
+### Figure.set_linewidth Figure.get_tight_layout Figure.get_constrained_layout
+import numpy as np
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots(layout='constrained')
+ax.plot([1, 2, 3], [3, 1, 2])
+fig.set_edgecolor('crimson')
+fig.set_linewidth(4)                # the frame around the whole figure
+print(fig.get_constrained_layout(), fig.get_tight_layout())
+
+### Figure.sca plt.sca
+import numpy as np
+import matplotlib.pyplot as plt
+fig, (a, b) = plt.subplots(1, 2)
+plt.sca(a)                  # pyplot calls now go to a
+plt.plot([1, 2, 3], [3, 1, 2])
+plt.title('drawn after sca(a)')
+fig.sca(b)
+plt.bar(['x', 'y'], [2, 3])
+print(plt.gca() is b)
+
+### Figure.draw_without_rendering plt.draw plt.draw_if_interactive plt.ion plt.ioff plt.interactive plt.isinteractive plt.get_backend
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 6, 60)
+fig, ax = plt.subplots()
+line, = ax.plot(x, np.sin(x))
+line.set_ydata(np.sin(2 * x))       # change the data, then redraw
+fig.draw_without_rendering()
+plt.draw()
+plt.ioff()
+print(plt.isinteractive(), type(plt.get_backend()).__name__)
+plt.ion()
+print(plt.isinteractive())
+plt.interactive(False)
+plt.draw_if_interactive()
+
+### plt.rc plt.rcParams plt.rc_context plt.rcdefaults plt.cycler
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 6, 60)
+plt.rc('lines', linewidth=3)                                     # every new line is 3 pt thick
+plt.rcParams['axes.prop_cycle'] = plt.cycler(color=['crimson', 'teal', 'gold'])
+with plt.rc_context({'axes.facecolor': '#f1f5f9'}):
+    fig, ax = plt.subplots()
+    for k in range(3):
+        ax.plot(x, np.sin(x + k))
+print(plt.rcParams['lines.linewidth'])
+plt.rcdefaults()
+print(plt.rcParams['lines.linewidth'])
+
+### plt.Figure plt.figure plt.gcf plt.close
+import numpy as np
+import matplotlib.pyplot as plt
+plt.figure(figsize=(6, 3))           # a new figure becomes the current one
+plt.plot([1, 3, 2, 4])
+print(plt.gcf().get_size_inches())
+plt.figure()
+plt.plot([1, 2])
+plt.close()                          # closes the current (second) figure
+print(len(plt.get_fignums()), type(plt.Figure()).__name__)
+
+### Figure.savefig plt.savefig plt.imsave
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 6, 60)
+plt.plot(x, np.sin(x))
+plt.title('saved as sine.png')
+plt.savefig('sine.png', dpi=150, bbox_inches='tight')     # the sandbox has no files: it notes the call
+plt.gcf().savefig('sine.pdf')
+plt.imsave('noise.png', np.random.default_rng(0).random((8, 8)))
+
+### Axes.name plt.pause plt.draw_all
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.linspace(0, 6, 60)
+fig, ax = plt.subplots()
+line, = ax.plot(x, np.sin(x))
+for k in range(3):
+    line.set_ydata(np.sin(x + k))    # an animation by hand: change, redraw, wait
+    plt.draw_all()
+    plt.pause(0.01)
+print(ax.name)                       # 'rectilinear': an ordinary 2-D axes
