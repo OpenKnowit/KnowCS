@@ -16,6 +16,7 @@ import { ON_DEMAND } from './pyLazy'
 import { STDLIB, erf, gammaFn, gcdOf } from './pyStdlib'
 import { ARRAY_METHODS_VIA_FUNCTION, addNumpy, spacedBetween } from './npMore'
 import { gamma as gammaDraw } from './npRandom'
+import { LegacyRandom } from './mt19937'
 import {
   SandboxRandom, concatenate, cumsum, det, expandDims, flip, hstack, inv, norm, outer, repeat, roundHalfEven, sortAlong,
   squeeze, stack, swapaxes, tile, trace, unique, vstack, commonDType,
@@ -1476,6 +1477,10 @@ export interface Host {
   /** what print() writes to while sys.stdout is replaced; null = the run's output */
   stdoutFile: Value | null
   readonly rng: SandboxRandom
+  /** np.random's global stream: NumPy's legacy MT19937 RandomState */
+  readonly npRng: LegacyRandom
+  /** what np.random.seed / RandomState(seed) accept: one 32-bit integer, a list of them, or None for a fresh seed */
+  legacySeed(v: Value | undefined): number | number[]
   /** per-run state a library keeps between calls (pyplot's current figure …) */
   readonly state: Map<string, unknown>
   /** the run's array size limit */
@@ -2013,6 +2018,7 @@ class Interp implements Host {
   /** >0 while re-running a call on id arrays to recover element provenance */
   replaying = 0
   rng = new SandboxRandom()
+  npRng = new LegacyRandom(2211)
   /** 多项式调用把要画的曲线放在这里，由 pushCall 取走 */
   pendingPlot: PolyPlot | null = null
   /** set by a 'group' function during its call: the provenance of each result cell, and the array to show as the result */
@@ -5084,18 +5090,18 @@ class Interp implements Host {
       k: 'module',
       name: 'numpy.random',
       attrs: {
-        seed: rnd('seed', (args) => { this.rng.seed(args[0] ? this.toInt(args[0]) : 0); return NONE }),
+        seed: rnd('seed', (args, kw) => { this.npRng.seed(this.legacySeed(kw.seed ?? args[0])); return NONE }),
         rand: rnd('rand', (args) => {
           const shape = shapeArg(args)
-          if (!shape.length) return float(this.rng.next())
+          if (!shape.length) return float(this.npRng.next())
           checkSize(shape)
-          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => this.rng.next()), shape, 'float64'))
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => this.npRng.next()), shape, 'float64'))
         }, 'random'),
         randn: rnd('randn', (args) => {
           const shape = shapeArg(args)
-          if (!shape.length) return float(this.rng.normal())
+          if (!shape.length) return float(this.npRng.normal())
           checkSize(shape)
-          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => this.rng.normal()), shape, 'float64'))
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => this.npRng.normal()), shape, 'float64'))
         }, 'random'),
         randint: rnd('randint', (args, kw) => {
           // the legacy interface cuts floats down to whole numbers
@@ -5106,7 +5112,7 @@ class Interp implements Host {
           if (!hi || hi.k === 'none') { hiN = lo; lo = 0 } else hiN = whole(hi)
           if (hiN <= lo) throw this.err('ValueError', 'high <= low')
           const size = kw.size ?? args[2]
-          const draw = () => lo + Math.floor(this.rng.next() * (hiN - lo))
+          const draw = () => this.npRng.randint(lo, hiN)
           if (!size || size.k === 'none') return int(draw())
           const shape = this.toShape([size])
           checkSize(shape)
@@ -5116,26 +5122,26 @@ class Interp implements Host {
           const loc = numOf(kw.loc ?? args[0] ?? float(0))
           const scale = numOf(kw.scale ?? args[1] ?? float(1))
           const size = kw.size ?? args[2]
-          if (!size || size.k === 'none') return float(loc + scale * this.rng.normal())
+          if (!size || size.k === 'none') return float(loc + scale * this.npRng.normal())
           const shape = this.toShape([size])
           checkSize(shape)
-          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => loc + scale * this.rng.normal()), shape, 'float64'))
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => loc + scale * this.npRng.normal()), shape, 'float64'))
         }, 'random'),
         uniform: rnd('uniform', (args, kw) => {
           const lo = numOf(kw.low ?? args[0] ?? float(0))
           const hi = numOf(kw.high ?? args[1] ?? float(1))
           const size = kw.size ?? args[2]
-          if (!size || size.k === 'none') return float(lo + (hi - lo) * this.rng.next())
+          if (!size || size.k === 'none') return float(lo + (hi - lo) * this.npRng.next())
           const shape = this.toShape([size])
           checkSize(shape)
-          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => lo + (hi - lo) * this.rng.next()), shape, 'float64'))
+          return arr(NDArray.create(Array.from({ length: shape.reduce((p, x) => p * x, 1) }, () => lo + (hi - lo) * this.npRng.next()), shape, 'float64'))
         }, 'random'),
         permutation: rnd('permutation', (args) => {
           const a = args[0].k === 'int' ? NDArray.create(Array.from({ length: args[0].v }, (_, i) => i), [args[0].v], 'int64') : toArray(args[0])
           const n = a.shape[0] ?? 0
           const order = Array.from({ length: n }, (_, i) => i)
           for (let i = n - 1; i > 0; i--) {
-            const j = Math.floor(this.rng.next() * (i + 1))
+            const j = this.npRng.interval(i)
             ;[order[i], order[j]] = [order[j], order[i]]
           }
           const { value } = getIndex(a, [{ kind: 'array', arr: NDArray.create(order, [n], 'int64') }])
@@ -5144,7 +5150,7 @@ class Interp implements Host {
         choice: rnd('choice', (args, kw) => {
           const pool = args[0].k === 'int' ? Array.from({ length: args[0].v }, (_, i) => i) : toArray(args[0]).values()
           const size = kw.size ?? args[1]
-          const draw = () => pool[Math.floor(this.rng.next() * pool.length)]
+          const draw = () => pool[this.npRng.interval(pool.length - 1)]
           if (!size || size.k === 'none') return fromScalar(draw(), args[0].k === 'int' ? 'int64' : toArray(args[0]).dtype)
           const shape = this.toShape([size])
           checkSize(shape)
@@ -5154,7 +5160,7 @@ class Interp implements Host {
           const v = args[0]
           if (v.k === 'list') {
             for (let i = v.items.length - 1; i > 0; i--) {
-              const j = Math.floor(this.rng.next() * (i + 1))
+              const j = this.npRng.interval(i)
               ;[v.items[i], v.items[j]] = [v.items[j], v.items[i]]
             }
             return NONE
@@ -6125,6 +6131,16 @@ class Interp implements Host {
         pi: float(Math.PI), e: float(Math.E), inf: float(Infinity), nan: float(NaN),
       },
     }
+  }
+
+  legacySeed(v: Value | undefined): number | number[] {
+    if (!v || v.k === 'none') return Math.floor(this.rng.next() * 4294967296)
+    const one = v.k === 'int' || v.k === 'bool' || (v.k === 'array' && v.a.size === 1 && !isFloatD(v.a.dtype))
+    const words = one ? [this.toInt(v.k === 'array' ? fromScalar(v.a.values()[0], 'int64') : v)] : toArray(v).values()
+    if (!one && (v.k === 'float' || (v.k === 'array' && isFloatD(v.a.dtype)))) throw this.err('TypeError', "Cannot cast scalar from dtype('float64') to dtype('int64') according to the rule 'safe'")
+    if (!words.length) throw this.err('ValueError', 'Seed must be non-empty')
+    if (words.some((w) => !Number.isInteger(w) || w < 0 || w > 4294967295)) throw this.err('ValueError', 'Seed must be between 0 and 2**32 - 1')
+    return one ? words[0] : words
   }
 
   makeRandom(): Value {

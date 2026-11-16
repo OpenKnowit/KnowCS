@@ -5964,7 +5964,8 @@ const build = (h: Host): Record<string, Value> => {
         if (a.ndim !== 2 && a.ndim !== 3) throw h.err('ValueError', `Unsupported image shape: (${a.shape.join(', ')})`)
         return py.arr(NDArray.create(a.values(), a.ndim === 2 ? [...a.shape, 1] : a.shape, 'float32'))
       }),
-      set_random_seed: fnv('set_random_seed', (args) => { h.rng.seed(h.toInt(args[0])); return py.NONE }),
+      // like the real one it also seeds np.random (and Python's random)
+      set_random_seed: fnv('set_random_seed', (args) => { h.rng.seed(h.toInt(args[0])); h.npRng.seed(h.legacySeed(args[0])); return py.NONE }),
       plot_model: fnv('plot_model', () => {
         h.print('(sandbox) plot_model draws a diagram with graphviz; here, model.summary() opens the same layers as a shape table\n')
         return py.NONE

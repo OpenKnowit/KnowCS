@@ -1,32 +1,10 @@
 {
- "Axes": [
-  {
-   "name": "barbs",
-   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = ax.barbs([1, 2], [3, 4])\nprint(getattr(r, \"shape\", type(r).__name__))\n",
-   "want": "Barbs",
-   "got": "NotImplementedError: barbs is not drawn in this sandbox: use quiver"
-  },
-  {
-   "name": "table",
-   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = ax.table(\"a\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
-   "want": "Table",
-   "got": "NotImplementedError: ax.table is not drawn in this sandbox"
-  }
- ],
  "builtins": [
   {
    "name": "hash",
    "src": "print(hash(-1.5))\n",
    "want": "-1152921504606846977",
    "got": "303380530"
-  }
- ],
- "inspect": [
-  {
-   "name": "Signature",
-   "src": "import inspect as M\nprint(M.Signature(\"\"))\n",
-   "want": "()",
-   "got": "NotImplementedError: inspect.Signature cannot be built in this sandbox: use inspect.signature"
   }
  ],
  "np": [
@@ -39,18 +17,6 @@
  ],
  "plt": [
   {
-   "name": "barbs",
-   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = plt.barbs([1, 2], [3, 4])\nprint(getattr(r, \"shape\", type(r).__name__))\n",
-   "want": "Barbs",
-   "got": "NotImplementedError: barbs is not drawn in this sandbox: use quiver"
-  },
-  {
-   "name": "polar",
-   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.polar())\n",
-   "want": "[]",
-   "got": "NotImplementedError: polar axes are not drawn in this sandbox"
-  },
-  {
    "name": "rcParams",
    "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.rcParams)\n",
    "want": "_internal.classic_mode: False\nagg.path.chunksize: 0\nanimation.bitrate: -1\nanimation.codec: h264\nanimation.convert_args: ['-layers', 'OptimizePlus']\nanimation.convert_path: convert\nanimation.embed_limit: 20.0\nanimation.ffmpeg_args: []\nanimation.ffmpeg_path: ffmpeg\nanimation.frame_format: png\nanimatio",
@@ -61,12 +27,6 @@
    "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nprint(plt.rcParamsDefault)\n",
    "want": "_internal.classic_mode: False\nagg.path.chunksize: 0\nanimation.bitrate: -1\nanimation.codec: h264\nanimation.convert_args: ['-layers', 'OptimizePlus']\nanimation.convert_path: convert\nanimation.embed_limit: 20.0\nanimation.ffmpeg_args: []\nanimation.ffmpeg_path: ffmpeg\nanimation.frame_format: png\nanimatio",
    "got": "RcParams({...})"
-  },
-  {
-   "name": "table",
-   "src": "import numpy as np\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nr = plt.table(\"a\")\nprint(getattr(r, \"shape\", type(r).__name__))\n",
-   "want": "Table",
-   "got": "NotImplementedError: ax.table is not drawn in this sandbox"
   }
  ]
 }

@@ -277,7 +277,7 @@ export const trace = (a: NDArray): number => {
   return s
 }
 
-// ---------------- 可复现的伪随机数（与真 numpy 数值不同） ----------------
+// ---------------- 可复现的伪随机数（torch / Keras / random 用；np.random 用 mt19937.ts 的 LegacyRandom，与真 NumPy 相同） ----------------
 
 export class SandboxRandom {
   private s: number
@@ -297,5 +297,9 @@ export class SandboxRandom {
   normal(): number {
     const u = 1 - this.next()
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * this.next())
+  }
+  /** a whole number in 0..max */
+  interval(max: number): number {
+    return Math.floor(this.next() * (max + 1))
   }
 }

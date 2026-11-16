@@ -1,8 +1,8 @@
 /**
  * scikit-learn for the sandbox: the estimators, preprocessing, model selection and metrics of an intro ML course.
  * Randomness runs on a port of NumPy's legacy RandomState (MT19937), so a given random_state gives real sklearn's answer:
- * the same split, the same k-means++ seeds, the same Perceptron shuffle. With random_state=None the seed comes from
- * np.random.seed instead, which cannot match NumPy's global stream.
+ * the same split, the same k-means++ seeds, the same Perceptron shuffle. With random_state=None it draws from np.random's
+ * global stream, which is the same generator, so np.random.seed(0) followed by a call without random_state matches too.
  *
  * NDArray has no text dtype, so labels and category names live in ObjArray, which prints the way NumPy prints them.
  */
@@ -11,152 +11,14 @@ import { PyDict, PyObj, isNum, numOf, py, repr, toArray } from './minipy'
 import type { ApiKind, ClassValue, Host, Kw, PyLib, Value } from './minipy'
 import { Frame, Series } from './pyPandas'
 import { solveM, svdThin, transposeM } from './npLinalg'
+import { LegacyRandom as RandomState, randomStateOf, searchLeft, searchRight } from './mt19937'
 
 type Fn = (args: Value[], kw: Kw) => Value
 type Lab = number | string
 
-// ---------------------------------------------------------------- numpy.random.RandomState
+// ---------------------------------------------------------------- numpy.random.RandomState (mt19937.ts)
 
-class RandomState {
-  private key = new Uint32Array(624)
-  private pos = 624
-  private gauss: number | null = null
-  constructor(seed: number) {
-    let s = seed >>> 0
-    for (let i = 0; i < 624; i++) {
-      this.key[i] = s
-      s = (Math.imul(1812433253, s ^ (s >>> 30)) + i + 1) >>> 0
-    }
-  }
-  next32(): number {
-    if (this.pos === 624) {
-      const k = this.key
-      for (let i = 0; i < 624; i++) {
-        const y = (k[i] & 0x80000000) | (k[(i + 1) % 624] & 0x7fffffff)
-        k[i] = k[(i + 397) % 624] ^ (y >>> 1) ^ (y & 1 ? 0x9908b0df : 0)
-      }
-      this.pos = 0
-    }
-    let y = this.key[this.pos++]
-    y ^= y >>> 11
-    y ^= (y << 7) & 0x9d2c5680
-    y ^= (y << 15) & 0xefc60000
-    y ^= y >>> 18
-    return y >>> 0
-  }
-  double(): number {
-    const a = this.next32() >>> 5
-    const b = this.next32() >>> 6
-    return (a * 67108864 + b) / 9007199254740992
-  }
-  /** random_interval: uniform on 0..max by rejection through a bit mask */
-  interval(max: number): number {
-    if (max === 0) return 0
-    let mask = max
-    for (let s = 1; s < 32; s <<= 1) mask |= mask >>> s
-    mask >>>= 0
-    for (;;) {
-      const v = (this.next32() & mask) >>> 0
-      if (v <= max) return v
-    }
-  }
-  /** randint(low, high): the masked 32-bit generator NumPy's legacy interface uses */
-  randint(low: number, high: number): number {
-    return low + this.interval(high - low - 1)
-  }
-  shuffle<T>(a: T[]) {
-    for (let i = a.length - 1; i >= 1; i--) {
-      const j = this.interval(i)
-      const t = a[j]
-      a[j] = a[i]
-      a[i] = t
-    }
-  }
-  permutation(n: number): number[] {
-    const a = Array.from({ length: n }, (_, i) => i)
-    this.shuffle(a)
-    return a
-  }
-  uniform(lo = 0, hi = 1): number {
-    return lo + (hi - lo) * this.double()
-  }
-  /** legacy_gauss: the polar method, which hands out its numbers in pairs */
-  normal(): number {
-    if (this.gauss !== null) {
-      const g = this.gauss
-      this.gauss = null
-      return g
-    }
-    for (;;) {
-      const x1 = 2 * this.double() - 1
-      const x2 = 2 * this.double() - 1
-      const r2 = x1 * x1 + x2 * x2
-      if (r2 < 1 && r2 !== 0) {
-        const f = Math.sqrt((-2 * Math.log(r2)) / r2)
-        this.gauss = f * x1
-        return f * x2
-      }
-    }
-  }
-  /** choice(n, p=p): one index by inverting the cumulative distribution */
-  choiceP(p: number[]): number {
-    return searchRight(cumNormalised(p), this.double())
-  }
-  /** choice(n, size=k, replace=False, p=p) */
-  choiceNoReplace(k: number, p0: number[]): number[] {
-    const p = [...p0]
-    const found: number[] = []
-    while (found.length < k) {
-      const draws = Array.from({ length: k - found.length }, () => this.double())
-      for (const f of found) p[f] = 0
-      const cdf = cumNormalised(p)
-      const fresh = draws.map((x) => searchRight(cdf, x))
-      // np.unique(new, return_index=True), back in the order of first appearance
-      fresh.filter((v, i) => fresh.indexOf(v) === i).forEach((v) => found.push(v))
-    }
-    return found
-  }
-}
-
-const cumNormalised = (p: number[]): number[] => {
-  let c = 0
-  const out = p.map((x) => (c += x))
-  const last = out[out.length - 1]
-  return out.map((x) => x / last)
-}
-const searchRight = (sorted: number[], x: number): number => {
-  let lo = 0
-  let hi = sorted.length
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1
-    if (x < sorted[mid]) hi = mid
-    else lo = mid + 1
-  }
-  return lo
-}
-const searchLeft = (sorted: number[], x: number): number => {
-  let lo = 0
-  let hi = sorted.length
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1
-    if (sorted[mid] < x) lo = mid + 1
-    else hi = mid
-  }
-  return lo
-}
-
-/** check_random_state: an integer seeds a fresh generator; None takes its seed from the sandbox's np.random */
-const rngOf = (h: Host, v: Value | undefined): RandomState => {
-  if (!v || v.k === 'none') return new RandomState(Math.floor(h.rng.next() * 4294967296))
-  if (v.k === 'int' || (v.k === 'array' && v.a.ndim === 0)) {
-    const s = h.toInt(v)
-    if (s < 0 || s > 4294967295) throw h.err('ValueError', 'Seed must be between 0 and 2**32 - 1')
-    return new RandomState(s)
-  }
-  // np.random.RandomState is the sandbox's own stream here, so it only hands over a seed
-  if (v.k === 'obj' && v.o.cls === 'RandomState') return new RandomState(h.toInt(h.call(h.getAttr(v, 'randint'), [py.int(2147483647)])))
-  throw h.err('ValueError', `${repr(v)} cannot be used to seed a numpy.random.RandomState instance`)
-}
+const rngOf = randomStateOf
 
 /** our_rand_r: the xorshift sklearn's Cython code draws from */
 const ourRandR = (st: { s: number }): number => {

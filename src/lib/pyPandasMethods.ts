@@ -13,6 +13,7 @@ import { groupByFrame, groupBySeries, windowOf } from './pyPandasGroup'
 import { frameToCsv, frameToJson, seriesToCsv, seriesToJson } from './pyPandasIO'
 import { joinFrames, meltFrame, mergeFrames, pivotFrame, pivotTable, stackFrame, unstackFrame, unstackSeries } from './pyPandasReshape'
 import { pyRegex, strAccessor, indexStrAccessor } from './pyPandasStr'
+import { randomStateOf } from './mt19937'
 
 // ---------------------------------------------------------------- argument helpers
 
@@ -1476,33 +1477,20 @@ const sampleRows = (h: Host, total: number, p: Params): number[] => {
   if (fv && h.num(fv) > 1 && !replace) throw h.err('ValueError', 'Replace has to be set to `True` when upsampling the population `frac` > 1.')
   if (n < 0) throw h.err('ValueError', 'A negative number of rows requested. Please provide `n` >= 0.')
   if (n > total && !replace) throw h.err('ValueError', "Cannot take a larger sample than population when 'replace=False'")
-  if (given(p.random_state)) h.rng.seed(h.toInt(p.random_state!))
-  const w = given(p.weights) ? cellsOf(h, p.weights!).map(numCell) : null
+  // pandas hands this to RandomState.choice, so a random_state gives real pandas' rows
+  const rs = randomStateOf(h, p.random_state ?? undefined)
+  let w = given(p.weights) ? cellsOf(h, p.weights!).map(numCell).map((x) => (Number.isNaN(x) ? 0 : x)) : null
   noteOnce(h, 'pandas_sample')
   if (w) {
-    const pool = rows(total)
-    const out: number[] = []
-    const weights = [...w]
-    for (let k = 0; k < n; k++) {
-      const sum = weights.reduce((a, b) => a + b, 0)
-      let x = h.rng.next() * sum
-      let i = 0
-      while (i < pool.length - 1 && x >= weights[i]) x -= weights[i++]
-      out.push(pool[i])
-      if (!replace) {
-        pool.splice(i, 1)
-        weights.splice(i, 1)
-      }
-    }
-    return out
+    if (w.length !== total) throw h.err('ValueError', 'Weights and axis to be sampled must be of same length')
+    if (w.some((x) => x < 0)) throw h.err('ValueError', 'weight vector many not include negative values')
+    if (w.some((x) => !Number.isFinite(x))) throw h.err('ValueError', 'weight vector may not include `inf` values')
+    const sum = w.reduce((a, b) => a + b, 0)
+    if (sum === 0) throw h.err('ValueError', 'Invalid weights: weights sum to zero')
+    w = w.map((x) => x / sum)
+    if (!replace && w.filter((x) => x > 0).length < n) throw h.err('ValueError', 'Fewer non-zero entries in p than size')
   }
-  if (replace) return Array.from({ length: n }, () => Math.floor(h.rng.next() * total))
-  const order = rows(total)
-  for (let i = order.length - 1; i > 0; i--) {
-    const j = Math.floor(h.rng.next() * (i + 1))
-    ;[order[i], order[j]] = [order[j], order[i]]
-  }
-  return order.slice(0, n)
+  return rs.choice(total, n, replace, w)
 }
 
 const reindexSeries = (h: Host, s: Series, target: IndexObj, p: Params): Series => {

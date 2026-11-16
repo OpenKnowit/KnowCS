@@ -76,11 +76,19 @@ const NOT_A_BUG: Record<string, string> = Object.fromEntries(([
   ['documentation text, which the sandbox does not carry', ['inspect:getdoc', 'np:info']],
   ['depends on the machine: needs an accelerator, and this one has MPS', ['Tensor:pin_memory']],
 ] as [string, string[]][]).flatMap(([why, keys]) => keys.map((k) => [k, why])))
+/** never called with no arguments: they end or pause the run */
+/** names whose call with no arguments broke the interpreter instead of raising TypeError */
+const internal: string[] = []
+const NO_BARE_CALL = /^(exit|quit|_exit|abort|kill|input|breakpoint|help|copyright|credits|license|sleep|pause|show|waitKey|ginput|waitforbuttonpress)$/
 const probes = process.argv.slice(3).flatMap((f) => JSON.parse(fs.readFileSync(f, 'utf8')) as Probe[])
 const passed = new Map<string, Probe>()
 const differs = new Map<string, { src: string; want: string; got: string }>()
+/** names whose ordinary call (the one that worked on the real library) the sandbox refuses with NotImplementedError */
+const refusedProbe = new Set<string>()
+const probed = new Set<string>()
 for (const p of probes) {
   const key = `${p.module}:${p.name}`
+  probed.add(key)
   if (passed.has(key)) continue
   let got: string
   try {
@@ -92,7 +100,11 @@ for (const p of probes) {
   if (same(got, norm(p.out))) {
     passed.set(key, { ...p, out: norm(p.out) })
     differs.delete(key)
-  } else if (!differs.has(key)) differs.set(key, { src: p.src, want: norm(p.out).slice(0, 300), got: got.slice(0, 300) })
+    refusedProbe.delete(key)
+  } else {
+    if (got.startsWith('NotImplementedError')) refusedProbe.add(key)
+    if (!differs.has(key)) differs.set(key, { src: p.src, want: norm(p.out).slice(0, 300), got: got.slice(0, 300) })
+  }
 }
 const accepted: Record<string, { want: string; got: string; why: string }> = {}
 for (const [key, d] of differs) {
@@ -115,6 +127,23 @@ for (const [module, g] of Object.entries(real.groups)) {
   const r = runPython(test, { libs, maxSize: 2_000_000, timeBudget: 120_000 })
   if (r.error) console.log('!!', module, r.error.type, r.error.message.slice(0, 120))
   const have = new Set(r.stdout.split('\n').filter(Boolean))
+  // a name that exists but whose plain call says the sandbox cannot do it (sklearn's load_wine, cv2.imwrite …): these count
+  // as missing, not available. Names a probe covers are judged by the probe; the others are called with no arguments.
+  const unprobed = g.names.filter((n) => have.has(n) && !passed.has(`${module}:${n}`) && !probed.has(`${module}:${n}`) && !NO_BARE_CALL.test(n))
+  const get = g.expr === '__builtins__' ? 'eval(n)' : 'getattr(__o, n)'
+  // each on its own: a call that breaks the interpreter (an internal error, a bug of its own) must not hide the others
+  const refusedBare: string[] = []
+  for (const n of unprobed) {
+    const r2 = runPython(`${prefix}f = ${get.replace('(n)', `(${JSON.stringify(n)})`).replace('__o, n', `__o, ${JSON.stringify(n)}`)}\nif callable(f) and not isinstance(f, type):\n    try:\n        f()\n    except NotImplementedError as e:\n        print('REFUSED', e)\n    except BaseException:\n        pass\n`, { libs, maxSize: 2_000_000, timeBudget: 5000 })
+    // a message naming 'undefined' is an argument this call needs and did not get, not a refusal
+    if (r2.stdout.startsWith('REFUSED') && !r2.stdout.includes('undefined')) {
+      refusedBare.push(n)
+      console.log(`   refuses ${module}.${n}: ${r2.stdout.slice(8, 110).trim()}`)
+    }
+    else if (r2.error?.type === 'InternalError') internal.push(`${module}.${n}: ${r2.error.message.slice(0, 80)}`)
+  }
+  // a probe that passed an argument no real program would (NOT_A_BUG) says nothing about an ordinary call
+  const refused = new Set([...refusedBare, ...g.names.filter((n) => refusedProbe.has(`${module}:${n}`) && !NOT_A_BUG[`${module}:${n}`])])
   const lib = (perLib[g.lib] ??= { programs: [], at: new Map(), entries: {} })
   const codes: string[] = []
   const mine: Record<string, [number, number]> = {}
@@ -131,9 +160,13 @@ for (const [module, g] of Object.entries(real.groups)) {
     const key = `${module}:${name}`
     const auto = passed.get(key)
     const bad = differs.get(key)
-    if (bad && !auto && have.has(name)) (backlog[module] ??= []).push({ name, ...bad })
+    if (bad && !auto && have.has(name) && !refused.has(name)) (backlog[module] ??= []).push({ name, ...bad })
     if (!have.has(name)) {
       codes.push('n')
+      continue
+    }
+    if (!auto && refused.has(name)) {
+      codes.push('r')
       continue
     }
     const p = example(module, g, name)
@@ -155,13 +188,14 @@ for (const [module, g] of Object.entries(real.groups)) {
   lib.entries[module] = mine
   out.groups.push({ m: module, lib: g.lib, names: g.names, code: codes.join('') })
   const count = (c: string) => codes.filter((x) => x === c).length
-  console.log(`${g.lib.padEnd(11)} ${module.padEnd(22)} ${String(have.size).padStart(4)}/${String(g.names.length).padEnd(5)} checked ${String(count('c')).padStart(4)}  example ${String(count('e')).padStart(4)}  differs ${String(count('d') + count('x')).padStart(3)}  bare ${String(count('y')).padStart(4)}`)
+  console.log(`${g.lib.padEnd(11)} ${module.padEnd(22)} ${String(have.size).padStart(4)}/${String(g.names.length).padEnd(5)} checked ${String(count('c')).padStart(4)}  example ${String(count('e')).padStart(4)}  differs ${String(count('d') + count('x')).padStart(3)}  bare ${String(count('y')).padStart(4)}  refuses ${String(count('r')).padStart(3)}${count('r') ? ' ' + g.names.filter((_, i) => codes[i] === 'r').join(',') : ''}`)
 }
 fs.mkdirSync('src/data/apiExamples', { recursive: true })
 fs.writeFileSync('src/data/apiCoverage.json', `${JSON.stringify(out)}\n`)
 for (const [lib, d] of Object.entries(perLib)) fs.writeFileSync(`src/data/apiExamples/${lib}.json`, `${JSON.stringify({ programs: d.programs, entries: d.entries })}\n`)
 fs.writeFileSync('src/lib/apiCases.json', `${JSON.stringify([...new Map(frozen.map((c) => [c.src, c])).values()])}\n`)
 fs.writeFileSync('scripts/api-coverage/backlog.json', `${JSON.stringify(backlog, null, 1)}\n`)
+if (internal.length) console.log(`INTERNAL ${internal.length}\n${internal.join('\n')}`)
 fs.writeFileSync('scripts/api-coverage/accepted.json', `${JSON.stringify(accepted, null, 1)}\n`)
 const all = out.groups.flatMap((g) => [...g.code])
-console.log('TOTAL', all.length, 'have', all.filter((c) => c !== 'n').length, 'checked', all.filter((c) => c === 'c').length, 'example', all.filter((c) => c === 'e').length, 'differs', all.filter((c) => c === 'd' || c === 'x').length, 'bare', all.filter((c) => c === 'y').length)
+console.log('TOTAL', all.length, 'have', all.filter((c) => c !== 'n' && c !== 'r').length, 'refuses', all.filter((c) => c === 'r').length, 'checked', all.filter((c) => c === 'c').length, 'example', all.filter((c) => c === 'e').length, 'differs', all.filter((c) => c === 'd' || c === 'x').length, 'bare', all.filter((c) => c === 'y').length)

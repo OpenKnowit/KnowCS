@@ -6,7 +6,7 @@ import { LIBS, apiEntryId } from '../playground/libs'
 // /playground/coverage/: how much of each real library the sandbox has. The list of names comes from the real libraries
 // (scripts/api-real-names.py), and each name's status from src/data/apiCoverage.json's generator.
 
-type Status = 'c' | 'e' | 'd' | 'x' | 'y' | 'n'
+type Status = 'c' | 'e' | 'd' | 'x' | 'y' | 'r' | 'n'
 interface Group {
   m: string
   lib: string
@@ -20,25 +20,28 @@ interface Coverage {
 }
 
 /** best to worst: the order of the bars and the legend; the darker the blue, the more was checked */
-const ORDER: Status[] = ['c', 'e', 'y', 'd', 'x', 'n']
-const BAR: Record<Status, string> = { c: 'bg-blue-700', e: 'bg-blue-400', y: 'bg-blue-200', d: 'bg-amber-400', x: 'bg-amber-400', n: 'bg-slate-200' }
+const ORDER: Status[] = ['c', 'e', 'y', 'd', 'x', 'r', 'n']
+const BAR: Record<Status, string> = { c: 'bg-blue-700', e: 'bg-blue-400', y: 'bg-blue-200', d: 'bg-amber-400', x: 'bg-amber-400', r: 'bg-slate-400', n: 'bg-slate-200' }
 const CHIP: Record<Status, string> = {
   c: 'border-blue-700 bg-blue-700 text-white hover:bg-blue-800',
   e: 'border-blue-300 bg-blue-100 text-blue-900 hover:bg-blue-200',
   y: 'border-blue-100 bg-blue-50 text-blue-900',
   d: 'border-amber-400 bg-amber-100 text-amber-900 hover:bg-amber-200',
   x: 'border-amber-300 bg-amber-50 text-amber-900',
+  r: 'border-dashed border-slate-400 bg-slate-50 text-slate-500',
   n: 'border-slate-200 bg-white text-slate-400',
 }
 const FILTERS = ['all', 'has', 'missing', 'differs'] as const
 type Filter = (typeof FILTERS)[number]
-const passes = (s: Status, f: Filter) => f === 'all' || (f === 'has' ? s !== 'n' : f === 'missing' ? s === 'n' : s === 'd' || s === 'x')
+/** a name that exists but refuses an ordinary call counts as missing */
+const missing = (s: Status) => s === 'n' || s === 'r'
+const passes = (s: Status, f: Filter) => f === 'all' || (f === 'has' ? !missing(s) : f === 'missing' ? missing(s) : s === 'd' || s === 'x')
 
 const tally = (groups: Group[]) => {
-  const n: Record<Status, number> = { c: 0, e: 0, d: 0, x: 0, y: 0, n: 0 }
+  const n: Record<Status, number> = { c: 0, e: 0, d: 0, x: 0, y: 0, r: 0, n: 0 }
   for (const g of groups) for (const ch of g.code) n[ch as Status]++
   const total = groups.reduce((a, g) => a + g.names.length, 0)
-  return { n, total, has: total - n.n }
+  return { n, total, has: total - n.n - n.r }
 }
 
 function Meter({ n, total, label }: { n: Record<Status, number>; total: number; label: string }) {
@@ -104,7 +107,7 @@ export default function CoveragePage() {
           <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
               { k: t('site.coverage.stat_total'), v: sum.total },
-              { k: t('site.coverage.stat_has'), v: sum.has, d: pct(sum.has, sum.total) },
+              { k: t('site.coverage.stat_has'), v: sum.has, d: sum.n.r ? `${pct(sum.has, sum.total)} · ${t('site.coverage.stat_refuses', { n: sum.n.r })}` : pct(sum.has, sum.total) },
               { k: t('site.coverage.stat_checked'), v: sum.n.c, d: pct(sum.n.c, sum.has) + ' ' + t('site.coverage.of_has') },
               { k: t('site.coverage.stat_differs'), v: sum.n.d + sum.n.x, d: t('site.coverage.stat_differs_d') },
             ].map((s) => (

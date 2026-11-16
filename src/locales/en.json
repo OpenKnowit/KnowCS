@@ -1193,6 +1193,7 @@
       "of_has": "of those available",
       "stat_differs": "Known to differ",
       "stat_differs_d": "a call printed something else",
+      "stat_refuses": "{{n}} more exist but refuse to run",
       "legend": "What the colours mean",
       "search": "Search any name, e.g. nn.LSTM",
       "filter": "Show",
@@ -1209,9 +1210,10 @@
         "y": "Available, no example yet",
         "d": "Available, one call printed something else",
         "x": "Available, one call printed something else",
+        "r": "Exists, but refuses to run here",
         "n": "Not available"
       },
-      "method": "“Public names” are a module’s __all__, or else every attribute without a leading underscore, leaving out submodules. They include deprecated and internal-looking names, so 100% is not the goal. “Available” means the name exists here: some of its arguments may still be refused, with a message saying so. “Same output” means at least one program using it printed what the real library printed, within rounding; it does not cover every argument. os, shutil and sys are never called automatically, so most of their names show no example."
+      "method": "“Public names” are a module’s __all__, or else every attribute without a leading underscore, leaving out submodules. They include deprecated and internal-looking names, so 100% is not the goal. “Available” means the name exists here and an ordinary call runs: some arguments may still be refused, with a message saying so. A name that exists but refuses even an ordinary call (sklearn’s load_wine, whose data is not embedded; cv2.imwrite, as there are no files here) counts as missing. “Same output” means at least one program using it printed what the real library printed, within rounding; it does not cover every argument. os, shutil and sys are never called automatically, so most of their names show no example."
     }
   },
   "lab": {

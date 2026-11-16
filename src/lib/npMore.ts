@@ -10,6 +10,7 @@ import type { Mat } from './npLinalg'
 import * as R from './npRandom'
 import { fullPath } from './pyStdlib'
 import type { SandboxRandom } from './ndops'
+import { LegacyRandom } from './mt19937'
 
 type Api = (name: string, call: Fn, kind?: ApiKind, extra?: Partial<ApiMeta>) => Value
 
@@ -2460,7 +2461,11 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
       return weights.length - 1
     }
     let picks: number[]
-    if (replace) picks = Array.from({ length: count }, () => (p ? pickWeighted(p) : Math.floor(r.next() * n)))
+    if (r instanceof LegacyRandom) {
+      if (!replace && count > n) throw h.err('ValueError', "Cannot take a larger sample than population when 'replace=False'")
+      if (!replace && p && p.filter((x) => x > 0).length < count) throw h.err('ValueError', 'Fewer non-zero entries in p than size')
+      picks = r.choice(n, count, replace, p)
+    } else if (replace) picks = Array.from({ length: count }, () => (p ? pickWeighted(p) : Math.floor(r.next() * n)))
     else {
       if (count > n) throw h.err('ValueError', "Cannot take a larger sample than population when 'replace=False'")
       if (p) {
@@ -2506,7 +2511,7 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
   }
   const integers = (r: SandboxRandom, lo: number, hi: number, size: Value | undefined, d: DType): Value => {
     if (hi <= lo) throw h.err('ValueError', 'high <= low')
-    return sized(size, () => lo + Math.floor(r.next() * (hi - lo)), d)
+    return sized(size, () => lo + r.interval(hi - lo - 1), d)
   }
   const mvn = (r: SandboxRandom, args: Value[], kw: Kw): Value => {
     const mean = A(kw.mean ?? args[0], 'mean').values()
@@ -2579,24 +2584,35 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
     multivariate_normal: a('multivariate_normal', (args, kw) => mvn(r(), args, kw), 'random'),
     dirichlet: a('dirichlet', (args, kw) => dirich(r(), args, kw), 'random'),
   })
-  const legacyDraw = (name: string) => rnd(name, (args, kw) => sized(kw.size ?? args[0], () => h.rng.next()), 'random')
-  Object.assign(random, distributions(() => h.rng, rnd), {
+  const legacyDraw = (name: string) => rnd(name, (args, kw) => sized(kw.size ?? args[0], () => h.npRng.next()), 'random')
+  /** get_state() as NumPy gives it: ('MT19937', the 624 words, position, whether a normal is cached, the cached normal) */
+  const stateOf = (r: LegacyRandom): Value => {
+    const st = r.getState()
+    return tuple([S('MT19937'), mk(st.key, [st.key.length], 'int64'), int(st.pos), int(st.gauss === null ? 0 : 1), py.float(st.gauss ?? 0)])
+  }
+  const setStateOf = (r: LegacyRandom, v: Value): Value => {
+    const parts = h.iterate(v)
+    if (parts.length < 3 || h.str(parts[0]) !== 'MT19937') throw h.err('ValueError', 'state must be a 5-tuple (MT19937, key, pos, has_gauss, cached_gaussian)')
+    const key = toArray(parts[1]).values()
+    if (key.length !== 624) throw h.err('ValueError', 'state must be 624 elements')
+    const has = parts[3] ? h.truthy(parts[3]) : false
+    r.setState({ key, pos: h.toInt(parts[2]), gauss: has && parts[4] ? h.num(parts[4]) : null })
+    return NONE
+  }
+  Object.assign(random, distributions(() => h.npRng, rnd), {
     random: legacyDraw('random'), random_sample: legacyDraw('random_sample'), ranf: legacyDraw('ranf'), sample: legacyDraw('sample'),
-    standard_normal: rnd('standard_normal', (args, kw) => sized(kw.size ?? args[0], () => h.rng.normal()), 'random'),
-    choice: rnd('choice', (args, kw) => choose(h.rng, args, kw, false), 'random'),
-    shuffle: rnd('shuffle', (args) => shuffleIn(h.rng, args[0])),
-    permutation: rnd('permutation', (args) => permuted(h.rng, args[0]), 'random'),
+    standard_normal: rnd('standard_normal', (args, kw) => sized(kw.size ?? args[0], () => h.npRng.normal()), 'random'),
+    choice: rnd('choice', (args, kw) => choose(h.npRng, args, kw, false), 'random'),
+    shuffle: rnd('shuffle', (args) => shuffleIn(h.npRng, args[0])),
+    permutation: rnd('permutation', (args) => permuted(h.npRng, args[0]), 'random'),
     random_integers: rnd('random_integers', (args, kw) => {
       // (the old function truncated floats)
       const lo = Math.trunc(h.num(args[0]))
       const hi = opt(args, kw, 1, 'high')
-      return hi ? integers(h.rng, lo, Math.trunc(h.num(hi)) + 1, kw.size ?? args[2], 'int64') : integers(h.rng, 1, lo + 1, kw.size ?? args[2], 'int64')
+      return hi ? integers(h.npRng, lo, Math.trunc(h.num(hi)) + 1, kw.size ?? args[2], 'int64') : integers(h.npRng, 1, lo + 1, kw.size ?? args[2], 'int64')
     }, 'random'),
-    get_state: rnd('get_state', () => tuple([S('sandbox'), int((h.rng as unknown as { s: number }).s)])),
-    set_state: rnd('set_state', (args) => {
-      h.rng.seed(h.toInt(h.iterate(args[0])[1]))
-      return NONE
-    }),
+    get_state: rnd('get_state', () => stateOf(h.npRng)),
+    set_state: rnd('set_state', (args, kw) => setStateOf(h.npRng, kw.state ?? args[0])),
   })
 
   /** np.random.default_rng(seed) and np.random.RandomState(seed): each has its own stream */
@@ -2660,14 +2676,17 @@ export const addNumpy = (h: Host, np: Record<string, Value>, random: Record<stri
       return wrap(lanes(x, h.toInt(axis), (lane) => R.permutationOf(self.r, lane.length).map((i) => lane[i]), x.dtype))
     }),
   })))
-  const randomState = (seed: Value | undefined): Value => py.obj(new RandomObj('RandomState', new Rng(seedOf(seed)), (self) => {
+  const randomState = (seed: Value | undefined): Value => py.obj(new RandomObj('RandomState', new LegacyRandom(h.legacySeed(seed?.k === 'obj' && seed.o instanceof SeedHolder ? seed.o.seed : seed)), (self) => {
+    const mt = self.r as LegacyRandom
     const floats = (a: Value[]) => {
       const shape = a.map((x) => h.toInt(x))
       return sized(shape.length ? L(shape.map(int)) : undefined, () => self.r.next())
     }
     return {
       ...sharedDraws(self),
-      seed: genApi('seed', (a) => { self.r.seed(seedOf(a[0])); return NONE }),
+      seed: genApi('seed', (a, kw) => { mt.seed(h.legacySeed(kw.seed ?? a[0])); return NONE }),
+      get_state: genApi('get_state', () => stateOf(mt)),
+      set_state: genApi('set_state', (a, kw) => setStateOf(mt, kw.state ?? a[0])),
       rand: genApi('rand', floats),
       randn: genApi('randn', (a) => {
         const shape = a.map((x) => h.toInt(x))

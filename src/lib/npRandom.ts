@@ -1,5 +1,5 @@
-// The distributions np.random offers, drawn from the sandbox's seeded generator.
-// A seed makes a run repeatable, but the numbers differ from NumPy's, whose generator is not reproduced here.
+// The distributions np.random offers. np.random and RandomState draw from NumPy's own generator (mt19937.ts), so uniform,
+// normal, exponential and small-mean Poisson draws match NumPy; the other distributions use simpler methods than NumPy's.
 import type { SandboxRandom } from './ndops'
 
 export const uniform = (r: SandboxRandom) => r.next()
@@ -79,7 +79,7 @@ export const triangular = (r: SandboxRandom, lo: number, mode: number, hi: numbe
 export const permutationOf = (r: SandboxRandom, n: number): number[] => {
   const order = Array.from({ length: n }, (_, i) => i)
   for (let i = n - 1; i > 0; i--) {
-    const j = Math.floor(r.next() * (i + 1))
+    const j = r.interval(i)
     ;[order[i], order[j]] = [order[j], order[i]]
   }
   return order

@@ -35,7 +35,7 @@ describe('the coverage data', () => {
       g.names.forEach((name, i) => {
         const has = examples[g.lib]?.entries[g.m]?.[name]
         if ('ced'.includes(g.code[i])) expect(has, `${g.m}.${name}`).toBeTruthy()
-        if ('yxn'.includes(g.code[i])) expect(has, `${g.m}.${name}`).toBeFalsy()
+        if ('yxrn'.includes(g.code[i])) expect(has, `${g.m}.${name}`).toBeFalsy()
       })
     }
   })

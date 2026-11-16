@@ -683,5 +683,1402 @@
 "title": "numpy/windows",
 "src": "import numpy as np\n\nsigmoid = lambda z: 1 / (1 + np.exp(-z))\ny = np.array([1, 0, 1])\np = np.array([.9, .2, .6])\nprint(sigmoid(0.), np.mean((y - p) ** 2), -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)), np.mean((p > .5) == y))\nX = np.arange(12.).reshape(6, 2)\nidx = np.random.permutation(len(X))\nfor i in range(0, len(X), 4):\n    print(X[idx[i:i + 4]].shape)\nprint(np.linalg.norm(X - X[0], axis=1).argmin(), np.argsort(np.linalg.norm(X - X[0], axis=1))[:2], np.bincount([0, 1, 1]).argmax(), (X - X.mean(0)).mean(0), np.c_[np.ones(6), X].shape, np.hanning(3), np.hamming(3), np.blackman(3).shape, np.bartlett(3))",
 "out": "0.5 0.07 0.2797765635793423 1.0\n(4, 2)\n(2, 2)\n0 [0 1] 1 [0. 0.] (6, 3) [0. 1. 0.] [0.08 1.   0.08] (3,) [0. 1. 0.]\n"
+},
+{
+"title": "cv2/colours",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\nrgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)\nprint(img.shape, gray.shape, gray.dtype, img[0, 0], rgb[0, 0], gray[0, 0])\nfig, (a, b) = plt.subplots(1, 2)\na.imshow(rgb); a.set_title('RGB')\nb.imshow(gray, cmap='gray'); b.set_title('gray')",
+"out": "(60, 80, 3) (60, 80) uint8 [200 120  40] [ 40 120 200] 105\n",
+"value": "Text(0.5, 1.0, 'gray')"
+},
+{
+"title": "cv2/threshold",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\nt1, fixed = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)\nt2, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)\nprint(t1, t2, np.unique(otsu))\nfig, (a, b) = plt.subplots(1, 2)\na.imshow(fixed, cmap='gray'); a.set_title('fixed 100')\nb.imshow(otsu, cmap='gray'); b.set_title(f'Otsu {t2}')",
+"out": "100.0 105.0 [  0 255]\n",
+"value": "Text(0.5, 1.0, 'Otsu 105.0')"
+},
+{
+"title": "cv2/histogram",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\nh = cv2.calcHist([gray], [0], None, [8], [0, 256]).ravel()\nprint(h, int(h.sum()), gray.size)\neq = cv2.equalizeHist(gray)\nprint(gray.min(), gray.max(), eq.min(), eq.max())\nplt.bar(range(8), h)\nplt.title('grey levels in 8 bins')",
+"out": "[ 200.    0.    0. 3600.    0. 1000.    0.    0.] 4800 4800\n30 182 0 255\n",
+"value": "Text(0.5, 1.0, 'grey levels in 8 bins')"
+},
+{
+"title": "cv2/filter",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\nk = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], np.float32)\nedges = cv2.filter2D(gray.astype(np.float32), -1, k)\nprint(edges.shape, edges.dtype, edges.min(), edges.max())\nplt.imshow(edges, cmap='gray')\nplt.title('Sobel x by hand')",
+"out": "(60, 80) float32 -608.0 608.0\n",
+"value": "Text(0.5, 1.0, 'Sobel x by hand')"
+},
+{
+"title": "cv2/blur",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\nnoisy = img.copy()\nnoisy[::7, ::9] = 255\nfig, ax = plt.subplots(1, 3, figsize=(9, 3))\nfor a, (name, out) in zip(ax, [('noisy', noisy), ('box', cv2.blur(noisy, (3, 3))), ('median', cv2.medianBlur(noisy, 3))]):\n    a.imshow(cv2.cvtColor(out, cv2.COLOR_BGR2RGB))\n    a.set_title(name)\nprint(cv2.getGaussianKernel(3, 1).ravel().round(4))",
+"out": "[0.2741 0.4519 0.2741]\n"
+},
+{
+"title": "cv2/morphology",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((20, 20), np.uint8)\nimg[5:15, 5:15] = 255\nimg[10, 2] = 255\nk = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))\nfor name, out in [('erode', cv2.erode(img, k)), ('dilate', cv2.dilate(img, k)), ('open', cv2.morphologyEx(img, cv2.MORPH_OPEN, k))]:\n    print(name, cv2.countNonZero(out))\nplt.imshow(cv2.morphologyEx(img, cv2.MORPH_OPEN, k), cmap='gray')\nplt.title('open removes the lone dot')",
+"out": "erode 64\ndilate 153\nopen 100\n",
+"value": "Text(0.5, 1.0, 'open removes the lone dot')"
+},
+{
+"title": "cv2/resize",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\nsmall = cv2.resize(img, (20, 15), interpolation=cv2.INTER_AREA)\nbig = cv2.resize(small, None, fx=4, fy=4, interpolation=cv2.INTER_NEAREST)\nprint(img.shape, small.shape, big.shape)\nprint(cv2.flip(img, 1).shape, cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE).shape)\nplt.imshow(cv2.cvtColor(big, cv2.COLOR_BGR2RGB))\nplt.title('down, then up')",
+"out": "(60, 80, 3) (15, 20, 3) (60, 80, 3)\n(60, 80, 3) (80, 60, 3)\n",
+"value": "Text(0.5, 1.0, 'down, then up')"
+},
+{
+"title": "cv2/warp",
+"src": "import numpy as np\nimport cv2\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((60, 80, 3), np.uint8)   # BGR, as OpenCV stores it\nimg[:] = (200, 120, 40)\nimg[15:45, 20:60] = (40, 180, 240)\nimg[25:35, 30:50] = (30, 30, 30)\nh, w = img.shape[:2]\nM = cv2.getRotationMatrix2D((w / 2, h / 2), 30, 1.0)\nprint(M.round(3))\nrot = cv2.warpAffine(img, M, (w, h))\nmove = cv2.warpAffine(img, np.float32([[1, 0, 15], [0, 1, 5]]), (w, h))\nfig, (a, b) = plt.subplots(1, 2)\na.imshow(cv2.cvtColor(rot, cv2.COLOR_BGR2RGB)); a.set_title('rotate 30°')\nb.imshow(cv2.cvtColor(move, cv2.COLOR_BGR2RGB)); b.set_title('translate')",
+"out": "[[ 0.866  0.5   -9.641]\n [-0.5    0.866 24.019]]\n",
+"value": "Text(0.5, 1.0, 'translate')"
+},
+{
+"title": "keras/cnn_summary",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nnum_classes = 10\nmodel = Sequential()                       # lecture 8, layer for layer\nmodel.add(Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)))\nmodel.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))\nmodel.add(MaxPooling2D(pool_size=(2, 2)))\nmodel.add(Dropout(0.25))\nmodel.add(Flatten())\nmodel.add(Dense(units=128, activation='relu'))\nmodel.add(Dropout(0.5))\nmodel.add(Dense(units=num_classes, activation='softmax'))\nmodel.summary()",
+"out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ conv2d (Conv2D)                 │ (None, 26, 26, 32)     │           320 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ conv2d_1 (Conv2D)               │ (None, 24, 24, 64)     │        18,496 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ max_pooling2d (MaxPooling2D)    │ (None, 12, 12, 64)     │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dropout (Dropout)               │ (None, 12, 12, 64)     │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ flatten (Flatten)               │ (None, 9216)           │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 128)            │     1,179,776 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dropout_1 (Dropout)             │ (None, 128)            │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense_1 (Dense)                 │ (None, 10)             │         1,290 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 1,199,882 (4.58 MB)\n Trainable params: 1,199,882 (4.58 MB)\n Non-trainable params: 0 (0.00 B)\n"
+},
+{
+"title": "keras/mlp_summary",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nfrom keras import regularizers, activations\n\nmodel = Sequential()                       # lecture 6's model\nmodel.add(Flatten(input_shape=(28, 28)))\nmodel.add(Dense(units=128, activation='relu', kernel_regularizer=regularizers.l2(0.002)))\nmodel.add(Dense(units=128, activation=activations.relu, kernel_regularizer=regularizers.l2(0.002)))\nmodel.add(Dense(units=10, activation='softmax'))\nmodel.summary()\nprint((784 + 1) * 128, (128 + 1) * 128, (128 + 1) * 10)   # params of each Dense layer",
+"out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ flatten (Flatten)               │ (None, 784)            │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 128)            │       100,480 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense_1 (Dense)                 │ (None, 128)            │        16,512 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense_2 (Dense)                 │ (None, 10)             │         1,290 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 118,282 (462.04 KB)\n Trainable params: 118,282 (462.04 KB)\n Non-trainable params: 0 (0.00 B)\n100480 16512 1290\n"
+},
+{
+"title": "keras/functional",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nfrom keras import layers\n\ninputs = keras.Input(shape=(784,))           # a placeholder: no batch dimension\nx = layers.Dense(64, activation='relu')(inputs)\nprint(x.shape)                               # (None, 64): None is the batch\noutputs = layers.Dense(10, activation='softmax')(x)\nmodel = keras.Model(inputs=inputs, outputs=outputs, name='mnist_mlp')\nmodel.summary()",
+"out": "(None, 64)\nModel: \"mnist_mlp\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ input_layer (InputLayer)        │ (None, 784)            │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 64)             │        50,240 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense_1 (Dense)                 │ (None, 10)             │           650 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 50,890 (198.79 KB)\n Trainable params: 50,890 (198.79 KB)\n Non-trainable params: 0 (0.00 B)\n"
+},
+{
+"title": "keras/params",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nmodel = Sequential([\n    Input(shape=(32, 32, 3)),\n    Conv2D(16, (5, 5), activation='relu'),     # (5*5*3 + 1) * 16\n    MaxPooling2D((2, 2)),\n    Conv2D(8, (3, 3), padding='same'),         # (3*3*16 + 1) * 8\n    Flatten(),\n    Dense(10, activation='softmax'),\n])\nfor layer in model.layers:\n    print(f\"{layer.name:16} {layer.count_params():>6}\")\nprint(model.count_params())",
+"out": "conv2d             1216\nmax_pooling2d         0\nconv2d_1           1160\nflatten               0\ndense             15690\n18066\n"
+},
+{
+"title": "keras/tiny_cnn",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nimport matplotlib.pyplot as plt\nnp.random.seed(1)\nkeras.utils.set_random_seed(1)\n\n# 40 noisy 8 x 8 images: a vertical bar (label 0) or a horizontal bar (label 1)\nX = np.random.rand(40, 8, 8) * 0.3\ny = np.arange(40) % 2\nfor i in range(40):\n    k = np.random.randint(1, 7)\n    if y[i] == 0:\n        X[i, :, k] = 1\n    else:\n        X[i, k, :] = 1\nX = X.reshape(40, 8, 8, 1)                     # Keras wants a channel axis\n\nmodel = Sequential([Input(shape=(8, 8, 1)), Conv2D(4, (3, 3), activation='relu'), MaxPooling2D((2, 2)), Flatten(), Dense(2, activation='softmax')])\nmodel.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])\nmodel.fit(X, y, epochs=30, batch_size=8, verbose=0)\npred = np.argmax(model.predict(X[:6], verbose=0), axis=1)\n\nfig, axes = plt.subplots(1, 6, figsize=(9, 2))\nfor i, ax in enumerate(axes):\n    ax.imshow(X[i, :, :, 0], cmap='gray', vmin=0, vmax=1)\n    ax.set_title(f'pred {pred[i]}')\n    ax.axis('off')",
+"out": ""
+},
+{
+"title": "keras/confusion",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nfrom tensorflow.math import confusion_matrix\nimport seaborn as sn\nimport matplotlib.pyplot as plt\nnp.random.seed(2)\nkeras.utils.set_random_seed(2)\n\nX = np.vstack([np.random.randn(25, 2) + [0, 0], np.random.randn(25, 2) + [2, 2]])\ny = np.repeat([0, 1], 25)\nmodel = Sequential([Input(shape=(2,)), Dense(2, activation='softmax')])\nmodel.compile(optimizer=keras.optimizers.Adam(learning_rate=0.05), loss='sparse_categorical_crossentropy', metrics=['accuracy'])\nmodel.fit(X, y, epochs=40, verbose=0)\n\nprediction_results = np.argmax(model.predict(X, verbose=0), axis=1)\ncm = confusion_matrix(y, prediction_results)      # as in lecture 6\nprint(cm)\nf, ax = plt.subplots(figsize=(4, 4))\nsn.heatmap(cm.numpy(), annot=True, fmt='d', square=True, ax=ax)",
+"out": "tf.Tensor(\n[[24  1]\n [ 1 24]], shape=(2, 2), dtype=int32)\n",
+"value": "<Axes: >"
+},
+{
+"title": "keras/sparse_vs_cat",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nfrom keras.utils import to_categorical\nX = np.random.rand(6, 4)\ny = np.array([0, 2, 1, 2, 0, 1])                 # integer labels\nprint(to_categorical(y, 3))                      # the one-hot version\n\nmodel = Sequential([Input(shape=(4,)), Dense(3, activation='softmax')])\n# integer labels need 'sparse_categorical_crossentropy';\n# 'categorical_crossentropy' needs to_categorical(y) first\nmodel.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])\nmodel.fit(X, y, epochs=1, verbose=0)",
+"out": "ValueError: Arguments `target` and `output` must have the same rank (ndim). Received: target.shape=(None,), output.shape=(None, 3)"
+},
+{
+"title": "keras/no_flatten",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nmodel = Sequential([\n    Input(shape=(28, 28, 1)),\n    Dense(10, activation='softmax'),     # acts on the LAST axis only\n])\nmodel.summary()      # (None, 28, 28, 10): ten \"predictions\" per pixel row\n# fix: put Flatten() before the Dense layer",
+"out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ dense (Dense)                   │ (None, 28, 28, 10)     │            20 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 20 (80.00 B)\n Trainable params: 20 (80.00 B)\n Non-trainable params: 0 (0.00 B)\n"
+},
+{
+"title": "keras/no_channel",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nx_train = np.random.rand(10, 28, 28)       # grayscale images, no channel axis\nprint(x_train.shape)\n# fix: x_train = x_train.reshape(-1, 28, 28, 1)\nmodel = Sequential([Input(shape=x_train.shape[1:]), Conv2D(8, (3, 3), activation='relu')])",
+"out": "ValueError: Input 0 of layer \"conv2d\" is incompatible with the layer: expected min_ndim=4, found ndim=3. Full shape received: (None, 28, 28)"
+},
+{
+"title": "keras/same_stride",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nmodel = Sequential([\n    Input(shape=(28, 28, 1)),\n    Conv2D(16, 3, padding='same'),             # same: 28 -> 28\n    Conv2D(32, 3, strides=2, padding='same'),  # same + stride 2: ceil(28 / 2) = 14\n    Conv2D(32, 3, strides=2),                  # valid: floor((14 - 3) / 2) + 1 = 6\n    Flatten(),\n    Dense(10, activation='softmax'),\n])\nmodel.summary()",
+"out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ conv2d (Conv2D)                 │ (None, 28, 28, 16)     │           160 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ conv2d_1 (Conv2D)               │ (None, 14, 14, 32)     │         4,640 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ conv2d_2 (Conv2D)               │ (None, 6, 6, 32)       │         9,248 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ flatten (Flatten)               │ (None, 1152)           │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 10)             │        11,530 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 25,578 (99.91 KB)\n Trainable params: 25,578 (99.91 KB)\n Non-trainable params: 0 (0.00 B)\n"
+},
+{
+"title": "keras/onehot",
+"src": "import numpy as np\nimport keras\nfrom keras.models import Sequential\nfrom keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Input\n\nfrom keras.utils import to_categorical\n\ny = np.array([0, 2, 1, 2])\nY = to_categorical(y, num_classes=3)\nprint(Y)            # one row per label: the target for categorical_crossentropy\nprint(Y.shape)",
+"out": "[[1. 0. 0.]\n [0. 0. 1.]\n [0. 1. 0.]\n [0. 0. 1.]]\n(4, 3)\n"
+},
+{
+"title": "keras/residual",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nx = keras.Input((8,))\nh = layers.Dense(8, activation='relu')(x)\nh = layers.Dense(8)(h)\nout = layers.Add()([x, h])\nmodel = keras.Model(x, out, name='residual')\nmodel.summary()",
+"out": "Model: \"residual\"\n┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┓\n┃ Layer (type)        ┃ Output Shape      ┃    Param # ┃ Connected to      ┃\n┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━┩\n│ input_layer         │ (None, 8)         │          0 │ -                 │\n│ (InputLayer)        │                   │            │                   │\n├─────────────────────┼───────────────────┼────────────┼───────────────────┤\n│ dense (Dense)       │ (None, 8)         │         72 │ input_layer[0][0] │\n├─────────────────────┼───────────────────┼────────────┼───────────────────┤\n│ dense_1 (Dense)     │ (None, 8)         │         72 │ dense[0][0]       │\n├─────────────────────┼───────────────────┼────────────┼───────────────────┤\n│ add (Add)           │ (None, 8)         │          0 │ input_layer[0][0… │\n│                     │                   │            │ dense_1[0][0]     │\n└─────────────────────┴───────────────────┴────────────┴───────────────────┘\n Total params: 144 (576.00 B)\n Trainable params: 144 (576.00 B)\n Non-trainable params: 0 (0.00 B)\n"
+},
+{
+"title": "keras/two_inputs",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\na = keras.Input((4,), name='image')\nb = keras.Input((2,), name='meta')\nh = layers.Concatenate()([layers.Dense(3, activation='relu')(a), b])\nmodel = keras.Model([a, b], layers.Dense(1)(h))\nmodel.summary()\nprint(model.predict({'image': np.ones((2, 4)), 'meta': np.ones((2, 2))}, verbose=0).shape)",
+"out": "Model: \"functional\"\n┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┓\n┃ Layer (type)        ┃ Output Shape      ┃    Param # ┃ Connected to      ┃\n┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━┩\n│ image (InputLayer)  │ (None, 4)         │          0 │ -                 │\n├─────────────────────┼───────────────────┼────────────┼───────────────────┤\n│ dense (Dense)       │ (None, 3)         │         15 │ image[0][0]       │\n├─────────────────────┼───────────────────┼────────────┼───────────────────┤\n│ meta (InputLayer)   │ (None, 2)         │          0 │ -                 │\n├─────────────────────┼───────────────────┼────────────┼───────────────────┤\n│ concatenate         │ (None, 5)         │          0 │ dense[0][0],      │\n│ (Concatenate)       │                   │            │ meta[0][0]        │\n├─────────────────────┼───────────────────┼────────────┼───────────────────┤\n│ dense_1 (Dense)     │ (None, 1)         │          6 │ concatenate[0][0] │\n└─────────────────────┴───────────────────┴────────────┴───────────────────┘\n Total params: 21 (84.00 B)\n Trainable params: 21 (84.00 B)\n Non-trainable params: 0 (0.00 B)\n(2, 1)\n"
+},
+{
+"title": "keras/features",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nmodel = keras.Sequential([layers.Input((8, 8, 1)), layers.Conv2D(4, 3, activation='relu', name='c1'), layers.Flatten(), layers.Dense(2)])\nfe = keras.Model(model.inputs, model.get_layer('c1').output)\nprint(fe.predict(np.zeros((1, 8, 8, 1)), verbose=0).shape)\nprint([l.name for l in fe.layers])",
+"out": "(1, 6, 6, 4)\n['input_layer', 'c1']\n"
+},
+{
+"title": "keras/custom_layer",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nclass Scale(layers.Layer):\n    def build(self, input_shape):\n        self.k = self.add_weight(shape=(input_shape[-1],), initializer='ones', name='k')\n    def call(self, x):\n        return x * self.k\n\nmodel = keras.Sequential([layers.Input((3,)), Scale(), layers.Dense(1)])\nmodel.summary()\nprint(model.layers[0].k.shape, model.count_params())",
+"out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ scale (Scale)                   │ (None, 3)              │             3 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 1)              │             4 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 7 (28.00 B)\n Trainable params: 7 (28.00 B)\n Non-trainable params: 0 (0.00 B)\n(3,) 7\n"
+},
+{
+"title": "keras/subclass",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nclass Net(keras.Model):\n    def __init__(self):\n        super().__init__()\n        self.hidden = layers.Dense(4, activation='relu')\n        self.out = layers.Dense(1)\n    def call(self, x):\n        return self.out(self.hidden(x))\n\nnet = Net()\nprint(net(np.ones((2, 3))).shape, [l.name for l in net.layers], net.count_params())\nnet.compile('adam', 'mse')\nprint(list(net.fit(np.ones((4, 3)), np.ones((4, 1)), verbose=0).history))",
+"out": "(2, 1) ['dense', 'dense_1'] 21\n['loss']\n"
+},
+{
+"title": "keras/early_stop",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nX = np.ones((4, 1))\nm = keras.Sequential([layers.Input((1,)), layers.Dense(1, kernel_initializer='ones', use_bias=False)])\nm.compile(keras.optimizers.SGD(0.05), 'mse')\nstop = keras.callbacks.EarlyStopping(monitor='loss', patience=1, min_delta=0.5, verbose=1)\nh = m.fit(X, np.zeros((4, 1)), epochs=20, verbose=0, callbacks=[stop])\nprint('ran', len(h.history['loss']), 'of 20 epochs')",
+"out": "Epoch 2: early stopping\nran 2 of 20 epochs\n"
+},
+{
+"title": "keras/lr_schedule",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nX = np.ones((4, 1))\nm = keras.Sequential([layers.Input((1,)), layers.Dense(1, kernel_initializer='ones', use_bias=False)])\nm.compile(keras.optimizers.SGD(0.1), 'mse')\nsched = keras.callbacks.LearningRateScheduler(lambda epoch, lr: lr * 0.5)\nh = m.fit(X, np.zeros((4, 1)), epochs=3, verbose=0, callbacks=[sched])\nprint([round(x, 4) for x in h.history['learning_rate']])\nprint([round(x, 4) for x in h.history['loss']])",
+"out": "[0.05, 0.025, 0.0125]\n[1.0, 0.81, 0.731]\n"
+},
+{
+"title": "keras/my_callback",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nclass Show(keras.callbacks.Callback):\n    def on_epoch_end(self, epoch, logs=None):\n        print('epoch', epoch, 'loss', round(logs['loss'], 4))\n        if logs['loss'] < 0.7:\n            self.model.stop_training = True\n\nm = keras.Sequential([layers.Input((1,)), layers.Dense(1, kernel_initializer='ones', use_bias=False)])\nm.compile(keras.optimizers.SGD(0.05), 'mse')\nm.fit(np.ones((4, 1)), np.zeros((4, 1)), epochs=9, verbose=0, callbacks=[Show()])",
+"out": "epoch 0 loss 1.0\nepoch 1 loss 0.81\nepoch 2 loss 0.6561\n",
+"value": "<keras.src.callbacks.history.History object at 0x14bd54040>"
+},
+{
+"title": "keras/saving",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nimport os\nm = keras.Sequential([layers.Input((2,)), layers.Dense(1, kernel_initializer='ones', name='d')], name='net')\nm.compile('adam', 'mse')\nm.save('net.keras')\nprint(os.path.exists('net.keras'))\nback = keras.models.load_model('net.keras')\nprint(back.name, back.optimizer.name, back.get_weights()[0].ravel())\nprint(m.get_layer('d').kernel.path)",
+"out": "True\nnet adam [1. 1.]\nnet/d/kernel\n"
+},
+{
+"title": "keras/rnn_summary",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nmodel = keras.Sequential([layers.Input((10,)), layers.Embedding(100, 8), layers.Bidirectional(layers.LSTM(4, return_sequences=True)), layers.GRU(4), layers.Dense(1, activation='sigmoid')])\nmodel.summary()",
+"out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ embedding (Embedding)           │ (None, 10, 8)          │           800 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ bidirectional (Bidirectional)   │ (None, 10, 8)          │           416 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ gru (GRU)                       │ (None, 4)              │           168 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 1)              │             5 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 1,389 (5.43 KB)\n Trainable params: 1,389 (5.43 KB)\n Non-trainable params: 0 (0.00 B)\n"
+},
+{
+"title": "keras/text",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nv = layers.TextVectorization(output_sequence_length=4)\nv.adapt(['the cat sat', 'the dog'])\nprint(sorted(v.get_vocabulary()))\nprint(v.vocabulary_size(), v(['the cat ran']).shape)\nprint(keras.utils.pad_sequences([[1, 2, 3], [4]], maxlen=3))",
+"out": "['', '[UNK]', np.str_('cat'), np.str_('dog'), np.str_('sat'), np.str_('the')]\n6 (1, 4)\n[[1 2 3]\n [0 0 4]]\n"
+},
+{
+"title": "keras/dataset_fit",
+"src": "import numpy as np\nimport keras\nfrom keras import layers\n\nimport tensorflow as tf\nX = np.arange(8.).reshape(8, 1)\nds = tf.data.Dataset.from_tensor_slices((X, 2 * X)).shuffle(8, seed=0).batch(4)\nm = keras.Sequential([layers.Input((1,)), layers.Dense(1)])\nm.compile(keras.optimizers.SGD(0.01), 'mse')\nh = m.fit(ds, epochs=2, verbose=0)\nprint(ds.element_spec, h.params)\nprint(m.predict(ds, verbose=0).shape)",
+"out": "(TensorSpec(shape=(None, 1), dtype=tf.float64, name=None), TensorSpec(shape=(None, 1), dtype=tf.float64, name=None)) {'verbose': 0, 'epochs': 2, 'steps': 2}\n(8, 1)\n"
+},
+{
+"title": "pandas/create",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({\n    'name':   ['Ann', 'Bob', 'Cy', 'Dee', 'Eve'],\n    'height': [160, 175, 168, 182, 155],\n    'weight': [52.5, 70.0, None, 81.2, 48.0],\n    'label':  ['M', 'L', 'M', 'L', 'M'],\n})\nprint(df)\nprint(df.shape)          # (rows, columns)\nprint(df.dtypes)         # int64, float64 (None -> NaN), object (text)\ndf.head(3)",
+"out": "  name  height  weight label\n0  Ann     160    52.5     M\n1  Bob     175    70.0     L\n2   Cy     168     NaN     M\n3  Dee     182    81.2     L\n4  Eve     155    48.0     M\n(5, 4)\nname       object\nheight      int64\nweight    float64\nlabel      object\ndtype: object\n",
+"value": "  name  height  weight label\n0  Ann     160    52.5     M\n1  Bob     175    70.0     L\n2   Cy     168     NaN     M"
+},
+{
+"title": "pandas/describe",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({\n    'name':   ['Ann', 'Bob', 'Cy', 'Dee', 'Eve'],\n    'height': [160, 175, 168, 182, 155],\n    'weight': [52.5, 70.0, None, 81.2, 48.0],\n    'label':  ['M', 'L', 'M', 'L', 'M'],\n})\nprint(df[['height', 'weight']].mean())     # NaN is skipped\nprint(df['height'].std())                   # pandas: ddof=1\nprint(np.std(df['height'].to_numpy()))      # NumPy: ddof=0\ndf.describe()",
+"out": "height    168.000\nweight     62.925\ndtype: float64\n10.931605554537724\n9.777525249264253\n",
+"value": "           height     weight\ncount    5.000000   4.000000\nmean   168.000000  62.925000\nstd     10.931606  15.443094\nmin    155.000000  48.000000\n25%    160.000000  51.375000\n50%    168.000000  61.250000\n75%    175.000000  72.800000\nmax    182.000000  81.200000"
+},
+{
+"title": "pandas/csv",
+"src": "import pandas as pd\nimport numpy as np\n\nimport io\n\ntext = \"\"\"height,weight,label\n160,52.5,M\n175,70.0,L\n168,,M\n182,81.2,L\"\"\"\ndf = pd.read_csv(io.StringIO(text))   # in Colab: pd.read_csv('data.csv')\nprint(df)\nprint(df.dtypes)\ndf.info()",
+"out": "   height  weight label\n0     160    52.5     M\n1     175    70.0     L\n2     168     NaN     M\n3     182    81.2     L\nheight      int64\nweight    float64\nlabel      object\ndtype: object\n<class 'pandas.core.frame.DataFrame'>\nRangeIndex: 4 entries, 0 to 3\nData columns (total 3 columns):\n #   Column  Non-Null Count  Dtype  \n---  ------  --------------  -----  \n 0   height  4 non-null      int64  \n 1   weight  3 non-null      float64\n 2   label   4 non-null      object \ndtypes: float64(1), int64(1), object(1)\nmemory usage: 224.0+ bytes\n"
+},
+{
+"title": "pandas/columns",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({\n    'name':   ['Ann', 'Bob', 'Cy', 'Dee', 'Eve'],\n    'height': [160, 175, 168, 182, 155],\n    'weight': [52.5, 70.0, None, 81.2, 48.0],\n    'label':  ['M', 'L', 'M', 'L', 'M'],\n})\nheights = df['height']              # one column: a Series\nprint(type(heights).__name__)\nX = df[['height', 'weight']]         # a list of columns: a DataFrame\nprint(X)\ny = df['label']\nprint(y.tolist())",
+"out": "Series\n   height  weight\n0     160    52.5\n1     175    70.0\n2     168     NaN\n3     182    81.2\n4     155    48.0\n['M', 'L', 'M', 'L', 'M']\n"
+},
+{
+"title": "pandas/filter",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({\n    'name':   ['Ann', 'Bob', 'Cy', 'Dee', 'Eve'],\n    'height': [160, 175, 168, 182, 155],\n    'weight': [52.5, 70.0, None, 81.2, 48.0],\n    'label':  ['M', 'L', 'M', 'L', 'M'],\n})\ntall = df[df['height'] > 170]\nprint(tall)\n# combine conditions with & and |, each in brackets\ndf[(df['height'] > 160) & (df['label'] == 'M')]",
+"out": "  name  height  weight label\n1  Bob     175    70.0     L\n3  Dee     182    81.2     L\n",
+"value": "  name  height  weight label\n2   Cy     168     NaN     M"
+},
+{
+"title": "pandas/loc",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({\n    'name':   ['Ann', 'Bob', 'Cy', 'Dee', 'Eve'],\n    'height': [160, 175, 168, 182, 155],\n    'weight': [52.5, 70.0, None, 81.2, 48.0],\n    'label':  ['M', 'L', 'M', 'L', 'M'],\n})\ndf = df.set_index('name')\nprint(df.loc['Bob':'Dee', 'height'])   # labels: the end is INCLUDED\nprint(df.iloc[1:3, 0])                 # positions: the end is excluded\ndf.loc[df['label'] == 'L', ['height', 'weight']]",
+"out": "name\nBob    175\nCy     168\nDee    182\nName: height, dtype: int64\nname\nBob    175\nCy     168\nName: height, dtype: int64\n",
+"value": "      height  weight\nname                \nBob      175    70.0\nDee      182    81.2"
+},
+{
+"title": "pandas/missing",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({\n    'name':   ['Ann', 'Bob', 'Cy', 'Dee', 'Eve'],\n    'height': [160, 175, 168, 182, 155],\n    'weight': [52.5, 70.0, None, 81.2, 48.0],\n    'label':  ['M', 'L', 'M', 'L', 'M'],\n})\nprint(df.isna().sum())                         # missing values per column\nfilled = df.fillna({'weight': df['weight'].mean()})\nprint(filled)\ndf.dropna()",
+"out": "name      0\nheight    0\nweight    1\nlabel     0\ndtype: int64\n  name  height  weight label\n0  Ann     160  52.500     M\n1  Bob     175  70.000     L\n2   Cy     168  62.925     M\n3  Dee     182  81.200     L\n4  Eve     155  48.000     M\n",
+"value": "  name  height  weight label\n0  Ann     160    52.5     M\n1  Bob     175    70.0     L\n3  Dee     182    81.2     L\n4  Eve     155    48.0     M"
+},
+{
+"title": "pandas/encode",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({\n    'name':   ['Ann', 'Bob', 'Cy', 'Dee', 'Eve'],\n    'height': [160, 175, 168, 182, 155],\n    'weight': [52.5, 70.0, None, 81.2, 48.0],\n    'label':  ['M', 'L', 'M', 'L', 'M'],\n})\ndf['y'] = df['label'].map({'M': 0, 'L': 1})     # labels -> numbers\nprint(df[['label', 'y']])\npd.get_dummies(df['label'])                      # one-hot columns",
+"out": "  label  y\n0     M  0\n1     L  1\n2     M  0\n3     L  1\n4     M  0\n",
+"value": "       L      M\n0  False   True\n1   True  False\n2  False   True\n3   True  False\n4  False   True"
+},
+{
+"title": "pandas/naive_bayes",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({\n    'BloodPressure': ['High', 'High', 'Low', 'Normal', 'Normal', 'Normal', 'Low', 'High', 'High', 'Normal', 'High', 'Low', 'Low', 'Normal'],\n    'Fever':    ['High', 'High', 'High', 'Mild', 'No fever', 'No fever', 'No fever', 'Mild', 'No fever', 'Mild', 'Mild', 'Mild', 'High', 'Mild'],\n    'Diabetes': ['Yes', 'Yes', 'Yes', 'Yes', 'No', 'No', 'No', 'Yes', 'No', 'No', 'No', 'Yes', 'No', 'Yes'],\n    'Vomit':    ['No', 'Yes', 'No', 'No', 'No', 'Yes', 'Yes', 'No', 'No', 'No', 'Yes', 'Yes', 'No', 'Yes'],\n    'DiseaseZ': ['No', 'No', 'Yes', 'Yes', 'Yes', 'No', 'Yes', 'No', 'Yes', 'Yes', 'Yes', 'Yes', 'Yes', 'No'],\n})\n\nprior = df['DiseaseZ'].value_counts(normalize=True)                 # P(Z)\nprint(prior)\nbp = pd.crosstab(df['DiseaseZ'], df['BloodPressure'], normalize='index')  # P(BloodPressure | Z)\nprint(bp)\n\n# a patient with High blood pressure, no fever, diabetes and vomiting\nx = {'BloodPressure': 'High', 'Fever': 'No fever', 'Diabetes': 'Yes', 'Vomit': 'Yes'}\nfor z in ['Yes', 'No']:\n    p = prior[z]\n    for feature, value in x.items():\n        table = pd.crosstab(df['DiseaseZ'], df[feature], normalize='index')\n        p *= table.loc[z, value]\n    print(z, round(p, 5))",
+"out": "DiseaseZ\nYes    0.642857\nNo     0.357143\nName: proportion, dtype: float64\nBloodPressure      High       Low    Normal\nDiseaseZ                                   \nNo             0.600000  0.000000  0.400000\nYes            0.222222  0.444444  0.333333\nYes 0.00529\nNo 0.02057\n"
+},
+{
+"title": "pandas/standardize",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'height': [160, 175, 168, 182, 155],\n                   'weight': [52.5, 70.0, 64.1, 81.2, 48.0]})\nz = (df - df.mean()) / df.std(ddof=0)      # ddof=0, as np.std does\nprint(z.round(3))\nprint(z.mean().round(6).tolist(), z.std(ddof=0).tolist())",
+"out": "   height  weight\n0  -0.818  -0.890\n1   0.716   0.571\n2   0.000   0.079\n3   1.432   1.507\n4  -1.330  -1.266\n[0.0, -0.0] [1.0, 1.0]\n"
+},
+{
+"title": "pandas/centroids",
+"src": "import pandas as pd\nimport numpy as np\n\npoints = pd.DataFrame({'x': [1, 1.5, 3, 5, 3.5, 4.5, 3.5],\n                       'y': [1, 2, 4, 7, 5, 5, 4.5],\n                       'cluster': [0, 0, 1, 1, 1, 1, 1]})\n# K-Means step 4: each centroid moves to the mean of its points\ncentroids = points.groupby('cluster')[['x', 'y']].mean()\nprint(centroids)\npoints.groupby('cluster').size()",
+"out": "            x    y\ncluster           \n0        1.25  1.5\n1        3.90  5.1\n",
+"value": "cluster\n0    2\n1    5\ndtype: int64"
+},
+{
+"title": "pandas/confusion",
+"src": "import pandas as pd\nimport numpy as np\n\nresults = pd.DataFrame({'true': [1, 0, 1, 1, 0, 1, 0, 0, 1, 1],\n                        'pred': [1, 0, 0, 1, 0, 1, 1, 0, 1, 0]})\ncm = pd.crosstab(results['true'], results['pred'])\nprint(cm)\ntp = cm.loc[1, 1]\nprecision = tp / cm[1].sum()          # column: everything predicted 1\nrecall = tp / cm.loc[1].sum()         # row: everything truly 1\nprint(f\"precision {precision:.2f}, recall {recall:.2f}\")",
+"out": "pred  0  1\ntrue      \n0     3  1\n1     2  4\nprecision 0.80, recall 0.67\n"
+},
+{
+"title": "pandas/groupby",
+"src": "import pandas as pd\nimport numpy as np\n\nimport matplotlib.pyplot as plt\nscores = pd.DataFrame({'k': [1, 1, 3, 3, 5, 5, 7, 7],\n                       'fold': [1, 2, 1, 2, 1, 2, 1, 2],\n                       'accuracy': [0.80, 0.84, 0.88, 0.86, 0.91, 0.89, 0.90, 0.88]})\nmean_acc = scores.groupby('k')['accuracy'].mean()     # average over folds\nprint(mean_acc)\nbest_k = mean_acc.idxmax()\nplt.bar([str(k) for k in mean_acc.index], mean_acc.tolist())\nplt.ylim(0.75, 0.95)\nplt.title(f'cross-validation: best K = {best_k}')",
+"out": "k\n1    0.82\n3    0.87\n5    0.90\n7    0.89\nName: accuracy, dtype: float64\n",
+"value": "Text(0.5, 1.0, 'cross-validation: best K = 5')"
+},
+{
+"title": "pandas/isin",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'student': ['Ann', 'Bob', 'Cy', 'Dee', 'Eve'],\n                   'major': ['COMP', 'MATH', 'COMP', 'PHYS', 'ELEC']})\ndf[df['major'].isin(['COMP', 'ELEC'])]",
+"out": "",
+"value": "  student major\n0     Ann  COMP\n2      Cy  COMP\n4     Eve  ELEC"
+},
+{
+"title": "pandas/nlargest",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'model': ['KNN', 'NB', 'MLP', 'CNN', 'Perceptron'],\n                   'accuracy': [0.88, 0.81, 0.91, 0.95, 0.76]})\ndf.nlargest(3, 'accuracy')",
+"out": "",
+"value": "  model  accuracy\n3   CNN      0.95\n2   MLP      0.91\n0   KNN      0.88"
+},
+{
+"title": "pandas/duplicates",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'name': ['Ann', 'Bob', 'Ann', 'Cy', 'Bob'],\n                   'score': [90, 75, 90, 60, 80]})\nprint(df.duplicated())        # True = an exact repeat of an earlier row\ndf.drop_duplicates()",
+"out": "0    False\n1    False\n2     True\n3    False\n4    False\ndtype: bool\n",
+"value": "  name  score\n0  Ann     90\n1  Bob     75\n3   Cy     60\n4  Bob     80"
+},
+{
+"title": "pandas/apply_rows",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'height': [170, 160, 182], 'weight': [65, 50, 90]})\ndf['bmi'] = df.apply(lambda r: r.weight / (r.height / 100) ** 2, axis=1)\ndf.round(1)",
+"out": "",
+"value": "   height  weight   bmi\n0     170      65  22.5\n1     160      50  19.5\n2     182      90  27.2"
+},
+{
+"title": "pandas/cut",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'age': [22, 35, 58, 41, 19, 66, 30, 47],\n                   'buys': ['yes', 'no', 'no', 'yes', 'yes', 'no', 'yes', 'no']})\ndf['age_group'] = pd.cut(df['age'], bins=[0, 30, 50, 100], labels=['young', 'middle', 'old'])\npd.crosstab(df['age_group'], df['buys'])     # the counts Naive Bayes needs",
+"out": "",
+"value": "buys       no  yes\nage_group         \nyoung       0    3\nmiddle      2    1\nold         2    0"
+},
+{
+"title": "pandas/gaussian_nb",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'cls': ['spam', 'ham', 'spam', 'ham', 'spam', 'ham'],\n                   'length': [12.0, 30.0, 9.0, 26.0, 15.0, 34.0]})\nparams = df.groupby('cls')['length'].agg(['mean', 'std'])\nparams      # Gaussian Naive Bayes: one mean and one std per class",
+"out": "",
+"value": "      mean  std\ncls            \nham   30.0  4.0\nspam  12.0  3.0"
+},
+{
+"title": "pandas/pivot",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'cluster': [0, 1, 0, 1, 0, 1],\n                   'x': [1.0, 8.0, 2.0, 9.0, 1.5, 7.0],\n                   'y': [2.0, 8.5, 1.0, 9.5, 1.5, 8.0]})\ndf.pivot_table(index='cluster', values=['x', 'y'], aggfunc='mean')   # the new K-Means centroids",
+"out": "",
+"value": "           x         y\ncluster               \n0        1.5  1.500000\n1        8.0  8.666667"
+},
+{
+"title": "pandas/sample_split",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'x': range(8), 'label': [0, 1, 0, 1, 1, 0, 1, 0]})\ntrain = df.sample(frac=0.75, random_state=0)\ntest = df.drop(train.index)     # every row not drawn for training\nprint(len(train), 'train rows,', len(test), 'test rows')\ntest",
+"out": "6 train rows, 2 test rows\n",
+"value": "   x  label\n4  4      1\n5  5      0"
+},
+{
+"title": "pandas/merge",
+"src": "import pandas as pd\nimport numpy as np\n\nstudents = pd.DataFrame({'id': [1, 2, 3], 'name': ['Ann', 'Bo', 'Cy']})\nmarks = pd.DataFrame({'id': [1, 2, 4], 'mark': [90, 75, 60]})\nprint(pd.merge(students, marks, on='id'))\nprint(pd.merge(students, marks, on='id', how='left'))",
+"out": "   id name  mark\n0   1  Ann    90\n1   2   Bo    75\n   id name  mark\n0   1  Ann  90.0\n1   2   Bo  75.0\n2   3   Cy   NaN\n"
+},
+{
+"title": "pandas/concat",
+"src": "import pandas as pd\nimport numpy as np\n\na = pd.DataFrame({'x': [1, 2]})\nb = pd.DataFrame({'x': [3], 'y': [4]})\nprint(pd.concat([a, b]))\nprint(pd.concat([a, b], ignore_index=True))\nprint(pd.concat([a, a], axis=1))",
+"out": "   x    y\n0  1  NaN\n1  2  NaN\n0  3  4.0\n   x    y\n0  1  NaN\n1  2  NaN\n2  3  4.0\n   x  x\n0  1  1\n1  2  2\n"
+},
+{
+"title": "pandas/melt",
+"src": "import pandas as pd\nimport numpy as np\n\nwide = pd.DataFrame({'name': ['Ann', 'Bo'], 'math': [90, 80], 'art': [70, 95]})\nlong = wide.melt(id_vars='name', var_name='subject', value_name='mark')\nprint(long)\nprint(long.pivot(index='name', columns='subject', values='mark'))",
+"out": "  name subject  mark\n0  Ann    math    90\n1   Bo    math    80\n2  Ann     art    70\n3   Bo     art    95\nsubject  art  math\nname              \nAnn       70    90\nBo        95    80\n"
+},
+{
+"title": "pandas/crosstab",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'pred': [1, 0, 1, 1, 0], 'true': [1, 0, 0, 1, 1]})\nprint(pd.crosstab(df['true'], df['pred']))\nprint(pd.crosstab(df['true'], df['pred'], normalize='index'))",
+"out": "pred  0  1\ntrue      \n0     1  1\n1     1  2\npred         0         1\ntrue                    \n0     0.500000  0.500000\n1     0.333333  0.666667\n"
+},
+{
+"title": "pandas/agg",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'cls': ['a', 'a', 'b', 'b'], 'x': [1, 2, 3, 5], 'y': [10, 20, 30, 40]})\nprint(df.groupby('cls').agg({'x': 'mean', 'y': ['min', 'max']}))\nprint(df.groupby('cls')['x'].agg(['mean', 'std', 'count']))",
+"out": "       x   y    \n    mean min max\ncls             \na    1.5  10  20\nb    4.0  30  40\n     mean       std  count\ncls                       \na     1.5  0.707107      2\nb     4.0  1.414214      2\n"
+},
+{
+"title": "pandas/transform",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'cls': ['a', 'a', 'b', 'b'], 'x': [1., 3., 10., 30.]})\ndf['mean'] = df.groupby('cls')['x'].transform('mean')\ndf['centred'] = df['x'] - df['mean']\nprint(df)\nprint(df.groupby('cls')['x'].rank())",
+"out": "  cls     x  mean  centred\n0   a   1.0   2.0     -1.0\n1   a   3.0   2.0      1.0\n2   b  10.0  20.0    -10.0\n3   b  30.0  20.0     10.0\n0    1.0\n1    2.0\n2    1.0\n3    2.0\nName: x, dtype: float64\n"
+},
+{
+"title": "pandas/strings",
+"src": "import pandas as pd\nimport numpy as np\n\ns = pd.Series(['  Cat ', 'dog', None, 'Bird 2'])\nprint(s.str.strip().str.lower())\nprint(s.str.contains('o', na=False))\nprint(s.str.len())\nprint(s.str.split().str[0])",
+"out": "0       cat\n1       dog\n2      None\n3    bird 2\ndtype: object\n0    False\n1     True\n2    False\n3    False\ndtype: bool\n0    6.0\n1    3.0\n2    NaN\n3    6.0\ndtype: float64\n0     Cat\n1     dog\n2    None\n3    Bird\ndtype: object\n"
+},
+{
+"title": "pandas/rolling",
+"src": "import pandas as pd\nimport numpy as np\n\ns = pd.Series([1, 2, 3, 4, 5, 6])\nprint(s.rolling(3).mean())\nprint(s.expanding().max())\nprint(s.cumsum(), s.pct_change().round(2), s.shift(1))",
+"out": "0    NaN\n1    NaN\n2    2.0\n3    3.0\n4    4.0\n5    5.0\ndtype: float64\n0    1.0\n1    2.0\n2    3.0\n3    4.0\n4    5.0\n5    6.0\ndtype: float64\n0     1\n1     3\n2     6\n3    10\n4    15\n5    21\ndtype: int64 0     NaN\n1    1.00\n2    0.50\n3    0.33\n4    0.25\n5    0.20\ndtype: float64 0    NaN\n1    1.0\n2    2.0\n3    3.0\n4    4.0\n5    5.0\ndtype: float64\n"
+},
+{
+"title": "pandas/dummies",
+"src": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'colour': ['red', 'blue', 'red'], 'size': [1, 2, 3]})\nprint(pd.get_dummies(df, columns=['colour']))\nprint(df['colour'].value_counts())\nprint(df['colour'].map({'red': 0, 'blue': 1}))",
+"out": "   size  colour_blue  colour_red\n0     1        False        True\n1     2         True       False\n2     3        False        True\ncolour\nred     2\nblue    1\nName: count, dtype: int64\n0    0\n1    1\n2    0\nName: colour, dtype: int64\n"
+},
+{
+"title": "matplotlib/anatomy",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nx = np.linspace(-5, 5, 41)\nfig, ax = plt.subplots(figsize=(6, 4))      # a Figure holding one Axes\nax.plot(x, 1 / (1 + np.exp(-x)), label='sigmoid')\nax.plot(x, np.maximum(0, x) / 5, '--', label='ReLU / 5')\nax.set_title('Activation functions')\nax.set_xlabel('z')\nax.set_ylabel('f(z)')\nax.legend()\nax.grid(True)",
+"out": ""
+},
+{
+"title": "matplotlib/subplot",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nx = np.arange(10)\nplt.figure(figsize=(8, 5))\nplt.subplot(2, 2, 1); plt.plot(x, x);       plt.title('subplot(2, 2, 1)')\nplt.subplot(2, 2, 2); plt.plot(x, x ** 2);  plt.title('subplot(2, 2, 2)')\nplt.subplot(2, 2, 3); plt.bar(x, x % 3);    plt.title('subplot(2, 2, 3)')\nplt.subplot(2, 2, 4); plt.scatter(x, 10 - x); plt.title('subplot(2, 2, 4)')\nplt.suptitle('rows, columns, index (counted from 1, row by row)')",
+"out": "",
+"value": "Text(0.5, 0.98, 'rows, columns, index (counted from 1, row by row)')"
+},
+{
+"title": "matplotlib/fmt",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nx = np.arange(6)\nplt.plot(x, x, 'ro--', label=\"'ro--'  red, circles, dashed\")\nplt.plot(x, x + 2, 'bs', label=\"'bs'  blue squares, no line\")\nplt.plot(x, x + 4, 'g^-', label=\"'g^-'  green triangles, solid\")\nplt.plot(x, x + 6, color='C1', linestyle=':', linewidth=3, label='keywords')\nplt.legend(loc='upper left')",
+"out": "",
+"value": "<matplotlib.legend.Legend object at 0x104d4bd00>"
+},
+{
+"title": "matplotlib/imshow_gray",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nimg = np.array([[0.0, 0.2, 0.4, 0.6],\n                [0.2, 0.4, 0.6, 0.8],\n                [0.4, 0.6, 0.8, 1.0],\n                [0.6, 0.8, 1.0, 1.0]])\nplt.imshow(img, cmap='gray', vmin=0, vmax=1)   # how lecture 7 shows every image\nplt.title('cmap=\"gray\", vmin=0, vmax=1')\nplt.colorbar()",
+"out": "",
+"value": "<matplotlib.colorbar.Colorbar object at 0x106106d70>"
+},
+{
+"title": "matplotlib/vmin_vmax",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\ndark = np.array([[0.0, 0.1, 0.2],\n                 [0.1, 0.2, 0.3],\n                 [0.2, 0.3, 0.3]])          # a dark image: nothing above 0.3\nfig, axes = plt.subplots(1, 3, figsize=(9, 3.2))\naxes[0].imshow(dark)                        # default colormap: viridis\naxes[0].set_title('default')\naxes[1].imshow(dark, cmap='gray')           # still stretched to its own range\naxes[1].set_title(\"cmap='gray'\")\naxes[2].imshow(dark, cmap='gray', vmin=0, vmax=1)\naxes[2].set_title('vmin=0, vmax=1')",
+"out": "",
+"value": "Text(0.5, 1.0, 'vmin=0, vmax=1')"
+},
+{
+"title": "matplotlib/rgb",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((4, 4, 3))\nimg[:2, :2, 0] = 1        # top-left: red channel on\nimg[:2, 2:, 1] = 1        # top-right: green\nimg[2:, :2, 2] = 1        # bottom-left: blue\nimg[2:, 2:] = 1           # bottom-right: all three -> white\nfig, axes = plt.subplots(1, 4, figsize=(10, 3))\naxes[0].imshow(img)\naxes[0].set_title('RGB  (4, 4, 3)')\nfor c, name in enumerate(['R', 'G', 'B']):\n    axes[c + 1].imshow(img[:, :, c], cmap='gray', vmin=0, vmax=1)\n    axes[c + 1].set_title(f'img[:, :, {c}]  ({name})')",
+"out": ""
+},
+{
+"title": "matplotlib/grid",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nimport math\n\nimgs = np.zeros((6, 7, 7))             # six tiny 7 x 7 \"digits\"\nimgs[0, :, 3] = 1                      # a vertical stroke\nimgs[1, 3, :] = 1                      # a horizontal stroke\nimgs[2] = np.eye(7)                    # a diagonal\nimgs[3] = np.flip(np.eye(7), axis=1)   # the other diagonal\nimgs[4, 1:6, 1:6] = 1\nimgs[4, 2:5, 2:5] = 0                  # a hollow square\nimgs[5] = np.maximum(np.eye(7), np.flip(np.eye(7), axis=1))\nlabels = ['|', '-', 'diag', 'anti', 'box', 'X']\n\n# lecture 6's MNIST grid, line for line\nnum_cells = math.ceil(math.sqrt(len(imgs)))\nplt.figure(figsize=(6, 6))\nfor i in range(len(imgs)):\n    plt.subplot(num_cells, num_cells, i + 1)\n    plt.xticks([])\n    plt.yticks([])\n    plt.grid(False)\n    plt.imshow(imgs[i], cmap=plt.cm.binary)\n    plt.xlabel(labels[i])",
+"out": ""
+},
+{
+"title": "matplotlib/axes_flat",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nimgs = np.random.rand(6, 5, 5)     # six random 5 x 5 images\n\nfig, axes = plt.subplots(2, 3, figsize=(6, 4.4))\nprint(axes.shape)                  # a 2 x 3 array of Axes\nfor i, ax in enumerate(axes.flat): # row by row\n    ax.imshow(imgs[i], cmap='gray', vmin=0, vmax=1)\n    ax.set_title(f'axes.flat[{i}]')\n    ax.axis('off')",
+"out": "(2, 3)\n"
+},
+{
+"title": "matplotlib/sobel",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nimg = np.zeros((8, 8))\nimg[2:6, 2:6] = 1                                  # a white square\nk = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])  # Sobel x: vertical edges\n\nout = np.zeros((6, 6))                             # valid: 8 - 3 + 1 = 6\nfor i in range(6):\n    for j in range(6):\n        out[i, j] = (img[i:i+3, j:j+3] * k).sum()\n\nfig, axes = plt.subplots(1, 2, figsize=(7, 3.6))\naxes[0].imshow(img, cmap='gray')\naxes[0].set_title('input 8 x 8')\naxes[1].imshow(out, cmap='gray')\naxes[1].set_title('Sobel-x output 6 x 6')",
+"out": "",
+"value": "Text(0.5, 1.0, 'Sobel-x output 6 x 6')"
+},
+{
+"title": "matplotlib/otsu",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\npixels = np.array([20, 25, 30, 28, 35, 40, 30, 180, 190, 200, 210, 185, 195, 205])\n\n# Otsu: try every threshold, keep the one with the largest between-class variance\nbest_t, best_var = 0, -1.0\nfor t in range(1, 256):\n    bg, fg = pixels[pixels < t], pixels[pixels >= t]\n    if len(bg) == 0 or len(fg) == 0:\n        continue\n    w0, w1 = len(bg) / len(pixels), len(fg) / len(pixels)\n    var = w0 * w1 * (bg.mean() - fg.mean()) ** 2\n    if var > best_var:\n        best_t, best_var = t, var\n\nplt.hist(pixels, bins=16, range=(0, 256), color='gray')\nplt.axvline(best_t, color='r', linestyle='--', label=f'Otsu threshold = {best_t}')\nplt.xlabel('pixel intensity')\nplt.ylabel('count')\nplt.legend()",
+"out": "",
+"value": "<matplotlib.legend.Legend object at 0x11233a200>"
+},
+{
+"title": "matplotlib/kmeans",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nX = np.array([[1, 1], [1.5, 2], [3, 4], [5, 7], [3.5, 5], [4.5, 5], [3.5, 4.5]])\ncentroids = np.array([[1, 1], [5, 7]])\n\n# one K-Means assignment step: every point joins its nearest centroid\nd = np.sqrt(((X[:, None, :] - centroids[None, :, :]) ** 2).sum(axis=2))\nlabels = np.argmin(d, axis=1)\n\nplt.scatter(X[:, 0], X[:, 1], c=labels, cmap='coolwarm', s=80)\nplt.scatter(centroids[:, 0], centroids[:, 1], c='black', marker='x', s=120, label='centroids')\nplt.title('K-Means: assignment step')\nplt.legend()",
+"out": "",
+"value": "<matplotlib.legend.Legend object at 0x1074b59c0>"
+},
+{
+"title": "matplotlib/boundary",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nX = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])\ny = np.array([0, 0, 0, 1])              # logical AND\nw, b = np.array([1.0, 1.0]), -1.5       # a perceptron that solves AND\n\nxs = np.linspace(-0.5, 1.5, 9)\nplt.scatter(X[:, 0], X[:, 1], c=y, cmap='bwr', s=120, edgecolors='k')\nplt.plot(xs, -(w[0] * xs + b) / w[1], 'k--', label='w·x + b = 0')\nplt.xlim(-0.5, 1.5)\nplt.ylim(-0.5, 1.5)\nplt.legend()\nplt.title('Perceptron decision boundary (AND)')",
+"out": "",
+"value": "Text(0.5, 1.0, 'Perceptron decision boundary (AND)')"
+},
+{
+"title": "matplotlib/history",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\n# made-up numbers in the shape of a Keras history.history\nhistory = {'loss':     [0.90, 0.60, 0.45, 0.36, 0.30, 0.26, 0.23, 0.21],\n           'val_loss': [0.95, 0.68, 0.55, 0.50, 0.49, 0.51, 0.55, 0.60]}\nepochs = range(1, len(history['loss']) + 1)\nplt.plot(epochs, history['loss'], 'o-', label='training loss')\nplt.plot(epochs, history['val_loss'], 's--', label='validation loss')\nbest = int(np.argmin(history['val_loss'])) + 1\nplt.axvline(best, color='gray', linestyle=':', label=f'best epoch = {best}')\nplt.xlabel('epoch')\nplt.ylabel('loss')\nplt.legend()\nplt.title('Overfitting: validation loss turns up')",
+"out": "",
+"value": "Text(0.5, 1.0, 'Overfitting: validation loss turns up')"
+},
+{
+"title": "matplotlib/confusion",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\ncm = np.array([[50, 10],\n               [5, 35]])          # rows = true class, columns = predicted\nplt.imshow(cm, cmap='Blues')\nfor i in range(2):\n    for j in range(2):\n        plt.text(j, i, cm[i, j], ha='center', va='center')\nplt.xticks([0, 1], ['pred 0', 'pred 1'])\nplt.yticks([0, 1], ['true 0', 'true 1'])\nplt.colorbar()\nprecision = cm[1, 1] / cm[:, 1].sum()\nrecall = cm[1, 1] / cm[1, :].sum()\nplt.title(f'precision {precision:.2f}, recall {recall:.2f}')",
+"out": "",
+"value": "Text(0.5, 1.0, 'precision 0.78, recall 0.88')"
+},
+{
+"title": "matplotlib/heatmap",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nimport seaborn as sn\n\ncm = np.array([[48, 2, 0],\n               [3, 41, 6],\n               [0, 5, 45]])      # 3 classes: rows = true, columns = predicted\nf, ax = plt.subplots(figsize=(5, 5))\nsn.heatmap(cm, annot=True, fmt='d', square=True, ax=ax)   # as in lecture 6\nax.set_xlabel('predicted')\nax.set_ylabel('true')\naccuracy = np.trace(cm) / cm.sum()\nax.set_title(f'accuracy = trace / total = {accuracy:.2f}')",
+"out": "",
+"value": "Text(0.5, 1.0, 'accuracy = trace / total = 0.89')"
+},
+{
+"title": "matplotlib/choose_k",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nks = [1, 3, 5, 7, 9]\nacc = [0.82, 0.88, 0.91, 0.90, 0.87]     # made-up cross-validation accuracies\nplt.bar([str(k) for k in ks], acc, color='C2')\nplt.ylim(0.7, 1)\nplt.xlabel('K')\nplt.ylabel('validation accuracy')\nplt.title(f'Choosing K: best K = {ks[int(np.argmax(acc))]}')",
+"out": "",
+"value": "Text(0.5, 1.0, 'Choosing K: best K = 5')"
+},
+{
+"title": "matplotlib/knn_regions",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nX = np.array([[1, 2], [2, 3], [3, 1], [2, 1], [6, 5], [7, 7], [8, 6], [6, 7], [4, 4], [5, 3]])\ny = np.array([0, 0, 0, 0, 1, 1, 1, 1, 0, 1])\nxx, yy = np.meshgrid(np.linspace(0, 9, 46), np.linspace(0, 8, 41))\ngrid = np.stack([xx.ravel(), yy.ravel()], axis=1)            # (1886, 2): every point of the plane\nd = np.sqrt(((grid[:, None, :] - X[None, :, :]) ** 2).sum(axis=2))   # (1886, 10) distances\nnearest = np.argsort(d, axis=1)[:, :3]                       # k = 3\nZ = (y[nearest].mean(axis=1) > 0.5).astype(int).reshape(xx.shape)\nplt.contourf(xx, yy, Z, alpha=0.35, cmap='coolwarm')\nplt.scatter(X[:, 0], X[:, 1], c=y, cmap='coolwarm', edgecolors='k')\nplt.title('KNN (k = 3) decision regions')",
+"out": "",
+"value": "Text(0.5, 1.0, 'KNN (k = 3) decision regions')"
+},
+{
+"title": "matplotlib/errorbar",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nks = np.array([1, 3, 5, 7, 9])\nacc = np.array([[0.80, 0.78, 0.83, 0.79, 0.81],      # 5-fold accuracy for each k\n                [0.86, 0.84, 0.88, 0.85, 0.87],\n                [0.88, 0.87, 0.90, 0.86, 0.89],\n                [0.87, 0.85, 0.88, 0.84, 0.88],\n                [0.84, 0.83, 0.86, 0.82, 0.85]])\nplt.errorbar(ks, acc.mean(axis=1), yerr=acc.std(axis=1), fmt='o-', capsize=4)\nplt.xlabel('k')\nplt.ylabel('cross-validation accuracy')\nplt.title('Pick k: mean ± std over the folds')",
+"out": "",
+"value": "Text(0.5, 1.0, 'Pick k: mean ± std over the folds')"
+},
+{
+"title": "matplotlib/boxplot",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nheight = np.array([152, 158, 160, 163, 165, 168, 170, 172, 175, 181, 199])\nweight = np.array([45, 50, 52, 55, 58, 60, 62, 65, 70, 74, 80])\nplt.boxplot([height, weight], tick_labels=['height (cm)', 'weight (kg)'])\nplt.title('Different scales (and an outlier): standardise before KNN')",
+"out": "",
+"value": "Text(0.5, 1.0, 'Different scales (and an outlier): standardise before KNN')"
+},
+{
+"title": "matplotlib/pie",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nlabels = ['cat', 'dog', 'bird']\ncounts = np.array([620, 300, 80])\nplt.pie(counts, labels=labels, autopct='%1.1f%%', startangle=90)\nplt.title('Class balance: is accuracy a fair score here?')",
+"out": "",
+"value": "Text(0.5, 1.0, 'Class balance: is accuracy a fair score here?')"
+},
+{
+"title": "matplotlib/annotate",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nval = np.array([0.92, 0.70, 0.55, 0.47, 0.44, 0.43, 0.45, 0.49, 0.54, 0.60])\nepochs = np.arange(1, 11)\nbest = np.argmin(val)\nplt.plot(epochs, val, 'o-', label='val_loss')\nplt.annotate('stop here', xy=(epochs[best], val[best]), xytext=(epochs[best] + 1.5, val[best] + 0.25),\n             arrowprops=dict(arrowstyle='->'))\nplt.xlabel('epoch')\nplt.legend()",
+"out": "",
+"value": "<matplotlib.legend.Legend object at 0x10685b010>"
+},
+{
+"title": "matplotlib/step",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nz = np.linspace(-3, 3, 13)\nplt.step(z, (z >= 0).astype(int), where='post', label='step (perceptron)')\nplt.plot(z, 1 / (1 + np.exp(-z)), label='sigmoid')\nplt.legend()\nplt.title('Hard threshold vs smooth activation')",
+"out": "",
+"value": "Text(0.5, 1.0, 'Hard threshold vs smooth activation')"
+},
+{
+"title": "matplotlib/bars",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nfig, (a, b) = plt.subplots(1, 2, figsize=(8, 3))\na.bar(['cat', 'dog', 'bird'], [5, 7, 3])\na.set_title('bar: one height per label')\nb.hist([1, 2, 2, 3, 3, 3, 4, 4, 5], bins=5)\nb.set_title('hist: counts per bin')\nplt.tight_layout()",
+"out": ""
+},
+{
+"title": "matplotlib/contour",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nx, y = np.meshgrid(np.linspace(-2, 2, 60), np.linspace(-2, 2, 60))\nz = x ** 2 + y ** 2\nplt.contourf(x, y, z, levels=10, cmap='viridis')\nplt.colorbar(label='loss')\nplt.title('a loss surface from above')",
+"out": "",
+"value": "Text(0.5, 1.0, 'a loss surface from above')"
+},
+{
+"title": "matplotlib/fill",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nx = np.linspace(0, 10, 50)\nmean = np.sin(x)\nplt.plot(x, mean, label='mean')\nplt.fill_between(x, mean - 0.3, mean + 0.3, alpha=0.3, label='± 0.3')\nplt.legend()",
+"out": "",
+"value": "<matplotlib.legend.Legend object at 0x104bb7910>"
+},
+{
+"title": "matplotlib/twinx",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nepochs = np.arange(1, 11)\nfig, ax = plt.subplots()\nax.plot(epochs, 1 / epochs, 'r', label='loss')\nax.set_ylabel('loss')\nright = ax.twinx()\nright.plot(epochs, 1 - 0.5 / epochs, 'b', label='accuracy')\nright.set_ylabel('accuracy')",
+"out": "",
+"value": "Text(0, 0.5, 'accuracy')"
+},
+{
+"title": "matplotlib/log",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nlr = np.array([0.0001, 0.001, 0.01, 0.1, 1])\nloss = np.array([2.1, 1.2, 0.4, 0.5, 3.0])\nplt.plot(lr, loss, 'o-')\nplt.xscale('log')\nplt.xlabel('learning rate')\nplt.ylabel('loss')",
+"out": "",
+"value": "Text(0, 0.5, 'loss')"
+},
+{
+"title": "matplotlib/scatter3",
+"src": "import numpy as np\nimport matplotlib.pyplot as plt\n\nrng = np.random.default_rng(1)\nxy = rng.normal(size=(60, 2))\nplt.scatter(xy[:, 0], xy[:, 1], c=xy[:, 0] + xy[:, 1], s=40 * np.abs(xy[:, 1]) + 10, cmap='plasma')\nplt.colorbar()\nplt.axhline(0, color='gray')\nplt.axvline(0, color='gray')",
+"out": "",
+"value": "<matplotlib.lines.Line2D object at 0x104c3f160>"
+},
+{
+"title": "pytorch/attrs",
+"src": "import torch\n\ntensor = torch.tensor([1, 3, 5])          # lecture 9's first example\nprint(f\"Shape of tensor: {tensor.shape}\")\nprint(f\"Data type of tensor: {tensor.dtype}\")\nprint(f\"Device tensor is stored on: {tensor.device}\")\n\ndata = torch.tensor([[1, 2], [3, 4]])\nprint(torch.ones_like(data))                 # keeps shape and dtype (int64)\nprint(torch.zeros(2, 3).dtype)               # factory functions default to float32\nprint(torch.cuda.is_available())",
+"out": "Shape of tensor: torch.Size([3])\nData type of tensor: torch.int64\nDevice tensor is stored on: cpu\ntensor([[1, 1],\n        [1, 1]])\ntorch.float32\nFalse\n"
+},
+{
+"title": "pytorch/matmul",
+"src": "import torch\n\ntensor = torch.tensor([[1., 2.],\n                       [3., 4.]])\ny1 = tensor @ tensor.T       # matrix product: row · column\nz1 = tensor * tensor         # element-wise product\nprint(y1)\nprint(z1)\nprint(torch.matmul(tensor, tensor.T))   # the same as @",
+"out": "tensor([[ 5., 11.],\n        [11., 25.]])\ntensor([[ 1.,  4.],\n        [ 9., 16.]])\ntensor([[ 5., 11.],\n        [11., 25.]])\n"
+},
+{
+"title": "pytorch/indexing",
+"src": "import torch\n\ntensor = torch.ones(4, 4)\nprint(f\"First row: {tensor[0]}\")\nprint(f\"First column: {tensor[:, 0]}\")\nprint(f\"Last column: {tensor[..., -1]}\")\ntensor[:, 1] = 0                       # in place: column 1 becomes 0\nprint(tensor)\nt1 = torch.cat([tensor, tensor, tensor], dim=1)\nprint(t1.shape)",
+"out": "First row: tensor([1., 1., 1., 1.])\nFirst column: tensor([1., 1., 1., 1.])\nLast column: tensor([1., 1., 1., 1.])\ntensor([[1., 0., 1., 1.],\n        [1., 0., 1., 1.],\n        [1., 0., 1., 1.],\n        [1., 0., 1., 1.]])\ntorch.Size([4, 12])\n"
+},
+{
+"title": "pytorch/view",
+"src": "import torch\n\nx = torch.arange(12)\na = x.view(3, 4)            # same memory, new shape\nb = x.view(2, -1)           # -1: \"work it out\" -> 6\nprint(a.shape, b.shape)\n\nimg = torch.zeros(28, 28)\nbatch = img.unsqueeze(0).unsqueeze(0)   # (1, 1, 28, 28): batch, channel, H, W\nprint(batch.shape)\n\nt = a.T                     # a transpose is not contiguous ...\nprint(t.is_contiguous())\nprint(t.reshape(12).shape)  # reshape copies when it must; t.view(12) would fail",
+"out": "torch.Size([3, 4]) torch.Size([2, 6])\ntorch.Size([1, 1, 28, 28])\nFalse\ntorch.Size([12])\n"
+},
+{
+"title": "pytorch/bridge",
+"src": "import torch\n\nimport numpy as np\n\nn = np.ones(5)\nt = torch.from_numpy(n)     # shares memory with n\nn += 1                      # change the array ...\nprint(t)                    # ... and the tensor sees it\nt.add_(1)                   # in-place on the tensor ...\nprint(n)                    # ... changes the array\n\nc = torch.tensor(n)         # torch.tensor copies\nn += 1\nprint(c)",
+"out": "tensor([2., 2., 2., 2., 2.], dtype=torch.float64)\n[3. 3. 3. 3. 3.]\ntensor([3., 3., 3., 3., 3.], dtype=torch.float64)\n"
+},
+{
+"title": "pytorch/dtype",
+"src": "import torch\n\na = torch.tensor([1, 2, 3])      # Python ints -> int64\nb = torch.tensor([1.0, 2.0])     # Python floats -> float32\nprint(a.dtype, b.dtype)\nprint(a / 2)                     # true division always gives floats\nprint((a * 2).dtype, (a * 2.5).dtype)\nprint(torch.tensor(0.1).item())  # float32 cannot store 0.1 exactly\nprint(a.float().mean())          # mean needs a float tensor",
+"out": "torch.int64 torch.float32\ntensor([0.5000, 1.0000, 1.5000])\ntorch.int64 torch.float32\n0.10000000149011612\ntensor(2.)\n"
+},
+{
+"title": "pytorch/grad_basic",
+"src": "import torch\n\nx = torch.tensor(2.0, requires_grad=True)\ny = x ** 2 + 3 * x          # dy/dx = 2x + 3 = 7 at x = 2\nprint(y)                    # grad_fn: y remembers how it was made\ny.backward()\nprint(x.grad)",
+"out": "tensor(10., grad_fn=<AddBackward0>)\ntensor(7.)\n"
+},
+{
+"title": "pytorch/accumulate",
+"src": "import torch\n\nw = torch.tensor(1.0, requires_grad=True)\nloss = 3 * w\nloss.backward()\nprint(w.grad)              # 3\n\nloss = 3 * w\nloss.backward()            # no zeroing in between ...\nprint(w.grad)              # ... 6: gradients ADD UP\n\nw.grad.zero_()             # what optimizer.zero_grad() does\nloss = 3 * w\nloss.backward()\nprint(w.grad)              # 3 again",
+"out": "tensor(3.)\ntensor(6.)\ntensor(3.)\n"
+},
+{
+"title": "pytorch/no_grad",
+"src": "import torch\n\nx = torch.ones(5)\nw = torch.randn(5, 3, requires_grad=True)\nb = torch.randn(3, requires_grad=True)\n\nz = torch.matmul(x, w) + b\nprint(z.requires_grad)       # True: tracked for backward\n\nwith torch.no_grad():        # inference: no graph is built\n    z = torch.matmul(x, w) + b\nprint(z.requires_grad)       # False\n\nz_det = (torch.matmul(x, w) + b).detach()\nprint(z_det.requires_grad)   # False",
+"out": "True\nFalse\nFalse\n"
+},
+{
+"title": "pytorch/linreg",
+"src": "import torch\n\nimport matplotlib.pyplot as plt\n\nX = torch.tensor([[1.0], [2.0], [3.0], [4.0]])\ny = torch.tensor([[3.0], [5.0], [7.0], [9.0]])     # y = 2x + 1\nw = torch.zeros(1, 1, requires_grad=True)\nb = torch.zeros(1, requires_grad=True)\nlr = 0.05\nlosses = []\nfor epoch in range(200):\n    loss = ((X @ w + b - y) ** 2).mean()\n    loss.backward()\n    with torch.no_grad():          # update the leaves without recording it\n        w -= lr * w.grad\n        b -= lr * b.grad\n        w.grad.zero_()\n        b.grad.zero_()\n    losses.append(loss.item())\n\nprint(f\"w = {w.item():.3f}, b = {b.item():.3f}\")\nplt.plot(losses)\nplt.xlabel('epoch')\nplt.ylabel('MSE')\nplt.title('Loss while learning y = 2x + 1')",
+"out": "w = 2.005, b = 0.986\n"
+},
+{
+"title": "pytorch/mnist_cnn",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass MNIST_CNN(nn.Module):              # lecture 9's model\n    def __init__(self):\n        super(MNIST_CNN, self).__init__()\n        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, stride=1, padding=1)\n        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)\n        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)\n        self.dropout1 = nn.Dropout(0.25)\n        self.fc1 = nn.Linear(64 * 14 * 14, 128)\n        self.dropout2 = nn.Dropout(0.5)\n        self.fc2 = nn.Linear(128, 10)\n\n    def forward(self, x):\n        x = F.relu(self.conv1(x))      # (batch, 32, 28, 28)\n        x = F.relu(self.conv2(x))      # (batch, 64, 28, 28)\n        x = self.pool(x)               # (batch, 64, 14, 14)\n        x = self.dropout1(x)\n        x = x.view(x.size(0), -1)      # (batch, 12544)\n        x = F.relu(self.fc1(x))        # (batch, 128)\n        x = self.dropout2(x)\n        return self.fc2(x)             # raw logits: no softmax here\n\nmodel = MNIST_CNN()\nprint(model)\nprint(sum(p.numel() for p in model.parameters()), 'parameters')\nimage = torch.randn(1, 1, 28, 28)       # one fake grey 28 x 28 image\nprint(model(image).shape)",
+"out": "MNIST_CNN(\n  (conv1): Conv2d(1, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))\n  (conv2): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))\n  (pool): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)\n  (dropout1): Dropout(p=0.25, inplace=False)\n  (fc1): Linear(in_features=12544, out_features=128, bias=True)\n  (dropout2): Dropout(p=0.5, inplace=False)\n  (fc2): Linear(in_features=128, out_features=10, bias=True)\n)\n1625866 parameters\ntorch.Size([1, 10])\n"
+},
+{
+"title": "pytorch/flatten_bug",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nconv = nn.Conv2d(1, 16, kernel_size=3)       # no padding: 28 -> 26\npool = nn.MaxPool2d(2)                        # 26 -> 13\nfc = nn.Linear(16 * 14 * 14, 10)              # BUG: assumes 14 x 14\n\nx = torch.zeros(1, 1, 28, 28)\nx = pool(F.relu(conv(x)))\nprint(x.shape)                                # the real shape\nx = x.view(x.size(0), -1)\nprint(x.shape)\nout = fc(x)                                   # fix: nn.Linear(16 * 13 * 13, 10)",
+"out": "RuntimeError: mat1 and mat2 shapes cannot be multiplied (1x2704 and 3136x10)"
+},
+{
+"title": "pytorch/sequential",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nmodel = nn.Sequential(\n    nn.Flatten(),\n    nn.Linear(28 * 28, 128),     # (784 + 1) * 128 parameters\n    nn.ReLU(),\n    nn.Linear(128, 10),          # (128 + 1) * 10\n)\nprint(model)\nfor name, p in model.named_parameters():\n    print(name, tuple(p.shape), p.numel())\nout = model(torch.zeros(4, 1, 28, 28))     # a batch of 4 images\nprint(out.shape)",
+"out": "Sequential(\n  (0): Flatten(start_dim=1, end_dim=-1)\n  (1): Linear(in_features=784, out_features=128, bias=True)\n  (2): ReLU()\n  (3): Linear(in_features=128, out_features=10, bias=True)\n)\n1.weight (128, 784) 100352\n1.bias (128,) 128\n3.weight (10, 128) 1280\n3.bias (10,) 10\ntorch.Size([4, 10])\n"
+},
+{
+"title": "pytorch/logits",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nlogits = torch.tensor([[2.0, 1.0, 0.1],\n                       [0.5, 2.5, 0.2]])      # raw scores from the last layer\nlabels = torch.tensor([0, 1])\n\nloss = nn.CrossEntropyLoss()(logits, labels)  # applies log_softmax itself\nprint(loss)\nprobs = F.softmax(logits, dim=1)              # only for reading off probabilities\nprint(probs)\n_, predicted = torch.max(logits, 1)           # lecture 9's way to pick the class\nprint(predicted, (predicted == labels).sum().item(), 'correct')",
+"out": "tensor(0.3143)\ntensor([[0.6590, 0.2424, 0.0986],\n        [0.1095, 0.8093, 0.0811]])\ntensor([0, 1]) 2 correct\n"
+},
+{
+"title": "pytorch/train_xor",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nimport matplotlib.pyplot as plt\ntorch.manual_seed(0)\n\nX = torch.tensor([[0., 0.], [0., 1.], [1., 0.], [1., 1.]])\ny = torch.tensor([0, 1, 1, 0])                    # XOR: not linearly separable\nmodel = nn.Sequential(nn.Linear(2, 8), nn.Tanh(), nn.Linear(8, 2))\nlossfunc = nn.CrossEntropyLoss()\noptimizer = torch.optim.Adam(model.parameters(), lr=0.05)\n\nlosses = []\nmodel.train()\nfor epoch in range(150):\n    optimizer.zero_grad()           # 1. reset gradients\n    outputs = model(X)              # 2. forward pass\n    loss = lossfunc(outputs, y)     # 3. loss\n    loss.backward()                 # 4. gradients\n    optimizer.step()                # 5. update the weights\n    losses.append(loss.item())\n\nmodel.eval()\nwith torch.no_grad():\n    print(torch.argmax(model(X), 1))\nplt.plot(losses)\nplt.xlabel('epoch')\nplt.ylabel('cross-entropy')",
+"out": "tensor([0, 1, 1, 0])\n"
+},
+{
+"title": "pytorch/zero_grad_bug",
+"src": "import torch\n\nimport matplotlib.pyplot as plt\n\nX = torch.tensor([[1.0], [2.0], [3.0], [4.0]])\ny = 2 * X + 1\n\ndef train(zero_grad):\n    w = torch.zeros(1, 1, requires_grad=True)\n    opt = torch.optim.SGD([w], lr=0.02)\n    losses = []\n    for epoch in range(40):\n        if zero_grad:\n            opt.zero_grad()\n        loss = ((X @ w - y) ** 2).mean()\n        loss.backward()\n        opt.step()\n        losses.append(loss.item())\n    return losses\n\nplt.plot(train(True), label='with zero_grad()')\nplt.plot(train(False), label='without: gradients pile up')\nplt.xlabel('epoch')\nplt.ylabel('loss')\nplt.legend()",
+"out": ""
+},
+{
+"title": "pytorch/dataloader",
+"src": "import torch\n\nfrom torch.utils.data import TensorDataset, DataLoader\n\nX = torch.arange(20.).view(10, 2)     # 10 samples, 2 features\ny = torch.arange(10) % 2              # labels 0 / 1\nloader = DataLoader(TensorDataset(X, y), batch_size=4, shuffle=False)\nprint(len(loader), 'batches')         # ceil(10 / 4) = 3\nfor i, (inputs, labels) in enumerate(loader):\n    print(i, inputs.shape, labels.tolist())",
+"out": "3 batches\n0 torch.Size([4, 2]) [0, 1, 0, 1]\n1 torch.Size([4, 2]) [0, 1, 0, 1]\n2 torch.Size([2, 2]) [0, 1]\n"
+},
+{
+"title": "pytorch/cat_stack",
+"src": "import torch\n\na = torch.zeros(2, 3)\nb = torch.ones(2, 3)\nprint(torch.cat([a, b], dim=0).shape)    # joins along an existing axis\nprint(torch.cat([a, b], dim=1).shape)\nprint(torch.stack([a, b]).shape)         # adds a new axis in front",
+"out": "torch.Size([4, 3])\ntorch.Size([2, 6])\ntorch.Size([2, 2, 3])\n"
+},
+{
+"title": "pytorch/conv_edge",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nimg = torch.tensor([[0., 0., 0., 9., 9., 9.],\n                    [0., 0., 0., 9., 9., 9.],\n                    [0., 0., 0., 9., 9., 9.],\n                    [0., 0., 0., 9., 9., 9.]]).reshape(1, 1, 4, 6)   # (batch, channels, H, W)\nsobel_x = torch.tensor([[-1., 0., 1.],\n                        [-2., 0., 2.],\n                        [-1., 0., 1.]]).reshape(1, 1, 3, 3)\nout = F.conv2d(img, sobel_x)        # no padding: (4 - 3 + 1) x (6 - 3 + 1)\nprint(out.shape)\nprint(out[0, 0])                    # strong response where dark meets bright",
+"out": "torch.Size([1, 1, 2, 4])\ntensor([[ 0., 36., 36.,  0.],\n        [ 0., 36., 36.,  0.]])\n"
+},
+{
+"title": "pytorch/softmax_acc",
+"src": "import torch\n\nlogits = torch.tensor([[2.0, 0.5, -1.0],\n                       [0.1, 1.5, 0.3],\n                       [1.2, 0.2, 2.2]])\ny = torch.tensor([0, 1, 1])\nprobs = torch.softmax(logits, dim=1)       # each row now sums to 1\npred = probs.argmax(dim=1)\nprint(probs)\nprint(pred)\nprint((pred == y).float().mean())          # accuracy: 2 of 3",
+"out": "tensor([[0.7856, 0.1753, 0.0391],\n        [0.1593, 0.6461, 0.1946],\n        [0.2447, 0.0900, 0.6652]])\ntensor([0, 1, 2])\ntensor(0.6667)\n"
+},
+{
+"title": "pytorch/einsum",
+"src": "import torch\n\nA = torch.tensor([[1., 2.], [3., 4.]])\nb = torch.tensor([1., 1.])\nprint(torch.einsum('ij,j->i', A, b))     # A @ b\nprint(torch.einsum('ij,kj->ik', A, A))   # A @ A.T\nprint(torch.einsum('ii->', A))           # trace",
+"out": "tensor([3., 7.])\ntensor([[ 5., 11.],\n        [11., 25.]])\ntensor(5.)\n"
+},
+{
+"title": "pytorch/solve",
+"src": "import torch\n\nA = torch.tensor([[2., 1.], [1., 3.]])\nb = torch.tensor([3., 5.])\nprint(torch.linalg.solve(A, b))\nprint(torch.linalg.det(A), torch.linalg.inv(A))\nprint(torch.linalg.norm(A), torch.linalg.matrix_rank(A))\nprint(torch.linalg.svdvals(A), torch.linalg.eigvalsh(A))",
+"out": "tensor([0.8000, 1.4000])\ntensor(5.) tensor([[ 0.6000, -0.2000],\n        [-0.2000,  0.4000]])\ntensor(3.8730) tensor(2)\ntensor([3.6180, 1.3820]) tensor([1.3820, 3.6180])\n"
+},
+{
+"title": "pytorch/distributions",
+"src": "import torch\n\nfrom torch.distributions import Normal, Categorical\nn = Normal(torch.tensor(0.), torch.tensor(1.))\nprint(n, n.log_prob(torch.tensor(0.)), n.sample((3,)).shape)\nc = Categorical(logits=torch.tensor([0., 1., 2.]))\nprint(c.probs, c.entropy(), c.log_prob(torch.tensor(2)))",
+"out": "Normal(loc: 0.0, scale: 1.0) tensor(-0.9189) torch.Size([3])\ntensor([0.0900, 0.2447, 0.6652]) tensor(0.8324) tensor(-0.4076)\n"
+},
+{
+"title": "pytorch/create_graph",
+"src": "import torch\n\nx = torch.tensor(2., requires_grad=True)\ny = x ** 3\ng, = torch.autograd.grad(y, x, create_graph=True)\nprint(g)            # 3x² = 12\nh, = torch.autograd.grad(g, x)\nprint(h)            # 6x = 12",
+"out": "tensor(12., grad_fn=<MulBackward0>)\ntensor(12.)\n"
+},
+{
+"title": "pytorch/rnn",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nlstm = nn.LSTM(input_size=4, hidden_size=8, num_layers=2, batch_first=True)\nx = torch.zeros(3, 5, 4)      # batch, time, features\nout, (h, c) = lstm(x)\nprint(out.shape, h.shape, c.shape)\nprint(lstm)\nprint(sum(p.numel() for p in lstm.parameters()))",
+"out": "torch.Size([3, 5, 8]) torch.Size([2, 3, 8]) torch.Size([2, 3, 8])\nLSTM(4, 8, num_layers=2, batch_first=True)\n1024\n"
+},
+{
+"title": "pytorch/attention",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nlayer = nn.TransformerEncoderLayer(d_model=16, nhead=2, dim_feedforward=32, batch_first=True)\nx = torch.zeros(2, 5, 16)\nprint(layer(x).shape)\nencoder = nn.TransformerEncoder(layer, num_layers=2)\nprint(encoder(x).shape, sum(p.numel() for p in encoder.parameters()))",
+"out": "torch.Size([2, 5, 16])\ntorch.Size([2, 5, 16]) 4448\n"
+},
+{
+"title": "pytorch/block",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass Block(nn.Sequential):\n    def __init__(self, a, b):\n        super().__init__(nn.Conv2d(a, b, 3, padding=1), nn.BatchNorm2d(b), nn.ReLU())\n\nnet = nn.Sequential(Block(3, 8), nn.MaxPool2d(2), Block(8, 16), nn.Flatten())\nprint(net)\nprint(net(torch.zeros(1, 3, 32, 32)).shape)",
+"out": "Sequential(\n  (0): Block(\n    (0): Conv2d(3, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))\n    (1): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)\n    (2): ReLU()\n  )\n  (1): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)\n  (2): Block(\n    (0): Conv2d(8, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))\n    (1): BatchNorm2d(16, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)\n    (2): ReLU()\n  )\n  (3): Flatten(start_dim=1, end_dim=-1)\n)\ntorch.Size([1, 4096])\n"
+},
+{
+"title": "pytorch/scheduler",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nw = nn.Parameter(torch.zeros(1))\nopt = torch.optim.SGD([w], lr=0.1)\nsched = torch.optim.lr_scheduler.StepLR(opt, step_size=2, gamma=0.5)\nfor epoch in range(5):\n    opt.step()\n    sched.step()\n    print(epoch, sched.get_last_lr())",
+"out": "0 [0.1]\n1 [0.05]\n2 [0.05]\n3 [0.025]\n4 [0.025]\n"
+},
+{
+"title": "pytorch/save_load",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nimport os\nfrom pathlib import Path\nnet = nn.Linear(2, 1)\nout = Path('runs')\nout.mkdir(exist_ok=True)\ntorch.save(net.state_dict(), out / 'net.pt')\nprint(os.path.exists(out / 'net.pt'), list(net.state_dict().keys()))\nagain = nn.Linear(2, 1)\nprint(again.load_state_dict(torch.load(out / 'net.pt')))\nprint(torch.equal(again.weight, net.weight))",
+"out": "True ['weight', 'bias']\n<All keys matched successfully>\nTrue\n"
+},
+{
+"title": "pytorch/skeleton",
+"src": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nimport argparse, random\nimport numpy as np\np = argparse.ArgumentParser()\np.add_argument('--lr', type=float, default=0.1)\np.add_argument('--epochs', type=int, default=3)\nargs = p.parse_args([])\nrandom.seed(0); np.random.seed(0); torch.manual_seed(0)\ndevice = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'\nprint(args, device in ('cuda', 'mps', 'cpu'))\nmodel = nn.Linear(1, 1).to(device)\nprint(next(model.parameters()).shape, torch.get_num_threads() > 0)\nwith torch.inference_mode():\n    print(model(torch.zeros(1, 1, device=device)).shape, torch.is_inference_mode_enabled())",
+"out": "Namespace(lr=0.1, epochs=3) True\ntorch.Size([1, 1]) True\ntorch.Size([1, 1]) True\n"
+},
+{
+"title": "sklearn/knn",
+"src": "import numpy as np\nfrom sklearn.neighbors import KNeighborsClassifier\n\nX = np.array([[0, 0], [1, 1], [8, 8], [9, 9]])\ny = np.array([0, 0, 1, 1])\nknn = KNeighborsClassifier(n_neighbors=3).fit(X, y)\nprint(knn.predict([[2, 2], [7, 7]]))\nprint(knn.predict_proba([[2, 2]]))\nprint(knn.kneighbors([[2, 2]], n_neighbors=2)[1])\nprint(knn.score(X, y))",
+"out": "[0 1]\n[[0.66666667 0.33333333]]\n[[1 0]]\n1.0\n"
+},
+{
+"title": "sklearn/naive_bayes",
+"src": "import numpy as np\nfrom sklearn.naive_bayes import GaussianNB\n\nX = np.array([[1.], [2.], [3.], [7.], [8.], [9.]])\ny = np.array([0, 0, 0, 1, 1, 1])\nnb = GaussianNB().fit(X, y)\nprint(nb.theta_.ravel(), np.round(nb.var_.ravel(), 4), nb.class_prior_)\nprint(nb.predict([[4.], [6.]]))\nprint(np.round(nb.predict_proba([[5.]]), 4))",
+"out": "[2. 8.] [0.6667 0.6667] [0.5 0.5]\n[0 1]\n[[0.5 0.5]]\n"
+},
+{
+"title": "sklearn/kmeans",
+"src": "import numpy as np\nfrom sklearn.cluster import KMeans\n\nX = np.array([[0., 0.], [0., 1.], [9., 9.], [9., 8.]])\nkm = KMeans(n_clusters=2, n_init=1, init=np.array([[0., 0.], [9., 9.]])).fit(X)\nprint(km.labels_, km.cluster_centers_, km.inertia_, km.n_iter_)\nprint(km.predict([[1., 1.]]))",
+"out": "[0 0 1 1] [[0.  0.5]\n [9.  8.5]] 1.0 2\n[0]\n"
+},
+{
+"title": "sklearn/linear",
+"src": "import numpy as np\nfrom sklearn.linear_model import LinearRegression, Ridge\n\nX = np.array([[1.], [2.], [3.], [4.]])\ny = np.array([3., 5., 7., 9.])\nlr = LinearRegression().fit(X, y)\nprint(lr.coef_, lr.intercept_, lr.predict([[5.]]), lr.score(X, y))\nprint(Ridge(alpha=1.0).fit(X, y).coef_)",
+"out": "[2.] 1.0 [11.] 1.0\n[1.66666667]\n"
+},
+{
+"title": "sklearn/tree",
+"src": "import numpy as np\nfrom sklearn.tree import DecisionTreeClassifier, export_text\n\nX = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])\ny = np.array([0, 1, 1, 0])\nt = DecisionTreeClassifier(random_state=0).fit(X, y)\nprint(t.score(X, y), t.get_depth())\nprint(export_text(t, feature_names=['a', 'b']))",
+"out": "1.0 2\n|--- b <= 0.50\n|   |--- a <= 0.50\n|   |   |--- class: 0\n|   |--- a >  0.50\n|   |   |--- class: 1\n|--- b >  0.50\n|   |--- a <= 0.50\n|   |   |--- class: 1\n|   |--- a >  0.50\n|   |   |--- class: 0\n\n"
+},
+{
+"title": "sklearn/pipeline",
+"src": "import numpy as np\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import MinMaxScaler, StandardScaler\nfrom sklearn.neighbors import KNeighborsClassifier\n\nX = np.array([[1., 100.], [2., 300.], [3., 200.]])\ns = StandardScaler().fit(X)\nprint(s.mean_, s.scale_, s.transform(X).round(3))\nprint(MinMaxScaler().fit_transform(X).round(3))\npipe = make_pipeline(StandardScaler(), KNeighborsClassifier(1)).fit(X, [0, 1, 0])\nprint(pipe.predict([[2., 250.]]), list(pipe.named_steps))",
+"out": "[  2. 200.] [ 0.81649658 81.64965809] [[-1.225 -1.225]\n [ 0.     1.225]\n [ 1.225  0.   ]]\n[[0.  0. ]\n [0.5 1. ]\n [1.  0.5]]\n[1] ['standardscaler', 'kneighborsclassifier']\n"
+},
+{
+"title": "sklearn/encode",
+"src": "import numpy as np\nfrom sklearn.preprocessing import LabelEncoder, OneHotEncoder, PolynomialFeatures\n\nprint(LabelEncoder().fit_transform(['cat', 'dog', 'cat']))\none = OneHotEncoder(sparse_output=False).fit([['red'], ['blue']])\nprint(one.categories_[0], one.transform([['red']]))\nprint(PolynomialFeatures(2).fit_transform([[2., 3.]]))",
+"out": "[0 1 0]\n['blue' 'red'] [[0. 1.]]\n[[1. 2. 3. 4. 6. 9.]]\n"
+},
+{
+"title": "sklearn/metrics",
+"src": "import numpy as np\nfrom sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score, precision_score, recall_score\n\ny = [1, 0, 1, 1, 0, 1]\np = [1, 0, 0, 1, 1, 1]\nprint(confusion_matrix(y, p))\nprint(accuracy_score(y, p), precision_score(y, p), recall_score(y, p), f1_score(y, p))\nprint(classification_report(y, p))",
+"out": "[[1 1]\n [1 3]]\n0.6666666666666666 0.75 0.75 0.75\n              precision    recall  f1-score   support\n\n           0       0.50      0.50      0.50         2\n           1       0.75      0.75      0.75         4\n\n    accuracy                           0.67         6\n   macro avg       0.62      0.62      0.62         6\nweighted avg       0.67      0.67      0.67         6\n\n"
+},
+{
+"title": "sklearn/cv",
+"src": "import numpy as np\nfrom sklearn.model_selection import GridSearchCV, KFold, cross_val_score, train_test_split\nfrom sklearn.neighbors import KNeighborsClassifier\n\nX = np.arange(20.).reshape(10, 2)\ny = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])\nprint([t.tolist() for _, t in KFold(5).split(X)][:2])\nprint(cross_val_score(KNeighborsClassifier(1), X, y, cv=KFold(5, shuffle=True, random_state=0)).shape)\nprint([a.shape for a in train_test_split(X, y, test_size=0.3, random_state=0)])\ng = GridSearchCV(KNeighborsClassifier(), {'n_neighbors': [1, 3]}, cv=KFold(2, shuffle=True, random_state=0)).fit(X, y)\nprint(sorted(g.best_params_), g.cv_results_['mean_test_score'].shape)",
+"out": "[[0, 1], [2, 3]]\n(5,)\n[(7, 2), (3, 2), (7,), (3,)]\n['n_neighbors'] (2,)\n"
+},
+{
+"title": "sklearn/pca",
+"src": "import numpy as np\nfrom sklearn.decomposition import PCA\n\nX = np.array([[1., 2.], [2., 4.1], [3., 5.9], [4., 8.]])\np = PCA(n_components=1).fit(X)\nprint(np.round(p.explained_variance_ratio_, 4), np.round(np.abs(p.components_), 3), np.round(p.mean_, 3))\nprint(np.abs(p.transform(X)).round(3).ravel())",
+"out": "[0.9999] [[0.451 0.893]] [2.5 5. ]\n[3.354 1.029 1.029 3.354]\n"
+},
+{
+"title": "python/pathlib",
+"src": "from pathlib import Path\n\nrun = Path('runs') / 'exp1'\nrun.mkdir(parents=True, exist_ok=True)\n(run / 'notes.txt').write_text('hello\\nworld\\n')\nprint(run, run.parent, run.name, run.exists())\nf = run / 'notes.txt'\nprint(f.suffix, f.stem, f.read_text().split())\nprint(sorted(p.name for p in Path('runs').rglob('*')))",
+"out": "runs/exp1 runs exp1 True\n.txt notes ['hello', 'world']\n['exp1', 'notes.txt']\n"
+},
+{
+"title": "python/open_csv",
+"src": "import csv\n\nwith open('marks.csv', 'w', newline='') as f:\n    w = csv.writer(f)\n    w.writerow(['name', 'mark'])\n    w.writerows([['Ann', 90], ['Bo', 75]])\nprint(open('marks.csv').read())\nwith open('marks.csv') as f:\n    rows = list(csv.DictReader(f))\nprint(rows, sum(int(r['mark']) for r in rows))",
+"out": "name,mark\nAnn,90\nBo,75\n\n[{'name': 'Ann', 'mark': '90'}, {'name': 'Bo', 'mark': '75'}] 165\n"
+},
+{
+"title": "python/json",
+"src": "import json\n\ncfg = {'lr': 0.1, 'layers': [32, 16], 'name': 'cnn', 'bn': True, 'seed': None}\ntext = json.dumps(cfg, indent=2, sort_keys=True)\nprint(text)\nprint(json.loads(text) == cfg, type(json.loads('[1, 2.5]')[1]).__name__)",
+"out": "{\n  \"bn\": true,\n  \"layers\": [\n    32,\n    16\n  ],\n  \"lr\": 0.1,\n  \"name\": \"cnn\",\n  \"seed\": null\n}\nTrue float\n"
+},
+{
+"title": "python/pickle",
+"src": "import pickle\nfrom dataclasses import dataclass\n\n@dataclass\nclass Cfg:\n    lr: float\n    tags: list\n\nwith open('cfg.pkl', 'wb') as f:\n    pickle.dump(Cfg(0.1, ['a']), f)\nwith open('cfg.pkl', 'rb') as f:\n    back = pickle.load(f)\nprint(back, back.tags)\nprint(pickle.loads(pickle.dumps({'x': (1, 2)})))",
+"out": "Cfg(lr=0.1, tags=['a']) ['a']\n{'x': (1, 2)}\n"
+},
+{
+"title": "python/tempfile",
+"src": "import glob, os, shutil, tempfile\n\nwith tempfile.TemporaryDirectory() as d:\n    open(os.path.join(d, 'a.txt'), 'w').write('A')\n    shutil.copy(os.path.join(d, 'a.txt'), os.path.join(d, 'b.txt'))\n    os.makedirs(os.path.join(d, 'sub'))\n    shutil.move(os.path.join(d, 'b.txt'), os.path.join(d, 'sub', 'b.txt'))\n    print(sorted(os.listdir(d)))\n    print([os.path.relpath(p, d) for p in glob.glob(os.path.join(d, '**', '*.txt'), recursive=True)])\n    kept = d\nprint(os.path.exists(kept))",
+"out": "['a.txt', 'sub']\n['a.txt', 'sub/b.txt']\nFalse\n"
+},
+{
+"title": "python/collections",
+"src": "from collections import Counter, defaultdict, deque, namedtuple\n\nprint(Counter('mississippi').most_common(2))\ngroups = defaultdict(list)\nfor word in ['apple', 'bob', 'avocado']:\n    groups[word[0]].append(word)\nprint(dict(groups))\nq = deque([1, 2, 3], maxlen=3)\nq.append(4)\nprint(q, q[0])\nPoint = namedtuple('Point', 'x y')\nprint(Point(1, 2), Point(1, 2).y)",
+"out": "[('i', 4), ('s', 4)]\n{'a': ['apple', 'avocado'], 'b': ['bob']}\ndeque([2, 3, 4], maxlen=3) 2\nPoint(x=1, y=2) 2\n"
+},
+{
+"title": "python/itertools",
+"src": "import itertools as it\n\nprint(list(it.product('ab', [1, 2])))\nprint(list(it.combinations('abc', 2)))\nprint(list(it.permutations([1, 2, 3], 2))[:3])\nprint(list(it.chain([1], [2, 3])), list(it.accumulate([1, 2, 3])))\nprint(list(it.islice(it.count(10, 5), 3)))\nprint({k: list(g) for k, g in it.groupby('aabbc')})",
+"out": "[('a', 1), ('a', 2), ('b', 1), ('b', 2)]\n[('a', 'b'), ('a', 'c'), ('b', 'c')]\n[(1, 2), (1, 3), (2, 1)]\n[1, 2, 3] [1, 3, 6]\n[10, 15, 20]\n{'a': ['a', 'a'], 'b': ['b', 'b'], 'c': ['c']}\n"
+},
+{
+"title": "python/functools",
+"src": "from functools import lru_cache, partial, reduce\n\n@lru_cache(maxsize=None)\ndef fib(n):\n    return n if n < 2 else fib(n - 1) + fib(n - 2)\n\nprint(fib(30), fib.cache_info().hits)\nsquare = partial(pow, exp=2)\nprint(square(5), reduce(lambda a, b: a * b, [1, 2, 3, 4]))",
+"out": "832040 28\n25 24\n"
+},
+{
+"title": "python/dataclass",
+"src": "from dataclasses import dataclass, field, asdict, replace\nfrom enum import Enum, auto\n\nclass Mode(Enum):\n    TRAIN = auto()\n    EVAL = auto()\n\n@dataclass\nclass Config:\n    lr: float = 0.1\n    mode: Mode = Mode.TRAIN\n    tags: list = field(default_factory=list)\n\nc = Config(tags=['a'])\nprint(c, asdict(c)['lr'], replace(c, lr=0.5).lr, c == Config(tags=['a']))\nprint(Mode.EVAL, Mode.EVAL.name, Mode.EVAL.value, list(Mode), Mode['TRAIN'])",
+"out": "Config(lr=0.1, mode=<Mode.TRAIN: 1>, tags=['a']) 0.1 0.5 True\nMode.EVAL EVAL 2 [<Mode.TRAIN: 1>, <Mode.EVAL: 2>] Mode.TRAIN\n"
+},
+{
+"title": "python/heapq",
+"src": "import bisect, heapq\n\nh = [5, 1, 4]\nheapq.heapify(h)\nheapq.heappush(h, 0)\nprint(heapq.heappop(h), heapq.nsmallest(2, h), heapq.nlargest(1, h))\ns = [1, 3, 5]\nprint(bisect.bisect_left(s, 3), bisect.bisect_right(s, 3))\nbisect.insort(s, 4)\nprint(s)",
+"out": "0 [1, 4] [5]\n1 2\n[1, 3, 4, 5]\n"
+},
+{
+"title": "python/regex",
+"src": "import re\n\ns = 'lr=0.01, epochs=20; lr=0.1'\nprint(re.findall(r'lr=([\\d.]+)', s))\nprint(re.sub(r'\\d+', '#', 'a1b22'), re.split(r'[,;]\\s*', s))\nm = re.search(r'(?P<key>\\w+)=(?P<val>\\d+)', 'epochs=20')\nprint(m.group('key'), m.group(2), m.span(), m.groupdict())",
+"out": "['0.01', '0.1']\na#b# ['lr=0.01', 'epochs=20', 'lr=0.1']\nepochs 20 (0, 9) {'key': 'epochs', 'val': '20'}\n"
+},
+{
+"title": "python/format",
+"src": "import string, textwrap\n\nx = 3.14159\nprint(f'{x:.2f} {x:8.3f} {x:e} {1234567:,} {0.25:.0%} {42:05d} {255:x}')\nprint(f'{\"left\":<8}|{\"right\":>8}|{\"mid\":^8}|')\nprint(textwrap.fill('The quick brown fox jumps over the lazy dog', 20))\nprint(textwrap.shorten('The quick brown fox', 12), string.digits)",
+"out": "3.14    3.142 3.141590e+00 1,234,567 25% 00042 ff\nleft    |   right|  mid   |\nThe quick brown fox\njumps over the lazy\ndog\nThe [...] 0123456789\n"
+},
+{
+"title": "python/argparse",
+"src": "import argparse\n\np = argparse.ArgumentParser(prog='train', description='Train a model')\np.add_argument('--lr', type=float, default=0.01, help='learning rate')\np.add_argument('--opt', choices=['sgd', 'adam'], default='adam')\np.add_argument('--verbose', action='store_true')\nprint(p.parse_args([]))\nprint(p.parse_args(['--lr', '0.5', '--verbose']))\nprint(p.format_help())",
+"out": "Namespace(lr=0.01, opt='adam', verbose=False)\nNamespace(lr=0.5, opt='adam', verbose=True)\nusage: train [-h] [--lr LR] [--opt {sgd,adam}] [--verbose]\n\nTrain a model\n\noptions:\n  -h, --help        show this help message and exit\n  --lr LR           learning rate\n  --opt {sgd,adam}\n  --verbose\n\n"
+},
+{
+"title": "python/contextlib",
+"src": "import contextlib, io\nfrom contextlib import contextmanager\n\n@contextmanager\ndef tag(name):\n    print('<' + name + '>')\n    yield name.upper()\n    print('</' + name + '>')\n\nwith tag('b') as t:\n    print(t)\nout = io.StringIO()\nwith contextlib.redirect_stdout(out):\n    print('captured')\nprint(repr(out.getvalue()))\nwith contextlib.suppress(ZeroDivisionError):\n    1 / 0",
+"out": "<b>\nB\n</b>\n'captured\\n'\n"
+},
+{
+"title": "python/datetime",
+"src": "from datetime import date, datetime, timedelta\n\nt = datetime(2024, 2, 28, 13, 5, 9)\nprint(t + timedelta(days=2), t.strftime('%Y-%m-%d %a'), t.isoformat())\nprint(date(2024, 3, 1) - date(2024, 2, 1), date(2024, 2, 28) < date(2024, 3, 1))\nprint(repr(timedelta(days=2, seconds=5)), timedelta(hours=36).days)",
+"out": "2024-03-01 13:05:09 2024-02-28 Wed 2024-02-28T13:05:09\n29 days, 0:00:00 True\ndatetime.timedelta(days=2, seconds=5) 1\n"
+},
+{
+"title": "python/numbers",
+"src": "import math, statistics\nfrom fractions import Fraction as F\n\nprint(statistics.mean([1, 2, 4]), statistics.median([1, 3, 2, 4]), statistics.stdev([1, 2, 3, 4]))\nprint(F(1, 3) + F(1, 6), F('0.25'), float(F(1, 3)))\nprint(math.gcd(12, 18), math.comb(5, 2), math.isclose(0.1 + 0.2, 0.3), 0.1 + 0.2 == 0.3)",
+"out": "2.3333333333333335 2.5 1.2909944487358056\n1/2 1/4 0.3333333333333333\n6 10 True False\n"
+},
+{
+"title": "python/inspect",
+"src": "import inspect, types\n\ndef f(a, b=2, *rest, c=3, **kw) -> int:\n    \"\"\"Add things.\"\"\"\n    return a\n\ns = inspect.signature(f)\nprint(s, list(s.parameters), s.parameters['b'].default)\nprint(inspect.getdoc(f), inspect.isfunction(f), inspect.isclass(int))\nns = types.SimpleNamespace(lr=0.1, epochs=2)\nprint(ns, ns.lr, vars(ns))",
+"out": "(a, b=2, *rest, c=3, **kw) -> int ['a', 'b', 'rest', 'c', 'kw'] 2\nAdd things. True True\nnamespace(lr=0.1, epochs=2) 0.1 {'lr': 0.1, 'epochs': 2}\n"
+},
+{
+"title": "python/eval_exec",
+"src": "x = 3\nprint(eval('x * 2 + 1'))\nscope = {}\nexec('y = 10\\nz = y + 1', scope)\nprint(scope['z'])\ntry:\n    eval('1 +')\nexcept SyntaxError as e:\n    print(type(e).__name__)",
+"out": "7\n11\nSyntaxError\n"
+},
+{
+"title": "tensorflow/constant",
+"src": "import tensorflow as tf\n\nx = tf.constant([[1., 2.],\n                 [3., 4.]])\nprint(x)                    # value, shape and dtype\nprint(x.shape, x.dtype)\nprint(x.numpy())            # back to a NumPy array\nprint(tf.constant([1, 2, 3]).dtype)   # Python ints -> int32 (NumPy gives int64)",
+"out": "tf.Tensor(\n[[1. 2.]\n [3. 4.]], shape=(2, 2), dtype=float32)\n(2, 2) <dtype: 'float32'>\n[[1. 2.]\n [3. 4.]]\n<dtype: 'int32'>\n"
+},
+{
+"title": "tensorflow/dtypes",
+"src": "import tensorflow as tf\n\na = tf.constant([1.5, 2.5])      # float32\nb = tf.constant([1, 2])          # int32\nprint(a + tf.cast(b, tf.float32))   # cast explicitly ...\nprint(a + b)                        # ... TensorFlow never casts for you",
+"out": "InvalidArgumentError: cannot compute AddV2 as input #1(zero-based) was expected to be a float tensor but is a int32 tensor [Op:AddV2] name: "
+},
+{
+"title": "tensorflow/ops",
+"src": "import tensorflow as tf\n\nx = tf.constant([[1., 2.], [3., 4.]])\nprint(tf.matmul(x, x))          # matrix product (also x @ x)\nprint(x * x)                    # element-wise\nprint(tf.reduce_sum(x, axis=0)) # sum down each column\nprint(tf.reduce_mean(x))\nprint(tf.reduce_mean(tf.constant([1, 2])))   # int32: the mean is truncated to 1!",
+"out": "tf.Tensor(\n[[ 7. 10.]\n [15. 22.]], shape=(2, 2), dtype=float32)\ntf.Tensor(\n[[ 1.  4.]\n [ 9. 16.]], shape=(2, 2), dtype=float32)\ntf.Tensor([4. 6.], shape=(2,), dtype=float32)\ntf.Tensor(2.5, shape=(), dtype=float32)\ntf.Tensor(1, shape=(), dtype=int32)\n"
+},
+{
+"title": "tensorflow/variable",
+"src": "import tensorflow as tf\n\nw = tf.Variable([1.0, 2.0])     # a trainable, mutable tensor\nprint(w)\nw.assign([5.0, 6.0])\nw.assign_sub([0.5, 0.5])         # w = w - 0.5, in place\nprint(w.numpy())",
+"out": "<tf.Variable 'Variable:0' shape=(2,) dtype=float32, numpy=array([1., 2.], dtype=float32)>\n[4.5 5.5]\n"
+},
+{
+"title": "tensorflow/tape",
+"src": "import tensorflow as tf\n\nx = tf.Variable(3.0)\nwith tf.GradientTape() as tape:   # record the operations ...\n    y = x ** 2 + 2 * x\ndy_dx = tape.gradient(y, x)       # ... then differentiate: 2x + 2 = 8\nprint(dy_dx)",
+"out": "tf.Tensor(8.0, shape=(), dtype=float32)\n"
+},
+{
+"title": "tensorflow/linreg",
+"src": "import tensorflow as tf\n\nimport matplotlib.pyplot as plt\n\nX = tf.constant([[1.0], [2.0], [3.0], [4.0]])\ny = tf.constant([[3.0], [5.0], [7.0], [9.0]])     # y = 2x + 1\nw = tf.Variable([[0.0]])\nb = tf.Variable([0.0])\nlosses = []\nfor step in range(150):\n    with tf.GradientTape() as tape:\n        loss = tf.reduce_mean((tf.matmul(X, w) + b - y) ** 2)\n    dw, db = tape.gradient(loss, [w, b])\n    w.assign_sub(0.05 * dw)\n    b.assign_sub(0.05 * db)\n    losses.append(float(loss))\nprint(w.numpy(), b.numpy())\nplt.plot(losses)\nplt.xlabel('step')\nplt.ylabel('MSE')",
+"out": "[[2.0101476]] [0.970165]\n",
+"value": "Text(0, 0.5, 'MSE')"
+},
+{
+"title": "tensorflow/tf_keras",
+"src": "import tensorflow as tf\n\nmodel = tf.keras.Sequential([\n    tf.keras.Input(shape=(28, 28, 1)),\n    tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),\n    tf.keras.layers.MaxPooling2D((2, 2)),\n    tf.keras.layers.Flatten(),\n    tf.keras.layers.Dense(10, activation='softmax'),\n])\nmodel.summary()",
+"out": "Model: \"sequential\"\n┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓\n┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃\n┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩\n│ conv2d (Conv2D)                 │ (None, 26, 26, 32)     │           320 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ max_pooling2d (MaxPooling2D)    │ (None, 13, 13, 32)     │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ flatten (Flatten)               │ (None, 5408)           │             0 │\n├─────────────────────────────────┼────────────────────────┼───────────────┤\n│ dense (Dense)                   │ (None, 10)             │        54,090 │\n└─────────────────────────────────┴────────────────────────┴───────────────┘\n Total params: 54,410 (212.54 KB)\n Trainable params: 54,410 (212.54 KB)\n Non-trainable params: 0 (0.00 B)\n"
+},
+{
+"title": "tensorflow/confusion",
+"src": "import tensorflow as tf\n\nimport matplotlib.pyplot as plt\n\nlabels      = [0, 1, 2, 2, 1, 0, 2, 1]\npredictions = [0, 2, 2, 2, 1, 0, 1, 1]\ncm = tf.math.confusion_matrix(labels, predictions)   # rows = true, columns = predicted\nprint(cm)\ncorrect = sum(cm.numpy()[i, i] for i in range(3))\nprint('accuracy', correct / len(labels))\nplt.imshow(cm.numpy(), cmap='Blues')\nplt.xlabel('predicted')\nplt.ylabel('true')\nplt.colorbar()",
+"out": "tf.Tensor(\n[[2 0 0]\n [0 2 1]\n [0 1 2]], shape=(3, 3), dtype=int32)\naccuracy 0.75\n",
+"value": "<matplotlib.colorbar.Colorbar object at 0x30faf6c20>"
+},
+{
+"title": "tensorflow/select",
+"src": "import tensorflow as tf\n\nx = tf.constant([[1., 2.], [3., 4.]])\nprint(tf.where(x > 2))\nprint(tf.where(x > 2, x, 0.))\nprint(tf.boolean_mask(x, x > 2))\nprint(tf.gather(x, [1, 0]))\nprint(tf.gather_nd(x, [[0, 1]]))",
+"out": "tf.Tensor(\n[[1 0]\n [1 1]], shape=(2, 2), dtype=int64)\ntf.Tensor(\n[[0. 0.]\n [3. 4.]], shape=(2, 2), dtype=float32)\ntf.Tensor([3. 4.], shape=(2,), dtype=float32)\ntf.Tensor(\n[[3. 4.]\n [1. 2.]], shape=(2, 2), dtype=float32)\ntf.Tensor([2.], shape=(1,), dtype=float32)\n"
+},
+{
+"title": "tensorflow/reduce",
+"src": "import tensorflow as tf\n\nx = tf.constant([[1., 5.], [3., 2.]])\nprint(tf.reduce_sum(x), tf.reduce_mean(x, axis=0), tf.reduce_max(x, axis=1, keepdims=True))\nprint(tf.argmax(x, axis=1), tf.one_hot([0, 1], 2))\nprint(tf.nn.softmax(x), tf.math.top_k(x, 1).indices)",
+"out": "tf.Tensor(11.0, shape=(), dtype=float32) tf.Tensor([2.  3.5], shape=(2,), dtype=float32) tf.Tensor(\n[[5.]\n [3.]], shape=(2, 1), dtype=float32)\ntf.Tensor([1 0], shape=(2,), dtype=int64) tf.Tensor(\n[[1. 0.]\n [0. 1.]], shape=(2, 2), dtype=float32)\ntf.Tensor(\n[[0.01798621 0.98201376]\n [0.7310586  0.26894143]], shape=(2, 2), dtype=float32) tf.Tensor(\n[[1]\n [0]], shape=(2, 1), dtype=int32)\n"
+},
+{
+"title": "tensorflow/dtype_strict",
+"src": "import tensorflow as tf\n\na = tf.constant([1.5, 2.5])\nb = tf.constant([1, 2])\nprint(a.dtype, b.dtype, repr(a.dtype))\nprint(a + tf.cast(b, tf.float32))\nprint(tf.add(tf.constant(2.0), 1))    # a Python number follows the tensor\ntf.add(1, tf.constant(2.0))           # but as the first argument of tf.add it does not",
+"out": "InvalidArgumentError: cannot compute AddV2 as input #1(zero-based) was expected to be a int32 tensor but is a float tensor [Op:AddV2] name: "
+},
+{
+"title": "tensorflow/second_order",
+"src": "import tensorflow as tf\n\nx = tf.Variable(3.0)\nwith tf.GradientTape() as outer:\n    with tf.GradientTape() as inner:\n        y = x ** 3\n    g = inner.gradient(y, x)     # 3x² = 27\nprint(g, outer.gradient(g, x))   # 6x = 18",
+"out": "tf.Tensor(27.0, shape=(), dtype=float32) tf.Tensor(18.0, shape=(), dtype=float32)\n"
+},
+{
+"title": "tensorflow/persistent",
+"src": "import tensorflow as tf\n\nc = tf.constant(2.0)\nwith tf.GradientTape(persistent=True) as t:\n    t.watch(c)              # constants are not watched by default\n    a = c * c\n    b = a * c\nprint(t.gradient(a, c), t.gradient(b, c))\nwith tf.GradientTape() as t2:\n    d = c * 2\nprint(t2.gradient(d, c))    # no watch: None",
+"out": "tf.Tensor(4.0, shape=(), dtype=float32) tf.Tensor(12.0, shape=(), dtype=float32)\nNone\n"
+},
+{
+"title": "tensorflow/tf_function",
+"src": "import tensorflow as tf\n\n@tf.function\ndef f(x):\n    return x * 2 + 1\n\nprint(f(tf.constant(3.0)))\nprint(tf.function(lambda x: x + 1)(1))    # the result is a tensor",
+"out": "tf.Tensor(7.0, shape=(), dtype=float32)\ntf.Tensor(2, shape=(), dtype=int32)\n"
+},
+{
+"title": "tensorflow/dataset",
+"src": "import tensorflow as tf\n\nds = tf.data.Dataset.from_tensor_slices(([1., 2., 3., 4., 5.], [0, 1, 0, 1, 0]))\nprint(ds, ds.cardinality())\nfor x, y in ds.map(lambda a, b: (a * 2, b)).batch(2).take(2):\n    print(x.numpy().tolist(), y.numpy().tolist())\nprint(ds.batch(2), ds.batch(2).element_spec)",
+"out": "<_TensorSliceDataset element_spec=(TensorSpec(shape=(), dtype=tf.float32, name=None), TensorSpec(shape=(), dtype=tf.int32, name=None))> tf.Tensor(5, shape=(), dtype=int64)\n[2.0, 4.0] [0, 1]\n[6.0, 8.0] [0, 1]\n<_BatchDataset element_spec=(TensorSpec(shape=(None,), dtype=tf.float32, name=None), TensorSpec(shape=(None,), dtype=tf.int32, name=None))> (TensorSpec(shape=(None,), dtype=tf.float32, name=None), TensorSpec(shape=(None,), dtype=tf.int32, name=None))\n"
+},
+{
+"title": "tensorflow/from_gen",
+"src": "import tensorflow as tf\n\ndef gen():\n    for i in range(4):\n        yield float(i), i % 2\n\nds = tf.data.Dataset.from_generator(gen, output_signature=(tf.TensorSpec(shape=(), dtype=tf.float32), tf.TensorSpec(shape=(), dtype=tf.int32)))\nprint(ds)\nprint([(float(a), int(b)) for a, b in ds])",
+"out": "<_FlatMapDataset element_spec=(TensorSpec(shape=(), dtype=tf.float32, name=None), TensorSpec(shape=(), dtype=tf.int32, name=None))>\n[(0.0, 0), (1.0, 1), (2.0, 0), (3.0, 1)]\n"
+},
+{
+"title": "numpy/array",
+"src": "import numpy as np\na = np.array([[1, 2, 3], [4, 5, 6]])\na.shape",
+"out": "",
+"value": "(2, 3)"
+},
+{
+"title": "numpy/arange",
+"src": "import numpy as np\nnp.arange(2, 20, 3)   # start, stop (excluded), step",
+"out": "",
+"value": "array([ 2,  5,  8, 11, 14, 17])"
+},
+{
+"title": "numpy/linspace",
+"src": "import numpy as np\nnp.linspace(0, 1, 5)   # 5 points, both ends included",
+"out": "",
+"value": "array([0.  , 0.25, 0.5 , 0.75, 1.  ])"
+},
+{
+"title": "numpy/zeros",
+"src": "import numpy as np\nnp.zeros((2, 3))\nnp.ones((2, 3), dtype=int)",
+"out": "",
+"value": "array([[1, 1, 1],\n       [1, 1, 1]])"
+},
+{
+"title": "numpy/full",
+"src": "import numpy as np\nnp.full((2, 4), 7)",
+"out": "",
+"value": "array([[7, 7, 7, 7],\n       [7, 7, 7, 7]])"
+},
+{
+"title": "numpy/eye",
+"src": "import numpy as np\nnp.eye(3)   # identity matrix",
+"out": "",
+"value": "array([[1., 0., 0.],\n       [0., 1., 0.],\n       [0., 0., 1.]])"
+},
+{
+"title": "numpy/zeros_like",
+"src": "import numpy as np\na = np.arange(6).reshape(2, 3)\nnp.zeros_like(a)   # same shape and dtype as a",
+"out": "",
+"value": "array([[0, 0, 0],\n       [0, 0, 0]])"
+},
+{
+"title": "numpy/meshgrid",
+"src": "import numpy as np\nxs = np.array([0, 1, 2, 3])\nys = np.array([10, 20, 30])\nX, Y = np.meshgrid(xs, ys)   # every (x, y) pair on a grid\nY",
+"out": "",
+"value": "array([[10, 10, 10, 10],\n       [20, 20, 20, 20],\n       [30, 30, 30, 30]])"
+},
+{
+"title": "numpy/reshape",
+"src": "import numpy as np\na = np.arange(12)\na.reshape(3, 4)   # same 12 values, read row by row",
+"out": "",
+"value": "array([[ 0,  1,  2,  3],\n       [ 4,  5,  6,  7],\n       [ 8,  9, 10, 11]])"
+},
+{
+"title": "numpy/reshape_neg",
+"src": "import numpy as np\na = np.arange(12)\na.reshape(-1, 6)   # -1 = \"work it out\": 12 / 6 = 2",
+"out": "",
+"value": "array([[ 0,  1,  2,  3,  4,  5],\n       [ 6,  7,  8,  9, 10, 11]])"
+},
+{
+"title": "numpy/ravel",
+"src": "import numpy as np\na = np.arange(6).reshape(2, 3)\na.ravel()",
+"out": "",
+"value": "array([0, 1, 2, 3, 4, 5])"
+},
+{
+"title": "numpy/transpose",
+"src": "import numpy as np\na = np.arange(6).reshape(2, 3)\na.T",
+"out": "",
+"value": "array([[0, 3],\n       [1, 4],\n       [2, 5]])"
+},
+{
+"title": "numpy/swapaxes",
+"src": "import numpy as np\na = np.arange(12).reshape(2, 3, 2)\nnp.swapaxes(a, 0, 2)",
+"out": "",
+"value": "array([[[ 0,  6],\n        [ 2,  8],\n        [ 4, 10]],\n\n       [[ 1,  7],\n        [ 3,  9],\n        [ 5, 11]]])"
+},
+{
+"title": "numpy/expand_dims",
+"src": "import numpy as np\nx = np.array([1, 2, 3])\nnp.expand_dims(x, axis=1)   # same as x[:, None]",
+"out": "",
+"value": "array([[1],\n       [2],\n       [3]])"
+},
+{
+"title": "numpy/squeeze",
+"src": "import numpy as np\na = np.arange(3).reshape(1, 3, 1)\nnp.squeeze(a)   # drop every length-1 axis",
+"out": "",
+"value": "array([0, 1, 2])"
+},
+{
+"title": "numpy/concatenate",
+"src": "import numpy as np\na = np.array([[1, 2], [3, 4]])\nb = np.array([[5, 6]])\nnp.concatenate([a, b], axis=0)",
+"out": "",
+"value": "array([[1, 2],\n       [3, 4],\n       [5, 6]])"
+},
+{
+"title": "numpy/stack",
+"src": "import numpy as np\na = np.array([1, 2, 3])\nb = np.array([4, 5, 6])\nnp.stack([a, b], axis=1)   # new axis at position 1",
+"out": "",
+"value": "array([[1, 4],\n       [2, 5],\n       [3, 6]])"
+},
+{
+"title": "numpy/vstack",
+"src": "import numpy as np\na = np.array([1, 2])\nb = np.array([3, 4])\nnp.vstack([a, b])\nnp.hstack([a, b])",
+"out": "",
+"value": "array([1, 2, 3, 4])"
+},
+{
+"title": "numpy/tile",
+"src": "import numpy as np\na = np.array([[1, 2], [3, 4]])\nnp.tile(a, (2, 2))",
+"out": "",
+"value": "array([[1, 2, 1, 2],\n       [3, 4, 3, 4],\n       [1, 2, 1, 2],\n       [3, 4, 3, 4]])"
+},
+{
+"title": "numpy/repeat",
+"src": "import numpy as np\na = np.array([[1, 2], [3, 4]])\nnp.repeat(a, 2, axis=1)",
+"out": "",
+"value": "array([[1, 1, 2, 2],\n       [3, 3, 4, 4]])"
+},
+{
+"title": "numpy/flip",
+"src": "import numpy as np\na = np.arange(6).reshape(2, 3)\nnp.flip(a, axis=1)",
+"out": "",
+"value": "array([[2, 1, 0],\n       [5, 4, 3]])"
+},
+{
+"title": "numpy/pad",
+"src": "import numpy as np\nimg = np.array([[1, 2], [3, 4]])\nnp.pad(img, 1)   # zero padding P = 1 before a 3×3 convolution",
+"out": "",
+"value": "array([[0, 0, 0, 0],\n       [0, 1, 2, 0],\n       [0, 3, 4, 0],\n       [0, 0, 0, 0]])"
+},
+{
+"title": "numpy/slice",
+"src": "import numpy as np\na = np.arange(16).reshape(4, 4)\na[1:3, ::2]",
+"out": "",
+"value": "array([[ 4,  6],\n       [ 8, 10]])"
+},
+{
+"title": "numpy/fancy",
+"src": "import numpy as np\na = np.arange(16).reshape(4, 4)\na[[0, 2, 3], [1, 3, 0]]   # points (0,1) (2,3) (3,0)",
+"out": "",
+"value": "array([ 1, 11, 12])"
+},
+{
+"title": "numpy/mask",
+"src": "import numpy as np\na = np.arange(12).reshape(3, 4)\nmask = a % 3 == 0\na[mask]",
+"out": "",
+"value": "array([0, 3, 6, 9])"
+},
+{
+"title": "numpy/where",
+"src": "import numpy as np\nz = np.array([[-2, 3], [4, -1]])\nnp.where(z > 0, z, 0)   # ReLU without changing z",
+"out": "",
+"value": "array([[0, 3],\n       [4, 0]])"
+},
+{
+"title": "numpy/isin",
+"src": "import numpy as np\nlabels = np.array([3, 7, 1, 7, 2])\nnp.isin(labels, [1, 7])   # is each label one of these?",
+"out": "",
+"value": "array([False,  True,  True,  True, False])"
+},
+{
+"title": "numpy/broadcast",
+"src": "import numpy as np\na = np.arange(3)\nb = np.array([[0], [10]])\na + b   # (3,) + (2, 1) → (2, 3)",
+"out": "",
+"value": "array([[ 0,  1,  2],\n       [10, 11, 12]])"
+},
+{
+"title": "numpy/scalar_op",
+"src": "import numpy as np\na = np.array([1, 2, 3, 4])\na ** 2",
+"out": "",
+"value": "array([ 1,  4,  9, 16])"
+},
+{
+"title": "numpy/compare",
+"src": "import numpy as np\na = np.array([[1, 5], [7, 2]])\na > 3",
+"out": "",
+"value": "array([[False,  True],\n       [ True, False]])"
+},
+{
+"title": "numpy/sqrt",
+"src": "import numpy as np\na = np.array([1, 4, 9, 16])\nnp.sqrt(a)",
+"out": "",
+"value": "array([1., 2., 3., 4.])"
+},
+{
+"title": "numpy/maximum",
+"src": "import numpy as np\nz = np.array([-2, -1, 0, 1, 2])\nnp.maximum(z, 0)   # ReLU",
+"out": "",
+"value": "array([0, 0, 0, 1, 2])"
+},
+{
+"title": "numpy/clip",
+"src": "import numpy as np\na = np.array([-5, 0, 3, 8, 12])\nnp.clip(a, 0, 10)",
+"out": "",
+"value": "array([ 0,  0,  3,  8, 10])"
+},
+{
+"title": "numpy/round",
+"src": "import numpy as np\na = np.array([0.5, 1.5, 2.5, 2.567])\nnp.round(a)   # halves go to the even neighbour",
+"out": "",
+"value": "array([0., 2., 2., 3.])"
+},
+{
+"title": "numpy/abs",
+"src": "import numpy as np\nd = np.array([[1, -3], [-2, 4]])\nnp.abs(d)",
+"out": "",
+"value": "array([[1, 3],\n       [2, 4]])"
+},
+{
+"title": "numpy/diff",
+"src": "import numpy as np\nloss = np.array([0.9, 0.6, 0.45, 0.4, 0.41])\nnp.diff(loss)   # change per epoch: > 0 means the loss went up",
+"out": "",
+"value": "array([-0.3 , -0.15, -0.05,  0.01])"
+},
+{
+"title": "numpy/isnan",
+"src": "import numpy as np\nx = np.array([1.5, np.nan, 3.0, np.nan])\nnp.isnan(x)   # x == np.nan is always False",
+"out": "",
+"value": "array([False,  True, False,  True])"
+},
+{
+"title": "numpy/tanh",
+"src": "import numpy as np\nz = np.array([-2.0, -0.5, 0.0, 0.5, 2.0])\nnp.tanh(z)   # squashes to (-1, 1)",
+"out": "",
+"value": "array([-0.96402758, -0.46211716,  0.        ,  0.46211716,  0.96402758])"
+},
+{
+"title": "numpy/sum",
+"src": "import numpy as np\na = np.arange(6).reshape(2, 3)\na.sum(axis=0)   # collapse the rows",
+"out": "",
+"value": "array([3, 5, 7])"
+},
+{
+"title": "numpy/sum_all",
+"src": "import numpy as np\na = np.arange(6).reshape(2, 3)\nnp.sum(a)",
+"out": "",
+"value": "np.int64(15)"
+},
+{
+"title": "numpy/mean",
+"src": "import numpy as np\nscores = np.array([[70, 80, 90], [60, 65, 95]])\nscores.mean(axis=1)   # one mean per student",
+"out": "",
+"value": "array([80.        , 73.33333333])"
+},
+{
+"title": "numpy/max",
+"src": "import numpy as np\na = np.array([[3, 9, 2], [8, 1, 7]])\na.max(axis=1)",
+"out": "",
+"value": "array([9, 8])"
+},
+{
+"title": "numpy/argmax",
+"src": "import numpy as np\nprobs = np.array([[0.1, 0.7, 0.2], [0.5, 0.3, 0.2]])\nnp.argmax(probs, axis=1)   # predicted class",
+"out": "",
+"value": "array([1, 0])"
+},
+{
+"title": "numpy/std",
+"src": "import numpy as np\nx = np.array([[2, 4, 4], [4, 5, 7]])\nx.std(axis=0)   # population std (ddof=0)",
+"out": "",
+"value": "array([1. , 0.5, 1.5])"
+},
+{
+"title": "numpy/prod",
+"src": "import numpy as np\na = np.array([[1, 2, 3], [4, 5, 6]])\nnp.prod(a, axis=1)",
+"out": "",
+"value": "array([  6, 120])"
+},
+{
+"title": "numpy/cumsum",
+"src": "import numpy as np\na = np.arange(1, 7).reshape(2, 3)\nnp.cumsum(a, axis=1)   # running total along each row",
+"out": "",
+"value": "array([[ 1,  3,  6],\n       [ 4,  9, 15]])"
+},
+{
+"title": "numpy/any",
+"src": "import numpy as np\na = np.array([[0, 0, 1], [0, 0, 0]])\na.any(axis=1)",
+"out": "",
+"value": "array([ True, False])"
+},
+{
+"title": "numpy/count_nonzero",
+"src": "import numpy as np\npred = np.array([1, 0, 1, 1])\ntrue = np.array([1, 1, 1, 0])\nnp.count_nonzero(pred == true)   # correct predictions",
+"out": "",
+"value": "2"
+},
+{
+"title": "numpy/bincount",
+"src": "import numpy as np\nlabels = np.array([0, 2, 1, 2, 2, 0])\nnp.bincount(labels)   # how many 0s, 1s, 2s",
+"out": "",
+"value": "array([2, 1, 3])"
+},
+{
+"title": "numpy/bincount_w",
+"src": "import numpy as np\nvotes = np.array([0, 1, 1, 0])          # labels of the 4 nearest neighbours\ndist = np.array([0.5, 2.0, 2.5, 1.0])\nnp.bincount(votes, weights=1 / dist)   # distance-weighted KNN vote",
+"out": "",
+"value": "array([3. , 0.9])"
+},
+{
+"title": "numpy/histogram",
+"src": "import numpy as np\npixels = np.array([12, 15, 40, 44, 47, 200, 210, 205, 198, 30])\ncounts, edges = np.histogram(pixels, bins=4, range=(0, 256))\ncounts   # Otsu's method starts from this",
+"out": "",
+"value": "array([6, 0, 0, 4])"
+},
+{
+"title": "numpy/median",
+"src": "import numpy as np\nx = np.array([[1, 9, 3], [4, 2, 100]])\nnp.median(x, axis=1)   # robust to the outlier 100",
+"out": "",
+"value": "array([3., 4.])"
+},
+{
+"title": "numpy/average",
+"src": "import numpy as np\nmarks = np.array([70, 85, 60])\nweights = np.array([0.5, 0.3, 0.2])\nnp.average(marks, weights=weights)",
+"out": "",
+"value": "np.float64(72.5)"
+},
+{
+"title": "numpy/sort",
+"src": "import numpy as np\na = np.array([[3, 1, 2], [9, 7, 8]])\nnp.sort(a, axis=1)",
+"out": "",
+"value": "array([[1, 2, 3],\n       [7, 8, 9]])"
+},
+{
+"title": "numpy/argsort",
+"src": "import numpy as np\nd = np.array([4.2, 0.5, 3.1, 1.0])\nnp.argsort(d)[:2]   # indices of the 2 nearest (KNN)",
+"out": "",
+"value": "array([1, 3])"
+},
+{
+"title": "numpy/unique",
+"src": "import numpy as np\nlabels = np.array([2, 0, 2, 1, 0, 2])\nnp.unique(labels)",
+"out": "",
+"value": "array([0, 1, 2])"
+},
+{
+"title": "numpy/matmul",
+"src": "import numpy as np\nA = np.arange(6).reshape(2, 3)\nB = np.arange(6).reshape(3, 2)\nA @ B",
+"out": "",
+"value": "array([[10, 13],\n       [28, 40]])"
+},
+{
+"title": "numpy/matvec",
+"src": "import numpy as np\nX = np.array([[1, 2], [3, 4], [5, 6]])\nw = np.array([0.5, -1])\nX @ w   # one prediction per row",
+"out": "",
+"value": "array([-1.5, -2.5, -3.5])"
+},
+{
+"title": "numpy/outer",
+"src": "import numpy as np\nnp.outer(np.array([1, 2, 3]), np.array([10, 20]))",
+"out": "",
+"value": "array([[10, 20],\n       [20, 40],\n       [30, 60]])"
+},
+{
+"title": "numpy/trace",
+"src": "import numpy as np\na = np.arange(9).reshape(3, 3)\nnp.trace(a)",
+"out": "",
+"value": "np.int64(12)"
+},
+{
+"title": "numpy/norm",
+"src": "import numpy as np\nv = np.array([[3, 4], [6, 8]])\nnp.linalg.norm(v, axis=1)   # length of each row",
+"out": "",
+"value": "array([ 5., 10.])"
+},
+{
+"title": "numpy/kmeans_assign",
+"src": "import numpy as np\nX = np.array([[1, 1], [2, 1], [8, 9], [9, 8]])\nC = np.array([[1, 2], [9, 9]])\nd = np.sqrt(((X[:, None, :] - C[None, :, :]) ** 2).sum(axis=2))   # (4, 2)\nnp.argmin(d, axis=1)   # cluster of each point",
+"out": "",
+"value": "array([0, 0, 1, 1])"
+},
+{
+"title": "numpy/knn_vote",
+"src": "import numpy as np\nX = np.array([[1, 1], [2, 2], [8, 8], [9, 9], [2, 1]])\ny = np.array([0, 0, 1, 1, 0])\nq = np.array([3, 3])\nd = np.linalg.norm(X - q, axis=1)\nnearest = np.argsort(d)[:3]\nnp.bincount(y[nearest]).argmax()",
+"out": "",
+"value": "np.int64(0)"
+},
+{
+"title": "numpy/softmax",
+"src": "import numpy as np\nz = np.array([[2.0, 1.0, 0.1], [1.0, 3.0, 0.0]])\ne = np.exp(z - z.max(axis=1, keepdims=True))   # subtract the max: no overflow\ne / e.sum(axis=1, keepdims=True)   # each row sums to 1",
+"out": "",
+"value": "array([[0.65900114, 0.24243297, 0.09856589],\n       [0.1141952 , 0.84379473, 0.04201007]])"
+},
+{
+"title": "numpy/zscore",
+"src": "import numpy as np\nX = np.array([[150, 50], [160, 60], [170, 80], [180, 90]])\n(X - X.mean(axis=0)) / X.std(axis=0)   # each column: mean 0, std 1",
+"out": "",
+"value": "array([[-1.34164079, -1.26491106],\n       [-0.4472136 , -0.63245553],\n       [ 0.4472136 ,  0.63245553],\n       [ 1.34164079,  1.26491106]])"
+},
+{
+"title": "numpy/onehot",
+"src": "import numpy as np\ny = np.array([2, 0, 1, 2])\nnp.eye(3)[y]   # row y of the identity = one-hot label",
+"out": "",
+"value": "array([[0., 0., 1.],\n       [1., 0., 0.],\n       [0., 1., 0.],\n       [0., 0., 1.]])"
+},
+{
+"title": "numpy/confusion",
+"src": "import numpy as np\ntrue = np.array([0, 1, 2, 2, 1, 0, 2])\npred = np.array([0, 2, 2, 2, 1, 0, 1])\nk = 3\nnp.bincount(true * k + pred, minlength=k * k).reshape(k, k)   # rows = true, columns = predicted",
+"out": "",
+"value": "array([[2, 0, 0],\n       [0, 1, 1],\n       [0, 1, 2]])"
+},
+{
+"title": "numpy/perceptron",
+"src": "import numpy as np\nX = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])\nw = np.array([1.0, 1.0])\nb = -1.5\nnp.where(X @ w + b >= 0, 1, 0)   # AND gate",
+"out": "",
+"value": "array([0, 0, 0, 1])"
+},
+{
+"title": "numpy/poly_note",
+"src": "from numpy.polynomial import Polynomial\n\np = Polynomial([1, 2, 3])   # coefficients low → high: 1 + 2x + 3x²\nq = Polynomial([0, 1])      # q(x) = x (the note leaves q undefined)\np(2)          # evaluate → 17.0\np.roots()     # roots (may be complex)\np.deriv()     # derivative → 2 + 6x\np.integ()     # integral → x + x² + x³\np * q         # multiply with plain operators",
+"out": "",
+"value": "Polynomial([0., 1., 2., 3.], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')"
+},
+{
+"title": "numpy/poly_eval",
+"src": "import numpy as np\nfrom numpy.polynomial import Polynomial\np = Polynomial([1, -3, 2])   # 1 - 3x + 2x²\np(np.array([-1, 0, 0.5, 1, 2]))",
+"out": "",
+"value": "array([6., 1., 0., 0., 3.])"
+},
+{
+"title": "numpy/poly_deriv",
+"src": "from numpy.polynomial import Polynomial\np = Polynomial([0, -3, 0, 1])   # x³ - 3x\np.deriv()   # 3x² - 3: zero where p turns around",
+"out": "",
+"value": "Polynomial([-3.,  0.,  3.], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')"
+},
+{
+"title": "numpy/poly_roots",
+"src": "from numpy.polynomial import Polynomial\np = Polynomial([-6, 11, -6, 1])   # (x - 1)(x - 2)(x - 3)\np.roots()",
+"out": "",
+"value": "array([1., 2., 3.])"
+},
+{
+"title": "numpy/poly_fit",
+"src": "import numpy as np\nfrom numpy.polynomial import Polynomial\nx = np.linspace(0, 4, 9)\nnoise = np.array([0.3, -0.2, 0.1, 0.25, -0.3, 0.05, -0.1, 0.2, -0.15])\ny = 0.5 * x ** 2 - 2 * x + 3 + noise\nfit = Polynomial.fit(x, y, deg=2)\nfit.convert()   # back to plain coefficients ≈ 3 - 2x + 0.5x²",
+"out": "",
+"value": "Polynomial([ 3.14818182, -2.12831169,  0.52207792], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')"
+},
+{
+"title": "numpy/polyfit",
+"src": "import numpy as np\nx = np.array([0, 1, 2, 3, 4])\ny = np.array([1.1, 2.9, 5.2, 7.1, 8.8])\nnp.polyfit(x, y, 1)   # legacy: HIGH → low, so [slope, intercept]",
+"out": "",
+"value": "array([1.96, 1.1 ])"
+},
+{
+"title": "numpy/rand",
+"src": "import numpy as np\nnp.random.seed(0)\nnp.random.rand(2, 3)   # uniform in [0, 1)",
+"out": "",
+"value": "array([[0.5488135 , 0.71518937, 0.60276338],\n       [0.54488318, 0.4236548 , 0.64589411]])"
+},
+{
+"title": "numpy/randint",
+"src": "import numpy as np\nnp.random.seed(1)\nnp.random.randint(0, 10, size=(2, 4))",
+"out": "",
+"value": "array([[5, 8, 9, 5],\n       [0, 0, 1, 7]])"
+},
+{
+"title": "numpy/randn",
+"src": "import numpy as np\nnp.random.seed(2)\nnp.random.randn(5)   # standard normal",
+"out": "",
+"value": "array([-0.41675785, -0.05626683, -2.1361961 ,  1.64027081, -1.79343559])"
+},
+{
+"title": "numpy/split",
+"src": "import numpy as np\n\na = np.arange(6)\nprint(np.split(a, 3))\nprint(np.split(a, [1, 4]))    # cut before index 1 and 4\nprint(np.array_split(np.arange(7), 3))   # sizes may differ",
+"out": "[array([0, 1]), array([2, 3]), array([4, 5])]\n[array([0]), array([1, 2, 3]), array([4, 5])]\n[array([0, 1, 2]), array([3, 4]), array([5, 6])]\n"
+},
+{
+"title": "numpy/moveaxis",
+"src": "import numpy as np\n\nimages = np.zeros((10, 32, 32, 3))\nprint(np.moveaxis(images, -1, 1).shape)     # channels last to first\nprint(np.transpose(images, (0, 3, 1, 2)).shape)   # the same, spelled out",
+"out": "(10, 3, 32, 32)\n(10, 3, 32, 32)\n"
+},
+{
+"title": "numpy/nonzero",
+"src": "import numpy as np\n\na = np.array([[0, 3], [5, 0]])\nprint(np.nonzero(a))       # (rows, columns)\nprint(np.argwhere(a > 0))  # one [row, column] per hit\nprint(a[np.nonzero(a)])",
+"out": "(array([0, 1]), array([1, 0]))\n[[0 1]\n [1 0]]\n[3 5]\n"
+},
+{
+"title": "numpy/take_along",
+"src": "import numpy as np\n\nscores = np.array([[3, 1, 2], [1, 3, 2]])\nprint(np.take(scores, [0, 2], axis=1))\norder = np.argsort(scores, axis=1)\nprint(np.take_along_axis(scores, order, axis=1))",
+"out": "[[3 2]\n [1 2]]\n[[1 2 3]\n [1 2 3]]\n"
+},
+{
+"title": "numpy/percentile",
+"src": "import numpy as np\n\nx = np.array([1, 2, 3, 4, 10])\nprint(np.percentile(x, 50), np.quantile(x, 0.25))\nq1, q3 = np.percentile(x, [25, 75])\nprint(q3 - q1)    # interquartile range",
+"out": "3.0 2.0\n2.0\n"
+},
+{
+"title": "numpy/corrcoef",
+"src": "import numpy as np\n\nx = np.array([1., 2., 3., 4.])\ny = np.array([2., 4., 5., 9.])\nprint(np.corrcoef(x, y))\nprint(np.cov(x, y))     # n − 1 in the denominator",
+"out": "[[1.         0.96476382]\n [0.96476382 1.        ]]\n[[1.66666667 3.66666667]\n [3.66666667 8.66666667]]\n"
+},
+{
+"title": "numpy/solve",
+"src": "import numpy as np\n\nA = np.array([[2., 1.], [1., 3.]])\nb = np.array([3., 5.])\nx = np.linalg.solve(A, b)\nprint(x, A @ x)\nprint(np.linalg.matrix_rank(A), np.linalg.cond(A))",
+"out": "[0.8 1.4] [3. 5.]\n2 2.6180339887498953\n"
+},
+{
+"title": "numpy/eigh",
+"src": "import numpy as np\n\nS = np.array([[2., 1.], [1., 2.]])\nvalues, vectors = np.linalg.eigh(S)\nprint(values)\nprint(np.round(np.abs(vectors), 4))\nprint(np.allclose(S @ vectors, vectors * values))",
+"out": "[1. 3.]\n[[0.7071 0.7071]\n [0.7071 0.7071]]\nTrue\n"
+},
+{
+"title": "numpy/svd",
+"src": "import numpy as np\n\nA = np.array([[3., 0.], [4., 5.], [0., 1.]])\nU, s, Vt = np.linalg.svd(A, full_matrices=False)\nprint(U.shape, s.shape, Vt.shape)\nprint(np.round(s, 4))\nprint(np.allclose(U @ np.diag(s) @ Vt, A))",
+"out": "(3, 2) (2,) (2, 2)\n[6.7458 2.3439]\nTrue\n"
+},
+{
+"title": "numpy/lstsq",
+"src": "import numpy as np\n\nX = np.array([[1., 1.], [1., 2.], [1., 3.]])\ny = np.array([2., 3., 5.])\nw, *_ = np.linalg.lstsq(X, y, rcond=None)\nprint(w)\nprint(X @ w)",
+"out": "[0.33333333 1.5       ]\n[1.83333333 3.33333333 4.83333333]\n"
+},
+{
+"title": "numpy/rng",
+"src": "import numpy as np\n\nrng = np.random.default_rng(0)\nprint(rng.random((2, 2)).shape, rng.integers(0, 10, 3).shape)\nprint(sorted(rng.choice(5, 3, replace=False).tolist()) != [])\nprint(sorted(rng.permutation(4).tolist()))",
+"out": "(2, 2) (3,)\nTrue\n[0, 1, 2, 3]\n"
+},
+{
+"title": "numpy/save_load",
+"src": "import numpy as np\n\na = np.arange(6).reshape(2, 3)\nnp.save('a.npy', a)\nb = np.load('a.npy')\nprint(b, b.dtype, b.shape)",
+"out": "[[0 1 2]\n [3 4 5]] int64 (2, 3)\n"
+},
+{
+"title": "numpy/savez",
+"src": "import numpy as np\n\nnp.savez('data.npz', x=np.ones((2, 2)), y=np.array([0, 1]))\nd = np.load('data.npz')\nprint(d.files)\nprint(d['x'], d['y'])",
+"out": "['x', 'y']\n[[1. 1.]\n [1. 1.]] [0 1]\n"
+},
+{
+"title": "numpy/savetxt",
+"src": "import numpy as np\n\nnp.savetxt('t.csv', np.array([[1, 2], [3, 4]]), delimiter=',', fmt='%d')\nprint(open('t.csv').read())\nprint(np.loadtxt('t.csv', delimiter=','))",
+"out": "1,2\n3,4\n\n[[1. 2.]\n [3. 4.]]\n"
 }
 ]

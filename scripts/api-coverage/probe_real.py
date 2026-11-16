@@ -27,7 +27,7 @@ if 'matplotlib' in libs:
     import matplotlib
     matplotlib.use('Agg')
 
-UNSAFE = re.compile(r'^(set_|enable|disable|use_|seed$|manual_seed|shutdown|exit|abort|kill|fork|exec|system|popen|spawn|remove|unlink|rmdir|rmtree|save|load|show$|pause$|ginput|waitfor|input$|breakpoint|help$|get_file|download|fetch_|load_|from_file|fromfile|memmap|tofile|dump|to_(csv|pickle|parquet|excel|hdf|sql|feather|stata|json|html|latex|xml|clipboard|markdown|orc)|read_|DataFrame$|Series$|imread|imwrite|VideoCapture|namedWindow|waitKey|imshow$|select|connect|xkcd|install|switch_backend|ion$|ioff$|sleep|print$|open$|compile$|globals|locals|vars|memoryview|quit$|copyright|credits|license)', re.I)
+UNSAFE = re.compile(r'^(set_|enable|disable|use_|seed$|manual_seed|shutdown|exit|abort|kill|fork|exec|system|popen|spawn|remove|unlink|rmdir|rmtree|save|load|show$|pause$|ginput|waitfor|input$|breakpoint|help$|get_file|download|fetch_|load_|from_file|fromfile|memmap|tofile|dump|to_(csv|pickle|parquet|excel|hdf|sql|feather|stata|json|html|latex|xml|clipboard|markdown|orc)|read_|DataFrame$|Series$|imread|imwrite|VideoCapture|namedWindow|waitKey|imshow$|select|connect|xkcd|install|switch_backend|ion$|ioff$|sleep|share_memory|print$|open$|compile$|globals|locals|vars|memoryview|quit$|copyright|credits|license)', re.I)
 # modules that may be called with made-up arguments: pure functions of their arguments
 PURE = {'math', 'random', 're', 'json', 'collections', 'itertools', 'functools', 'operator', 'dataclasses', 'copy', 'heapq', 'bisect', 'string', 'statistics', 'datetime', 'enum', 'textwrap', 'types', 'fnmatch', 'inspect', 'fractions', 'abc', 'typing', 'csv'}
 
@@ -126,6 +126,16 @@ def run(src):
 
 # Some calls kill the process (torch.FileCheck) or close stdout (a number taken for a file descriptor), so each module
 # runs in its own process: results go line by line to a file, and after a crash the next process starts one name later.
+def quiet_crashes():
+    """A native crash (OpenCV's seamless-cloning functions on a 4x4 image segfault) ends this process with _exit
+    instead: the parent goes on one name later either way, and macOS shows no "Python quit unexpectedly" dialog."""
+    import ctypes
+    libc = ctypes.CDLL(None)
+    libc.signal.argtypes = [ctypes.c_int, ctypes.c_void_p]
+    for sig in (signal.SIGSEGV, signal.SIGBUS, signal.SIGABRT, signal.SIGILL, signal.SIGFPE):
+        libc.signal(sig, ctypes.cast(libc._exit, ctypes.c_void_p))
+
+
 if os.environ.get('PROBE_MODULE'):
     module = os.environ['PROBE_MODULE']
     start = int(os.environ['PROBE_START'])
@@ -140,6 +150,7 @@ if os.environ.get('PROBE_MODULE'):
         state.seek(0)
         state.write(str(i) + '   ')
         state.flush()
+        quiet_crashes()   # again for each name: an import (TensorFlow's) may install its own handlers
         kept = 0
         for form in calls(lib, module, g, name):
             lines = form.split('\n')
