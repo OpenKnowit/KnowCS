@@ -1,6 +1,6 @@
 import { Component, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
-import { AlertTriangle, ChartArea, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, FileCode, Info, LayoutGrid, NotebookText, PanelLeftClose, PanelLeftOpen, Play, RotateCcw, Search, Square, X } from 'lucide-react'
+import { AlertTriangle, ChartArea, CircleHelp, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, FileCode, Info, LayoutGrid, NotebookText, PanelLeftClose, PanelLeftOpen, Play, RotateCcw, Search, Square, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { CallTrace } from '../../lib/minipy'
 import type { Display, PyEvent } from '../../lib/pyEvents'
@@ -18,6 +18,40 @@ import type { BenchEntry, BenchProps, LibId, LibSpec } from './libs'
 // /playground/ as a workbench: examples on the left (folds away), code in the middle,
 // the traced step on the right with output / explanation / variables below it, and a status bar.
 // With real Python (Pyodide) there are no steps, so the whole right side is output.
+
+/** the status bar's "?": what the sandbox covers of the real libraries, and the way to the coverage page */
+function CoverageHelp() {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const away = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const esc = (e: globalThis.KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('pointerdown', away)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('pointerdown', away)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+  return (
+    <span ref={box} className="-mr-2 flex shrink-0">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={t('site.coverage.link')} title={t('site.coverage.link')} className={`grid h-6 w-6 place-items-center rounded-md hover:bg-slate-100 hover:text-slate-900 ${open ? 'bg-slate-100 text-slate-900' : 'text-slate-500'}`}>
+        <CircleHelp size={14} aria-hidden />
+      </button>
+      {open && (
+        <span role="dialog" aria-label={t('site.coverage.link')} className="fixed bottom-9 right-3 z-40 w-[min(320px,calc(100vw-24px))] whitespace-normal rounded-xl border border-slate-200 bg-white p-3.5 text-[12.5px] leading-relaxed text-slate-600 shadow-xl shadow-slate-900/10">
+          <b className="mb-1 block text-[13px] text-slate-900">{t('site.coverage.link')}</b>
+          {t('site.coverage.hint')}
+          <a href="/playground/coverage/" className="mt-2 block font-semibold text-blue-700 hover:underline">{t('site.coverage.open')} →</a>
+        </span>
+      )}
+    </span>
+  )
+}
 
 /** 'result' = the finished figure after the last step, drawn plainly (no highlight, nothing faded) */
 type Step = { kind: 'call'; seq: number; call: CallTrace } | { kind: 'event'; seq: number; ev: PyEvent } | { kind: 'result'; seq: number }
@@ -130,7 +164,6 @@ export function ExamplesSidebar({ lib, entryId, specs, onPick, onCollapse }: Sid
           <PanelLeftClose size={16} aria-hidden />
         </button>
       </div>
-      <a href="/playground/coverage/" className="mx-3 mb-1.5 block text-[11.5px] font-semibold text-blue-700 underline-offset-2 hover:underline">{t('site.coverage.link')}</a>
       <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
         {LIBS.map((l) => {
           const s = specs[l.id]
@@ -222,7 +255,6 @@ export function Gallery({ lib, specs, onPick, onClose }: GalleryProps) {
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
             <LayoutGrid size={18} className="text-blue-600" aria-hidden /> {t('site.playground.gallery')}
-            <a href="/playground/coverage/" className="ml-2 text-[13px] font-semibold text-blue-700 underline-offset-2 hover:underline">{t('site.coverage.link')}</a>
           </h2>
           <button ref={closeRef} type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-[9px] border border-slate-200 text-slate-600 hover:text-slate-900" aria-label={t('site.ui.close')}>
             <X size={18} aria-hidden />
@@ -669,6 +701,7 @@ export default function Workbench({ lib, spec, entryId, side, onSide, onGallery,
       {realOn && versions.length > 0 && <span className="hidden font-mono md:inline">{versions.join(' · ')}</span>}
       <span className="ml-auto hidden font-mono sm:inline">{t('site.playground.lines', { count: code.split('\n').length })}</span>
       <span className="ml-auto font-mono sm:ml-0">{realOn ? (lastReal ? t('playground.ui.real.took', { ms: lastReal.ms }) : '') : t('site.playground.traced', { count: steps.length })}</span>
+      <CoverageHelp />
     </div>
   )
 

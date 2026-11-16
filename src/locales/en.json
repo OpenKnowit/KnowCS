@@ -1217,7 +1217,9 @@
         "r": "Exists, but refuses to run here",
         "n": "Not available"
       },
-      "method": "“Public names” are a module’s __all__, or else every attribute without a leading underscore, leaving out submodules. They include deprecated and internal-looking names, so 100% is not the goal. “Available” means the name exists here and an ordinary call runs: some arguments may still be refused, with a message saying so. A name that exists but refuses even an ordinary call (sklearn’s load_wine, whose data is not embedded; cv2.imwrite, as there are no files here) counts as missing. “Same output” means at least one program using it printed what the real library printed, within rounding; it does not cover every argument. os, shutil and sys are never called automatically, so most of their names show no example."
+      "method": "“Public names” are a module’s __all__, or else every attribute without a leading underscore, leaving out submodules. They include deprecated and internal-looking names, so 100% is not the goal. “Available” means the name exists here and an ordinary call runs: some arguments may still be refused, with a message saying so. A name that exists but refuses even an ordinary call (sklearn’s load_wine, whose data is not embedded; cv2.imwrite, as there are no files here) counts as missing. “Same output” means at least one program using it printed what the real library printed, within rounding; it does not cover every argument. os, shutil and sys are never called automatically, so most of their names show no example.",
+      "hint": "The Playground runs minipy, a Python interpreter in the page, which has only part of each real library. The coverage page lists every name of every library: whether it is here, and whether its output was compared with the real library.",
+      "open": "See the API coverage"
     }
   },
   "lab": {
