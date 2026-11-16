@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { LIBS, entryFromHash, libFromHash, loadSpec, loadWorkbench, playgroundHash } from '../playground/libs'
 import type { LibId } from '../playground/libs'
 import type { Specs } from '../playground/Workbench'
+import { useRaise } from '../raise'
 
 // /playground/: one workbench for the library sandboxes (NumPy, matplotlib, pandas, PyTorch, Keras, TensorFlow).
 // The library sits in the URL hash. The current one loads first, the rest right after, so switching never waits.
@@ -12,6 +13,7 @@ type BenchModule = Awaited<ReturnType<typeof loadWorkbench>>
 
 export default function PlaygroundPage() {
   const { t } = useTranslation()
+  const raise = useRaise()
   const [sel, setSel] = useState<{ lib: LibId; entry: string | null }>(() => ({ lib: libFromHash(), entry: entryFromHash() }))
   const [specs, setSpecs] = useState<Specs>({})
   const [mod, setMod] = useState<BenchModule | null>(null)
@@ -46,22 +48,23 @@ export default function PlaygroundPage() {
   }, [t])
   useEffect(() => {
     let live = true
-    void loadWorkbench().then((m) => live && setMod(m))
+    // the workbench or the first library not arriving is the page not loading; a later library only matters once picked
+    void loadWorkbench().then((m) => live && setMod(m), (e: unknown) => live && raise(e))
     const first = libFromHash()
     void loadSpec(first)
-      .then((s) => live && setSpecs((p) => ({ ...p, [first]: s })))
+      .then((s) => live && setSpecs((p) => ({ ...p, [first]: s })), (e: unknown) => live && raise(e))
       .then(async () => {
         for (const l of LIBS) {
           if (!live) return
           if (l.id === first) continue
-          const s = await loadSpec(l.id)
-          if (live) setSpecs((p) => ({ ...p, [l.id]: s }))
+          const s = await loadSpec(l.id).catch(() => null)
+          if (live && s) setSpecs((p) => ({ ...p, [l.id]: s }))
         }
       })
     return () => {
       live = false
     }
-  }, [])
+  }, [raise])
   // back / forward and edited hashes switch the library too
   useEffect(() => {
     const onHash = () => {
@@ -75,10 +78,10 @@ export default function PlaygroundPage() {
   const pick = useCallback((lib: LibId, entry: string | null) => {
     setSel({ lib, entry })
     setSeed(null)
-    void loadSpec(lib).then((s) => setSpecs((p) => (p[lib] ? p : { ...p, [lib]: s })))
+    void loadSpec(lib).then((s) => setSpecs((p) => (p[lib] ? p : { ...p, [lib]: s })), raise)
     // the address names the example, so it can be shared: /playground/#keras/cnn_summary
     history.replaceState(null, '', lib === 'numpy' && !entry ? window.location.pathname : playgroundHash(lib, entry))
-  }, [])
+  }, [raise])
   const closeGallery = useCallback(() => setGallery(false), [])
   // until a library has loaded, the previous one stays on screen (no blank flash in between)
   const [shown, setShown] = useState(sel)

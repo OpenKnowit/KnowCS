@@ -8,6 +8,8 @@ import { legacyTarget } from '../lib/sitemap'
 import { Shell } from './Shell'
 import type { Section } from './Shell'
 import { countVisit } from './visit'
+import { PageBoundary, PageFailure, PageLoading } from './PageState'
+import { markReloaded, wouldReloadFor } from './raise'
 
 // iOS Safari zooms the whole page when an input smaller than 16px gets focus, and many of the labs' number boxes are.
 // maximum-scale stops that; iOS still lets people pinch to zoom, which is why this is not set for other browsers.
@@ -52,14 +54,29 @@ if (!moved) {
   // start this page's code and strings now, in parallel with the core strings
   preloadPage(page, id)
   // render once the current language's strings have loaded
-  void i18nReady.then(() => {
+  const root = createRoot(document.getElementById('root')!)
+  const show = () => {
+    // i18next resolves even when the strings did not arrive: without them the page would be a screen of key names
+    if (!i18n.hasResourceBundle(i18n.language, 'translation')) throw new TypeError('Failed to fetch the strings')
     countVisit(page, i18n.language)
-    createRoot(document.getElementById('root')!).render(
+    root.render(
       <StrictMode>
-        <Shell section={section}>
-          <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>{content}</Suspense>
-        </Shell>
+        {/* the outer boundary is for the header itself; a page that fails keeps the header and shows its message below */}
+        <PageBoundary bare>
+          <Shell section={section}>
+            <PageBoundary>
+              <Suspense fallback={<PageLoading />}>{content}</Suspense>
+            </PageBoundary>
+          </Shell>
+        </PageBoundary>
       </StrictMode>,
     )
+  }
+  void i18nReady.then(show).catch((error: unknown) => {
+    console.error(error)
+    if (wouldReloadFor(error)) {
+      markReloaded()
+      window.location.reload()
+    } else root.render(<PageFailure kind="load" bare />)
   })
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronRight, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { LIBS, apiEntryId } from '../playground/libs'
+import { useRaise } from '../raise'
 
 // /playground/coverage/: how much of each real library the sandbox has. The list of names comes from the real libraries
 // (scripts/api-real-names.py), and each name's status from src/data/apiCoverage.json's generator.
@@ -62,18 +63,19 @@ function NameChip({ g, name, status, label }: { g: Group; name: string; status: 
 
 export default function CoveragePage() {
   const { t } = useTranslation()
+  const raise = useRaise()
   const [data, setData] = useState<Coverage | null>(null)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [open, setOpen] = useState<Set<string>>(() => new Set())
   useEffect(() => {
     let live = true
-    void import('../../data/apiCoverage.json').then((m) => live && setData(m.default as Coverage))
+    void import('../../data/apiCoverage.json').then((m) => live && setData(m.default as Coverage), (e: unknown) => live && raise(e))
     document.title = `${t('site.coverage.title')} · KnowCS`
     return () => {
       live = false
     }
-  }, [t])
+  }, [t, raise])
   const statusText = (s: Status) => t(`site.coverage.status.${s}`)
   const sum = useMemo(() => (data ? tally(data.groups) : null), [data])
   const q = query.trim().toLowerCase()
