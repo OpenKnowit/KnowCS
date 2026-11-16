@@ -123,3 +123,44 @@ export function loopError(order: LoopLine[]): 'loss_first' | 'backward_first' | 
   if (at('zero_grad') > at('backward') && at('zero_grad') < at('step')) return 'zero_late'
   return null
 }
+
+// ---------------------------------------------------------------- MNIST_CNN.forward, line by line
+export interface ForwardRow {
+  /** the line of forward() this row runs */
+  code: string
+  /** output shape, channels first: (batch, C, H, W) or (batch, features) */
+  shape: number[]
+  /** learnable parameters of the layer this line uses (0 for relu, pooling, dropout, view) */
+  params: number
+  /** the RuntimeError PyTorch raises on this line, if any */
+  error?: string
+}
+
+/**
+ * Lecture 9's MNIST_CNN on a batch of 64, with the convolutions' padding (1 in Lecture 9, 0 = Keras's 'valid' in
+ * Lecture 8) and the in_features written into fc1. A wrong in_features stops the forward pass at fc1 with
+ * PyTorch's own message. Checked against PyTorch 2.14.1 on 2026-11-16.
+ */
+export function mnistForward(padding: 0 | 1, inFeatures: number, batch = 64): ForwardRow[] {
+  const s1 = 28 - 2 + 2 * padding
+  const s2 = s1 - 2 + 2 * padding
+  const s3 = Math.floor(s2 / 2)
+  const flat = 64 * s3 * s3
+  const rows: ForwardRow[] = [
+    { code: 'x = F.relu(self.conv1(x))', shape: [batch, 32, s1, s1], params: (3 * 3 * 1 + 1) * 32 },
+    { code: 'x = F.relu(self.conv2(x))', shape: [batch, 64, s2, s2], params: (3 * 3 * 32 + 1) * 64 },
+    { code: 'x = self.pool(x)', shape: [batch, 64, s3, s3], params: 0 },
+    { code: 'x = self.dropout1(x)', shape: [batch, 64, s3, s3], params: 0 },
+    { code: 'x = x.view(x.size(0), -1)', shape: [batch, flat], params: 0 },
+  ]
+  if (flat !== inFeatures) {
+    rows.push({ code: 'x = F.relu(self.fc1(x))', shape: [], params: inFeatures * 128 + 128, error: `mat1 and mat2 shapes cannot be multiplied (${batch}x${flat} and ${inFeatures}x128)` })
+    return rows
+  }
+  rows.push(
+    { code: 'x = F.relu(self.fc1(x))', shape: [batch, 128], params: inFeatures * 128 + 128 },
+    { code: 'x = self.dropout2(x)', shape: [batch, 128], params: 0 },
+    { code: 'x = self.fc2(x)', shape: [batch, 10], params: 128 * 10 + 10 },
+  )
+  return rows
+}

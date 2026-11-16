@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TENSORS, bridge, graph, lectureTensor, LOOP, LOOP_CODE, loopError, matmul, mul, replay, sizeStr, transpose } from '../../lib/torchSim'
+import { TENSORS, bridge, graph, LOOP, LOOP_CODE, loopError, mnistForward, replay, sizeStr } from '../../lib/torchSim'
 import type { BridgeOp, GradEvent, LoopLine } from '../../lib/torchSim'
+import { KERAS, STEPS, TORCH } from '../../lib/kerasTorch'
+import type { CodeLine, Step } from '../../lib/kerasTorch'
 import { moduleUrl } from '../../lib/sitemap'
 import { fmt } from '../format'
 import { Ans, Btn, Card, LabPage, Note, Seg, Slider, TableWrap } from '../ui'
@@ -9,23 +11,72 @@ import { PyBlock } from '../../components/PyCode'
 import { RunInPlayground } from '../../components/RunInPlayground'
 import { highlightPython } from '../playground/pyHighlight'
 
-const Mat = ({ m, label, hot }: { m: number[][]; label: string; hot?: (i: number, j: number) => boolean }) => (
-  <div className="grid gap-1">
-    <span className="font-mono text-[12px] font-bold text-slate-600">{label}</span>
-    <div className="inline-grid w-fit gap-1 font-mono text-[13px]" style={{ gridTemplateColumns: `repeat(${m[0].length}, 34px)` }}>
-      {m.flatMap((row, i) => row.map((v, j) => (
-        <span key={`${i}-${j}`} className={`grid h-8 place-items-center rounded-md border font-bold ${hot?.(i, j) ? 'border-amber-300 bg-amber-50 text-amber-900' : v ? 'border-blue-200 bg-blue-50 text-blue-900' : 'border-slate-200 bg-white text-slate-500'}`}>{v}</span>
-      )))}
-    </div>
-  </div>
-)
-
 const Row = ({ v, label, tone }: { v: number[]; label: string; tone: string }) => (
   <div className="flex flex-wrap items-center gap-2">
     <span className="w-24 font-mono text-[12px] font-bold text-slate-600">{label}</span>
     {v.map((x, i) => <span key={i} className={`grid h-8 w-9 place-items-center rounded-md border font-mono text-[13px] font-bold ${tone}`}>{x}</span>)}
   </div>
 )
+
+/** One side of the Keras ↔ PyTorch map: every line is a button that picks its step; the step's lines light up. */
+function CodePane({ head, lines, step, onPick }: { head: string; lines: CodeLine[]; step: Step; onPick: (s: Step) => void }) {
+  const pane = useRef<HTMLDivElement>(null)
+  // bring the lit lines into view inside the pane (the page itself does not scroll)
+  useEffect(() => {
+    const box = pane.current
+    const first = box?.querySelector<HTMLElement>('[data-on="true"]')
+    if (box && first) box.scrollTo({ top: Math.max(0, first.offsetTop - 48), behavior: 'smooth' })
+  }, [step])
+  return (
+    <div className="min-w-0">
+      <div className="mb-1.5 text-[12px] font-extrabold text-slate-600">{head}</div>
+      <div ref={pane} className="relative max-h-[22rem] overflow-auto rounded-xl bg-slate-900 p-2 font-mono text-[12px] leading-[1.6] text-slate-100 lg:max-h-[30rem]">
+        <div className="w-max min-w-full">
+          {lines.map(([code, ...steps], i) => {
+            if (!code) return <div key={i} className="h-[1.6em]" />
+            const on = steps.includes(step)
+            // a line in two steps: clicking it again moves to its other step
+            const next = on && steps.length > 1 ? steps[(steps.indexOf(step) + 1) % steps.length] : steps[0]
+            return (
+              <button key={i} type="button" data-on={on} onClick={() => onPick(next)} className={`block w-full whitespace-pre rounded px-1.5 text-left ${on ? 'bg-amber-300/20 ring-1 ring-amber-300/70' : 'opacity-60 hover:bg-white/5 hover:opacity-100'}`}>
+                {highlightPython(code, 'dark')}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const shapeStr = (s: number[]) => `(${s.join(', ')})`
+
+/** the five loop lines, shuffled */
+const POOL: LoopLine[] = ['loss', 'step', 'zero_grad', 'backward', 'forward']
+const LOOP_HEAD = ['model.train()', 'for epoch in range(NUM_EPOCHS):', '    for i, (inputs, labels) in enumerate(trainloader):', '        inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)']
+
+const BRIDGE_OPS: { op: BridgeOp; code: string }[] = [
+  { op: 'add_', code: 'my_tensor.add_(1)' },
+  { op: 'np_add_out', code: 'np.add(np_array, 1, out=np_array)' },
+  { op: 'plus', code: 'my_tensor = my_tensor + 1' },
+  { op: 'clone', code: 'my_tensor = my_tensor.clone()' },
+]
+
+/** a Python float literal: 2 → 2.0, -0.25 → -0.25 */
+const float = (v: number) => (Number.isInteger(v) ? v.toFixed(1) : String(v))
+/** the loop's setup for the playground: a tiny model and made-up data, so the student's loop body runs */
+const LOOP_SETUP = `import torch
+import torch.nn as nn
+
+# a tiny model and made-up data, so the loop can run
+torch.manual_seed(0)
+X = torch.randn(32, 4)
+Y = (X.sum(dim=1) > 0).long()
+trainloader = [(X[i:i + 8], Y[i:i + 8]) for i in range(0, 32, 8)]
+model = nn.Linear(4, 2)
+lossfunc = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+`
 
 /** z = w·x + b → σ → BCE, with data above each node and .grad below once backward has run. */
 function GraphView({ w, x, b, y, shown }: { w: number; x: number; b: number; y: number; shown: number }) {
@@ -63,37 +114,13 @@ function GraphView({ w, x, b, y, shown }: { w: number; x: number; b: number; y: 
   )
 }
 
-const BRIDGE_OPS: { op: BridgeOp; code: string }[] = [
-  { op: 'add_', code: 'my_tensor.add_(1)' },
-  { op: 'np_add_out', code: 'np.add(np_array, 1, out=np_array)' },
-  { op: 'plus', code: 'my_tensor = my_tensor + 1' },
-  { op: 'clone', code: 'my_tensor = my_tensor.clone()' },
-]
-
-/** a Python float literal: 2 → 2.0, -0.25 → -0.25 */
-const float = (v: number) => (Number.isInteger(v) ? v.toFixed(1) : String(v))
-const MM_CODE = 'tensor = torch.ones(4, 4)\ntensor[:, 1] = 0\ny1 = tensor @ tensor.T     # matrix product\nz1 = tensor * tensor       # element-wise'
-/** the loop's setup for the playground: a tiny model and made-up data, so the student's loop body runs */
-const LOOP_SETUP = `import torch
-import torch.nn as nn
-
-# a tiny model and made-up data, so the loop can run
-torch.manual_seed(0)
-X = torch.randn(32, 4)
-Y = (X.sum(dim=1) > 0).long()
-trainloader = [(X[i:i + 8], Y[i:i + 8]) for i in range(0, 32, 8)]
-model = nn.Linear(4, 2)
-lossfunc = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-`
-
-/** the five loop lines, shuffled */
-const POOL: LoopLine[] = ['loss', 'step', 'zero_grad', 'backward', 'forward']
-
 export default function PyTorchPage() {
   const { t } = useTranslation()
   const [ti, setTi] = useState(0)
   const [ops, setOps] = useState<BridgeOp[]>(['add_'])
+  const [step, setStep] = useState<Step>('model')
+  const [padding, setPadding] = useState<0 | 1>(1)
+  const [inFeatures, setInFeatures] = useState(12544)
   const [w, setW] = useState(0.5)
   const [x, setX] = useState(2)
   const [b, setB] = useState(-1)
@@ -106,10 +133,14 @@ export default function PyTorchPage() {
   // floats, as PyTorch needs for requires_grad (torch.tensor(-1) would be an integer tensor)
   const gradCode = [`w = torch.tensor(${float(w)}, requires_grad=True)`, `b = torch.tensor(${float(b)}, requires_grad=True)`, `x, y = torch.tensor(${float(x)}), torch.tensor(${float(y)})`, 'z = w * x + b', 'loss = F.binary_cross_entropy_with_logits(z, y)', 'loss.backward()', 'print(w.grad, b.grad)'].join('\n')
   const loopBody = ['for inputs, labels in trainloader:', ...order.map((l) => `    ${LOOP_CODE[l]}`)].join('\n')
+  const pad = padding === 1 ? 'padding=1' : "padding='valid'"
+  const initCode = [`self.conv1 = nn.Conv2d(1, 32, 3, ${pad})`, `self.conv2 = nn.Conv2d(32, 64, 3, ${pad})`, 'self.pool = nn.MaxPool2d(2, 2)', `self.fc1 = nn.Linear(${inFeatures}, 128)`, 'self.fc2 = nn.Linear(128, 10)'].join('\n')
 
   const tensor = TENSORS[ti]
-  const lt = lectureTensor()
   const br = bridge(ops)
+  const fw = mnistForward(padding, inFeatures)
+  const fwError = fw.find((r) => r.error)
+  const flat = fw[4].shape[1]
   const g = graph(w, x, b, y)
   const st = replay({ w, b }, x, y, 0.1, events)
   const sinceZero = events.slice(events.lastIndexOf('zero_grad') + 1).filter((e) => e === 'backward').length
@@ -123,7 +154,7 @@ export default function PyTorchPage() {
   return (
     <LabPage id="pytorch" quiz>
       <div className="grid gap-5">
-        <Card step={1} title={t('lab.pytorch.attr_title')} sub={t('lab.common.quiz_sub')}>
+        <Card step={1} title={t('lab.pytorch.tensor_title')} sub={t('lab.common.quiz_sub')}>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
             <div className="grid content-start gap-1.5">
               {TENSORS.map((x, i) => (
@@ -140,48 +171,82 @@ export default function PyTorchPage() {
                 <tr><td className="left">tensor.device</td><td className="left">cpu</td></tr>
               </TableWrap>
               <Note>{t('lab.pytorch.attr_note')}</Note>
+              <Note>{t('lab.pytorch.np_note')}</Note>
+            </div>
+          </div>
+          <h3 className="mb-2 mt-5 text-[13.5px] font-extrabold text-slate-800">{t('lab.pytorch.bridge_head')}</h3>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+            <div className="min-w-0">
+              <PyBlock className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100" code={bridgeCode} />
+              <div className="mt-1.5 flex justify-end"><RunInPlayground lib="pytorch" code={`import torch\nimport numpy as np\n${bridgeCode}\nprint(my_tensor)\nprint(np_array)`} /></div>
+            </div>
+            <div className="grid content-start gap-3">
+              <div className="flex flex-wrap gap-2">
+                {BRIDGE_OPS.map((o) => <Btn key={o.op} onClick={() => setOps([...ops, o.op])}><span className="font-mono text-[12px]">{highlightPython(o.code, 'light')}</span></Btn>)}
+                <Btn onClick={() => setOps([])}>{t('lab.common.reset')}</Btn>
+              </div>
+              <div className="grid gap-2">
+                <Row v={br.tensor} label="my_tensor" tone="border-orange-200 bg-orange-50 text-orange-900" />
+                <Row v={br.array} label="np_array" tone="border-sky-200 bg-sky-50 text-sky-900" />
+              </div>
+              <Note tone={br.shared ? 'good' : 'warn'}>{t(br.shared ? 'lab.pytorch.shared' : 'lab.pytorch.not_shared')}</Note>
             </div>
           </div>
         </Card>
 
-        <Card step={2} title={t('lab.pytorch.mm_title')} sub={t('lab.common.quiz_sub')}>
-          <div className="mb-3">
-            <PyBlock className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100" code={MM_CODE} />
-            <div className="mt-1.5 flex justify-end"><RunInPlayground lib="pytorch" code={`import torch\n${MM_CODE}\nprint(y1)\nprint(z1)`} /></div>
+        <Card step={2} title={t('lab.pytorch.map_title')} sub={t('lab.pytorch.map_sub')}>
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {STEPS.map((s) => (
+              <button key={s} type="button" aria-pressed={s === step} onClick={() => setStep(s)} className={`rounded-full border px-2.5 py-1 text-[12px] font-bold ${s === step ? 'border-amber-400 bg-amber-100 text-amber-900' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}>
+                {t(`lab.pytorch.map.${s}.name`)}
+              </button>
+            ))}
           </div>
-          <div className="flex flex-wrap gap-6">
-            <Mat m={lt} label="tensor" hot={(_, j) => j === 1} />
-            <Mat m={matmul(lt, transpose(lt))} label="tensor @ tensor.T" />
-            <Mat m={mul(lt, lt)} label="tensor * tensor" hot={(_, j) => j === 1} />
-          </div>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <Note>{t('lab.pytorch.mm_note')}</Note>
-            <TableWrap>
-              <tr><th className="left">{t('lab.common.quantity')}</th><th>{t('lab.common.value')}</th></tr>
-              <tr><td className="left">y1[0, 0]</td><Ans k="y00" v={3} /></tr>
-              <tr><td className="left">z1[0, 1]</td><Ans k="z01" v={0} /></tr>
-              <tr><td className="left">tensor.sum().item()</td><Ans k="sum" v={12} /></tr>
-            </TableWrap>
+          <div className="mb-3"><Note title={t(`lab.pytorch.map.${step}.name`)}>{t(`lab.pytorch.map.${step}.text`)}</Note></div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <CodePane head={t('lab.pytorch.keras_head')} lines={KERAS} step={step} onPick={setStep} />
+            <CodePane head={t('lab.pytorch.torch_head')} lines={TORCH} step={step} onPick={setStep} />
           </div>
         </Card>
 
-        <Card step={3} title={t('lab.pytorch.bridge_title')}>
-          <div className="mb-3">
-            <PyBlock className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] text-slate-100" code={bridgeCode} />
-            <div className="mt-1.5 flex justify-end"><RunInPlayground lib="pytorch" code={`import torch\nimport numpy as np\n${bridgeCode}\nprint(my_tensor)\nprint(np_array)`} /></div>
+        <Card step={3} title={t('lab.pytorch.fw_title')} sub={t('lab.common.quiz_sub')}>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3">
+              <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <Seg label={t('lab.pytorch.fw_padding')} value={padding} onChange={setPadding} options={[{ v: 1, label: t('lab.pytorch.fw_pad1') }, { v: 0, label: t('lab.pytorch.fw_pad0') }]} />
+                <Seg label={t('lab.pytorch.fw_in')} value={inFeatures} onChange={setInFeatures} options={[{ v: 12544, label: '64 * 14 * 14' }, { v: 9216, label: '64 * 12 * 12' }]} />
+              </div>
+              <PyBlock className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100" code={initCode} />
+              <Note>{t('lab.pytorch.fw_note')}</Note>
+            </div>
+            <div className="grid min-w-0 content-start gap-3">
+              <TableWrap>
+                <tr><th className="left">{t('lab.pytorch.fw_line')}</th><th className="left">{t('lab.pytorch.fw_shape')}</th><th>{t('lab.pytorch.fw_params')}</th></tr>
+                <tr><td className="left font-mono">x</td><td className="left">(64, 1, 28, 28)</td><td>—</td></tr>
+                {fw.map((r, i) => (
+                  <tr key={r.code}>
+                    <td className="left whitespace-nowrap font-mono">{r.code}</td>
+                    {r.error ? <td className="left font-mono font-bold text-rose-600">RuntimeError</td> : <Ans k={`fw${i}`} v={shapeStr(r.shape)} className="left" />}
+                    {r.params ? <Ans k={`fwp${i}`} v={r.params} /> : <td>0</td>}
+                  </tr>
+                ))}
+                {!fwError && <tr><td className="left font-bold">{t('lab.pytorch.fw_total')}</td><td /><Ans k="fwtotal" v={fw.reduce((a, r) => a + r.params, 0)} /></tr>}
+              </TableWrap>
+              {fwError ? (
+                <Note tone="bad">
+                  {t('lab.pytorch.fw_err', { flat, inf: inFeatures })}
+                  <code className="mt-1.5 block whitespace-pre-wrap break-all font-mono text-[12px]">RuntimeError: {fwError.error}</code>
+                </Note>
+              ) : (
+                <Note tone="good">{t('lab.pytorch.fw_ok', { n: flat })}</Note>
+              )}
+              <Note>{t('lab.pytorch.fw_params_note')}</Note>
+            </div>
           </div>
-          <div className="mb-3 flex flex-wrap gap-2">
-            {BRIDGE_OPS.map((o) => <Btn key={o.op} onClick={() => setOps([...ops, o.op])}><span className="font-mono text-[12px]">{highlightPython(o.code, 'light')}</span></Btn>)}
-            <Btn onClick={() => setOps([])}>{t('lab.common.reset')}</Btn>
-          </div>
-          <div className="grid gap-2">
-            <Row v={br.tensor} label="my_tensor" tone="border-orange-200 bg-orange-50 text-orange-900" />
-            <Row v={br.array} label="np_array" tone="border-sky-200 bg-sky-50 text-sky-900" />
-          </div>
-          <div className="mt-3"><Note tone={br.shared ? 'good' : 'warn'}>{t(br.shared ? 'lab.pytorch.shared' : 'lab.pytorch.not_shared')}</Note></div>
         </Card>
 
         <Card step={4} title={t('lab.pytorch.ag_title')} sub={t('lab.common.quiz_sub')}>
+          <div className="mb-3"><Note>{t('lab.pytorch.ag_l6')}</Note></div>
           <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
             <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-4">
               <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -227,6 +292,7 @@ export default function PyTorchPage() {
                 w.grad = {fmt(st.wGrad, 4)}, b.grad = {fmt(st.bGrad, 4)}
               </div>
               <Note tone={sinceZero > 1 ? 'warn' : 'info'}>{t(sinceZero > 1 ? 'lab.pytorch.accumulated' : 'lab.pytorch.accumulate', { n: sinceZero })}</Note>
+              <p className="text-xs text-slate-500">{t('lab.pytorch.step_note')}</p>
               <label className="flex items-center gap-2 text-[13px] font-semibold text-slate-700">
                 <input type="checkbox" checked={noGrad} onChange={(e) => setNoGrad(e.target.checked)} />
                 <span className="font-mono">with torch.no_grad():</span>
@@ -237,7 +303,7 @@ export default function PyTorchPage() {
         </Card>
 
         <Card step={5} title={t('lab.pytorch.loop_title')} sub={t('lab.pytorch.loop_sub')}>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
             <div className="grid content-start gap-1.5">
               {POOL.filter((l) => !order.includes(l)).map((l) => (
                 <button key={l} type="button" onClick={() => setOrder([...order, l])} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-left font-mono text-[12.5px] text-slate-800 hover:border-blue-400">
@@ -246,8 +312,18 @@ export default function PyTorchPage() {
               ))}
               {order.length > 0 && <div className="mt-1"><Btn onClick={() => setOrder([])}>{t('lab.common.reset')}</Btn></div>}
             </div>
-            <div className="grid content-start gap-2">
-              <PyBlock className="min-h-[150px] overflow-x-auto rounded-xl bg-slate-900 p-3 text-[12px] leading-relaxed text-slate-100" code={loopBody} />
+            <div className="grid min-w-0 content-start gap-2">
+              <div className="min-h-[190px] overflow-x-auto rounded-xl bg-slate-900 p-3 font-mono text-[12px] leading-[1.7] text-slate-100">
+                <div className="w-max min-w-full">
+                  {LOOP_HEAD.map((l) => <div key={l} className="whitespace-pre px-1.5">{highlightPython(l, 'dark')}</div>)}
+                  {order.map((l) => (
+                    <button key={l} type="button" onClick={() => setOrder(order.filter((o) => o !== l))} className="block w-full whitespace-pre rounded px-1.5 text-left ring-amber-300/70 hover:bg-white/10 hover:ring-1">
+                      {highlightPython(`        ${LOOP_CODE[l]}`, 'dark')}
+                    </button>
+                  ))}
+                  {order.length < LOOP.length && <div className="whitespace-pre px-1.5 text-slate-500">{`        ${t('lab.pytorch.loop_slot')}`}</div>}
+                </div>
+              </div>
               {order.length === LOOP.length && (
                 <>
                   <Note tone={err ? 'bad' : 'good'}>{t(err ? `lab.pytorch.loop_err.${err}` : 'lab.pytorch.loop_ok')}</Note>
@@ -257,6 +333,7 @@ export default function PyTorchPage() {
                   </div>
                 </>
               )}
+              <Note>{t('lab.pytorch.eval_note')}</Note>
             </div>
           </div>
         </Card>

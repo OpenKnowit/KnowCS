@@ -932,7 +932,7 @@
       },
       "pytorch": {
         "title": "PyTorch: tensors, autograd and the training loop",
-        "blurb": "What a tensor prints, @ versus *, memory shared with NumPy, what loss.backward() fills in, and the five lines of every training step."
+        "blurb": "Tensors and devices, the same MNIST CNN in Keras and PyTorch line by line, the shapes inside forward, what loss.backward() fills in, and model.fit taken apart into a training loop."
       },
       "alphabeta": {
         "title": "Minimax & alpha-beta",
@@ -2086,17 +2086,13 @@
       }
     },
     "pytorch": {
-      "lead": "Lecture 9 in five steps: read a tensor’s shape and dtype, tell @ from *, see when a NumPy array changes with its tensor, run loss.backward() by hand on z = w·x + b, and put the training loop in order.",
-      "values": "Graph values",
+      "lead": "Lecture 9 rewrites Lecture 8’s Keras MNIST CNN in PyTorch. Four things are new: a tensor has a device; you write the model as an nn.Module class; model.fit becomes a training loop you write yourself; and loss.backward() does the chain rule you worked by hand in Lecture 6.",
       "target": "Target y",
       "code_title": "The same thing in PyTorch",
       "code_note": "Lecture 9’s example with one input: requires_grad=True on the parameters, loss.backward() fills w.grad and b.grad.",
       "attr_title": "Shape, dtype, device",
       "attr": "Attribute",
       "attr_note": "Python integers become torch.int64, Python floats torch.float32, a NumPy float64 array stays float64. A reduction like .sum() gives a 0-d tensor, torch.Size([]) — call .item() to get a Python number. Tensors start on the CPU until you .to(device).",
-      "mm_title": "@ is a matrix product, * is element-wise",
-      "mm_note": "Every entry of tensor @ tensor.T is a row dotted with a row: three ones meet three ones, so 3. tensor * tensor multiplies matching entries, so the zero column stays zero. matmul / mul and the out= forms give the same results.",
-      "bridge_title": "The NumPy bridge shares memory",
       "shared": "my_tensor and np_array are two views of one buffer: an in-place change through either one shows up in both, exactly as the lecture’s output shows.",
       "not_shared": "my_tensor now has its own memory (x = x + 1 and .clone() build a new tensor), so the two stop following each other.",
       "graph_aria": "Computational graph of z = w·x + b and its loss, with values and gradients",
@@ -2110,8 +2106,8 @@
       "accumulate": "Click loss.backward() twice without zero_grad() and watch the gradient double.",
       "accumulated": "{{n}} backward() calls since the last zero_grad(): PyTorch adds each new gradient to .grad, so it is now {{n}} times too big. That is why every training step starts with optimizer.zero_grad().",
       "no_grad": "Inside torch.no_grad() PyTorch records no graph: z.requires_grad is False and backward() would fail. Use it (with model.eval()) for testing — less memory, no gradients.",
-      "loop_title": "Put the training loop in order",
-      "loop_sub": "Click the lines in the order they run",
+      "loop_title": "Take model.fit apart: the training loop",
+      "loop_sub": "Click the lines in the order they run; click a line in the loop to take it back",
       "loop_ok": "Right: clear the old gradients, forward, loss, backward, step. (zero_grad() may also come last — what matters is that it runs before the next backward().)",
       "loop_err": {
         "loss_first": "The loss needs the model’s outputs, so the forward pass has to come first.",
@@ -2119,9 +2115,95 @@
         "step_early": "step() uses the gradients; before backward() they are stale (or zero), so the update is wrong.",
         "zero_late": "zero_grad() between backward() and step() wipes the gradients you just computed, so step() changes nothing."
       },
-      "traps": "CPUs can train and run networks — GPUs are just faster (Final 2022 Q1(e) is false). Methods ending in _ such as add_ modify the tensor in place. .numpy() only works on the CPU: call .cpu() first. model.train() turns dropout on, model.eval() turns it off.",
+      "traps": "CPUs can train and run networks — GPUs are just faster (Final 2022 Q1(e) is false). Don’t put a softmax in the model: CrossEntropyLoss wants logits. Work out nn.Linear’s in_features yourself. Shapes are channels first: (batch, C, H, W). model.train() turns dropout on, model.eval() turns it off. .numpy() only works on the CPU: call .cpu() first. Methods ending in _ such as add_ modify the tensor in place.",
       "more_title": "Building a CNN in PyTorch?",
-      "more": "The CNN shapes page writes the nn.Module for any layer stack, including the nn.Linear input size after flattening."
+      "more": "The CNN shapes page writes the nn.Module for any layer stack, including the nn.Linear input size after flattening.",
+      "tensor_title": "Tensors: NumPy arrays with a device",
+      "np_note": "@, *, .T, indexing and slicing work as in NumPy: @ is a matrix product, * is element-wise. What is new is the device: a tensor can live on a GPU, and you move it there with .to(device).",
+      "bridge_head": "Memory shared with NumPy",
+      "map_title": "From Keras to PyTorch: the same MNIST CNN",
+      "map_sub": "Click any line to see its partner lines on the other side",
+      "keras_head": "Lecture 8 · Keras",
+      "torch_head": "Lecture 9 · PyTorch",
+      "map": {
+        "data": {
+          "name": "Data",
+          "text": "Keras gets whole NumPy arrays, reshaped to (60000, 28, 28, 1) with channels last. PyTorch reads the dataset with torchvision: ToTensor() turns each image into a (1, 28, 28) tensor — channels first — scaled to [0, 1], and Normalize maps it to [−1, 1]. A DataLoader hands out one batch (batch_size images) at a time; shuffle=True changes the order every epoch."
+        },
+        "labels": {
+          "name": "Labels",
+          "text": "Keras one-hot encodes the labels with to_categorical to go with categorical_crossentropy. PyTorch’s nn.CrossEntropyLoss takes the integer labels 0–9 directly: no one-hot."
+        },
+        "model": {
+          "name": "Model class",
+          "text": "Sequential() plus a string of add calls becomes a class that inherits nn.Module: __init__ declares the layers that have parameters, and forward(x) says how data flows through them. Calling model(inputs) runs forward. .to(DEVICE) moves the parameters to the GPU, if there is one."
+        },
+        "conv1": {
+          "name": "First convolution",
+          "text": "Keras writes input_shape=(28,28,1), channels last; PyTorch writes in_channels=1, declares no input shape, and the data is (batch, 1, 28, 28), channels first. activation='relu' is not part of the layer: forward wraps the call in F.relu(...). Also note Lecture 8 uses padding='valid' (28 → 26) and Lecture 9 padding=1 (stays 28)."
+        },
+        "conv2": {
+          "name": "Second convolution",
+          "text": "in_channels=32 must equal the previous layer’s out_channels. Keras infers the input channels for you; in PyTorch you have to write them yourself."
+        },
+        "pool": {
+          "name": "Pooling",
+          "text": "MaxPool2d(kernel_size=2, stride=2) halves the height and width: 28×28 → 14×14 in Lecture 9, 24×24 → 12×12 in Lecture 8."
+        },
+        "dropout": {
+          "name": "Dropout",
+          "text": "The layer is the same; the switch is not. Keras’s fit turns dropout on for training and evaluate / predict turn it off; in PyTorch you call model.train() (on) and model.eval() (off) yourself."
+        },
+        "flatten": {
+          "name": "Flatten",
+          "text": "Lecture 9 has no Flatten layer: forward reshapes by hand. x.view(x.size(0), -1) keeps dimension 0 (the batch) and squashes the rest into one: 64 × 14 × 14 = 12544."
+        },
+        "fc1": {
+          "name": "Dense layer",
+          "text": "Dense(units=128) gives only the output size; nn.Linear(64 * 14 * 14, 128) also needs the input size, in_features. You work out the flattened length yourself, and if it is wrong, forward fails (try it in the next step)."
+        },
+        "fc2": {
+          "name": "Output layer",
+          "text": "Keras’s last layer has a softmax and outputs probabilities. PyTorch’s fc2 has no activation and outputs 10 raw scores (logits): nn.CrossEntropyLoss applies softmax itself before the cross-entropy, so a softmax in the model would apply it twice. You call F.softmax only when you want probabilities, at prediction time."
+        },
+        "compile": {
+          "name": "compile",
+          "text": "PyTorch has no compile: you just create two objects, the loss function lossfunc and an optimizer holding model.parameters() (Adam with lr = 0.001, the same default as Keras’s 'adam'). Accuracy is something you count yourself when evaluating."
+        },
+        "fit": {
+          "name": "Training",
+          "text": "Keras’s one-line model.fit is a two-level loop you write in PyTorch: for each epoch, for each batch from the DataLoader, move the data to DEVICE, then five steps — clear the gradients, forward, loss, backward, update. You order them yourself in step 5."
+        },
+        "eval": {
+          "name": "Evaluation",
+          "text": "model.evaluate becomes: model.eval() turns dropout off, torch.no_grad() records no graph, and torch.max(outputs, 1) returns each row’s (max, index) — the index is the predicted class. Accuracy = correct / total, counted by you."
+        },
+        "save": {
+          "name": "Save and load",
+          "text": "Keras saves the whole model to an .h5 file. PyTorch usually saves only the parameter dictionary, state_dict(); to load, build the structure with MNIST_CNN() first, then fill it with load_state_dict."
+        },
+        "predict": {
+          "name": "Prediction",
+          "text": "A single image still needs a batch dimension: Keras reshapes to (1,28,28,1), PyTorch uses unsqueeze(0) to turn (1, 28, 28) into (1, 1, 28, 28). The model outputs logits; F.softmax(..., dim=1) makes probabilities, argmax picks the class, and .item() gives a Python integer."
+        }
+      },
+      "fw_title": "The output shape of each line of forward()",
+      "fw_padding": "Convolution padding",
+      "fw_pad1": "padding=1 (Lecture 9)",
+      "fw_pad0": "'valid' (Lecture 8)",
+      "fw_in": "fc1’s in_features",
+      "fw_line": "Line of forward",
+      "fw_shape": "Output shape",
+      "fw_params": "Parameters",
+      "fw_total": "Total parameters",
+      "fw_note": "Keras’s model.summary() works the shapes out for you; PyTorch does not. Shapes are (batch, channels, height, width), with batch = 64 here. Switch the padding to Lecture 8’s 'valid' and the flattened length drops from 12544 to 9216 — but the in_features written into fc1 does not follow.",
+      "fw_ok": "They match: after view each image has {{n}} features, exactly fc1’s in_features.",
+      "fw_err": "fc1 fails: after view each image has {{flat}} features, but fc1 expects {{inf}}. PyTorch does not infer in_features; go back to __init__ and fix it.",
+      "fw_params_note": "A convolution has (3 × 3 × input channels + 1) × kernels parameters; a dense layer inputs × outputs + outputs. With 'valid' padding the total is exactly the 1,199,882 of Lecture 8’s model.summary().",
+      "ag_l6": "In Lecture 6 you worked out ∂E/∂w with the chain rule by hand. Autograd does the same: the forward pass records the graph, and loss.backward() multiplies the derivatives back along it and stores the result in .grad of every tensor with requires_grad=True.",
+      "step_note": "optimizer.step() updates w ← w − lr · w.grad (here SGD with lr = 0.1; Lecture 9’s Adam uses a different rule, but it also reads only .grad).",
+      "loop_slot": "# click the lines on the left, in the order they run",
+      "eval_note": "The evaluation loop is shorter: model.eval(), then with torch.no_grad(), and only the forward pass — no zero_grad, backward or step."
     },
     "errors": {
       "csv_header": "Need a header and at least two rows.",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bridge, graph, lectureTensor, loopError, matmul, mul, replay, sizeStr, transpose } from './torchSim'
+import { bridge, graph, lectureTensor, loopError, matmul, mnistForward, mul, replay, sizeStr, transpose } from './torchSim'
 
 // Checked on 2026-10-08 against PyTorch 2.14.1: dtypes and sizes, @ vs *, the NumPy bridge, w.grad -1 then -2 after
 // a second backward(), and requires_grad False under no_grad all match.
@@ -73,5 +73,24 @@ describe('training loop order', () => {
     expect(loopError(['zero_grad', 'forward', 'backward', 'loss', 'step'])).toBe('backward_first')
     expect(loopError(['zero_grad', 'forward', 'loss', 'step', 'backward'])).toBe('step_early')
     expect(loopError(['forward', 'loss', 'backward', 'zero_grad', 'step'])).toBe('zero_late')
+  })
+})
+
+describe('MNIST_CNN forward shapes', () => {
+  // the values printed by PyTorch 2.14.1 for the same layers on torch.zeros(64, 1, 28, 28)
+  it('Lecture 9 (padding=1) keeps 28×28 and flattens to 12544', () => {
+    const rows = mnistForward(1, 12544)
+    expect(rows.map((r) => r.shape)).toEqual([[64, 32, 28, 28], [64, 64, 28, 28], [64, 64, 14, 14], [64, 64, 14, 14], [64, 12544], [64, 128], [64, 128], [64, 10]])
+    expect(rows.map((r) => r.params)).toEqual([320, 18496, 0, 0, 0, 1605760, 0, 1290])
+  })
+  it("Lecture 8's 'valid' convolutions flatten to 9216, with Keras's parameter counts", () => {
+    const rows = mnistForward(0, 9216)
+    expect(rows[4].shape).toEqual([64, 9216])
+    expect(rows.reduce((a, r) => a + r.params, 0)).toBe(1199882) // model.summary() in Lecture 8
+  })
+  it('a wrong in_features stops at fc1 with PyTorch’s message', () => {
+    const rows = mnistForward(0, 12544)
+    expect(rows).toHaveLength(6)
+    expect(rows[5].error).toBe('mat1 and mat2 shapes cannot be multiplied (64x9216 and 12544x128)')
   })
 })

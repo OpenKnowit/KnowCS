@@ -932,7 +932,7 @@
       },
       "pytorch": {
         "title": "PyTorch：张量、自动求导与训练循环",
-        "blurb": "张量打印出什么、@ 与 * 的区别、与 NumPy 共享内存、loss.backward() 填了什么，以及每步训练的五行代码。"
+        "blurb": "张量与 device、同一个 MNIST CNN 的 Keras 与 PyTorch 写法逐行对照、forward 里的形状、loss.backward() 填了什么，以及把 model.fit 拆成训练循环。"
       },
       "alphabeta": {
         "title": "Minimax 与 Alpha-Beta",
@@ -2086,17 +2086,13 @@
       }
     },
     "pytorch": {
-      "lead": "第 9 讲分五步：读出张量的 shape 与 dtype，分清 @ 与 *，看 NumPy 数组何时随张量一起变，在 z = w·x + b 上手动跑一遍 loss.backward()，再把训练循环排对顺序。",
-      "values": "计算图取值",
+      "lead": "第 9 讲把第 8 讲用 Keras 搭的 MNIST CNN 用 PyTorch 重写了一遍。新的东西有四样：张量多了 device；模型要自己写成 nn.Module 类；model.fit 要拆成自己写的训练循环；loss.backward() 替你做第 6 讲手算的链式法则。",
       "target": "目标 y",
       "code_title": "对应的 PyTorch 代码",
       "code_note": "第 9 讲例子的单输入版：参数设 requires_grad=True，loss.backward() 会填好 w.grad 与 b.grad。",
       "attr_title": "shape、dtype、device",
       "attr": "属性",
       "attr_note": "Python 整数变成 torch.int64，Python 浮点数变成 torch.float32，NumPy 的 float64 数组仍是 float64。.sum() 这类归约得到 0 维张量 torch.Size([])——用 .item() 取出 Python 数。张量默认在 CPU 上，直到 .to(device)。",
-      "mm_title": "@ 是矩阵乘法，* 是逐元素相乘",
-      "mm_note": "tensor @ tensor.T 的每个元素是两行的点积：三个 1 对上三个 1，所以是 3。tensor * tensor 逐个元素相乘，所以全零列仍是 0。matmul / mul 以及 out= 写法结果相同。",
-      "bridge_title": "NumPy 桥接共享内存",
       "shared": "my_tensor 与 np_array 是同一块内存的两个视图：通过任一方原地修改，另一方也会变——与讲义输出一致。",
       "not_shared": "my_tensor 现在有了自己的内存（x = x + 1 与 .clone() 都会新建张量），两者不再同步。",
       "graph_aria": "z = w·x + b 及其损失的计算图，显示数值与梯度",
@@ -2110,8 +2106,8 @@
       "accumulate": "不调用 zero_grad()，连点两次 loss.backward()，看梯度翻倍。",
       "accumulated": "自上次 zero_grad() 以来调用了 {{n}} 次 backward()：PyTorch 会把新梯度累加到 .grad 上，现在是正确值的 {{n}} 倍。所以每个训练步都以 optimizer.zero_grad() 开始。",
       "no_grad": "在 torch.no_grad() 中 PyTorch 不记录计算图：z.requires_grad 为 False，backward() 会报错。测试时配合 model.eval() 使用——省内存、不算梯度。",
-      "loop_title": "把训练循环排好顺序",
-      "loop_sub": "按执行顺序点击各行",
+      "loop_title": "把 model.fit 拆开：训练循环",
+      "loop_sub": "按执行顺序点击各行；点循环里的行可撤回",
       "loop_ok": "正确：清空旧梯度、前向、算损失、反向、更新。（zero_grad() 放在最后也可以——关键是在下一次 backward() 之前执行。）",
       "loop_err": {
         "loss_first": "损失需要模型的输出，所以必须先做前向传播。",
@@ -2119,9 +2115,95 @@
         "step_early": "step() 要用梯度；在 backward() 之前梯度是旧的（或为 0），更新就错了。",
         "zero_late": "在 backward() 与 step() 之间调用 zero_grad() 会把刚算好的梯度清空，step() 什么也不会改。"
       },
-      "traps": "CPU 也能训练和运行神经网络——GPU 只是更快（Final 2022 Q1(e) 为假）。以 _ 结尾的方法如 add_ 会原地修改张量。.numpy() 只能用于 CPU 张量：先 .cpu()。model.train() 开启 dropout，model.eval() 关闭。",
+      "traps": "CPU 也能训练和运行神经网络——GPU 只是更快（Final 2022 Q1(e) 为假）。模型里不要加 softmax：CrossEntropyLoss 要的是 logits。nn.Linear 的 in_features 要自己算。形状是通道在前：(batch, C, H, W)。model.train() 开启 dropout，model.eval() 关闭。.numpy() 只能用于 CPU 张量：先 .cpu()。以 _ 结尾的方法（如 add_）会原地修改张量。",
       "more_title": "要用 PyTorch 搭 CNN？",
-      "more": "CNN 形状页可以为任意层栈生成 nn.Module 代码，包括展平后 nn.Linear 的输入大小。"
+      "more": "CNN 形状页可以为任意层栈生成 nn.Module 代码，包括展平后 nn.Linear 的输入大小。",
+      "tensor_title": "张量：多了 device 的 NumPy 数组",
+      "np_note": "@、*、.T、索引与切片都和 NumPy 写法一样：@ 是矩阵乘法，* 是逐元素相乘。新的是 device：张量可以放在 GPU 上，要用 .to(device) 显式搬过去。",
+      "bridge_head": "与 NumPy 共享内存",
+      "map_title": "从 Keras 到 PyTorch：同一个 MNIST CNN",
+      "map_sub": "点任意一行，看另一边对应哪几行",
+      "keras_head": "第 8 讲 · Keras",
+      "torch_head": "第 9 讲 · PyTorch",
+      "map": {
+        "data": {
+          "name": "数据",
+          "text": "Keras 拿到的是整个 NumPy 数组，reshape 成 (60000, 28, 28, 1)，通道在最后。PyTorch 用 torchvision 读数据集：ToTensor() 把每张图变成 (1, 28, 28) 的张量——通道在前——并缩放到 [0, 1]，Normalize 再变到 [−1, 1]。DataLoader 每次发一批（batch_size 张），shuffle=True 让每个 epoch 的顺序都不同。"
+        },
+        "labels": {
+          "name": "标签",
+          "text": "Keras 先用 to_categorical 把标签变成 one-hot，再配 categorical_crossentropy。PyTorch 的 nn.CrossEntropyLoss 直接接收整数标签 0–9，不用 one-hot。"
+        },
+        "model": {
+          "name": "模型类",
+          "text": "Sequential() 加一串 add，变成一个继承 nn.Module 的类：__init__ 里声明带参数的层，forward(x) 写数据怎样一步步流过它们。调用 model(inputs) 就会运行 forward。最后 .to(DEVICE) 把参数搬到 GPU（如果有的话）。"
+        },
+        "conv1": {
+          "name": "第一个卷积层",
+          "text": "Keras 写 input_shape=(28,28,1)，通道在后；PyTorch 写 in_channels=1，不用声明输入形状，数据是 (batch, 1, 28, 28)，通道在前。activation='relu' 不写在层里，而是在 forward 里套一层 F.relu(...)。还要注意：第 8 讲的 padding 是 'valid'（28 → 26），第 9 讲是 padding=1（保持 28）。"
+        },
+        "conv2": {
+          "name": "第二个卷积层",
+          "text": "in_channels=32 必须等于上一层的 out_channels。Keras 会自动推断输入通道数，PyTorch 要你自己写对。"
+        },
+        "pool": {
+          "name": "池化",
+          "text": "MaxPool2d(kernel_size=2, stride=2) 把高和宽减半：第 9 讲 28×28 → 14×14，第 8 讲 24×24 → 12×12。"
+        },
+        "dropout": {
+          "name": "Dropout",
+          "text": "层本身一样，不同的是开关：Keras 的 fit 训练时自动打开 dropout，evaluate / predict 时自动关闭；PyTorch 要你自己调用 model.train()（打开）和 model.eval()（关闭）。"
+        },
+        "flatten": {
+          "name": "展平",
+          "text": "第 9 讲没有用 Flatten 层，而是在 forward 里自己改形状：x.view(x.size(0), -1) 保留第 0 维（batch），其余压成一维：64 × 14 × 14 = 12544。"
+        },
+        "fc1": {
+          "name": "全连接层",
+          "text": "Dense(units=128) 只写输出大小；nn.Linear(64 * 14 * 14, 128) 还要写输入大小 in_features——展平后的长度得你自己算，算错了 forward 会报错（下一步可以试）。"
+        },
+        "fc2": {
+          "name": "输出层",
+          "text": "Keras 的最后一层带 softmax，输出概率。PyTorch 的 fc2 不加激活，输出 10 个原始分数（logits）：nn.CrossEntropyLoss 内部会先做 softmax 再算交叉熵，模型里再加一次就重复了。要概率时（预测那一步）才手动 F.softmax。"
+        },
+        "compile": {
+          "name": "compile",
+          "text": "PyTorch 没有 compile，只是创建两个对象：损失函数 lossfunc，以及拿着 model.parameters() 的优化器（Adam，lr = 0.001，和 Keras 'adam' 的默认学习率相同）。准确率要在评估时自己算。"
+        },
+        "fit": {
+          "name": "训练",
+          "text": "Keras 的 model.fit 一行，在 PyTorch 里是自己写的两层循环：每个 epoch 遍历 DataLoader 的每一批，把数据搬到 DEVICE，然后五步——清空梯度、前向、算损失、反向、更新。第 5 步里自己排一遍。"
+        },
+        "eval": {
+          "name": "评估",
+          "text": "model.evaluate 变成：model.eval() 关闭 dropout，torch.no_grad() 不记录计算图，torch.max(outputs, 1) 返回每行的（最大值, 下标），下标就是预测的类别。准确率 = 预测对的个数 / 总数，要自己累加。"
+        },
+        "save": {
+          "name": "保存与加载",
+          "text": "Keras 把整个模型存成 .h5 文件。PyTorch 通常只存参数字典 state_dict()；加载时先用 MNIST_CNN() 建出结构，再用 load_state_dict 填入参数。"
+        },
+        "predict": {
+          "name": "预测",
+          "text": "单张图也要有 batch 维：Keras 用 reshape(1,28,28,1)，PyTorch 用 unsqueeze(0) 把 (1, 28, 28) 变成 (1, 1, 28, 28)。模型输出的是 logits，F.softmax(..., dim=1) 变成概率，argmax 取类别，.item() 取出 Python 整数。"
+        }
+      },
+      "fw_title": "forward() 每一行的输出形状",
+      "fw_padding": "卷积的 padding",
+      "fw_pad1": "padding=1（第 9 讲）",
+      "fw_pad0": "'valid'（第 8 讲）",
+      "fw_in": "fc1 的 in_features",
+      "fw_line": "forward 里的这一行",
+      "fw_shape": "输出形状",
+      "fw_params": "参数个数",
+      "fw_total": "参数总数",
+      "fw_note": "Keras 的 model.summary() 会替你算形状，PyTorch 不会。形状是 (batch, 通道, 高, 宽)，这里 batch = 64。把 padding 换成第 8 讲的 'valid'，展平后的长度就从 12544 变成 9216——而 fc1 里写死的 in_features 不会跟着变。",
+      "fw_ok": "对上了：view 之后每张图有 {{n}} 个特征，正好是 fc1 的 in_features。",
+      "fw_err": "fc1 这一行报错：view 之后每张图有 {{flat}} 个特征，fc1 却要 {{inf}} 个。PyTorch 不会替你推断 in_features，要回到 __init__ 改。",
+      "fw_params_note": "卷积层参数 = (3 × 3 × 输入通道 + 1) × 卷积核个数；全连接层 = 输入 × 输出 + 输出。padding 设成 'valid' 时，总数正是第 8 讲 model.summary() 里的 1,199,882。",
+      "ag_l6": "第 6 讲你用链式法则手算过 ∂E/∂w。autograd 做的是同一件事：前向时记下计算图，loss.backward() 沿图从后往前乘导数，把结果存进每个 requires_grad=True 的张量的 .grad。",
+      "step_note": "optimizer.step() 按 w ← w − lr · w.grad 更新参数（这里用 lr = 0.1 的 SGD；第 9 讲用的 Adam 规则不同，但同样只读 .grad）。",
+      "loop_slot": "# 点左边的行，按执行顺序填进来",
+      "eval_note": "评估循环更短：model.eval()，再套上 with torch.no_grad()，只做前向——没有 zero_grad、backward、step。"
     },
     "errors": {
       "csv_header": "需要一行表头和至少两行数据。",
