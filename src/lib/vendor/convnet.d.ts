@@ -4,17 +4,29 @@ export interface Vol {
   sy: number
   depth: number
   w: Float64Array
+  dw: Float64Array
 }
 export interface Layer {
   layer_type: string
   out_act: Vol
   filters?: Vol[]
   biases?: Vol
+  sx?: number
+  in_depth?: number
+  num_inputs?: number
+}
+export interface ParamsAndGrads {
+  params: Float64Array
+  grads: Float64Array
 }
 export interface Net {
   layers: Layer[]
   makeLayers(defs: Record<string, unknown>[]): void
   forward(v: Vol, isTraining?: boolean): Vol
+  /** fills the gradients for class y (the last layer is a softmax) and returns −log p(y) */
+  backward(y: number): number
+  getParamsAndGrads(): ParamsAndGrads[]
+  getPrediction(): number
 }
 export interface TrainStats {
   loss: number

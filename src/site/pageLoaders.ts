@@ -31,6 +31,7 @@ export const LAB_LOADERS: Partial<Record<ModuleId, Loader>> = {
   'nn-classify': memo(withPacks(i18n, ['lab.toy'], () => import('./modules/NnClassify'))),
   'nn-paint': memo(withPacks(i18n, ['lab.paint'], () => import('./modules/NnPaint'))),
   pytorch: memo(withPacks(i18n, ['lab.pytorch'], () => import('./modules/PyTorch'))),
+  mnist: memo(withPacks(i18n, ['lab.mnist'], () => import('./modules/MnistTrain'))),
 }
 
 /** The original modules (shown inside ClassicPage with an exam tip). */

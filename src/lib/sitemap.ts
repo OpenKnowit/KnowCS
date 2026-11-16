@@ -2,7 +2,7 @@
 
 export type ModuleId =
   | 'numpy' | 'numpy-broadcast' | 'bayes-basics' | 'naive-bayes' | 'bayes-virus' | 'gaussian-nb' | 'knn' | 'evaluation' | 'cross-validation'
-  | 'kmeans' | 'kmeans-table' | 'perceptron' | 'backprop' | 'xor-mlp' | 'kernel' | 'convolution' | 'otsu' | 'affine' | 'cnn-shapes' | 'cnn-live' | 'nn-classify' | 'nn-paint' | 'pytorch' | 'alphabeta'
+  | 'kmeans' | 'kmeans-table' | 'perceptron' | 'backprop' | 'xor-mlp' | 'kernel' | 'convolution' | 'otsu' | 'affine' | 'cnn-shapes' | 'cnn-live' | 'nn-classify' | 'nn-paint' | 'pytorch' | 'mnist' | 'alphabeta'
 
 export interface ModuleInfo {
   id: ModuleId
@@ -41,11 +41,12 @@ export const MODULES: ModuleInfo[] = [
   { id: 'cnn-shapes', lec: 8, kind: 'lab', exams: ['F22', 'F23', 'F24'] },
   { id: 'cnn-live', lec: 8, kind: 'lab', exams: [] },
   { id: 'pytorch', lec: 9, kind: 'lab', exams: ['F22'] },
+  { id: 'mnist', lec: 9, kind: 'lab', exams: [] },
   { id: 'alphabeta', lec: 10, kind: 'classic', legacy: 'alphabeta', exams: ['F22', 'F23', 'F24'] },
 ]
 
 /** Labs marked with a star on the Visualize page. */
-export const STARRED: ReadonlySet<ModuleId> = new Set<ModuleId>(['xor-mlp', 'convolution', 'cnn-shapes', 'cnn-live', 'alphabeta'])
+export const STARRED: ReadonlySet<ModuleId> = new Set<ModuleId>(['xor-mlp', 'convolution', 'cnn-shapes', 'cnn-live', 'mnist', 'alphabeta'])
 
 /** Explainer videos (/watch/<id>/): in-browser animations with captions, one per heavily examined idea. */
 export interface EpisodeInfo {

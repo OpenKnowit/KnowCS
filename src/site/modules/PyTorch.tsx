@@ -342,7 +342,8 @@ export default function PyTorchPage() {
           <Note tone="warn" title={t('lab.common.exam_traps')}>{t('lab.pytorch.traps')}</Note>
           <Note title={t('lab.pytorch.more_title')}>
             {t('lab.pytorch.more')}{' '}
-            <a className="font-bold text-blue-700 hover:underline" href={moduleUrl('cnn-shapes')}>{t('site.modules.cnn-shapes.title')} →</a>
+            <a className="font-bold text-blue-700 hover:underline" href={moduleUrl('cnn-shapes')}>{t('site.modules.cnn-shapes.title')} →</a>{' '}
+            <a className="font-bold text-blue-700 hover:underline" href={moduleUrl('mnist')}>{t('site.modules.mnist.title')} →</a>
           </Note>
         </div>
       </div>

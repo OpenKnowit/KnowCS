@@ -905,6 +905,26 @@ const ART: Record<ModuleId, () => ReactElement> = {
   },
 
   // the lab's dark editor holding the five lines of every training step
+  // three handwritten digits on a dark panel, and the loss falling while the accuracy climbs
+  mnist: () => {
+    const glyphs = ['0111001000100100010010001001110', '0010001100001000010000100011100', '1111000001011100100001000011110']
+    return (
+      <>
+        <Panel />
+        {glyphs.map((g, k) => (
+          <g key={k}>
+            <rect x={24} y={28 + k * 52} width={44} height={44} rx={5} fill={D.panel} />
+            {[...g].map((b, i) => (b === '1' ? <rect key={i} x={29 + (i % 5) * 7} y={32 + Math.floor(i / 5) * 6 + k * 52} width={6} height={5} rx={1} fill={D.bright} /> : null))}
+            <Txt x={84} y={50 + k * 52} m s={14} c={[D.green, D.green, D.amber][k]}>{['0', '1', '2'][k]}</Txt>
+          </g>
+        ))}
+        <path d="M112 40 V 170 H 296" fill="none" stroke={D.edge} strokeWidth={1.2} />
+        <path d="M114 52 C 140 120, 170 145, 210 154 S 270 162, 294 163" fill="none" stroke={D.rose} strokeWidth={2.4} />
+        <path d="M114 160 C 132 90, 160 62, 210 52 S 270 46, 294 44" fill="none" stroke={D.blue} strokeWidth={2.4} />
+        <Txt x={292} y={34} a="end" m s={11} c={D.blue}>98.9%</Txt>
+      </>
+    )
+  },
   pytorch: () => {
     const P = D.bright
     const lines: [string, string][][] = [

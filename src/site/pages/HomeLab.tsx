@@ -24,7 +24,7 @@ const CODE: Record<ModuleId, string> = {
   numpy: 'INDEX LAB', 'numpy-broadcast': 'BROADCAST LAB', 'bayes-basics': 'BAYES RULE', 'bayes-virus': 'BASE-RATE LAB', 'naive-bayes': 'NAIVE BAYES TABLE', 'gaussian-nb': 'GAUSSIAN NB',
   knn: 'NEIGHBOUR LAB', evaluation: 'CONFUSION MATRIX', 'cross-validation': 'D-FOLD CV', kmeans: 'CLUSTER LAB', 'kmeans-table': 'K-MEANS TABLE',
   perceptron: 'PERCEPTRON TABLE', backprop: 'BACKPROP LAB', 'xor-mlp': 'XOR · MLP', kernel: 'EDGE KERNELS', convolution: 'CONV LAB',
-  otsu: 'HISTOGRAM · OTSU', affine: 'AFFINE LAB', 'cnn-shapes': 'SHAPE CALCULATOR', 'cnn-live': 'LIVE ACTIVATIONS', 'nn-classify': 'BENDING SPACE', 'nn-paint': 'NEURAL PAINTER', pytorch: 'TENSOR LAB', alphabeta: 'GAME TREE',
+  otsu: 'HISTOGRAM · OTSU', affine: 'AFFINE LAB', 'cnn-shapes': 'SHAPE CALCULATOR', 'cnn-live': 'LIVE ACTIVATIONS', 'nn-classify': 'BENDING SPACE', 'nn-paint': 'NEURAL PAINTER', pytorch: 'TENSOR LAB', mnist: 'MNIST TRAINER', alphabeta: 'GAME TREE',
 }
 
 // ---------------------------------------------------------------- line sketches (320 × 150)
@@ -204,6 +204,13 @@ function Sketch({ id, c }: { id: ModuleId; c: string }) {
         <path d="M60 100 L 90 78 L 118 96 L 150 74" fill="none" stroke={c} strokeWidth={1.3} />
         <path d="M160 75 h20" stroke={c} strokeDasharray={dash} />
         {Array.from({ length: 6 }, (_, r) => Array.from({ length: 6 }, (_, k) => <rect key={`${r}-${k}`} x={190 + k * 15} y={30 + r * 15} width={15} height={15} fill={c} fillOpacity={0.06 + ((r + k) % 5) * 0.1} />))}
+      </>
+    ),
+    mnist: (
+      <>
+        {box(52, 34, 5, 5, 14, c, (i, j) => (i === 0 || i === 4 || j === 0 || j === 4) && !((i === 0 || i === 4) && (j === 0 || j === 4)))}
+        <path d="M140 40 C 170 100, 200 110, 270 112" fill="none" stroke={c} strokeWidth={1.6} />
+        <path d="M140 112 C 165 60, 205 46, 270 42" fill="none" stroke={c} strokeWidth={1.6} strokeDasharray={dash} />
       </>
     ),
     pytorch: (
