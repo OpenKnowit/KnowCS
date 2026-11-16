@@ -45,3 +45,7 @@ __pycache__/
 # Scraped reference sites (third-party content, not for commit)
 ref/visuAlgo/
 ref/programiz/
+
+# personal and third-party reports stay on the machine, never in the repository
+docs/Report/
+*.ses
