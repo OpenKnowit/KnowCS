@@ -137,11 +137,23 @@ export function Shell({ section, children }: { section: Section; children: React
         {t('app.a11y.skip')}
       </a>
       <header className="flex flex-wrap items-center gap-3 px-4 pb-2 pt-4 sm:px-6 print:hidden">
-        <a href="/" className="flex min-w-0 flex-1 items-center gap-2.5 font-black tracking-tight text-slate-900 lg:flex-none">
-          <SiteLogo />
-          <span className="truncate text-lg">{t('app.title')}</span>
-          <span className="hidden rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-600 md:inline">Beta</span>
-        </a>
+        <div className="flex min-w-0 flex-1 items-center gap-2 lg:flex-none">
+          <a href="/" className="flex min-w-0 items-center gap-2.5 font-black tracking-tight text-slate-900">
+            <SiteLogo />
+            <span className="truncate text-lg">{t('app.title')}</span>
+            <span className="hidden rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-600 md:inline">Beta</span>
+          </a>
+          {/* the way to /about/: who made the site and what to do about a mistake */}
+          <a
+            href="/about/"
+            aria-label={t('app.footer.about_site')}
+            aria-current={section === 'about' ? 'page' : undefined}
+            title={t('app.footer.about_site')}
+            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-[11px] font-black leading-none text-slate-500 transition hover:border-blue-400 hover:text-blue-600"
+          >
+            <span aria-hidden>?</span>
+          </a>
+        </div>
         <span className="hidden flex-1 lg:block" />
         <nav aria-label={t('app.a11y.mode_nav')} className="order-last flex w-full items-center justify-between rounded-full border border-slate-200 bg-white p-1 shadow-sm sm:order-none sm:w-auto sm:justify-start">
           {NAV.map((n) => (
