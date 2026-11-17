@@ -3,7 +3,7 @@
 
 ## 项目简介
 
-KnowCS 是面向 HKUST COMP2211（机器学习）的**交互式学习网站**：纯前端、多页静态站（每个模块一个 URL），通过可视化模块帮助学生理解机器学习核心概念与考点。在线 Demo：中文 <https://knowcs.online>。
+KnowCS 是面向 HKUST COMP2211（Introduction to Artificial Intelligence，人工智能导论）的**交互式学习网站**：纯前端、多页静态站（每个模块一个 URL），通过可视化模块帮助学生理解机器学习核心概念与考点。在线 Demo：中文 <https://knowcs.online>。
 
 ## 文档导航（docs/）
 

@@ -2,7 +2,7 @@
 
 **中文** | [English](./README.md)
 
-KnowCS 是面向香港科技大学 **COMP2211（Exploring Artificial Intelligence）** 的交互式学习网站。每个页面都围绕期中、期末反复考到的概念设计，画面上的每个数字都由经过测试的代码实时算出。
+KnowCS 是面向香港科技大学 **COMP2211（Introduction to Artificial Intelligence，人工智能导论）** 的交互式学习网站。每个页面都围绕期中、期末反复考到的概念设计，画面上的每个数字都由经过测试的代码实时算出。
 
 **在线访问：** <https://knowcs.online> —— English / 简体中文 / 繁體中文（`?lang=en`、`?lang=zh`、`?lang=zh-HK`）。
 

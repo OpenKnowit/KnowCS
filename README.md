@@ -2,7 +2,7 @@
 
 [中文](./README_ZH.md) | **English**
 
-KnowCS is an interactive study site for HKUST **COMP2211 (Exploring Artificial Intelligence)**. Every page is built around the ideas the midterms and finals keep asking about, and every number on screen is computed live from tested code.
+KnowCS is an interactive study site for HKUST **COMP2211 (Introduction to Artificial Intelligence)**. Every page is built around the ideas the midterms and finals keep asking about, and every number on screen is computed live from tested code.
 
 **Live site:** <https://knowcs.online> — English / 简体中文 / 繁體中文 (`?lang=en`, `?lang=zh`, `?lang=zh-HK`).
 

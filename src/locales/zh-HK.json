@@ -415,7 +415,7 @@
   },
   "app": {
     "title": "CS/AI 互動式學習實驗室",
-    "subtitle": "COMP2211 Machine Learning Notebook",
+    "subtitle": "COMP2211 人工智能導論 學習筆記",
     "tabs": {
       "knn": "K-近鄰演算法",
       "bayesBasics": "貝葉斯基礎",
@@ -994,7 +994,7 @@
     },
     "home": {
       "tab_title": "COMP2211 互動式機器學習實驗室",
-      "eyebrow": "HKUST COMP2211 · 探索人工智能",
+      "eyebrow": "HKUST COMP2211 · 人工智能導論",
       "title_a": "每一講，",
       "title_b": "都有一頁可以動手的演示。",
       "lead": "選一講，打開對應頁面，拖動數字。每一頁都給出考試要求的那張表格——還可以自己填寫。",
@@ -1042,7 +1042,7 @@
       "view_label": "首頁佈局",
       "view_map": "課程地圖",
       "view_lab": "實驗網格",
-      "title_full": "COMP2211 探索人工智能 · 可視化",
+      "title_full": "COMP2211 人工智能導論 · 可視化",
       "view_grid": "網格",
       "view_chapters": "章節",
       "no_match": "沒有和“{{q}}”匹配的實驗。",

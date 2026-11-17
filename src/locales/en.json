@@ -415,7 +415,7 @@
   },
   "app": {
     "title": "CS/AI Interactive Learning Lab",
-    "subtitle": "COMP2211 Machine Learning Notebook",
+    "subtitle": "COMP2211 Introduction to Artificial Intelligence Notebook",
     "tabs": {
       "knn": "K-Nearest Neighbors",
       "bayesBasics": "Bayes Basics",
@@ -994,7 +994,7 @@
     },
     "home": {
       "tab_title": "COMP2211 Interactive ML Lab",
-      "eyebrow": "HKUST COMP2211 · Exploring AI",
+      "eyebrow": "HKUST COMP2211 · Introduction to Artificial Intelligence",
       "title_a": "Every lecture, ",
       "title_b": "one page you can touch.",
       "lead": "Pick a lecture, open its page, drag the numbers. Each page shows the exact table the exam asks for — and lets you fill it in yourself.",
@@ -1042,7 +1042,7 @@
       "view_label": "Home page layout",
       "view_map": "Course map",
       "view_lab": "Lab grid",
-      "title_full": "COMP2211 Exploring Artificial Intelligence Visualization",
+      "title_full": "COMP2211 Introduction to Artificial Intelligence Visualization",
       "view_grid": "Grid",
       "view_chapters": "Chapters",
       "no_match": "No lab matches “{{q}}”.",

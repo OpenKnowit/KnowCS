@@ -6,7 +6,7 @@
 
 ## 1. 项目愿景
 
-面向 HKUST **COMP2211（Exploring Artificial Intelligence）** 的交互式学习网站，用**可视化 + 即时反馈**帮助学生理解课程中的抽象算法。模块内容以课程**讲义 + Lab + 历年试卷**三类官方材料为权威依据（见第 3、4 节），目标是作为 [moyunxiang/COMP2211](https://github.com/moyunxiang/COMP2211/blob/main/COMP2211.md) 学习笔记的**交互式补充**，并以 MIT 协议开源供学生学习参考。
+面向 HKUST **COMP2211（Introduction to Artificial Intelligence）** 的交互式学习网站，用**可视化 + 即时反馈**帮助学生理解课程中的抽象算法。模块内容以课程**讲义 + Lab + 历年试卷**三类官方材料为权威依据（见第 3、4 节），目标是作为 [moyunxiang/COMP2211](https://github.com/moyunxiang/COMP2211/blob/main/COMP2211.md) 学习笔记的**交互式补充**，并以 MIT 协议开源供学生学习参考。
 
 ---
 

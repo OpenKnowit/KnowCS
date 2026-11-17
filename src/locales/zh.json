@@ -415,7 +415,7 @@
   },
   "app": {
     "title": "CS/AI 交互式学习实验室",
-    "subtitle": "COMP2211 Machine Learning Notebook",
+    "subtitle": "COMP2211 人工智能导论 学习笔记",
     "tabs": {
       "knn": "K-近邻算法",
       "bayesBasics": "贝叶斯基础",
@@ -994,7 +994,7 @@
     },
     "home": {
       "tab_title": "COMP2211 交互式机器学习实验室",
-      "eyebrow": "HKUST COMP2211 · 探索人工智能",
+      "eyebrow": "HKUST COMP2211 · 人工智能导论",
       "title_a": "每一讲，",
       "title_b": "都有一页可以动手的演示。",
       "lead": "选一讲，打开对应页面，拖动数字。每一页都给出考试要求的那张表格——还可以自己填写。",
@@ -1042,7 +1042,7 @@
       "view_label": "首页布局",
       "view_map": "课程地图",
       "view_lab": "实验网格",
-      "title_full": "COMP2211 探索人工智能 · 可视化",
+      "title_full": "COMP2211 人工智能导论 · 可视化",
       "view_grid": "网格",
       "view_chapters": "章节",
       "no_match": "没有和“{{q}}”匹配的实验。",
