@@ -80,19 +80,31 @@ Parts of this site were built with Claude Code (Opus 5.5). KnowCS is a student p
 
 ## People
 
-KnowCS is an independent work project at HKUST.
+KnowCS is a COMP4971 Independent Work project at HKUST, done under the supervision of Dr. Desmond Tsoi. It was inspired by NUS’s [VisuAlgo](https://visualgo.net/) and Stanford’s [CS231n](https://cs231n.stanford.edu/); I wanted COMP2211 to have something like them.
 
 <table>
   <tr>
-    <td align="center" width="33%"><img src="./src/assets/about/zhangjiahao.webp" width="120" alt="" /><br /><b>Zhang Jiahao (Charles) 张嘉豪</b><br />Author<br />Year 3 COMP student, HKUST</td>
-    <td align="center" width="33%"><img src="./src/assets/about/desmond.webp" width="120" alt="" /><br /><b>Dr. Desmond Tsoi</b><br />Supervisor</td>
-    <td align="center" width="33%"><img src="./src/assets/about/moyunxiang.webp" width="120" alt="" /><br /><b><a href="https://github.com/moyunxiang">Mo Yunxiang (Kevin) 莫云翔</a></b><br />Inspiration and help</td>
+    <td width="190"><img src="./src/assets/about/zhangjiahao.webp" width="170" alt="" /></td>
+    <td>
+      Author<br />
+      <b>Zhang Jiahao (Charles) 张嘉豪</b><br />
+      Year 3 COMP student at HKUST. I designed and built KnowCS.<br /><a href="mailto:jzhangkb@connect.ust.hk">jzhangkb@connect.ust.hk</a>
+    </td>
+  </tr>
+</table>
+
+**With thanks to**
+
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="./src/assets/about/desmond.webp" height="130" alt="" /><br /><b>Dr. Desmond Tsoi</b><br />Supervisor</td>
+    <td align="center" width="50%"><img src="./src/assets/about/moyunxiang.webp" height="130" alt="" /><br /><b><a href="https://github.com/moyunxiang">Mo Yunxiang (Kevin) 莫云翔</a></b><br />Inspiration, help and co-development</td>
   </tr>
 </table>
 
 My deepest thanks go to **Dr. Desmond Tsoi** for his generous support and help. His encouragement is what made this project possible.
 
-Thanks to **Mo Yunxiang (Kevin)** for inspiring this project and helping along the way. His [COMP2211 study notes](https://github.com/moyunxiang/COMP2211/blob/main/COMP2211.md) are where the early content started.
+Thanks to **Mo Yunxiang (Kevin)** for inspiring this project, helping along the way and co-developing parts of it.
 
 Thanks also to **Gray** (TA) for testing the site and giving feedback, to **Zhang Baiqiao** for advice on the interface, and to the members of the **COMP2211 teaching team** for their help.
 
@@ -106,7 +118,7 @@ KnowCS stands on other people’s open-source work, for example:
 - [Dragology](https://declarative-dragging.github.io): declarative dragging for SVG, used for the points you drag in the K-Means lab.
 - [Pyodide](https://pyodide.org/): CPython compiled to WebAssembly, which runs the real Python in the Playground.
 
-Exam examples are paraphrased or recomputed from the course’s lectures and past papers for study use.
+Early content drew on the study notes at [moyunxiang/COMP2211](https://github.com/moyunxiang/COMP2211/blob/main/COMP2211.md). Exam examples are paraphrased or recomputed from the course’s lectures and past papers for study use.
 
 ## License
 

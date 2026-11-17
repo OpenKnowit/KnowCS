@@ -4753,16 +4753,16 @@
   "about": {
     "title": "About KnowCS",
     "eyebrow": "About",
-    "lead": "KnowCS is an independent work project: one student’s attempt to turn the ideas of HKUST’s COMP2211, Introduction to Artificial Intelligence, into pages you can play with.",
+    "lead": "KnowCS is a COMP4971 Independent Work project, done under the supervision of Dr. Desmond Tsoi: a site that visualises the core concepts of HKUST’s COMP2211, Introduction to Artificial Intelligence. It was inspired by NUS’s VisuAlgo and Stanford’s CS231n; I wanted COMP2211 to have something like them.",
     "roles": {
       "author": "Author",
       "supervisor": "Supervisor",
-      "inspiration": "Inspiration and help"
+      "inspiration": "Inspiration, help and co-development"
     },
-    "author": "Year 3 COMP student at HKUST.",
+    "author": "Year 3 COMP student at HKUST. I designed and built KnowCS.",
     "supervisor": "My deepest thanks go to Desmond for his generous support and help. His encouragement is what made this project possible.",
-    "inspiration": "Kevin inspired this project and helped along the way. His <a>COMP2211 study notes</a> are where the early content started.",
-    "thanks_title": "Thanks",
+    "inspiration": "Kevin inspired this project, helped along the way and co-developed parts of it.",
+    "thanks_title": "With thanks to",
     "thanks": "Thanks also to <b>Gray</b> (TA) for testing the site and giving feedback, to <b>Zhang Baiqiao</b> for advice on the interface, and to the members of the <b>COMP2211 teaching team</b> for their help.",
     "open_title": "Open source",
     "open": "KnowCS is open source under the MIT licence, and the whole project lives at <a>github.com/OpenKnowit/KnowCS</a>. If it helped you, a star would mean a lot. You are welcome to build it with me, or to take the idea to COMP1023 and other courses.",

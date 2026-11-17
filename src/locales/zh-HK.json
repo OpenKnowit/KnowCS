@@ -4753,16 +4753,16 @@
   "about": {
     "title": "關於 KnowCS",
     "eyebrow": "關於",
-    "lead": "KnowCS 是一項 Independent Work：一名學生把香港科技大學 COMP2211 人工智能導論裏的概念，做成可以動手玩的頁面。",
+    "lead": "KnowCS 是一個 COMP4971 Independent Work 項目，在 Desmond Tsoi 博士的指導下完成：一個把香港科技大學 COMP2211 人工智能導論的核心概念做成可視化的網站。它受到新加坡國立大學 VisuAlgo 和斯坦福 CS231n 的啓發，我想給 COMP2211 也做一個這樣的網站。",
     "roles": {
       "author": "作者",
       "supervisor": "指導老師",
-      "inspiration": "啓發與幫助"
+      "inspiration": "啓發、幫助與協助開發"
     },
-    "author": "香港科技大學 COMP 三年級學生。",
+    "author": "香港科技大學 COMP 三年級學生，KnowCS 的設計者和開發者。",
     "supervisor": "特別感謝 Desmond 給予的大力支持和幫助。正是在他的鼓勵下，這個項目才得以實現。",
-    "inspiration": "感謝 Kevin 給這個項目帶來的啓發和幫助。早期內容就是從他的 <a>COMP2211 學習筆記</a>開始的。",
-    "thanks_title": "致謝",
+    "inspiration": "感謝 Kevin 給這個項目帶來的啓發和幫助，並協助了一部分開發。",
+    "thanks_title": "感謝",
     "thanks": "還要感謝助教 <b>Gray</b> 幫忙測試並提出反饋，感謝 <b>Zhang Baiqiao</b> 在界面設計上的建議，也感謝 <b>COMP2211 教學團隊</b>各位成員的幫助。",
     "open_title": "開源",
     "open": "KnowCS 以 MIT 許可證開源，整個項目都在 <a>github.com/OpenKnowit/KnowCS</a>。如果它對你有幫助，歡迎點一個 Star。也歡迎一起來建設，或者把這個思路帶到 COMP1023 和更多課程。",

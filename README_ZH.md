@@ -80,19 +80,31 @@ npm run build        # 多页构建，输出到 dist/
 
 ## 成员
 
-KnowCS 是在香港科技大学完成的一项 Independent Work。
+KnowCS 是香港科技大学的一个 COMP4971 Independent Work 项目，在 Desmond Tsoi 博士的指导下完成。它受到新加坡国立大学 [VisuAlgo](https://visualgo.net/) 和斯坦福 [CS231n](https://cs231n.stanford.edu/) 的启发，我想给 COMP2211 也做一个这样的网站。
 
 <table>
   <tr>
-    <td align="center" width="33%"><img src="./src/assets/about/zhangjiahao.webp" width="120" alt="" /><br /><b>Zhang Jiahao (Charles) 张嘉豪</b><br />作者<br />香港科技大学 COMP 三年级学生</td>
-    <td align="center" width="33%"><img src="./src/assets/about/desmond.webp" width="120" alt="" /><br /><b>Dr. Desmond Tsoi</b><br />指导老师</td>
-    <td align="center" width="33%"><img src="./src/assets/about/moyunxiang.webp" width="120" alt="" /><br /><b><a href="https://github.com/moyunxiang">Mo Yunxiang (Kevin) 莫云翔</a></b><br />启发与帮助</td>
+    <td width="190"><img src="./src/assets/about/zhangjiahao.webp" width="170" alt="" /></td>
+    <td>
+      作者<br />
+      <b>Zhang Jiahao (Charles) 张嘉豪</b><br />
+      香港科技大学 COMP 三年级学生，KnowCS 的设计者和开发者。<br /><a href="mailto:jzhangkb@connect.ust.hk">jzhangkb@connect.ust.hk</a>
+    </td>
+  </tr>
+</table>
+
+**感谢**
+
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="./src/assets/about/desmond.webp" height="130" alt="" /><br /><b>Dr. Desmond Tsoi</b><br />指导老师</td>
+    <td align="center" width="50%"><img src="./src/assets/about/moyunxiang.webp" height="130" alt="" /><br /><b><a href="https://github.com/moyunxiang">Mo Yunxiang (Kevin) 莫云翔</a></b><br />启发、帮助与协助开发</td>
   </tr>
 </table>
 
 特别感谢 **Dr. Desmond Tsoi** 给予的大力支持和帮助。正是在他的鼓励下，这个项目才得以实现。
 
-感谢 **Mo Yunxiang (Kevin)** 给这个项目带来的启发和帮助。早期内容就是从他的 [COMP2211 学习笔记](https://github.com/moyunxiang/COMP2211/blob/main/COMP2211.md)开始的。
+感谢 **Mo Yunxiang (Kevin)** 给这个项目带来的启发和帮助，并协助了一部分开发。
 
 还要感谢助教 **Gray** 帮忙测试并提出反馈，感谢 **Zhang Baiqiao** 在界面设计上的建议，也感谢 **COMP2211 教学团队**各位成员的帮助。
 
@@ -106,7 +118,7 @@ KnowCS 建立在许多开源项目之上，例如：
 - [Dragology](https://declarative-dragging.github.io)：面向 SVG 的声明式拖拽库，K-Means 实验里拖动的点由它驱动。
 - [Pyodide](https://pyodide.org/)：编译成 WebAssembly 的 CPython，实验场里的真实 Python 由它运行。
 
-考试例题均依据课程讲义与往年试卷改写或重新计算，仅供学习使用。
+早期内容参考了 [moyunxiang/COMP2211](https://github.com/moyunxiang/COMP2211/blob/main/COMP2211.md) 的学习笔记。考试例题均依据课程讲义与往年试卷改写或重新计算，仅供学习使用。
 
 ## 许可
 
