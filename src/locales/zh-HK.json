@@ -4753,8 +4753,7 @@
   },
   "about": {
     "title": "關於 KnowCS",
-    "eyebrow": "關於",
-    "lead": "KnowCS 是一個 COMP4971 Independent Work 項目，在 Desmond Tsoi 博士的指導下完成：一個把香港科技大學 COMP2211 人工智能導論的核心概念做成可視化的網站。它受到新加坡國立大學 VisuAlgo 和斯坦福 CS231n 的啓發，我想給 COMP2211 也做一個這樣的網站。",
+    "lead": "KnowCS 是一個 COMP4971 Independent Work 項目，在 Desmond Tsoi 教授的指導下完成。它把香港科技大學 COMP2211 人工智能導論的核心概念，做成了可以動手操作的可視化頁面。靈感來自新加坡國立大學的 VisuAlgo 和斯坦福大學的 CS231n：我希望 COMP2211 也能有一個這樣的網站。",
     "roles": {
       "author": "作者",
       "supervisor": "指導老師",

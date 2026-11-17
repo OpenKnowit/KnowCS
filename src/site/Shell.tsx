@@ -143,15 +143,20 @@ export function Shell({ section, children }: { section: Section; children: React
             <span className="truncate text-lg">{t('app.title')}</span>
             <span className="hidden rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-600 md:inline">Beta</span>
           </a>
-          {/* the way to /about/: who made the site and what to do about a mistake */}
+          {/* the way to /about/: a small ? that opens into the word when pointed at or focused
+              (wide screens only: on narrow ones the extra width would squeeze the site name) */}
           <a
             href="/about/"
             aria-label={t('app.footer.about_site')}
             aria-current={section === 'about' ? 'page' : undefined}
-            title={t('app.footer.about_site')}
-            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-[11px] font-black leading-none text-slate-500 transition hover:border-blue-400 hover:text-blue-600"
+            className="group inline-flex h-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-300 bg-white px-[5px] font-black leading-none text-slate-500 transition-all duration-300 ease-out hover:border-blue-400 hover:bg-blue-50 lg:hover:px-2 hover:text-blue-600 focus-visible:border-blue-400 focus-visible:bg-blue-50 lg:focus-visible:px-2 focus-visible:text-blue-600 motion-reduce:transition-none"
           >
-            <span aria-hidden>?</span>
+            <span aria-hidden className="inline-block w-2 text-center text-[11px] transition-all duration-300 ease-out lg:group-hover:w-0 lg:group-hover:opacity-0 lg:group-focus-visible:w-0 lg:group-focus-visible:opacity-0 motion-reduce:transition-none">
+              ?
+            </span>
+            <span aria-hidden className="inline-block max-w-0 whitespace-nowrap text-[10px] uppercase tracking-wide opacity-0 transition-all duration-300 ease-out lg:group-hover:max-w-12 lg:group-hover:opacity-100 lg:group-focus-visible:max-w-12 lg:group-focus-visible:opacity-100 motion-reduce:transition-none">
+              {t('app.footer.about')}
+            </span>
           </a>
         </div>
         <span className="hidden flex-1 lg:block" />

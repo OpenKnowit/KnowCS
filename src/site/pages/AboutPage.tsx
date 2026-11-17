@@ -42,8 +42,7 @@ export default function AboutPage() {
   }, [t])
   return (
     <main className="mx-auto max-w-[1000px] px-4 pb-12 pt-6 sm:px-8">
-      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-blue-600">{t('about.eyebrow')}</p>
-      <h1 className="mt-2 text-[clamp(30px,4vw,44px)] font-black leading-tight tracking-tight">{t('about.title')}</h1>
+      <h1 className="text-[clamp(30px,4vw,44px)] font-black leading-tight tracking-tight">{t('about.title')}</h1>
       <p className="mt-2 max-w-3xl text-[16px] text-slate-600">{t('about.lead')}</p>
 
       {/* the author, large; the people who helped come after, smaller */}

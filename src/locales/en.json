@@ -4753,7 +4753,6 @@
   },
   "about": {
     "title": "About KnowCS",
-    "eyebrow": "About",
     "lead": "KnowCS is a COMP4971 Independent Work project, done under the supervision of Dr. Desmond Tsoi: a site that visualises the core concepts of HKUST’s COMP2211, Introduction to Artificial Intelligence. It was inspired by NUS’s VisuAlgo and Stanford’s CS231n; I wanted COMP2211 to have something like them.",
     "roles": {
       "author": "Author",

@@ -80,7 +80,7 @@ npm run build        # 多页构建，输出到 dist/
 
 ## 成员
 
-KnowCS 是香港科技大学的一个 COMP4971 Independent Work 项目，在 Desmond Tsoi 博士的指导下完成。它受到新加坡国立大学 [VisuAlgo](https://visualgo.net/) 和斯坦福 [CS231n](https://cs231n.stanford.edu/) 的启发，我想给 COMP2211 也做一个这样的网站。
+KnowCS 是香港科技大学的一个 COMP4971 Independent Work 项目，在 Desmond Tsoi 教授的指导下完成。灵感来自新加坡国立大学的 [VisuAlgo](https://visualgo.net/) 和斯坦福大学的 [CS231n](https://cs231n.stanford.edu/)：我希望 COMP2211 也能有一个这样的网站。
 
 <table>
   <tr>
