@@ -525,6 +525,7 @@
     },
     "footer": {
       "about": "About",
+      "about_site": "About this site",
       "unofficial": "An unofficial study site, not affiliated with HKUST",
       "contact": "Contact:"
     }
@@ -4760,13 +4761,13 @@
       "inspiration": "Inspiration, help and co-development"
     },
     "author": "Year 3 COMP student at HKUST. I designed and built KnowCS.",
-    "supervisor": "My deepest thanks go to Desmond for his generous support and help. His encouragement is what made this project possible.",
-    "inspiration": "Kevin inspired this project, helped along the way and co-developed parts of it.",
+    "supervisor": "Special thanks to Desmond for his support and help. His encouragement is what made this project possible.",
+    "inspiration": "Kevin inspired this project, helped along the way and co-developed it.",
     "thanks_title": "With thanks to",
     "thanks": "Thanks also to <b>Gray</b> (TA) for testing the site and giving feedback, to <b>Zhang Baiqiao</b> for advice on the interface, and to the members of the <b>COMP2211 teaching team</b> for their help.",
     "open_title": "Open source",
     "open": "KnowCS is open source under the MIT licence, and the whole project lives at <a>github.com/OpenKnowit/KnowCS</a>. If it helped you, a star would mean a lot. You are welcome to build it with me, or to take the idea to COMP1023 and other courses.",
-    "star": "Star on GitHub",
+    "code": "Code on GitHub",
     "accuracy_title": "If something looks wrong",
     "accuracy": "Parts of this site were built with Claude Code (Opus 5.5). Where anything here differs from the lecture notes, the lecture notes are right. If you find a mistake, please tell me at <a>jzhangkb@connect.ust.hk</a>, or tell Desmond. Thank you!",
     "built_title": "Built on",

@@ -525,6 +525,7 @@
     },
     "footer": {
       "about": "关于",
+      "about_site": "关于本站",
       "unofficial": "非官方学习网站，与香港科技大学无隶属关系",
       "contact": "联系："
     }
@@ -4760,13 +4761,13 @@
       "inspiration": "启发、帮助与协助开发"
     },
     "author": "香港科技大学 COMP 三年级学生，KnowCS 的设计者和开发者。",
-    "supervisor": "特别感谢 Desmond 给予的大力支持和帮助。正是在他的鼓励下，这个项目才得以实现。",
-    "inspiration": "感谢 Kevin 给这个项目带来的启发和帮助，并协助了一部分开发。",
+    "supervisor": "特别感谢 Desmond 给予的支持和帮助。正是在他的鼓励下，这个项目才得以实现。",
+    "inspiration": "感谢 Kevin 给这个项目带来的启发和帮助，以及协助开发。",
     "thanks_title": "感谢",
     "thanks": "还要感谢助教 <b>Gray</b> 帮忙测试并提出反馈，感谢 <b>Zhang Baiqiao</b> 在界面设计上的建议，也感谢 <b>COMP2211 教学团队</b>各位成员的帮助。",
     "open_title": "开源",
     "open": "KnowCS 以 MIT 许可证开源，整个项目都在 <a>github.com/OpenKnowit/KnowCS</a>。如果它对你有帮助，欢迎点一个 Star。也欢迎一起来建设，或者把这个思路带到 COMP1023 和更多课程。",
-    "star": "在 GitHub 上点 Star",
+    "code": "Code on GitHub",
     "accuracy_title": "如果发现不对的地方",
     "accuracy": "本站有一部分是借助 Claude Code（Opus 5.5）构建的。如果内容与课件不一致，请以课件为准。发现错误欢迎告诉我：<a>jzhangkb@connect.ust.hk</a>，也可以告诉 Desmond。谢谢大家！",
     "built_title": "用到的开源项目",

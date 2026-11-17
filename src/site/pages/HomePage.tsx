@@ -93,7 +93,18 @@ export default function HomePage() {
 
   return (
     <main className="px-4 sm:px-[clamp(1rem,9vw,13rem)] pb-16 pt-6 lg:pt-8">
-      <h1 className="text-[clamp(24px,2.6vw,30px)] font-extrabold tracking-tight text-slate-900">{t('site.home.title_full')}</h1>
+      <div className="flex items-center gap-2.5">
+        <h1 className="min-w-0 break-keep text-[clamp(24px,2.6vw,30px)] font-extrabold tracking-tight text-slate-900">{t('site.home.title_full')}</h1>
+        {/* the way to /about/: who made the site and what to do about a mistake */}
+        <a
+          href="/about/"
+          aria-label={t('app.footer.about_site')}
+          title={t('app.footer.about_site')}
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-[14px] font-black leading-none text-slate-500 shadow-sm transition hover:border-blue-400 hover:text-blue-600"
+        >
+          <span aria-hidden>?</span>
+        </a>
+      </div>
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <label className="flex h-[42px] w-full max-w-[420px] items-center gap-2.5 rounded-[10px] border border-slate-200 bg-white px-3.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
           <Search size={17} className="shrink-0 text-slate-500" aria-hidden />

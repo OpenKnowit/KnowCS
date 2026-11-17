@@ -102,9 +102,9 @@ KnowCS is a COMP4971 Independent Work project at HKUST, done under the supervisi
   </tr>
 </table>
 
-My deepest thanks go to **Dr. Desmond Tsoi** for his generous support and help. His encouragement is what made this project possible.
+Special thanks to **Dr. Desmond Tsoi** for his support and help. His encouragement is what made this project possible.
 
-Thanks to **Mo Yunxiang (Kevin)** for inspiring this project, helping along the way and co-developing parts of it.
+Thanks to **Mo Yunxiang (Kevin)** for inspiring this project, helping along the way and co-developing it.
 
 Thanks also to **Gray** (TA) for testing the site and giving feedback, to **Zhang Baiqiao** for advice on the interface, and to the members of the **COMP2211 teaching team** for their help.
 

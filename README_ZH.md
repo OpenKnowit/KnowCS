@@ -102,9 +102,9 @@ KnowCS 是香港科技大学的一个 COMP4971 Independent Work 项目，在 Des
   </tr>
 </table>
 
-特别感谢 **Dr. Desmond Tsoi** 给予的大力支持和帮助。正是在他的鼓励下，这个项目才得以实现。
+特别感谢 **Dr. Desmond Tsoi** 给予的支持和帮助。正是在他的鼓励下，这个项目才得以实现。
 
-感谢 **Mo Yunxiang (Kevin)** 给这个项目带来的启发和帮助，并协助了一部分开发。
+感谢 **Mo Yunxiang (Kevin)** 给这个项目带来的启发和帮助，以及协助开发。
 
 还要感谢助教 **Gray** 帮忙测试并提出反馈，感谢 **Zhang Baiqiao** 在界面设计上的建议，也感谢 **COMP2211 教学团队**各位成员的帮助。
 

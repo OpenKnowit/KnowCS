@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { ArrowUpRight, Mail, Star } from 'lucide-react'
+import { ArrowUpRight, Code, Mail } from 'lucide-react'
 import authorPhoto from '../../assets/about/zhangjiahao.webp'
 import supervisorPhoto from '../../assets/about/desmond.webp'
 import inspirationPhoto from '../../assets/about/moyunxiang.webp'
@@ -98,7 +98,7 @@ export default function AboutPage() {
           <Trans i18nKey="about.open" components={{ a: <a className={link} href={REPO} {...out} /> }} />
           <p className="mt-3">
             <a href={REPO} {...out} className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-700">
-              <Star size={15} aria-hidden /> {t('about.star')}
+              <Code size={15} aria-hidden /> {t('about.code')}
             </a>
           </p>
         </Block>
