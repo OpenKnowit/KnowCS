@@ -25,6 +25,7 @@
 | Labs | `/<topic>/` | 25 hands-on pages. Most build the exact table an exam asks for, step by step, and have a “Quiz me” mode that blanks the cells for you to fill in. |
 | Playground | `/playground/` | Python in the browser. Pick a library (NumPy, Matplotlib, pandas, scikit-learn, OpenCV, PyTorch, Keras, TensorFlow), edit the code, and every call becomes a step you can open: the array cells it used, the figure it drew, the layer shapes or the gradient graph. |
 | Resources | `/resources/` | Sites worth keeping open next to the course. |
+| About | `/about/` | Who made the site, who helped, and what to do if something looks wrong. |
 
 ### Labs by lecture
 

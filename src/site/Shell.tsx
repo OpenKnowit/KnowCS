@@ -14,7 +14,7 @@ const LANG_LABELS: Record<LangCode, string> = {
 /** where questions and corrections go; shown in the footer */
 const CONTACT = 'jzhangkb@connect.ust.hk'
 
-export type Section = 'course' | 'playground' | 'resources' | 'watch' | 'drill' | 'notes' | 'extend'
+export type Section = 'course' | 'playground' | 'resources' | 'watch' | 'drill' | 'notes' | 'extend' | 'about'
 
 const LanguageMenu = () => {
   const { t, i18n } = useTranslation()
@@ -158,6 +158,10 @@ export function Shell({ section, children }: { section: Section; children: React
       {/* a quiet last line; the playground workbench fills the screen down to the bottom edge, so it has none */}
       {section !== 'playground' && (
         <footer className="px-4 pb-5 pt-8 text-center text-[11px] leading-relaxed text-slate-400 print:hidden">
+          <a href="/about/" aria-current={section === 'about' ? 'page' : undefined} className="hover:text-slate-600 hover:underline">
+            {t('app.footer.about')}
+          </a>
+          <span aria-hidden> · </span>
           {t('app.footer.unofficial')}
           <span aria-hidden> · </span>
           {t('app.footer.contact')}{' '}

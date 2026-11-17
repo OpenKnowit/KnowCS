@@ -172,8 +172,8 @@ export function rawHk() {
 // ---------------------------------------------------------------------------
 const EP_CORE = ['kicker', 'title', 'sub']
 const LAB_SHARED = ['common', 'errors']
-// one page each: the classic modules, NumPy, drill, formula sheet
-const FIXED_PACKS = ['numpy_module', 'numpy_api', 'drill', 'formulas.items', 'bayes', 'knn', 'alphabeta', 'backprop_module', 'kmeans', 'kernel_module']
+// one page each: the classic modules, NumPy, drill, formula sheet, About
+const FIXED_PACKS = ['about', 'numpy_module', 'numpy_api', 'drill', 'formulas.items', 'bayes', 'knn', 'alphabeta', 'backprop_module', 'kmeans', 'kernel_module']
 
 export function packNames(strings) {
   return [

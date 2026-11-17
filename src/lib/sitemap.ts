@@ -113,6 +113,7 @@ export const drillUrl = (): string => '/drill/'
 export const formulasUrl = (): string => '/formulas/'
 export const papersUrl = (): string => '/papers/'
 export const resourcesUrl = (): string => '/resources/'
+export const aboutUrl = (): string => '/about/'
 export const watchUrl = (id?: string): string => (id ? `/watch/${id}/` : '/watch/')
 export const extendUrl = (id?: string): string => (id ? `/extend/${id}/` : '/extend/')
 
@@ -165,6 +166,7 @@ export type PageSpec =
   | { kind: 'formulas'; path: string }
   | { kind: 'papers'; path: string }
   | { kind: 'resources'; path: string }
+  | { kind: 'about'; path: string }
   | { kind: 'admin'; path: string }
   | { kind: 'notfound'; path: string }
   | { kind: 'watch-item'; path: string; id: string }
@@ -189,6 +191,7 @@ export const PAGES: PageSpec[] = [
     : []),
   { kind: 'papers', path: 'papers/index.html' },
   { kind: 'resources', path: 'resources/index.html' },
+  { kind: 'about', path: 'about/index.html' },
   { kind: 'admin', path: 'admin/index.html' },
   { kind: 'notfound', path: '404.html' },
   { kind: 'notes', path: 'notes/index.html' },

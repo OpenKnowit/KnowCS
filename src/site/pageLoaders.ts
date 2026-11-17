@@ -59,6 +59,7 @@ export const PAGE_LOADERS = {
   formulas: memo(withPacks(i18n, ['formulas.items'], () => import('./pages/FormulasPage'))),
   papers: memo(() => import('./pages/PapersPage')),
   resources: memo(() => import('./pages/ResourcesPage')),
+  about: memo(withPacks(i18n, ['about'], () => import('./pages/AboutPage'))),
   admin: memo(() => import('./pages/AdminPage')),
   notfound: memo(() => import('./pages/NotFoundPage')),
 }

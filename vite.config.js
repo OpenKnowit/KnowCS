@@ -43,6 +43,8 @@ function pageMeta(page) {
       return pick("papers.title", "papers.lead")
     case "resources":
       return pick("site.resources.title", "site.resources.lead")
+    case "about":
+      return pick("about.title", "about.lead")
     case "admin":
       return pick("site.admin.title", "site.admin.title")
     case "notfound":
